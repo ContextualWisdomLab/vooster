@@ -80,10 +80,10 @@ export type StoredProject = {
 export type StoredSpecBranch = {
   id: string;
   project_id: string;
-  name: "main";
-  owner_type: "HUMAN";
+  name: string;
+  owner_type: "AGENT" | "HUMAN";
   owner_id: string;
-  base_branch_id: null;
+  base_branch_id: null | string;
 };
 
 export type StoredActor = {

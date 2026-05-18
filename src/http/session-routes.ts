@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { createAutoBranch } from "./session-branch-support.js";
 import {
   archivedPinProblem,
   hardLockedPinProblem,
@@ -12,6 +13,7 @@ import { problem } from "./signup-support.js";
 import type {
   SignupState,
   StoredAgentType,
+  StoredSpecBranch,
   StoredMembership,
   StoredWorkSession
 } from "./signup-types.js";
@@ -26,6 +28,8 @@ const knownAgentTypes = new Set<StoredAgentType>([
 ]);
 const sessionStartSchema = z.object({
   agent_type: z.string().default("OTHER"),
+  auto_branch: z.boolean().default(false),
+  branch_name: z.string().min(1).optional(),
   intent: z.string().min(1),
   pins: z.array(z.string().min(1)).min(1),
   project_id: z.string().min(1)
@@ -71,13 +75,20 @@ function createPinnedSession(
   userId: string
 ) {
   const session = workSession(data, pinned, userId, agentIdentifier(request, data.agent_type));
+  const branch = data.auto_branch
+    ? createAutoBranch(state, data.project_id, data.branch_name ?? `agent/${session.id}`, session)
+    : undefined;
+  if (branch === undefined && data.auto_branch) {
+    return reply.code(409).send(problem(409, "Auto branch name is already in use"));
+  }
+  session.branch_id = branch?.id ?? null;
   state.workSessionsById.set(session.id, session);
   for (const usecase of pinned.usecases) {
     const sessions = state.workSessionsByUseCaseId.get(usecase.id) ?? [];
     state.workSessionsByUseCaseId.set(usecase.id, [...sessions, session]);
   }
 
-  return reply.code(201).send(sessionStartResponse(session, pinned.keys));
+  return reply.code(201).send(sessionStartResponse(session, pinned.keys, branch));
 }
 
 function workSession(
@@ -101,9 +112,14 @@ function workSession(
   };
 }
 
-function sessionStartResponse(session: StoredWorkSession, keys: string[]) {
+function sessionStartResponse(
+  session: StoredWorkSession,
+  keys: string[],
+  branch?: StoredSpecBranch
+) {
   return {
     session,
+    ...(branch === undefined ? {} : { branch }),
     session_file: {
       path: ".vspec/session.json",
       session_id: session.id

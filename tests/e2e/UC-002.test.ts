@@ -117,6 +117,22 @@ describe("UC-002 - Log in", () => {
     expect(body.workspaces).toEqual([]);
     expect(body.recommended_next_command).toBe("vspec workspace create");
   });
+
+  test("*a: GitHub network failure during login returns retry guidance", async () => {
+    const loginStart = await startLogin();
+    const login = await completeOAuth("stub-github-network-failure", loginStart);
+
+    expect(login.status).toBe(502);
+    expect(login.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(login.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await login.json()) as ProblemResponse;
+    expect(body.title).toMatch(/github.*unavailable/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Retry login after GitHub is reachable."
+    });
+  });
 });
 
 async function startSignup(name: string, slug: string) {

@@ -165,4 +165,31 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
       pinned_revision: usecase.current_revision_id
     });
   });
+
+  test("4a: repeated preview returns cached identical impact", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Impact Cache", "impact-cache", "stub-impact-cache");
+    const request = {
+      base_revision: usecase.current_revision_id,
+      entity_id: usecase.id,
+      entity_type: "USECASE"
+    };
+
+    const first = await previewImpact(setup.cookie, request);
+    const second = await previewImpact(setup.cookie, request);
+
+    expect(first.cached).toBe(false);
+    expect(second.cached).toBe(true);
+    expect(second.impact).toEqual(first.impact);
+  });
 });
+
+async function previewImpact(cookie: string, body: Record<string, unknown>) {
+  const response = await server.fetch("/v1/changes/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as ImpactResponse;
+}

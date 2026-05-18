@@ -46,6 +46,7 @@ function initialState(options: ServerOptions): SignupState {
     branchesById: new Map(),
     goalsByProjectId: new Map(),
     membershipsByUserId: new Map(),
+    mergeRequestsById: new Map(),
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),
     projectsById: new Map(),

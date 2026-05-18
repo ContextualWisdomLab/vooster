@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import type { StoredMergeRequest } from "./merge-request-types.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredWorkSession } from "./signup-types.js";
@@ -130,14 +131,14 @@ function openMergeRequest(
   state: SignupState,
   session: StoredWorkSession,
   withConflicts: boolean
-) {
+): StoredMergeRequest {
   const project = state.projectsById.get(session.project_id ?? "");
   const conflicts = withConflicts
     ? Object.keys(session.pinned_revisions ?? {}).map((entityId) => ({ entity_id: entityId, type: "SEMANTIC" }))
     : [];
-  return {
+  const mergeRequest: StoredMergeRequest = {
     id: randomUUID(),
-    source_branch_id: session.branch_id,
+    source_branch_id: session.branch_id ?? null,
     target_branch_id: project?.default_branch_id ?? "",
     status: "OPEN",
     strategy: "FAST_FORWARD",
@@ -150,6 +151,8 @@ function openMergeRequest(
     },
     conflicts
   };
+  state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
+  return mergeRequest;
 }
 
 function nextActions(mergeRequest: MergeRequestResponse | undefined, branch?: string) {

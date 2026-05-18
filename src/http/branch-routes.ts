@@ -75,9 +75,11 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
     status: "ACTIVE"
   };
   state.branchesById.set(branch.id, branch);
+  const warnings = inFlightMergeRequestWarnings(state, baseBranch.id);
 
   return reply.code(201).send({
     branch,
+    ...(warnings.length === 0 ? {} : { warnings }),
     suggested_next_actions: [
       { command: `vspec branch checkout ${branch.name}`, reason: "Switch to the isolated branch." },
       {
@@ -86,6 +88,17 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
       }
     ]
   });
+}
+
+function inFlightMergeRequestWarnings(state: SignupState, targetBranchId: string) {
+  return [...state.mergeRequestsById.values()]
+    .filter((mergeRequest) =>
+      mergeRequest.target_branch_id === targetBranchId && mergeRequest.status === "OPEN"
+    )
+    .map((mergeRequest) => ({
+      merge_request_id: mergeRequest.id,
+      type: "IN_FLIGHT_MERGE_REQUEST"
+    }));
 }
 
 function readOnly(reply: FastifyReply) {

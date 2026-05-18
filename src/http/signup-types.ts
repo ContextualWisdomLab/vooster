@@ -1,7 +1,7 @@
+import type { StoredMergeRequest } from "./merge-request-types.js";
 export type ServerOptions = {
   authStub: boolean;
 };
-
 export type PendingSignup = {
   name: string;
   slug: string;
@@ -14,6 +14,7 @@ export type SignupState = {
   branchesById: Map<string, StoredSpecBranch>;
   goalsByProjectId: Map<string, StoredGoal[]>;
   membershipsByUserId: Map<string, StoredMembership[]>;
+  mergeRequestsById: Map<string, StoredMergeRequest>;
   pendingOAuth: Map<string, PendingOAuth>;
   projectKeysByWorkspaceId: Map<string, Map<string, string>>;
   projectsById: Map<string, StoredProject>;
@@ -49,7 +50,6 @@ export type StoredUser = {
   avatar_url: string;
   last_login_at?: string;
 };
-
 export type StoredWorkspace = {
   id: string;
   name: string;

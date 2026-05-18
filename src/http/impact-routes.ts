@@ -6,6 +6,16 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
+type ImpactPayload = {
+  affected_branches: string[];
+  affected_sessions: ReturnType<typeof affectedActiveSessions>;
+  affected_tests: string[];
+  confidence: number;
+  input_hash: string;
+  severity: "BREAKING" | "COSMETIC" | "NON_BREAKING";
+};
+
+const impactCaches = new WeakMap<SignupState, Map<string, ImpactPayload>>();
 const previewSchema = z.object({
   base_revision: z.string().min(1),
   entity_id: z.string().min(1),
@@ -48,16 +58,20 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
   const affectedSessions = affectedActiveSessions(state, found.usecase.id);
   const inputHash = impactHash(revision.id, revision.snapshot);
   const previewId = randomUUID();
+  const cached = cacheFor(state).get(inputHash);
+  if (cached !== undefined) {
+    return reply.send({
+      cached: true,
+      impact: cached,
+      preview_id: previewId,
+      suggested_next_actions: nextActions(found.usecase, previewId)
+    });
+  }
+  const impact = impactPayload(revision, affectedSessions, inputHash);
+  cacheFor(state).set(inputHash, impact);
   return reply.send({
     cached: false,
-    impact: {
-      affected_branches: [],
-      affected_sessions: affectedSessions,
-      affected_tests: [],
-      confidence: 1,
-      input_hash: inputHash,
-      severity: affectedSessions.length > 0 ? "BREAKING" : revision.severity ?? "NON_BREAKING"
-    },
+    impact,
     preview_id: previewId,
     suggested_next_actions: nextActions(found.usecase, previewId)
   });
@@ -70,6 +84,31 @@ function revisionById(
 ): StoredRevision | undefined {
   return (state.revisionsByEntityId.get(usecaseId) ?? [])
     .find((revision) => revision.id === revisionId);
+}
+
+function cacheFor(state: SignupState) {
+  const existing = impactCaches.get(state);
+  if (existing !== undefined) {
+    return existing;
+  }
+  const created = new Map<string, ImpactPayload>();
+  impactCaches.set(state, created);
+  return created;
+}
+
+function impactPayload(
+  revision: StoredRevision,
+  affectedSessions: ReturnType<typeof affectedActiveSessions>,
+  inputHash: string
+): ImpactPayload {
+  return {
+    affected_branches: [],
+    affected_sessions: affectedSessions,
+    affected_tests: [],
+    confidence: 1,
+    input_hash: inputHash,
+    severity: affectedSessions.length > 0 ? "BREAKING" : revision.severity ?? "NON_BREAKING"
+  };
 }
 
 function impactHash(revisionId: string, snapshot: StoredRevision["snapshot"]) {

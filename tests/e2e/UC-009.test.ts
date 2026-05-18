@@ -157,4 +157,36 @@ describe("UC-009 - Author a use case from scratch", () => {
       reason: "Open the new use case."
     });
   });
+
+  test("*a: unauthorized requester gets access guidance without consuming key", async () => {
+    const owner = await createProject(server, "Owned UseCase", "owned-usecase", "stub-owned-usecase");
+    const outsider = await createProject(server, "Other UseCase", "other-usecase", "stub-other-usecase");
+    await createActor(server, owner, "Customer");
+
+    const forbidden = await server.fetch(`/v1/projects/${owner.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: outsider.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "Places an order" })
+    });
+
+    expect(forbidden.status).toBe(403);
+    const problem = (await forbidden.json()) as ProblemResponse;
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for editor access."
+    });
+
+    const created = await server.fetch(`/v1/projects/${owner.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "Places an order" })
+    });
+    const body = (await created.json()) as UseCaseResponse;
+    expect(created.status).toBe(201);
+    expect(body.usecase.key).toBe("CHK-001");
+  });
 });

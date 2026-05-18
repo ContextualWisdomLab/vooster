@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   commitChange,
+  expectTitleDiff,
   expirePreview,
   historyRevisionIds,
   proposeChange,
@@ -31,16 +32,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     expect(body.impact).toMatchObject({ affected_sessions: [], severity: "NON_BREAKING" });
     expect(Date.parse(body.expires_at)).toBeGreaterThan(Date.now());
     expect(Date.parse(body.expires_at)).toBeLessThanOrEqual(Date.now() + 16 * 60_000);
-    expect(body.diff).toEqual([
-      {
-        after: "Reviews a refund with audit trail",
-        before: "Reviews a refund",
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        path: "title",
-        severity: "NON_BREAKING"
-      }
-    ]);
+    expectTitleDiff(body, usecase, "Reviews a refund with audit trail");
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec change commit --preview-id ${body.preview_id}`,
       reason: "Commit the preview after human review."

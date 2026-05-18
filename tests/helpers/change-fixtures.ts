@@ -1,5 +1,6 @@
 import type { TestServer } from "./server.js";
 import type { UseCase } from "./uc-fixtures.js";
+import { expect } from "vitest";
 
 export type ChangePreviewResponse = {
   diff: Array<{
@@ -61,4 +62,15 @@ export function titlePatch(usecase: UseCase, title: string, extra: Record<string
     patch: { entity_id: usecase.id, entity_type: "USECASE", fields: { title } },
     usecase_key: usecase.key
   };
+}
+
+export function expectTitleDiff(body: ChangePreviewResponse, usecase: UseCase, title: string) {
+  expect(body.diff).toEqual([{
+    after: title,
+    before: usecase.title,
+    entity_id: usecase.id,
+    entity_type: "USECASE",
+    path: "title",
+    severity: "NON_BREAKING"
+  }]);
 }

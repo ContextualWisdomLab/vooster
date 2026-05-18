@@ -124,6 +124,28 @@ describe("UC-014 - Search and filter use cases", () => {
       reason: "Drop the search text to browse all visible use cases."
     });
   });
+
+  test("4a: malformed cursor fails and stale cursor returns plain empty page", async () => {
+    const setup = await createProject(server, "Search Cursor", "search-cursor", "stub-cursor");
+    await createActor(server, setup, "Customer");
+    await createUseCase(server, setup, "Customer", "Reviews a cursor");
+
+    const malformed = await searchUseCases(setup.cookie, setup.projectId, {
+      cursor: "not-a-cursor"
+    });
+    expect(malformed.status).toBe(400);
+    const problem = (await malformed.json()) as SearchProblem;
+    expect(problem.title).toBe("cursor is opaque — pass exactly what the previous response returned");
+
+    const stale = await searchUseCases(setup.cookie, setup.projectId, {
+      cursor: Buffer.from(JSON.stringify({ key: "ZZZ" }), "utf8").toString("base64url")
+    });
+    expect(stale.status).toBe(200);
+    const body = (await stale.json()) as SearchResponse;
+    expect(body.items).toEqual([]);
+    expect(body.next_cursor).toBeNull();
+    expect(body.suggested_next_actions).toBeUndefined();
+  });
 });
 
 async function archiveUseCase(usecaseId: string, cookie: string) {

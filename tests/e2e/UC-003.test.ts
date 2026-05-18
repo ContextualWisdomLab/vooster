@@ -1,30 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import {
+  acceptInvitation,
+  inviteMember,
+  type AcceptanceResponse,
+  type InvitationResponse,
+  type ProblemResponse
+} from "../helpers/invitation-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { signup } from "../helpers/uc-fixtures.js";
-
-type Invitation = {
-  accepted_at: null | string;
-  delivery_status: "SENT" | "FAILED";
-  email: string;
-  expires_at: string;
-  id: string;
-  role: "EDITOR" | "OWNER";
-  token: string;
-  workspace_id: string;
-};
-type InvitationResponse = {
-  invitation: Invitation;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-};
-type AcceptanceResponse = {
-  invitation: Invitation;
-  membership: { role: "EDITOR" | "OWNER"; user_id: string; workspace_id: string };
-  user: { email: string; id: string };
-};
-type ProblemResponse = {
-  code?: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -35,7 +18,7 @@ describe("UC-003 - Invite a member", () => {
     const owner = await signup(server, "Invite Main", "invite-main", "stub-invite-owner");
     const inviteeEmail = "stub-invitee@users.noreply.github.com";
 
-    const invited = await inviteMember(owner.workspaceId, owner.cookie, inviteeEmail, "EDITOR");
+    const invited = await inviteMember(server, owner.workspaceId, owner.cookie, inviteeEmail, "EDITOR");
 
     expect(invited.status).toBe(201);
     const inviteBody = (await invited.json()) as InvitationResponse;
@@ -53,7 +36,7 @@ describe("UC-003 - Invite a member", () => {
       reason: "Review pending and active workspace members."
     });
 
-    const accepted = await acceptInvitation(inviteBody.invitation.token, "stub-invitee");
+    const accepted = await acceptInvitation(server, inviteBody.invitation.token, "stub-invitee");
 
     expect(accepted.status).toBe(200);
     const acceptBody = (await accepted.json()) as AcceptanceResponse;
@@ -68,16 +51,18 @@ describe("UC-003 - Invite a member", () => {
   test("2a: editor cannot invite an owner and gets editor-role guidance", async () => {
     const owner = await signup(server, "Invite Role", "invite-role", "stub-invite-role-owner");
     const editorInvite = await inviteMember(
+      server,
       owner.workspaceId,
       owner.cookie,
       "stub-invite-editor@users.noreply.github.com",
       "EDITOR"
     );
     const editorInviteBody = (await editorInvite.json()) as InvitationResponse;
-    const accepted = await acceptInvitation(editorInviteBody.invitation.token, "stub-invite-editor");
+    const accepted = await acceptInvitation(server, editorInviteBody.invitation.token, "stub-invite-editor");
     const editorCookie = accepted.headers.get("set-cookie") ?? "";
 
     const response = await inviteMember(
+      server,
       owner.workspaceId,
       editorCookie,
       "stub-invite-owner-target@users.noreply.github.com",
@@ -95,11 +80,11 @@ describe("UC-003 - Invite a member", () => {
   test("3a: email for an active member is rejected with set-role guidance", async () => {
     const owner = await signup(server, "Invite Existing", "invite-existing", "stub-existing-owner");
     const memberEmail = "stub-existing-member@users.noreply.github.com";
-    const invited = await inviteMember(owner.workspaceId, owner.cookie, memberEmail, "EDITOR");
+    const invited = await inviteMember(server, owner.workspaceId, owner.cookie, memberEmail, "EDITOR");
     const inviteBody = (await invited.json()) as InvitationResponse;
-    await acceptInvitation(inviteBody.invitation.token, "stub-existing-member");
+    await acceptInvitation(server, inviteBody.invitation.token, "stub-existing-member");
 
-    const response = await inviteMember(owner.workspaceId, owner.cookie, memberEmail, "OWNER");
+    const response = await inviteMember(server, owner.workspaceId, owner.cookie, memberEmail, "OWNER");
 
     expect(response.status).toBe(422);
     const problem = (await response.json()) as ProblemResponse;
@@ -113,10 +98,10 @@ describe("UC-003 - Invite a member", () => {
   test("3b: duplicate pending invite returns existing token with resend guidance", async () => {
     const owner = await signup(server, "Invite Duplicate", "invite-duplicate", "stub-duplicate-owner");
     const email = "stub-duplicate-invitee@users.noreply.github.com";
-    const first = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+    const first = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
     const firstBody = (await first.json()) as InvitationResponse;
 
-    const second = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+    const second = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
 
     expect(second.status).toBe(200);
     const secondBody = (await second.json()) as InvitationResponse;
@@ -131,6 +116,7 @@ describe("UC-003 - Invite a member", () => {
     const owner = await signup(server, "Invite Delivery", "invite-delivery", "stub-delivery-owner");
 
     const response = await inviteMember(
+      server,
       owner.workspaceId,
       owner.cookie,
       "stub-delivery-fail@users.noreply.github.com",
@@ -151,12 +137,12 @@ describe("UC-003 - Invite a member", () => {
   test("6a: expired token is rejected and creates no membership", async () => {
     const owner = await signup(server, "Invite Expired", "invite-expired", "stub-expired-owner");
     const email = "stub-expired-invitee@users.noreply.github.com";
-    const invited = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR", {
+    const invited = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR", {
       simulate_expired: true
     });
     const inviteBody = (await invited.json()) as InvitationResponse;
 
-    const expired = await acceptInvitation(inviteBody.invitation.token, "stub-expired-invitee");
+    const expired = await acceptInvitation(server, inviteBody.invitation.token, "stub-expired-invitee");
 
     expect(expired.status).toBe(410);
     const problem = (await expired.json()) as ProblemResponse;
@@ -165,29 +151,7 @@ describe("UC-003 - Invite a member", () => {
       command: "vspec member invite",
       reason: "Ask a workspace owner for a fresh invitation."
     });
-    const freshInvite = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+    const freshInvite = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
     expect(freshInvite.status).toBe(201);
   });
 });
-
-function inviteMember(
-  workspaceId: string,
-  cookie: string,
-  email: string,
-  role: "EDITOR" | "OWNER",
-  extra: Record<string, unknown> = {}
-) {
-  return server.fetch(`/v1/workspaces/${workspaceId}/invitations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify({ email, role, ...extra })
-  });
-}
-
-function acceptInvitation(token: string, code: string) {
-  return server.fetch(`/v1/invitations/${token}/accept`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code })
-  });
-}

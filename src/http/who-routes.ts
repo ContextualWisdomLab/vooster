@@ -18,9 +18,10 @@ export function registerWhoRoutes(app: FastifyInstance, state: SignupState) {
 }
 
 function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const usecase = useCaseById(state, usecaseIdFrom(request.params));
+  const usecaseId = usecaseIdFrom(request.params);
+  const usecase = useCaseById(state, usecaseId);
   if (usecase === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
+    return reply.code(404).send(missingUseCaseProblem(usecaseId));
   }
   if (membershipForProject(request, state, usecase.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
@@ -36,6 +37,20 @@ function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupStat
     suggested_next_actions: nextActions(locks, mergeRequests),
     usecase: { id: usecase.id, key: usecase.key }
   });
+}
+
+function missingUseCaseProblem(usecaseId: string) {
+  return problem(
+    404,
+    "Use case not found",
+    { key_format: "KEY-NNN" },
+    [
+      {
+        command: `vspec usecase search ${usecaseId}`,
+        reason: "Search for the intended use case key."
+      }
+    ]
+  );
 }
 
 function activeSessions(state: SignupState, usecaseId: string) {

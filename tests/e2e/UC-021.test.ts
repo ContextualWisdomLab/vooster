@@ -21,6 +21,12 @@ type MergeResolveResponse = {
   source_branch: { id: string; status: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
+type MergeResolveProblem = {
+  conflicts?: unknown[];
+  current_revision?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => {
@@ -64,6 +70,34 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec usecase show ${usecase.key}`,
       reason: "Review the resolved use case on main."
+    });
+  });
+
+  test("2a: stale base revision returns current merge conflicts", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Stale Resolve", "stale-resolve", "stub-stale-resolve");
+    const branch = await createBranch(server, setup, "feature/stale-resolve");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const opened = await openMerge(server, setup, branch.id);
+    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+
+    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: "stale-merge-revision",
+        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
+      })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as MergeResolveProblem;
+    expect(problem.title).toMatch(/base revision is stale/i);
+    expect(problem.current_revision).toBe(merge.current_revision_id);
+    expect(problem.conflicts).toEqual(merge.conflicts);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec merge show ${merge.id}`,
+      reason: "Reload the current conflict list before resolving."
     });
   });
 });

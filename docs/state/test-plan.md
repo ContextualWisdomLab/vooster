@@ -87,3 +87,11 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: remove an existing stakeholder interest -> deletes it and appends a BREAKING use case revision.
 - **5a**: removing the last interest -> succeeds with zero-interest warning and blocks later status transition out of DRAFT.
 - ***a**: stakeholder name does not resolve -> failure with candidate names and stakeholder-create guidance.
+
+### UC-011
+
+- **MAIN**: create the MAIN_SUCCESS scenario, add two actor-named steps, and receive contiguous step numbers plus NON_BREAKING use case revisions.
+- **2a**: creating a second MAIN_SUCCESS scenario -> 409 with the existing scenario id and scenario/step edit guidance.
+- **3b**: empty step action -> 400 with no step; passive action -> 422 warning with active rewrite guidance; force -> persists the passive action.
+- **5a**: step actor is unknown -> 422 listing known actors and `vspec actor create` guidance with no persisted step.
+- **6a**: adding the tenth main step -> persists the step with an over-nine-steps warning.

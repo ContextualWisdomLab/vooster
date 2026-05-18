@@ -16,6 +16,10 @@ type BranchCreateResponse = {
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
+type BranchProblemResponse = {
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -58,6 +62,24 @@ describe("UC-019 - Create a branch", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec usecase edit ${usecase.key}`,
       reason: "Start editing a use case on the branch."
+    });
+  });
+
+  test("3a: non-main base branch is rejected", async () => {
+    const setup = await createProject(server, "Branch From Feature", "branch-from-feature", "stub-branch-from-feature");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ from: "feature/existing", name: "feature/nested" })
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as BranchProblemResponse;
+    expect(problem.title).toMatch(/single-level branches/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec branch create feature/nested --from main",
+      reason: "Create MVP branches from main only."
     });
   });
 });

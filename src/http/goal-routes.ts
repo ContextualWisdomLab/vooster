@@ -12,7 +12,7 @@ import type {
 
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
-  description: z.string().min(1),
+  description: z.string(),
   level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]),
   priority: z.enum(["P0", "P1", "P2", "P3"])
 });
@@ -35,6 +35,14 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
   const parsed = goalRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid goal request"));
+  }
+
+  if (parsed.data.description.trim().length === 0) {
+    return reply.code(400).send(
+      problem(400, "Goal description must be a verb phrase", {
+        description_rule: "Use a non-empty verb phrase."
+      })
+    );
   }
 
   const actor = activeActorWithId(state, projectId, parsed.data.actor_id);

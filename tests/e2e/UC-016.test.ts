@@ -125,12 +125,7 @@ describe("UC-016 - Start a work session", () => {
   });
 
   test("4a: auto-branch collision gets a suffixed branch name", async () => {
-    const setup = await createProject(
-      server,
-      "Session Branch",
-      "session-branch",
-      "stub-session-branch"
-    );
+    const setup = await createProject(server, "Session Branch", "session-branch", "stub-session-branch");
     await createActor(server, setup, "Customer");
     const firstUseCase = await createUseCase(server, setup, "Customer", "Places an order");
     const secondUseCase = await createUseCase(server, setup, "Customer", "Reviews an order");
@@ -164,5 +159,39 @@ describe("UC-016 - Start a work session", () => {
     expect(secondBody.branch?.name).toMatch(/^agent\/session-work-[0-9a-f]{6}$/u);
     expect(secondBody.branch?.name).not.toBe(firstBody.branch?.name);
     expect(secondBody.session.branch_id).toBe(secondBody.branch?.id);
+  });
+
+  test("4b: auto-branch semantic lock conflict rolls back session creation", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Semantic Branch Conflict",
+      "semantic-branch-conflict",
+      "stub-semantic-branch-conflict"
+    );
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: "2026-06-01T00:00:00.000Z",
+      holder: "agent-session-semantic",
+      mode: "SEMANTIC",
+      reason: "Another session owns semantic changes."
+    });
+
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/semantic-conflict",
+      intent: "Work on a semantic conflict",
+      pins: [usecase.key]
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as SessionProblemResponse;
+    expect(problem.title).toMatch(/semantic lock/i);
+    expect(problem.conflicting_session).toBe("agent-session-semantic");
+    expect(problem.created_branch).toBe(false);
+    expect(problem.created_session).toBe(false);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the session holding the semantic lock."
+    });
   });
 });

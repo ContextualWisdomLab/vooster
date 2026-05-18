@@ -29,6 +29,9 @@ export type SessionStartResponse = {
 };
 
 export type SessionProblemResponse = {
+  created_branch?: boolean;
+  created_session?: boolean;
+  conflicting_session?: string;
   holding_session?: string;
   offending_key?: string;
   session_count?: number;

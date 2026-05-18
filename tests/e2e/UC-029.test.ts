@@ -1,29 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { historyRevisions, syncPull, syncPush } from "../helpers/sync-fixtures.js";
-
-type PullResponse = {
-  cursor: string;
-  files: Array<{ content: string; path: string; revision: string }>;
-};
-type PushResponse = {
-  cache: { entries: Array<{ path: string; revision: string; status: string }> };
-  results: Array<{
-    conflict_content?: string;
-    current_revision: string;
-    dry_run?: boolean;
-    impact?: { entity_id: string; severity: string };
-    path: string;
-    status: string;
-  }>;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-};
-type SyncProblem = {
-  offending_files: Array<{ line: number; message: string; path: string }>;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
+import {
+  expectHistoryRevisions,
+  syncPull,
+  syncPush,
+  type PullResponse,
+  type PushResponse,
+  type SyncProblem
+} from "../helpers/sync-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -75,7 +60,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Refresh local files after successful push."
     });
 
-    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
+    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
       newRevision,
       usecase.current_revision_id
     ]);
@@ -104,7 +89,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Validate the local file before pushing."
     });
 
-    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
+    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
       usecase.current_revision_id
     ]);
   });
@@ -157,7 +142,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Push again after removing conflict markers."
     });
 
-    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
+    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
       serverRevision,
       usecase.current_revision_id
     ]);
@@ -186,7 +171,7 @@ describe("UC-029 - Sync local files with the server", () => {
       status: "OK"
     });
     expect(push.cache.entries).toEqual([]);
-    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
+    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
       usecase.current_revision_id
     ]);
   });

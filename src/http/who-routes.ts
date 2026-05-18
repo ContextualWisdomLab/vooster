@@ -108,9 +108,17 @@ function nextActions(
   usecase: StoredUseCase,
   hasActiveWork: boolean
 ) {
+  if (!hasActiveWork) {
+    return [
+      {
+        command: `vspec session start --intent "..." --pin ${usecase.key}`,
+        reason: "Start a session on this use case."
+      }
+    ];
+  }
   return [
     ...(
-      usecase.archived_at !== null && hasActiveWork
+      usecase.archived_at !== null
         ? [{
             command: `vspec usecase restore ${usecase.key}`,
             reason: "Restore the archived use case before coordinating active work."

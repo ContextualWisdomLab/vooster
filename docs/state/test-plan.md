@@ -192,3 +192,11 @@ write. This guides your TDD cycles within an iteration._
 - **2b**: caller lacks workspace access -> 403 with login/member-role guidance and no history disclosure.
 - **5a**: history count exceeds `limit` -> returns only the requested rows, `truncated: true`, suppressed row count, and larger-limit/cursor guidance.
 - ***a**: simulated server error while reading history -> returns exit code 5 and retry guidance without mutating revisions.
+
+### UC-025
+
+- **MAIN**: authenticated member compares two use case revisions with `format=json` -> returns entity-aware changes with path, change type, severity, revision ids, and summary counts plus revert/impact/merge follow-up actions.
+- **2a**: either requested revision id is absent for the use case -> 404 naming the missing revision and use case key, suggests `vspec history <KEY-NNN>`, and returns no diff.
+- **3a**: compared revisions resolve to different branches -> still returns changes with `cross_branch: true`, a warning naming both branches, and branch labels on each change.
+- **4a**: comparing byte-identical revisions -> returns an empty `changes` array, zeroed summary, and a human note that the revisions match byte-for-byte.
+- ***a**: caller lacks workspace membership -> 403 without revealing whether the use case or revisions exist and returns no diff.

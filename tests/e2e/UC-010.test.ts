@@ -43,6 +43,7 @@ type RemoveInterestResponse = {
     interest: StakeholderInterest;
     stakeholder: Stakeholder;
   }>;
+  warnings?: Array<{ message: string; type: string }>;
 };
 type ProblemResponse = {
   existing_interest?: string;
@@ -151,6 +152,35 @@ describe("UC-010 - Define stakeholder interests", () => {
       version_number: 3
     });
     expect(body.stakeholder_interests).toEqual([]);
+  });
+
+  test("5a: removing last interest warns and blocks status transition", async () => {
+    const setup = await createProject(server, "Last Interest", "last-interest", "stub-last-interest");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+    const added = await addInterest(usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    const interest = ((await added.json()) as InterestResponse).stakeholder_interest;
+
+    const removed = await server.fetch(
+      `/v1/usecases/${usecase.id}/stakeholder-interests/${interest.id}`,
+      { method: "DELETE", headers: { Cookie: setup.cookie } }
+    );
+    const body = (await removed.json()) as RemoveInterestResponse;
+    expect(body.warnings).toContainEqual({
+      type: "NO_STAKEHOLDER_INTERESTS",
+      message: "Use case cannot leave DRAFT until an interest is added."
+    });
+
+    const transition = await server.fetch(`/v1/usecases/${usecase.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ status: "IN_REVIEW" })
+    });
+    expect(transition.status).toBe(422);
   });
 });
 

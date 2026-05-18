@@ -1,18 +1,18 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T14:43:35Z_
+_Last updated: 2026-05-18T15:00:13Z_
 
 ## Overall
 
-- Commits: 2
-- Last commit: a1e14f3 setup: initial scaffolding
-- Use cases complete: 0 / 35
+- Commits: 19
+- Last commit: 7b48893 green: UC-001 return retry guidance for github failure
+- Use cases complete: 1 / 35
 
 ## By Use Case
 
 | ID | Title | Status | Tests |
 | --- | --- | --- | --- |
-| UC-001 | Sign up for a workspace | ○ NOT STARTED | 0/0 |
+| UC-001 | Sign up for a workspace | ✓ DONE | 5/5 |
 | UC-002 | Log in | ○ NOT STARTED | 0/0 |
 | UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
 | UC-004 | Create a project | ○ NOT STARTED | 0/0 |

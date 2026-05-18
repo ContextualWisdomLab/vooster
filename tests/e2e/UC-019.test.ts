@@ -17,6 +17,7 @@ type BranchCreateResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type BranchProblemResponse = {
+  suggested_name?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -80,6 +81,30 @@ describe("UC-019 - Create a branch", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec branch create feature/nested --from main",
       reason: "Create MVP branches from main only."
+    });
+  });
+
+  test("5a: branch name collision suggests an alternative", async () => {
+    const setup = await createProject(server, "Branch Collision", "branch-collision", "stub-branch-collision");
+    await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/collide" })
+    });
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/collide" })
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as BranchProblemResponse;
+    expect(problem.title).toMatch(/branch name is already in use/i);
+    expect(problem.suggested_name).toBe("feature/collide-2");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec branch create feature/collide-2",
+      reason: "Create the branch with an available name."
     });
   });
 });

@@ -19,6 +19,14 @@ type SignupState = {
   pendingSignups: Map<string, PendingSignup>;
 };
 
+type GithubProfile = {
+  githubId: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  avatarUrl: string;
+};
+
 const startSignupSchema = z.object({
   workspace: z.object({
     name: z.string().min(1),
@@ -104,13 +112,20 @@ function completeSignup(
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 
+  const profile = githubProfile(options, parsed.data.code);
   state.pendingSignups.delete(parsed.data.state);
+  reply.header("set-cookie", [
+    expiredCookie("vspec_oauth_state")
+  ]);
+  if (!profile.emailVerified) {
+    return reply.code(422).send(problem(422, "Verify your GitHub email"));
+  }
+
   reply.header("set-cookie", [
     cookie("vspec_session", randomUUID()),
     expiredCookie("vspec_oauth_state")
   ]);
-
-  return reply.code(201).send(signupResponse(options, parsed.data.code, pending));
+  return reply.code(201).send(signupResponse(profile, pending));
 }
 
 function pendingSignup(
@@ -122,8 +137,7 @@ function pendingSignup(
   return stateCookie === oauthState ? state.pendingSignups.get(oauthState) : undefined;
 }
 
-function signupResponse(options: ServerOptions, code: string, pending: PendingSignup) {
-  const profile = githubProfile(options, code);
+function signupResponse(profile: GithubProfile, pending: PendingSignup) {
   const user = {
     id: randomUUID(),
     github_id: profile.githubId,
@@ -160,14 +174,25 @@ function ownerMembership(userId: string, workspaceId: string) {
   };
 }
 
-function githubProfile(options: ServerOptions, code: string) {
+function githubProfile(options: ServerOptions, code: string): GithubProfile {
   if (!options.authStub) {
     throw new Error("GitHub OAuth is not configured.");
+  }
+
+  if (code === "stub-unverified-email") {
+    return {
+      githubId: code,
+      email: "",
+      emailVerified: false,
+      name: "Stub GitHub User",
+      avatarUrl: "https://github.com/identicons/stub.png"
+    };
   }
 
   return {
     githubId: code,
     email: `${code}@users.noreply.github.com`,
+    emailVerified: true,
     name: "Stub GitHub User",
     avatarUrl: "https://github.com/identicons/stub.png"
   };

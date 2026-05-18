@@ -1,6 +1,23 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 
+export function archivedUseCaseProblem(usecase: StoredUseCase) {
+  if (usecase.archived_at === null) {
+    return undefined;
+  }
+  return problem(
+    409,
+    "Use case is archived",
+    {},
+    [
+      {
+        command: `vspec usecase restore ${usecase.key}`,
+        reason: "Restore the use case before exporting Gherkin."
+      }
+    ]
+  );
+}
+
 export function existingOutputProblem(
   usecase: StoredUseCase,
   outputPath: string | undefined,

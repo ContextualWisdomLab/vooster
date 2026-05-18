@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  archivedUseCaseProblem,
   existingOutputProblem,
   gherkinPrerequisiteProblem,
   missingRevisionProblem,
@@ -37,6 +38,10 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export Gherkin"));
+  }
+  const archivedProblem = archivedUseCaseProblem(found.usecase);
+  if (archivedProblem !== undefined) {
+    return reply.code(409).send(archivedProblem);
   }
   const revisionProblem = missingRevisionProblem(state, found.usecase, parsed.data.revision_id);
   if (revisionProblem !== undefined) {

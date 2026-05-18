@@ -36,7 +36,7 @@ function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupStat
     locks,
     merge_requests: mergeRequests,
     sessions,
-    suggested_next_actions: nextActions(locks, mergeRequests, usecase, hasActiveWork),
+    suggested_next_actions: nextActions(locks, mergeRequests, usecase, hasActiveWork, sessions),
     usecase: { id: usecase.id, key: usecase.key }
   });
 }
@@ -78,6 +78,7 @@ function sessionRow(session: StoredWorkSession) {
     agent_type: session.agent_type,
     id: session.id,
     intent: session.intent,
+    markers: sessionMarkers(session),
     started_at: session.started_at,
     user_id: session.user_id
   };
@@ -106,7 +107,8 @@ function nextActions(
   locks: ReturnType<typeof lockRow>[],
   merges: Array<ReturnType<typeof mergeRow>>,
   usecase: StoredUseCase,
-  hasActiveWork: boolean
+  hasActiveWork: boolean,
+  sessions: Array<ReturnType<typeof sessionRow>>
 ) {
   if (!hasActiveWork) {
     return [
@@ -133,8 +135,22 @@ function nextActions(
     ...merges.map((merge) => ({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the open merge request touching this use case."
-    }))
+    })),
+    ...sessions
+      .filter((session) => session.markers.includes("ZOMBIE"))
+      .map((session) => ({
+        command: `vspec session abandon ${session.id}`,
+        reason: "Review and explicitly abandon the stale active session."
+      }))
   ];
+}
+
+function sessionMarkers(session: StoredWorkSession): string[] {
+  return idleSeconds(session.last_activity_at ?? session.started_at) > 1800 ? ["ZOMBIE"] : [];
+}
+
+function idleSeconds(startedAt: string | undefined): number {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(startedAt ?? "")) / 1000));
 }
 
 function branchTouches(state: SignupState, branchId: null | string, usecaseId: string): boolean {

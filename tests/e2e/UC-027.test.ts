@@ -16,6 +16,11 @@ type ImpactResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
+type ImpactProblem = {
+  path?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -71,5 +76,34 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
       current.revision_id,
       baseRevision
     ]);
+  });
+
+  test("3a: missing proposed-change path returns guidance", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Impact Missing", "impact-missing", "stub-impact-missing");
+
+    const response = await server.fetch("/v1/changes/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: usecase.current_revision_id,
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        proposed_change_path: "missing/usecase.md"
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as ImpactProblem;
+    expect(problem.title).toMatch(/proposed change file/i);
+    expect(problem.path).toBe("missing/usecase.md");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec impact --proposed-change <path>",
+      reason: "Verify the proposed-change path and retry."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec impact ${usecase.key}`,
+      reason: "Rerun without a proposed-change file to analyze the current head."
+    });
   });
 });

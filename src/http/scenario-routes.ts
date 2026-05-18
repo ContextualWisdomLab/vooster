@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { activeActorNamed } from "./goal-support.js";
+import {
+  duplicateMainSuccessProblem,
+  mainSuccessScenario
+} from "./scenario-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type {
@@ -46,6 +50,10 @@ function createScenario(
   const parsed = scenarioRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid scenario request"));
+  }
+  const existing = mainSuccessScenario(state, found.usecase.id);
+  if (existing !== undefined) {
+    return reply.code(409).send(duplicateMainSuccessProblem(existing));
   }
   if ((state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? []).length === 0) {
     return reply

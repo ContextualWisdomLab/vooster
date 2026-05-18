@@ -49,10 +49,20 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
   }
   if (parsed.data.base_revision !== merge.current_revision_id) {
     return reply.code(409).send(
-      problem(409, "Merge request base revision is stale", {
-        conflicts: merge.conflicts,
-        current_revision: merge.current_revision_id
-      })
+      problem(
+        409,
+        "Merge request base revision is stale",
+        {
+          conflicts: merge.conflicts,
+          current_revision: merge.current_revision_id
+        },
+        [
+          {
+            command: `vspec merge show ${merge.id}`,
+            reason: "Reload the current conflict list before resolving."
+          }
+        ]
+      )
     );
   }
 

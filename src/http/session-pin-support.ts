@@ -72,6 +72,34 @@ export function hardLockedPinProblem(key: string, holder: string) {
   );
 }
 
+export function semanticLockConflict(
+  state: SignupState,
+  pinned: PinnedUseCases
+): { holder: string; key: string } | undefined {
+  for (const usecase of pinned.usecases) {
+    const lock = state.stepLocksByUseCaseId.get(usecase.id);
+    if (lock?.mode === "SEMANTIC") {
+      return { holder: lock.holder, key: usecase.key };
+    }
+  }
+
+  return undefined;
+}
+
+export function semanticLockProblem(key: string, holder: string) {
+  return problem(
+    409,
+    "Pinned use case has a semantic lock",
+    { conflicting_session: holder, created_branch: false, created_session: false },
+    [
+      {
+        command: `vspec who ${key}`,
+        reason: "Identify the session holding the semantic lock."
+      }
+    ]
+  );
+}
+
 function latestRevisionId(state: SignupState, usecase: StoredUseCase): string {
   const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
   return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;

@@ -6,6 +6,8 @@ import {
   archivedPinProblem,
   hardLockedPinProblem,
   resolvePins,
+  semanticLockConflict,
+  semanticLockProblem,
   type PinnedUseCases
 } from "./session-pin-support.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -63,7 +65,21 @@ function startSession(
   if (pinned.status !== "OK") {
     return reply.code(422).send(problem(422, "Pinned use case not found"));
   }
+  const semanticConflict = dataSemanticConflict(state, pinned, parsed.data.auto_branch);
+  if (semanticConflict !== undefined) {
+    return reply
+      .code(409)
+      .send(semanticLockProblem(semanticConflict.key, semanticConflict.holder));
+  }
   return createPinnedSession(request, reply, state, parsed.data, pinned, userId ?? "");
+}
+
+function dataSemanticConflict(
+  state: SignupState,
+  pinned: PinnedUseCases,
+  autoBranch: boolean
+) {
+  return autoBranch ? semanticLockConflict(state, pinned) : undefined;
 }
 
 function createPinnedSession(

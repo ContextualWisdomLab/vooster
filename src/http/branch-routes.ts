@@ -26,6 +26,16 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch request"));
   }
+  if (parsed.data.from !== "main") {
+    return reply.code(422).send(
+      problem(422, "MVP supports single-level branches from main only", {}, [
+        {
+          command: `vspec branch create ${parsed.data.name} --from main`,
+          reason: "Create MVP branches from main only."
+        }
+      ])
+    );
+  }
 
   const project = state.projectsById.get(projectId);
   const baseBranch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);

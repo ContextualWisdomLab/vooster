@@ -24,7 +24,7 @@ function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupStat
     return reply.code(404).send(missingUseCaseProblem(usecaseId));
   }
   if (membershipForProject(request, state, usecase.project_id) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+    return reply.code(403).send(workspaceMembershipProblem());
   }
 
   const sessions = activeSessions(state, usecase.id).map(sessionRow);
@@ -50,6 +50,20 @@ function missingUseCaseProblem(usecaseId: string) {
       {
         command: `vspec usecase search ${usecaseId}`,
         reason: "Search for the intended use case key."
+      }
+    ]
+  );
+}
+
+function workspaceMembershipProblem() {
+  return problem(
+    403,
+    "Workspace membership required",
+    {},
+    [
+      {
+        command: "vspec workspace list",
+        reason: "Choose a workspace you can access."
       }
     ]
   );

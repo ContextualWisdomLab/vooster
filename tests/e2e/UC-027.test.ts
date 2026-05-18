@@ -18,6 +18,7 @@ type ImpactResponse = {
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 type ImpactProblem = {
+  impact?: unknown;
   parser_error?: string;
   path?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -181,6 +182,34 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     expect(first.cached).toBe(false);
     expect(second.cached).toBe(true);
     expect(second.impact).toEqual(first.impact);
+  });
+
+  test("*a: non-member cannot preview impact", async () => {
+    const mine = await projectUseCase(server, "Impact Mine", "impact-mine", "stub-impact-mine");
+    const other = await projectUseCase(server, "Impact Other", "impact-other", "stub-impact-other");
+
+    const response = await server.fetch("/v1/changes/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: mine.setup.cookie },
+      body: JSON.stringify({
+        base_revision: other.usecase.current_revision_id,
+        entity_id: other.usecase.id,
+        entity_type: "USECASE"
+      })
+    });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as ImpactProblem;
+    expect(problem.title).toMatch(/not authorized/i);
+    expect(problem.impact).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for read access."
+    });
   });
 });
 

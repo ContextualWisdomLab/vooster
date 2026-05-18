@@ -30,6 +30,7 @@ type PromoteResponse = {
 };
 type ProblemResponse = {
   existing_usecase_key?: string;
+  suggested_next_actions?: Array<{ command: string; reason: string }>;
   title: string;
 };
 
@@ -105,5 +106,29 @@ describe("UC-008 - Promote a goal to a use case", () => {
     const body = (await second.json()) as ProblemResponse;
     expect(body.title).toMatch(/already promoted/i);
     expect(body.existing_usecase_key).toBe(firstBody.usecase.key);
+  });
+
+  test("2b: rejected goal returns reopen guidance", async () => {
+    const setup = await createProject(server, "Rejected Goal", "rejected-goal", "stub-rejected-goal");
+    const actor = await createActor(server, setup, "Customer");
+    const goal = await createGoalForActor(server, setup, actor, "Cancels an order");
+    await server.fetch(`/v1/goals/${goal.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ status: "REJECTED" })
+    });
+
+    const response = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/rejected goal/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec goal edit ${goal.id} --status in-design`,
+      reason: "Reopen the goal before promotion."
+    });
   });
 });

@@ -23,6 +23,15 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (found.usecase.archived_at !== null) {
     return reply.code(409).send(alreadyArchivedProblem(found.usecase));
   }
+  const hardLock = activeHardLock(state, found.usecase.id);
+  if (hardLock !== undefined) {
+    return reply.code(409).send(
+      problem(409, "Use case has an active HARD lock", {
+        expires_at: hardLock.expires_at,
+        holding_session: hardLock.held_by_session_id ?? hardLock.holder
+      })
+    );
+  }
 
   const archivedAt = new Date().toISOString();
   found.usecase.archived_at = archivedAt;
@@ -90,6 +99,13 @@ function advanceMainHead(state: SignupState, usecase: StoredUseCase, revisionId:
 function activeLockCount(state: SignupState, usecaseId: string) {
   const lock = state.stepLocksByUseCaseId.get(usecaseId);
   return lock !== undefined && Date.parse(lock.expires_at) > Date.now() ? 1 : 0;
+}
+
+function activeHardLock(state: SignupState, usecaseId: string) {
+  const lock = state.stepLocksByUseCaseId.get(usecaseId);
+  return lock?.mode === "HARD" && Date.parse(lock.expires_at) > Date.now()
+    ? lock
+    : undefined;
 }
 
 function affectedSessionsFor(state: SignupState, usecaseId: string) {

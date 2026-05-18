@@ -6,6 +6,7 @@ import {
   duplicateMainSuccessProblem,
   mainSuccessScenario,
   passiveActionProblem,
+  stepCreateResponse,
   unknownStepActorProblem,
   usesPassiveVoice
 } from "./scenario-support.js";
@@ -129,7 +130,7 @@ function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupStat
     `Added step ${String(step.step_number)} to main success scenario`
   );
 
-  return reply.code(201).send({ step, revision, scenario_steps: scenarioSteps });
+  return reply.code(201).send(stepCreateResponse(step, revision, scenarioSteps));
 }
 
 function appendUseCaseRevision(

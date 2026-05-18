@@ -1,5 +1,20 @@
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredScenario } from "./signup-types.js";
+import type {
+  SignupState,
+  StoredScenario,
+  StoredStep,
+  StoredUseCase
+} from "./signup-types.js";
+
+type UseCaseRevisionResponse = {
+  change_summary: string;
+  entity_id: string;
+  entity_type: "USECASE";
+  id: string;
+  severity: "NON_BREAKING";
+  snapshot: StoredUseCase;
+  version_number: number;
+};
 
 export function mainSuccessScenario(
   state: SignupState,
@@ -58,6 +73,29 @@ export function unknownStepActorProblem(state: SignupState, projectId: string) {
       }
     ]
   );
+}
+
+export function stepCreateResponse(
+  step: StoredStep,
+  revision: UseCaseRevisionResponse,
+  scenarioSteps: StoredStep[]
+) {
+  return {
+    step,
+    revision,
+    scenario_steps: scenarioSteps,
+    ...(scenarioSteps.length > 9
+      ? {
+          warnings: [
+            {
+              type: "SCENARIO_OVER_NINE_STEPS",
+              message:
+                "Scenarios over nine steps usually indicate the use case should be split."
+            }
+          ]
+        }
+      : {})
+  };
 }
 
 export function usesPassiveVoice(action: string): boolean {

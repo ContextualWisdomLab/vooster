@@ -26,10 +26,20 @@ const startSignupSchema = z.object({
   })
 });
 
-const callbackQuerySchema = z.object({
+const callbackSuccessQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1)
 });
+
+const callbackDeniedQuerySchema = z.object({
+  error: z.literal("access_denied"),
+  state: z.string().min(1)
+});
+
+const callbackQuerySchema = z.union([
+  callbackSuccessQuerySchema,
+  callbackDeniedQuerySchema
+]);
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
@@ -82,8 +92,15 @@ function completeSignup(
     return reply.code(400).send(problem(400, "Invalid OAuth callback"));
   }
 
+  if ("error" in parsed.data) {
+    state.pendingSignups.delete(parsed.data.state);
+    reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
+    return reply.code(400).send(problem(400, "GitHub authorization denied"));
+  }
+
   const pending = pendingSignup(request, state, parsed.data.state);
   if (pending === undefined) {
+    reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 

@@ -41,7 +41,7 @@ case "$PREFIX" in
   refactor:)
     # Refactor must keep all tests green. We cannot easily verify retroactively;
     # just enforce there is at least one prior green: in history.
-    if ! git log --pretty=%s | grep -qE '^green:'; then
+    if ! git log --pretty=%s | awk '/^green:/ { found=1 } END { exit !found }'; then
       echo "✗ verify-tdd: refactor: with no prior green: commit."
       exit 1
     fi

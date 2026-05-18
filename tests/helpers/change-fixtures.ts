@@ -1,0 +1,53 @@
+import type { TestServer } from "./server.js";
+
+export type ChangePreviewResponse = {
+  diff: Array<{
+    after: string;
+    before: string;
+    entity_id: string;
+    entity_type: string;
+    path: string;
+    severity: string;
+  }>;
+  expires_at: string;
+  impact: { affected_sessions: unknown[]; severity: string };
+  preview_id: string;
+  severity: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings: unknown[];
+};
+export type ChangeProblem = {
+  current_revision?: string;
+  impact?: { affected_sessions: unknown[]; severity: string };
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
+type HistoryResponse = { revisions: Array<{ revision: string }> };
+
+export function proposeChange(server: TestServer, cookie: string, body: Record<string, unknown>) {
+  return server.fetch("/v1/changes/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+}
+
+export function commitChange(server: TestServer, cookie: string, body: Record<string, unknown>) {
+  return server.fetch("/v1/changes/commit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+}
+
+export async function expirePreview(server: TestServer, previewId: string) {
+  await server.fetch(`/__test/changes/previews/${previewId}/expire`, { method: "POST" });
+}
+
+export async function historyRevisionIds(server: TestServer, usecaseId: string, cookie: string) {
+  const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
+    headers: { Cookie: cookie }
+  });
+  const body = (await history.json()) as HistoryResponse;
+  return body.revisions.map((revision) => revision.revision);
+}

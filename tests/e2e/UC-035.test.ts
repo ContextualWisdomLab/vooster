@@ -1,30 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import {
+  commitChange,
+  expirePreview,
+  historyRevisionIds,
+  proposeChange,
+  type ChangePreviewResponse,
+  type ChangeProblem
+} from "../helpers/change-fixtures.js";
 import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-
-type ChangePreviewResponse = {
-  diff: Array<{
-    after: string;
-    before: string;
-    entity_id: string;
-    entity_type: string;
-    path: string;
-    severity: string;
-  }>;
-  expires_at: string;
-  impact: { affected_sessions: unknown[]; severity: string };
-  preview_id: string;
-  severity: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  warnings: unknown[];
-};
-type HistoryResponse = { revisions: Array<{ revision: string }> };
-type ChangeProblem = {
-  current_revision?: string;
-  impact?: { affected_sessions: unknown[]; severity: string };
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -35,7 +19,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Change Preview", "change-preview", "stub-change-preview");
 
-    const response = await proposeChange(setup.cookie, {
+    const response = await proposeChange(server, setup.cookie, {
       base_revision: usecase.current_revision_id,
       patch: {
         entity_id: usecase.id,
@@ -67,7 +51,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       reason: "Commit the preview after human review."
     });
     expect(body.warnings).toEqual([]);
-    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+    expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
       usecase.current_revision_id
     ]);
   });
@@ -77,7 +61,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       await projectUseCase(server, "Stale Preview", "stale-preview", "stub-stale-preview");
     const current = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
 
-    const response = await proposeChange(setup.cookie, {
+    const response = await proposeChange(server, setup.cookie, {
       base_revision: usecase.current_revision_id,
       patch: {
         entity_id: usecase.id,
@@ -100,7 +84,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       command: `vspec change propose ${usecase.key}`,
       reason: "Propose the change again against the fresh base revision."
     });
-    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+    expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
       current.revision_id,
       usecase.current_revision_id
     ]);
@@ -110,7 +94,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Missing Preview", "missing-preview", "stub-missing-preview");
 
-    const response = await commitChange(setup.cookie, {
+    const response = await commitChange(server, setup.cookie, {
       confirmed: true,
       preview_id: "preview-missing"
     });
@@ -122,7 +106,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       command: "vspec change propose",
       reason: "Generate a preview before committing a spec change."
     });
-    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+    expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
       usecase.current_revision_id
     ]);
   });
@@ -130,7 +114,7 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
   test("*a: commit with expired preview is rejected", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Expired Preview", "expired-preview", "stub-expired-preview");
-    const previewResponse = await proposeChange(setup.cookie, {
+    const previewResponse = await proposeChange(server, setup.cookie, {
       base_revision: usecase.current_revision_id,
       patch: {
         entity_id: usecase.id,
@@ -140,9 +124,9 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       usecase_key: usecase.key
     });
     const preview = (await previewResponse.json()) as ChangePreviewResponse;
-    await expirePreview(preview.preview_id);
+    await expirePreview(server, preview.preview_id);
 
-    const response = await commitChange(setup.cookie, {
+    const response = await commitChange(server, setup.cookie, {
       confirmed: true,
       preview_id: preview.preview_id
     });
@@ -154,36 +138,8 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       command: "vspec change propose",
       reason: "Regenerate the preview before committing."
     });
-    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+    expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
       usecase.current_revision_id
     ]);
   });
 });
-
-function proposeChange(cookie: string, body: Record<string, unknown>) {
-  return server.fetch("/v1/changes/preview", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify(body)
-  });
-}
-
-function commitChange(cookie: string, body: Record<string, unknown>) {
-  return server.fetch("/v1/changes/commit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify(body)
-  });
-}
-
-async function expirePreview(previewId: string) {
-  await server.fetch(`/__test/changes/previews/${previewId}/expire`, { method: "POST" });
-}
-
-async function historyRevisionIds(usecaseId: string, cookie: string) {
-  const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
-    headers: { Cookie: cookie }
-  });
-  const body = (await history.json()) as HistoryResponse;
-  return body.revisions.map((revision) => revision.revision);
-}

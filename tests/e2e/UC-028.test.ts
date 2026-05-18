@@ -143,4 +143,25 @@ describe("UC-028 - Comment on a use case", () => {
       "Original body"
     );
   });
+
+  test("*a: failed comment write returns retry guidance without inserting", async () => {
+    const setup = await createCommentFixture(server, "Write Failure", "write-failure", "stub-write-failure");
+
+    const response = await addComment(
+      server,
+      setup.usecase.id,
+      setup.cookie,
+      "Persist this later",
+      { simulate_write_failure: true }
+    );
+
+    expect(response.status).toBe(500);
+    const problem = (await response.json()) as CommentProblem;
+    expect(problem.code).toBe("comment_write_failed");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec comment add --retry",
+      reason: "Retry after storage is available."
+    });
+    expect((await listComments(server, setup.usecase.id, setup.cookie)).comments).toEqual([]);
+  });
 });

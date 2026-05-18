@@ -35,11 +35,17 @@ export async function createCommentFixture(
   return { ...setup, usecase };
 }
 
-export function addComment(server: TestServer, usecaseId: string, cookie: string, body: string) {
+export function addComment(
+  server: TestServer,
+  usecaseId: string,
+  cookie: string,
+  body: string,
+  extra: Record<string, unknown> = {}
+) {
   return server.fetch(`/v1/usecases/${usecaseId}/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify({ body })
+    body: JSON.stringify({ body, ...extra })
   });
 }
 

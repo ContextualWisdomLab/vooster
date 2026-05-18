@@ -8,7 +8,8 @@ import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.
 
 const historyQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
-  project_id: z.string().optional()
+  project_id: z.string().optional(),
+  simulate_server_error: z.literal("true").optional()
 });
 
 export function registerRevisionHistoryRoutes(app: FastifyInstance, state: SignupState) {
@@ -31,6 +32,9 @@ function listHistory(request: FastifyRequest, reply: FastifyReply, state: Signup
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(historyAccessProblem());
+  }
+  if (parsed.data.simulate_server_error === "true") {
+    return reply.code(500).send(historyReadFailureProblem(found.usecase));
   }
 
   const allRows = revisionsFor(state, found.usecase)
@@ -74,6 +78,20 @@ function historyAccessProblem() {
       {
         command: "vspec member set-role",
         reason: "Ask a workspace owner for read access."
+      }
+    ]
+  );
+}
+
+function historyReadFailureProblem(usecase: StoredUseCase) {
+  return problem(
+    500,
+    "Revision history read failed",
+    { exit_code: 5 },
+    [
+      {
+        command: `vspec history ${usecase.key} --retry`,
+        reason: "Retry the history request."
       }
     ]
   );

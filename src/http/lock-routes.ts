@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  blockingLock,
+  competingLockProblem,
+  expiredLockProblem,
+  foreignLockProblem,
+  ownsLock
+} from "./lock-support.js";
 import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -72,8 +79,12 @@ function renewLock(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, usecase.project_id) === undefined) {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (userId === undefined || membershipForProject(request, state, usecase.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  if (!ownsLock(lock, userId, sessionIdFrom(request))) {
+    return reply.code(403).send(foreignLockProblem(lock, usecase));
   }
   if (Date.parse(lock.expires_at) <= Date.now()) {
     return reply.code(409).send(expiredLockProblem(lock, usecase));
@@ -85,57 +96,6 @@ function renewLock(request: FastifyRequest, reply: FastifyReply, state: SignupSt
 
 function lockById(state: SignupState, lockId: string): StoredLock | undefined {
   return [...state.stepLocksByUseCaseId.values()].find((lock) => lock.id === lockId);
-}
-
-function expiredLockProblem(lock: StoredLock, usecase: StoredUseCase) {
-  return problem(
-    409,
-    "Expired lock cannot be renewed",
-    {
-      expires_at: lock.expires_at,
-      lock_id: lock.id
-    },
-    [
-      {
-        command: `vspec lock ${usecase.key} --type ${lock.mode.toLowerCase()}`,
-        reason: "Reacquire the lock from scratch."
-      }
-    ]
-  );
-}
-
-function blockingLock(
-  lock: StoredLock | undefined,
-  requestedType: StoredLock["mode"],
-  sessionId: null | string
-): StoredLock | undefined {
-  if (lock === undefined || lock.held_by_session_id === sessionId) {
-    return undefined;
-  }
-  if (requestedType === "HARD") {
-    return lock;
-  }
-  return requestedType === "SEMANTIC" && (lock.mode === "SEMANTIC" || lock.mode === "HARD")
-    ? lock
-    : undefined;
-}
-
-function competingLockProblem(lock: StoredLock, usecase: StoredUseCase) {
-  return problem(
-    409,
-    "Competing lock exists",
-    {
-      expires_at: lock.expires_at,
-      held_by_user_id: lock.held_by_user_id,
-      holding_session: lock.held_by_session_id ?? lock.holder
-    },
-    [
-      {
-        command: `vspec who ${usecase.key}`,
-        reason: "Inspect the session holding the lock."
-      }
-    ]
-  );
 }
 
 function useCaseLock(

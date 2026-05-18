@@ -126,6 +126,38 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       usecase.current_revision_id
     ]);
   });
+
+  test("*a: commit with expired preview is rejected", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Expired Preview", "expired-preview", "stub-expired-preview");
+    const previewResponse = await proposeChange(setup.cookie, {
+      base_revision: usecase.current_revision_id,
+      patch: {
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        fields: { title: "Reviews an expired preview" }
+      },
+      usecase_key: usecase.key
+    });
+    const preview = (await previewResponse.json()) as ChangePreviewResponse;
+    await expirePreview(preview.preview_id);
+
+    const response = await commitChange(setup.cookie, {
+      confirmed: true,
+      preview_id: preview.preview_id
+    });
+
+    expect(response.status).toBe(410);
+    const problem = (await response.json()) as ChangeProblem;
+    expect(problem.title).toMatch(/preview expired/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec change propose",
+      reason: "Regenerate the preview before committing."
+    });
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
 });
 
 function proposeChange(cookie: string, body: Record<string, unknown>) {
@@ -142,6 +174,10 @@ function commitChange(cookie: string, body: Record<string, unknown>) {
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify(body)
   });
+}
+
+async function expirePreview(previewId: string) {
+  await server.fetch(`/__test/changes/previews/${previewId}/expire`, { method: "POST" });
 }
 
 async function historyRevisionIds(usecaseId: string, cookie: string) {

@@ -6,6 +6,7 @@ import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
 import { registerStakeholderRoutes } from "./stakeholder-routes.js";
+import { registerUseCaseRoutes } from "./usecase-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
@@ -18,6 +19,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerGoalRoutes(app, state);
   registerGoalPromotionRoutes(app, state);
   registerStakeholderRoutes(app, state);
+  registerUseCaseRoutes(app, state);
 
   return app;
 }

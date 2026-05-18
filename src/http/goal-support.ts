@@ -44,6 +44,16 @@ export function activeActorWithId(
   );
 }
 
+export function activeActorNamed(
+  state: SignupState,
+  projectId: string,
+  name: string
+): StoredActor | undefined {
+  return (state.actorsByProjectId.get(projectId) ?? []).find(
+    (actor) => actor.name === name && actor.archived_at === null
+  );
+}
+
 export function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
   const project = state.projectsById.get(projectId);
   return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);

@@ -4,6 +4,11 @@ import { z } from "zod";
 import { goalWithProjectId } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
+import {
+  nextUseCaseKey,
+  useCaseRevision,
+  useCaseWithId
+} from "./usecase-support.js";
 import type {
   SignupState,
   StoredMembership,
@@ -73,11 +78,16 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
     title: found.goal.description,
     level: found.goal.level,
     format: "BRIEF",
+    scope: project.key.toLowerCase(),
     primary_actor_id: found.goal.actor_id,
+    priority: found.goal.priority,
     status: "DRAFT",
+    current_revision_id: "",
     archived_at: null
   };
   const revision = useCaseRevision(usecase, `Promoted from goal ${found.goal.id}`);
+  usecase.current_revision_id = revision.id;
+  revision.snapshot = { ...usecase };
 
   state.usecasesByProjectId.set(found.projectId, [
     ...(state.usecasesByProjectId.get(found.projectId) ?? []),
@@ -111,32 +121,6 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
     ],
     ...(titleWarning === undefined ? {} : { warnings: [titleWarning] })
   });
-}
-
-function nextUseCaseKey(state: SignupState, projectId: string, projectKey: string): string {
-  const nextNumber = (state.usecasesByProjectId.get(projectId) ?? []).length + 1;
-  return `${projectKey}-${String(nextNumber).padStart(3, "0")}`;
-}
-
-function useCaseWithId(
-  state: SignupState,
-  projectId: string,
-  usecaseId: string
-): StoredUseCase | undefined {
-  return (state.usecasesByProjectId.get(projectId) ?? []).find(
-    (usecase) => usecase.id === usecaseId
-  );
-}
-
-function useCaseRevision(usecase: StoredUseCase, changeSummary: string) {
-  return {
-    id: randomUUID(),
-    entity_type: "USECASE" as const,
-    entity_id: usecase.id,
-    version_number: 1,
-    snapshot: { ...usecase },
-    change_summary: changeSummary
-  };
 }
 
 function titleLooksLikeVerbPhrase(title: string): boolean {

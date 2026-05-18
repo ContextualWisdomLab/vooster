@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { alreadyMemberProblem, editorOwnerInviteProblem } from "./invitation-problems.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
 import { addMembership, githubProfile, problem } from "./signup-support.js";
 import type { ServerOptions, SignupState, StoredMembership, StoredUser } from "./signup-types.js";
@@ -103,38 +104,10 @@ function workspaceMembership(
   );
 }
 
-function editorOwnerInviteProblem() {
-  return problem(
-    403,
-    "Only workspace owners can invite owners",
-    {},
-    [
-      {
-        command: "vspec member invite --role editor",
-        reason: "Invite the teammate as an editor or ask a workspace owner."
-      }
-    ]
-  );
-}
-
 function activeMembershipForEmail(state: SignupState, workspaceId: string, email: string) {
   const user = [...state.usersByGithubId.values()].find((candidate) => candidate.email === email);
   return (state.membershipsByUserId.get(user?.id ?? "") ?? []).find(
     (membership) => membership.workspace_id === workspaceId
-  );
-}
-
-function alreadyMemberProblem() {
-  return problem(
-    422,
-    "Email already belongs to a workspace member",
-    { code: "already_member" },
-    [
-      {
-        command: "vspec member set-role",
-        reason: "Change the existing member role instead of inviting again."
-      }
-    ]
   );
 }
 

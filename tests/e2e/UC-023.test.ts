@@ -138,4 +138,30 @@ describe("UC-023 - See who is working on a use case", () => {
       reason: "Start a session on this use case."
     });
   });
+
+  test("3a: stale session is marked zombie with abandon guidance", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Zombie Who", "zombie-who", "stub-zombie-who");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Stale coordination",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const aged = await server.fetch(`/__test/sessions/${session.id}/heartbeat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ last_activity_at: "2020-01-01T00:00:00.000Z" })
+    });
+    expect(aged.status).toBe(200);
+
+    const response = await whoUseCase(server, setup, usecase.id);
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as WhoResponse;
+    expect(body.sessions[0]?.markers).toContain("ZOMBIE");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec session abandon ${session.id}`,
+      reason: "Review and explicitly abandon the stale active session."
+    });
+  });
 });

@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { projectUseCase } from "./merge-fixtures.js";
 import type { TestServer } from "./server.js";
 
 type SyncSetup = { cookie: string; projectId: string };
@@ -77,4 +78,52 @@ export async function expectHistoryRevisions(
   expected: string[]
 ) {
   await expect(historyRevisions(server, cookie, usecaseId)).resolves.toEqual(expected);
+}
+
+export async function expectDryRunSyncPush(server: TestServer) {
+  const { setup, usecase } =
+    await projectUseCase(server, "Sync Dry Run", "sync-dry-run", "stub-sync-dry-run");
+  const { content, path } = await pulledSyncFile(server, setup, usecase.key);
+  const dryRun = await syncPush(server, setup, {
+    base_revision: usecase.current_revision_id,
+    content: content.replace("# Reviews a refund", "# Reviews a refund later"),
+    path
+  }, { dry_run: true });
+  expect(dryRun.status).toBe(200);
+  const push = (await dryRun.json()) as PushResponse;
+  expect(push.results[0]).toMatchObject({
+    current_revision: usecase.current_revision_id,
+    dry_run: true,
+    path,
+    status: "OK"
+  });
+  expect(push.cache.entries).toEqual([]);
+  await expectHistoryRevisions(server, setup.cookie, usecase.id, [
+    usecase.current_revision_id
+  ]);
+}
+
+export async function expectNetworkFailureSyncPush(server: TestServer) {
+  const { setup, usecase } =
+    await projectUseCase(server, "Sync Network", "sync-network", "stub-sync-network");
+  const { content, path } = await pulledSyncFile(server, setup, usecase.key);
+  const failed = await syncPush(server, setup, {
+    base_revision: usecase.current_revision_id,
+    content: content.replace("# Reviews a refund", "# Reviews a refund offline"),
+    path
+  }, { simulate_network_failure: true });
+  expect(failed.status).toBe(503);
+  const problem = (await failed.json()) as NetworkFailureProblem;
+  expect(problem.title).toMatch(/sync network unavailable/i);
+  expect(problem.pending_push).toEqual({
+    files: [{ base_revision: usecase.current_revision_id, path }],
+    status: "QUEUED"
+  });
+  expect(problem.suggested_next_actions).toContainEqual({
+    command: "vspec push",
+    reason: "Retry the queued push once connectivity returns."
+  });
+  await expectHistoryRevisions(server, setup.cookie, usecase.id, [
+    usecase.current_revision_id
+  ]);
 }

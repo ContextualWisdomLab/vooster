@@ -180,4 +180,21 @@ describe("UC-007 - Manage the actor-goal list", () => {
       command: `vspec goal show ${firstGoal.id}`
     });
   });
+
+  test("*a: archived project workspace aborts goal creation", async () => {
+    const setup = await createProject(server, "Archived Goal", "archived-goal", "stub-goal-archive");
+    const actor = await createActor(server, setup, "Reviewer");
+    await server.fetch(`/__test/workspaces/${setup.workspaceId}/archive`, { method: "POST" });
+    const response = await createGoal(server, setup, {
+      actor_id: actor.id,
+      description: "Approves a refund",
+      level: "USER_GOAL",
+      priority: "P2"
+    });
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/workspace.*archived/i);
+    const listBody = (await (await listGoals(server, setup, actor.id)).json()) as GoalListResponse;
+    expect(listBody.actors[0]?.goals).toEqual([]);
+  });
 });

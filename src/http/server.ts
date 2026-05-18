@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest
+} from "fastify";
 import { z } from "zod";
 
 type ServerOptions = {
@@ -9,6 +13,10 @@ type ServerOptions = {
 type PendingSignup = {
   name: string;
   slug: string;
+};
+
+type SignupState = {
+  pendingSignups: Map<string, PendingSignup>;
 };
 
 const startSignupSchema = z.object({
@@ -25,73 +33,114 @@ const callbackQuerySchema = z.object({
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  const pendingSignups = new Map<string, PendingSignup>();
-
-  app.post("/v1/auth/github/start", async (request, reply) => {
-    const parsed = startSignupSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send(problem(400, "Invalid signup request"));
-    }
-
-    const state = randomUUID();
-    pendingSignups.set(state, parsed.data.workspace);
-    reply.header("set-cookie", cookie("vspec_oauth_state", state));
-
-    return {
-      authorization_url: `https://github.com/login/oauth/authorize?state=${state}`,
-      state
-    };
-  });
-
-  app.get("/v1/auth/github/callback", async (request, reply) => {
-    const parsed = callbackQuerySchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply.code(400).send(problem(400, "Invalid OAuth callback"));
-    }
-
-    const stateCookie = readCookie(request.headers.cookie, "vspec_oauth_state");
-    const pending = pendingSignups.get(parsed.data.state);
-    if (stateCookie !== parsed.data.state || pending === undefined) {
-      return reply.code(400).send(problem(400, "Invalid OAuth state"));
-    }
-
-    const profile = githubProfile(options, parsed.data.code);
-    const user = {
-      id: randomUUID(),
-      github_id: profile.githubId,
-      email: profile.email,
-      name: profile.name,
-      avatar_url: profile.avatarUrl
-    };
-    const workspace = {
-      id: randomUUID(),
-      name: pending.name,
-      slug: pending.slug,
-      owner_id: user.id,
-      plan: "FREE"
-    };
-    const membership = {
-      id: randomUUID(),
-      user_id: user.id,
-      workspace_id: workspace.id,
-      role: "OWNER"
-    };
-
-    pendingSignups.delete(parsed.data.state);
-    reply.header("set-cookie", [
-      cookie("vspec_session", randomUUID()),
-      expiredCookie("vspec_oauth_state")
-    ]);
-
-    return reply.code(201).send({
-      user,
-      workspace,
-      membership,
-      recommended_next_command: "vspec project create"
-    });
-  });
+  registerSignupRoutes(app, options, { pendingSignups: new Map() });
 
   return app;
+}
+
+function registerSignupRoutes(
+  app: FastifyInstance,
+  options: ServerOptions,
+  state: SignupState
+) {
+  app.post("/v1/auth/github/start", (request, reply) =>
+    startSignup(request, reply, state)
+  );
+  app.get("/v1/auth/github/callback", async (request, reply) => {
+    return completeSignup(request, reply, options, state);
+  });
+}
+
+function startSignup(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
+  const parsed = startSignupSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid signup request"));
+  }
+
+  const oauthState = randomUUID();
+  state.pendingSignups.set(oauthState, parsed.data.workspace);
+  reply.header("set-cookie", cookie("vspec_oauth_state", oauthState));
+
+  return {
+    authorization_url: `https://github.com/login/oauth/authorize?state=${oauthState}`,
+    state: oauthState
+  };
+}
+
+function completeSignup(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  options: ServerOptions,
+  state: SignupState
+) {
+  const parsed = callbackQuerySchema.safeParse(request.query);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid OAuth callback"));
+  }
+
+  const pending = pendingSignup(request, state, parsed.data.state);
+  if (pending === undefined) {
+    return reply.code(400).send(problem(400, "Invalid OAuth state"));
+  }
+
+  state.pendingSignups.delete(parsed.data.state);
+  reply.header("set-cookie", [
+    cookie("vspec_session", randomUUID()),
+    expiredCookie("vspec_oauth_state")
+  ]);
+
+  return reply.code(201).send(signupResponse(options, parsed.data.code, pending));
+}
+
+function pendingSignup(
+  request: FastifyRequest,
+  state: SignupState,
+  oauthState: string
+): PendingSignup | undefined {
+  const stateCookie = readCookie(request.headers.cookie, "vspec_oauth_state");
+  return stateCookie === oauthState ? state.pendingSignups.get(oauthState) : undefined;
+}
+
+function signupResponse(options: ServerOptions, code: string, pending: PendingSignup) {
+  const profile = githubProfile(options, code);
+  const user = {
+    id: randomUUID(),
+    github_id: profile.githubId,
+    email: profile.email,
+    name: profile.name,
+    avatar_url: profile.avatarUrl
+  };
+  const workspace = workspaceFor(pending, user.id);
+
+  return {
+    user,
+    workspace,
+    membership: ownerMembership(user.id, workspace.id),
+    recommended_next_command: "vspec project create"
+  };
+}
+
+function workspaceFor(pending: PendingSignup, ownerId: string) {
+  return {
+    id: randomUUID(),
+    name: pending.name,
+    slug: pending.slug,
+    owner_id: ownerId,
+    plan: "FREE"
+  };
+}
+
+function ownerMembership(userId: string, workspaceId: string) {
+  return {
+    id: randomUUID(),
+    user_id: userId,
+    workspace_id: workspaceId,
+    role: "OWNER"
+  };
 }
 
 function githubProfile(options: ServerOptions, code: string) {

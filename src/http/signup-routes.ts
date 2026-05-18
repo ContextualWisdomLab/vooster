@@ -111,7 +111,7 @@ function completeSignup(
   state.pendingOAuth.delete(parsed.data.state);
   clearOAuthState(reply);
   if (profile === undefined) {
-    return githubUnavailable(reply);
+    return githubUnavailable(reply, pending.flow);
   }
 
   if (!profile.emailVerified) {
@@ -144,10 +144,15 @@ function fetchGithubProfile(
   }
 }
 
-function githubUnavailable(reply: FastifyReply) {
+function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"]) {
+  const action =
+    flow === "login"
+      ? "Retry login after GitHub is reachable."
+      : "Retry signup after GitHub is reachable.";
+
   return reply.code(502).send(
     problem(502, "GitHub is unavailable", {}, [
-      { command: "vspec login", reason: "Retry signup after GitHub is reachable." }
+      { command: "vspec login", reason: action }
     ])
   );
 }

@@ -175,3 +175,12 @@ write. This guides your TDD cycles within an iteration._
 - **1b**: renewing a lock owned by another user/session -> returns 403 and leaves the existing lock unchanged.
 - **5a**: completing a session that owns an auto-release lock -> deletes that lock in the same completion response.
 - ***a**: an expired lock exists on the target -> a fresh lock acquisition treats it as absent and succeeds.
+
+### UC-023
+
+- **MAIN**: authenticated member asks who is working on a use case with one active session, one active lock, and one open MR touching it -> returns all three lists with session/lock/MR summaries and lock/MR next actions.
+- **2a**: queried use case id/key does not exist in the project -> 404 with canonical key-format/search guidance and no state disclosure.
+- **2b**: queried use case is archived -> still returns the bundle with `archived: true` and restore guidance when active work exists.
+- **4a**: no sessions, locks, or open MRs touch the use case -> returns empty lists and session-start guidance for that key.
+- **3a**: an active session in the bundle has stale heartbeat -> marks that session `ZOMBIE` and suggests `vspec session abandon <id>`.
+- ***a**: caller lacks workspace membership -> 403 without revealing whether the use case exists.

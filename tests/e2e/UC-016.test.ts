@@ -21,6 +21,12 @@ type SessionStartResponse = {
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
+type SessionProblemResponse = {
+  offending_key?: string;
+  session_count?: number;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -83,6 +89,44 @@ describe("UC-016 - Start a work session", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: "vspec session complete",
       reason: "Close the session when the work is done."
+    });
+  });
+
+  test("3a: archived pin is rejected without creating a session", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Archived Session Pin",
+      "archived-session-pin",
+      "stub-archived-session-pin"
+    );
+    const archived = await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
+      method: "POST"
+    });
+    expect(archived.status).toBe(200);
+
+    const response = await server.fetch("/v1/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: setup.cookie,
+        "X-Vspec-Agent": "codex-cli"
+      },
+      body: JSON.stringify({
+        agent_type: "CODEX",
+        intent: "Work on archived flow",
+        pins: [usecase.key],
+        project_id: setup.projectId
+      })
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as SessionProblemResponse;
+    expect(problem.title).toMatch(/pinned use case is archived/i);
+    expect(problem.offending_key).toBe(usecase.key);
+    expect(problem.session_count).toBe(0);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the archived use case before pinning it."
     });
   });
 });

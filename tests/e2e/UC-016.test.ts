@@ -1,34 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import {
+  startWorkSession,
+  type SessionProblemResponse,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
-
-type SessionStartResponse = {
-  session: {
-    agent_identifier: string;
-    agent_type: string;
-    branch_id: null | string;
-    id: string;
-    intent: string;
-    pinned_revisions: Record<string, string>;
-    project_id: string;
-    started_at: string;
-    status: string;
-    user_id: string;
-  };
-  session_file: {
-    path: string;
-    session_id: string;
-  };
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-};
-type SessionProblemResponse = {
-  holding_session?: string;
-  offending_key?: string;
-  session_count?: number;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 
@@ -49,19 +27,10 @@ describe("UC-016 - Start a work session", () => {
       "stub-start-session"
     );
 
-    const response = await server.fetch("/v1/sessions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: setup.cookie,
-        "X-Vspec-Agent": "codex-cli"
-      },
-      body: JSON.stringify({
-        agent_type: "CODEX",
-        intent: "Implement checkout validation",
-        pins: [usecase.key],
-        project_id: setup.projectId
-      })
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Implement checkout validation",
+      pins: [usecase.key]
     });
 
     expect(response.status).toBe(201);
@@ -106,19 +75,10 @@ describe("UC-016 - Start a work session", () => {
     });
     expect(archived.status).toBe(200);
 
-    const response = await server.fetch("/v1/sessions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: setup.cookie,
-        "X-Vspec-Agent": "codex-cli"
-      },
-      body: JSON.stringify({
-        agent_type: "CODEX",
-        intent: "Work on archived flow",
-        pins: [usecase.key],
-        project_id: setup.projectId
-      })
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Work on archived flow",
+      pins: [usecase.key]
     });
 
     expect(response.status).toBe(422);
@@ -146,19 +106,10 @@ describe("UC-016 - Start a work session", () => {
       reason: "Another session is already changing this use case."
     });
 
-    const response = await server.fetch("/v1/sessions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: setup.cookie,
-        "X-Vspec-Agent": "codex-cli"
-      },
-      body: JSON.stringify({
-        agent_type: "CODEX",
-        intent: "Work on locked flow",
-        pins: [usecase.key],
-        project_id: setup.projectId
-      })
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Work on locked flow",
+      pins: [usecase.key]
     });
 
     expect(response.status).toBe(409);

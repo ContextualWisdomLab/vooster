@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { authenticatedUserId } from "./session-support.js";
+import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredActor, StoredMembership } from "./signup-types.js";
+import type { SignupState, StoredActor } from "./signup-types.js";
 
 const actorRequestSchema = z.object({
   aliases: z.array(z.string()).default([]),
@@ -27,7 +27,7 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  if (isReadOnly(state, membership)) {
+  if (isReadOnlyMembership(state, membership)) {
     return readOnly(reply);
   }
 
@@ -149,32 +149,6 @@ function archivedActorNamed(
   return (state.actorsByProjectId.get(projectId) ?? []).find(
     (actor) => actor.name === name && actor.archived_at !== null
   );
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
-}
-
-function isReadOnly(state: SignupState, membership: StoredMembership): boolean {
-  return state.readOnlyMemberships.has(
-    membershipKey(membership.user_id, membership.workspace_id)
-  );
-}
-
-function membershipKey(userId: string, workspaceId: string): string {
-  return `${userId}:${workspaceId}`;
 }
 
 function projectIdFrom(params: unknown): string {

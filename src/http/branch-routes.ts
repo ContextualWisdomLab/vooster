@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { authenticatedUserId } from "./session-support.js";
+import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredMembership, StoredProject, StoredSpecBranch } from "./signup-types.js";
+import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 
 const branchCreateSchema = z.object({
   from: z.string().default("main"),
@@ -19,12 +19,11 @@ export function registerBranchRoutes(app: FastifyInstance, state: SignupState) {
 
 function createBranch(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const projectId = projectIdFrom(request.params);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  const membership = membershipForProject(state, userId, projectId);
+  const membership = membershipForProject(request, state, projectId);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  if (isReadOnly(state, membership)) {
+  if (isReadOnlyMembership(state, membership)) {
     return readOnly(reply);
   }
   const parsed = branchCreateSchema.safeParse(request.body);
@@ -79,7 +78,7 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
     project_id: projectId,
     name: parsed.data.name,
     owner_type: "HUMAN",
-    owner_id: userId ?? "",
+    owner_id: membership.user_id,
     base_branch_id: baseBranch.id,
     base_revision_ids: snapshot,
     head_revision_ids: snapshot,
@@ -121,30 +120,6 @@ function readOnly(reply: FastifyReply) {
       }
     ])
   );
-}
-
-function membershipForProject(
-  state: SignupState,
-  userId: string | undefined,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
-}
-
-function isReadOnly(state: SignupState, membership: StoredMembership): boolean {
-  return state.readOnlyMemberships.has(
-    membershipKey(membership.user_id, membership.workspace_id)
-  );
-}
-
-function membershipKey(userId: string, workspaceId: string): string {
-  return `${userId}:${workspaceId}`;
 }
 
 function mainHeadSnapshot(state: SignupState, project: StoredProject): Record<string, string> {

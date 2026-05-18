@@ -209,3 +209,12 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: revert would reintroduce a BREAKING change without `force` -> 409 listing breaking changes and affected active sessions, suggests rerunning with `--force --summary`, and writes nothing.
 - **5a**: revert changes downstream Gherkin export -> succeeds with a `GHERKIN_DRIFT` warning while still appending the revert revision.
 - ***a**: simulated write failure during revert -> returns exit code 5 with retry guidance and leaves revision history/current head unchanged.
+
+### UC-027
+
+- **MAIN**: authenticated member previews impact for the current use case head -> returns deterministic `ChangeImpact` with severity, affected sessions/branches/tests, confidence 1.0, input hash, and lock/session/commit next actions without writing revisions.
+- **3a**: proposed-change path is missing/unreadable -> 400 naming the path, suggests verifying it or rerunning without `--proposed-change`, and mutates nothing.
+- **3b**: proposed-change content fails file-format parsing -> 400 with first parser error and `vspec doctor <file>` guidance.
+- **6a**: active sessions pin the touched use case -> severity rolls up to BREAKING and affected sessions include id, owner, agent type, and pinned revision.
+- **4a**: same input hash is previewed twice -> second response is byte-identical for impact fields and marks `cached: true`.
+- ***a**: caller lacks workspace membership -> 403 without disclosing the use case or affected sessions.

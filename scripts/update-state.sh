@@ -40,7 +40,7 @@ done
 {
   echo "# Progress Matrix"
   echo ""
-  echo "_Last updated: $NOW_"
+  echo "_Last updated: ${NOW}_"
   echo ""
   echo "## Overall"
   echo ""

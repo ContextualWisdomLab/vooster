@@ -23,6 +23,11 @@ type SessionCompleteResponse = {
   session_file: { cleared: boolean; path: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
+type SessionCompleteProblem = {
+  current_status?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -79,6 +84,37 @@ describe("UC-018 - Complete a work session", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec merge show ${body.merge_request.id}`,
       reason: "Review the merge request opened for this completed session."
+    });
+  });
+
+  test("2a: completing an already completed session returns current status", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Completed Twice", "completed-twice", "stub-completed-twice");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Complete once",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    await server.fetch(`/v1/sessions/${session.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ summary: "First completion." })
+    });
+
+    const second = await server.fetch(`/v1/sessions/${session.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ summary: "Second completion." })
+    });
+
+    expect(second.status).toBe(409);
+    const problem = (await second.json()) as SessionCompleteProblem;
+    expect(problem.title).toMatch(/session is not active/i);
+    expect(problem.current_status).toBe("COMPLETED");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec session show ${session.id}`,
+      reason: "Inspect the current session state before retrying."
     });
   });
 });

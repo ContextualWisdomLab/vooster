@@ -26,7 +26,14 @@ function createProject(
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   const membership = membershipFor(state, userId, workspaceId);
   if (membership === undefined) {
-    return reply.code(403).send(problem(403, "Request an invitation to this workspace"));
+    return reply.code(403).send(
+      problem(403, "Request an invitation to this workspace", {}, [
+        {
+          command: "vspec workspace invitations request",
+          reason: "Ask a workspace owner for access."
+        }
+      ])
+    );
   }
 
   const parsed = projectRequestSchema.safeParse(request.body);

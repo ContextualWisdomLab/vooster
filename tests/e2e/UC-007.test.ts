@@ -24,6 +24,7 @@ type GoalListResponse = {
 };
 type ProblemResponse = {
   actor_id?: string;
+  description_rule?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -106,6 +107,23 @@ describe("UC-007 - Manage the actor-goal list", () => {
       command: "vspec actor create",
       reason: "Create the actor before assigning goals."
     });
+  });
+
+  test("5a: whitespace description is rejected as not a verb phrase", async () => {
+    const setup = await createProject("Blank Goal", "blank-goal", "stub-goal-blank");
+    const actor = await createActor(setup, "Clerk");
+
+    const response = await createGoal(setup, {
+      actor_id: actor.id,
+      description: "   ",
+      level: "USER_GOAL",
+      priority: "P2"
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/goal description.*verb phrase/i);
+    expect(body.description_rule).toBe("Use a non-empty verb phrase.");
   });
 });
 

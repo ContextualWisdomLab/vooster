@@ -227,3 +227,12 @@ write. This guides your TDD cycles within an iteration._
 - **1a**: dry-run push -> computes the same per-file summary without appending a revision or cache update.
 - **4b**: simulated network failure on push -> queues pending push metadata in the response, leaves files/server unchanged, and suggests retrying `vspec push`.
 - ***a**: caller lacks workspace access -> returns exit code 3 with login/API-key guidance and does not advance any file revision.
+
+### UC-030
+
+- **MAIN**: authenticated reader exports a use case with main and extension scenarios -> 200 `text/plain`, deterministic Gherkin with `Feature`, `Background`, main scenario first, extension scenario second, actor-keyed Given/When/Then steps, and test-runner next action.
+- **3a**: use case has no main success scenario or has zero steps -> 422 naming the missing required field, suggests `vspec doctor <KEY>` and `vspec scenario add ... --type main-success`, and writes no export.
+- **6a**: requested output directory is missing or not writable -> 400 with exit code 6, path guidance, and no export payload.
+- **6b**: output file already exists without force -> refuses overwrite, returns proposed diff summary, suggests `--force` or alternate output, and does not mutate server revisions.
+- **2a**: requested revision id is stale or unknown -> 404 with `vspec history <KEY>` guidance and no export payload.
+- ***a**: target use case is archived -> failure with restore guidance and no export payload.

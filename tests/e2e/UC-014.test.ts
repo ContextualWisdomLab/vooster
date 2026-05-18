@@ -12,6 +12,7 @@ type SearchResponse = {
     trigger_excerpt: string;
   }>;
   next_cursor: null | string;
+  suggested_next_actions?: Array<{ command: string; reason: string }>;
 };
 type SearchProblem = {
   items?: unknown[];
@@ -84,6 +85,23 @@ describe("UC-014 - Search and filter use cases", () => {
     expect(problem.valid_statuses).toEqual(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]);
     expect(problem.valid_levels).toEqual(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]);
     expect(problem.items).toBeUndefined();
+  });
+
+  test("2b: unresolved actor filter returns empty result with guidance", async () => {
+    const setup = await createProject(server, "Search Actor", "search-actor", "stub-actor-filter");
+
+    const response = await searchUseCases(setup.cookie, setup.projectId, {
+      actor_id: "actor-missing"
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SearchResponse;
+    expect(body.items).toEqual([]);
+    expect(body.next_cursor).toBeNull();
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor list",
+      reason: "Find a valid actor id for this project."
+    });
   });
 });
 

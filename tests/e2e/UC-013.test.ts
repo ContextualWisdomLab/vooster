@@ -13,6 +13,9 @@ type StepPatchResponse = {
 };
 type ProblemResponse = {
   current_revision_id?: string;
+  expires_at?: string;
+  lock_holder?: string;
+  lock_reason?: string;
   revision_diff?: { base_revision: string; current_revision: string };
   suggested_action?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -138,12 +141,53 @@ describe("UC-013 - Edit a use case step", () => {
       version_number: 5
     });
   });
+
+  test("5a: semantic lock allows notes but blocks semantic edits", async () => {
+    const { mainStep, mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(
+        server,
+        "Semantic Lock",
+        "semantic-lock",
+        "stub-semantic-lock"
+      );
+    const expiresAt = "2026-06-01T00:00:00.000Z";
+    const locked = await server.fetch(`/__test/usecases/${usecase.id}/locks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        expires_at: expiresAt,
+        holder: "agent-session-1",
+        mode: "SEMANTIC",
+        reason: "Agent is editing implementation."
+      })
+    });
+    expect(locked.status).toBe(201);
+
+    const notes = await patchStep(mainStep.id, setup.cookie, {
+      base_revision: mainStepRevision.id,
+      notes: "Clarifies the checkout wording."
+    });
+    const notesBody = (await notes.json()) as StepPatchResponse;
+    expect(notesBody.step.notes).toBe("Clarifies the checkout wording.");
+    expect(notesBody.revision).toMatchObject({ severity: "COSMETIC", version_number: 5 });
+
+    const semantic = await patchStep(mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: notesBody.revision.id
+    });
+    expect(semantic.status).toBe(409);
+    const problem = (await semantic.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/semantic lock/i);
+    expect(problem.lock_holder).toBe("agent-session-1");
+    expect(problem.lock_reason).toBe("Agent is editing implementation.");
+    expect(problem.expires_at).toBe(expiresAt);
+  });
 });
 
 async function patchStep(
   stepId: string,
   cookie: string,
-  body: { action: string; base_revision: string; force?: boolean }
+  body: { action?: string; base_revision: string; force?: boolean; notes?: string }
 ) {
   return server.fetch(`/v1/steps/${stepId}`, {
     method: "PATCH",

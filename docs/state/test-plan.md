@@ -218,3 +218,12 @@ write. This guides your TDD cycles within an iteration._
 - **6a**: active sessions pin the touched use case -> severity rolls up to BREAKING and affected sessions include id, owner, agent type, and pinned revision.
 - **4a**: same input hash is previewed twice -> second response is byte-identical for impact fields and marks `cached: true`.
 - ***a**: caller lacks workspace membership -> 403 without disclosing the use case or affected sessions.
+
+### UC-029
+
+- **MAIN**: authenticated member pulls and pushes one use case markdown file -> pull returns canonical content with revision frontmatter; push with matching `base_revision` appends a server revision, returns `OK`, fresh revision, refreshed cache entry, and suggested next actions.
+- **3a**: malformed local markdown in a push batch -> returns 400 listing offending path and line, suggests `vspec doctor <path>`, and appends no server revisions.
+- **4a**: pushed file base revision is stale -> returns per-file `CONFLICT` with current revision and impact, conflict-marker content, unresolved cache entry, and diff/push guidance.
+- **1a**: dry-run push -> computes the same per-file summary without appending a revision or cache update.
+- **4b**: simulated network failure on push -> queues pending push metadata in the response, leaves files/server unchanged, and suggests retrying `vspec push`.
+- ***a**: caller lacks workspace access -> returns exit code 3 with login/API-key guidance and does not advance any file revision.

@@ -32,7 +32,12 @@ function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupS
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
-  const lock = useCaseLock(parsed.data, usecase, userId, sessionIdFrom(request));
+  const sessionId = sessionIdFrom(request);
+  const blockedBy = blockingLock(state.stepLocksByUseCaseId.get(usecase.id), parsed.data.lock_type, sessionId);
+  if (blockedBy !== undefined) {
+    return reply.code(409).send(competingLockProblem(blockedBy, usecase));
+  }
+  const lock = useCaseLock(parsed.data, usecase, userId, sessionId);
   state.stepLocksByUseCaseId.set(usecase.id, lock);
   return reply.code(201).send({
     lock,
@@ -47,6 +52,40 @@ function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupS
       }
     ]
   });
+}
+
+function blockingLock(
+  lock: StoredLock | undefined,
+  requestedType: StoredLock["mode"],
+  sessionId: null | string
+): StoredLock | undefined {
+  if (lock === undefined || lock.held_by_session_id === sessionId) {
+    return undefined;
+  }
+  if (requestedType === "HARD") {
+    return lock;
+  }
+  return requestedType === "SEMANTIC" && (lock.mode === "SEMANTIC" || lock.mode === "HARD")
+    ? lock
+    : undefined;
+}
+
+function competingLockProblem(lock: StoredLock, usecase: StoredUseCase) {
+  return problem(
+    409,
+    "Competing lock exists",
+    {
+      expires_at: lock.expires_at,
+      held_by_user_id: lock.held_by_user_id,
+      holding_session: lock.held_by_session_id ?? lock.holder
+    },
+    [
+      {
+        command: `vspec who ${usecase.key}`,
+        reason: "Inspect the session holding the lock."
+      }
+    ]
+  );
 }
 
 function useCaseLock(

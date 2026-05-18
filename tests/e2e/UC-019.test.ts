@@ -84,6 +84,28 @@ describe("UC-019 - Create a branch", () => {
     });
   });
 
+  test("2a: read-only member cannot create a branch", async () => {
+    const setup = await createProject(server, "Branch Read Only", "branch-read-only", "stub-branch-readonly");
+    await server.fetch(
+      `/__test/workspaces/${setup.workspaceId}/members/${setup.userId}/read-only`,
+      { method: "POST" }
+    );
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/read-only" })
+    });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as BranchProblemResponse;
+    expect(problem.title).toMatch(/editor role required/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member list",
+      reason: "Find a workspace editor or owner who can create branches."
+    });
+  });
+
   test("5a: branch name collision suggests an alternative", async () => {
     const setup = await createProject(server, "Branch Collision", "branch-collision", "stub-branch-collision");
     await server.fetch(`/v1/projects/${setup.projectId}/branches`, {

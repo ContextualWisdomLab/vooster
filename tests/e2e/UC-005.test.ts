@@ -1,27 +1,15 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
 
-type ProjectResponse = {
-  project: { id: string };
-};
+type ProjectResponse = { project: { id: string } };
 
 type ActorResponse = {
-  actor: {
-    id: string;
-    project_id: string;
-    name: string;
-    type: string;
-    is_human: boolean;
-    description: string;
+  actor: Record<"description" | "id" | "name" | "project_id" | "type", string> & {
     aliases: string[];
     archived_at: null;
+    is_human: boolean;
   };
-  revision: {
-    entity_type: string;
-    entity_id: string;
-    version_number: number;
-    snapshot: unknown;
-  };
+  revision: { entity_id: string; entity_type: string; snapshot: unknown; version_number: number };
   recommended_next_command: string;
 };
 
@@ -46,19 +34,11 @@ describe("UC-005 - Define an actor", () => {
   test("MAIN: project member defines an actor with an initial revision", async () => {
     const setup = await createProject("Actor Project", "actor-project", "stub-actor-owner");
 
-    const response = await server.fetch(`/v1/projects/${setup.projectId}/actors`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: setup.cookie
-      },
-      body: JSON.stringify({
-        name: "Customer",
-        type: "PRIMARY",
-        is_human: true,
-        description: "Person buying a product.",
-        aliases: ["Buyer", "Shopper"]
-      })
+    const response = await createActor(setup, {
+      aliases: ["Buyer", "Shopper"],
+      description: "Person buying a product.",
+      name: "Customer",
+      type: "PRIMARY"
     });
 
     expect(response.status).toBe(201);
@@ -170,15 +150,15 @@ describe("UC-005 - Define an actor", () => {
 
 async function createActor(
   setup: { cookie: string; projectId: string },
-  body: { name: string; type: string }
+  body: { aliases?: string[]; description?: string; name: string; type: string }
 ) {
   return server.fetch(`/v1/projects/${setup.projectId}/actors`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
     body: JSON.stringify({
+      is_human: true,
       aliases: [],
       description: "",
-      is_human: true,
       ...body
     })
   });

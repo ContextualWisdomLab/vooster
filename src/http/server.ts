@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
@@ -10,6 +11,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerSignupRoutes(app, options, state);
   registerProjectRoutes(app, state);
   registerActorRoutes(app, state);
+  registerActorTestRoutes(app, state);
 
   return app;
 }

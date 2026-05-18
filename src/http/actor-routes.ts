@@ -19,12 +19,6 @@ export function registerActorRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
     createActor(request, reply, state)
   );
-  app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
-    archiveActor(request, reply, state)
-  );
-  app.post("/__test/workspaces/:workspaceId/members/:userId/read-only", (request, reply) =>
-    markReadOnly(request, reply, state)
-  );
 }
 
 function createActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -125,14 +119,6 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   });
 }
 
-function markReadOnly(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const params = z
-    .object({ userId: z.string().min(1), workspaceId: z.string().min(1) })
-    .parse(request.params);
-  state.readOnlyMemberships.add(membershipKey(params.userId, params.workspaceId));
-  return reply.send({ read_only: true });
-}
-
 function readOnly(reply: FastifyReply) {
   return reply.code(403).send(
     problem(403, "Contact the workspace owner for edit access", {}, [
@@ -143,20 +129,6 @@ function readOnly(reply: FastifyReply) {
 
 function isActorType(type: string): type is StoredActor["type"] {
   return actorTypes.includes(type as StoredActor["type"]);
-}
-
-function archiveActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const params = z
-    .object({ actorId: z.string().min(1), projectId: z.string().min(1) })
-    .parse(request.params);
-  const actor = (state.actorsByProjectId.get(params.projectId) ?? []).find(
-    (candidate) => candidate.id === params.actorId
-  );
-  if (actor !== undefined) {
-    actor.archived_at = new Date().toISOString();
-  }
-
-  return reply.send({ archived: actor !== undefined });
 }
 
 function activeActorNamed(

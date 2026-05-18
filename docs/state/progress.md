@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T21:49:58Z_
+_Last updated: 2026-05-18T22:00:59Z_
 
 ## Overall
 
-- Commits: 378
-- Last commit: 3ab03e7 green: UC-030 reject archived gherkin export
-- Use cases complete: 26 / 35
+- Commits: 390
+- Last commit: 84a5a13 green: UC-033 fail cold offline ai guide
+- Use cases complete: 27 / 35
 
 ## By Use Case
 
@@ -44,6 +44,6 @@ _Last updated: 2026-05-18T21:49:58Z_
 | UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 |
 | UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
-| UC-033 | Learn how to use vspec (AI agent) | ○ NOT STARTED | 0/0 |
+| UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 |
 | UC-034 | Fetch a structured spec (AI agent) | ○ NOT STARTED | 0/0 |
 | UC-035 | Propose a spec change (AI agent) | ○ NOT STARTED | 0/0 |

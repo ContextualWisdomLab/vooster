@@ -103,6 +103,27 @@ describe("UC-014 - Search and filter use cases", () => {
       reason: "Find a valid actor id for this project."
     });
   });
+
+  test("*a: no matching use cases suggests broadening filters", async () => {
+    const setup = await createProject(server, "Search Empty", "search-empty", "stub-empty");
+
+    const response = await searchUseCases(setup.cookie, setup.projectId, {
+      q: "no matching use case"
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SearchResponse;
+    expect(body.items).toEqual([]);
+    expect(body.next_cursor).toBeNull();
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list --status=DRAFT,IN_REVIEW",
+      reason: "Broaden lifecycle filters and retry."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list",
+      reason: "Drop the search text to browse all visible use cases."
+    });
+  });
 });
 
 async function archiveUseCase(usecaseId: string, cookie: string) {

@@ -3,8 +3,10 @@ import { projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
   expectHistoryRevisions,
+  pulledSyncFile,
   syncPull,
   syncPush,
+  type NetworkFailureProblem,
   type PullResponse,
   type PushResponse,
   type SyncProblem
@@ -20,7 +22,6 @@ describe("UC-029 - Sync local files with the server", () => {
       await projectUseCase(server, "Sync Main", "sync-main", "stub-sync-main");
 
     const pulled = await syncPull(server, setup);
-
     expect(pulled.status).toBe(200);
     const pull = (await pulled.json()) as PullResponse;
     expect(pull.cursor).toBe(usecase.current_revision_id);
@@ -69,7 +70,6 @@ describe("UC-029 - Sync local files with the server", () => {
   test("3a: malformed push file returns doctor guidance without a revision", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Parse", "sync-parse", "stub-sync-parse");
-
     const pushed = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: "# Missing frontmatter",
@@ -97,11 +97,8 @@ describe("UC-029 - Sync local files with the server", () => {
   test("4a: stale base revision returns conflict details without overwriting", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Conflict", "sync-conflict", "stub-sync-conflict");
-
-    const pulled = await syncPull(server, setup);
-    const pull = (await pulled.json()) as PullResponse;
-    const path = `specs/${usecase.key}.md`;
-    const originalContent = pull.files[0]?.content ?? "";
+    const { content: originalContent, path } =
+      await pulledSyncFile(server, setup, usecase.key);
 
     const serverPush = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
@@ -151,14 +148,11 @@ describe("UC-029 - Sync local files with the server", () => {
   test("1a: dry-run push reports outcome without revision or cache update", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Dry Run", "sync-dry-run", "stub-sync-dry-run");
-
-    const pulled = await syncPull(server, setup);
-    const pull = (await pulled.json()) as PullResponse;
-    const path = `specs/${usecase.key}.md`;
+    const { content, path } = await pulledSyncFile(server, setup, usecase.key);
 
     const dryRun = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
-      content: pull.files[0]?.content.replace("# Reviews a refund", "# Reviews a refund later"),
+      content: content.replace("# Reviews a refund", "# Reviews a refund later"),
       path
     }, { dry_run: true });
 
@@ -171,6 +165,32 @@ describe("UC-029 - Sync local files with the server", () => {
       status: "OK"
     });
     expect(push.cache.entries).toEqual([]);
+    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("4b: simulated network failure queues pending push metadata", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Sync Network", "sync-network", "stub-sync-network");
+    const { content, path } = await pulledSyncFile(server, setup, usecase.key);
+
+    const failed = await syncPush(server, setup, {
+      base_revision: usecase.current_revision_id,
+      content: content.replace("# Reviews a refund", "# Reviews a refund offline"),
+      path
+    }, { simulate_network_failure: true });
+    expect(failed.status).toBe(503);
+    const problem = (await failed.json()) as NetworkFailureProblem;
+    expect(problem.title).toMatch(/sync network unavailable/i);
+    expect(problem.pending_push).toEqual({
+      files: [{ base_revision: usecase.current_revision_id, path }],
+      status: "QUEUED"
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec push",
+      reason: "Retry the queued push once connectivity returns."
+    });
     await expectHistoryRevisions(server, setup.cookie, usecase.id, [
       usecase.current_revision_id
     ]);

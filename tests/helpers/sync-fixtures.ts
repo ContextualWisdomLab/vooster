@@ -23,6 +23,12 @@ export type SyncProblem = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
+export type NetworkFailureProblem = SyncProblem & {
+  pending_push: {
+    files: Array<{ base_revision: string; path: string }>;
+    status: "QUEUED";
+  };
+};
 
 export function syncPull(server: TestServer, setup: SyncSetup) {
   return server.fetch(`/v1/projects/${setup.projectId}/sync/pull`, {
@@ -36,13 +42,22 @@ export function syncPush(
   server: TestServer,
   setup: SyncSetup,
   file: { base_revision: string; content: string | undefined; path: string },
-  options: { dry_run?: boolean } = {}
+  options: { dry_run?: boolean; simulate_network_failure?: boolean } = {}
 ) {
   return server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
     body: JSON.stringify({ branch: "main", files: [file], ...options })
   });
+}
+
+export async function pulledSyncFile(server: TestServer, setup: SyncSetup, key: string) {
+  const pulled = await syncPull(server, setup);
+  const body = (await pulled.json()) as PullResponse;
+  return {
+    content: body.files[0]?.content ?? "",
+    path: `specs/${key}.md`
+  };
 }
 
 export async function historyRevisions(server: TestServer, cookie: string, usecaseId: string) {

@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T15:10:01Z_
+_Last updated: 2026-05-18T15:27:23Z_
 
 ## Overall
 
-- Commits: 32
-- Last commit: 6ba5188 refactor: UC-002 move github failure helpers
-- Use cases complete: 2 / 35
+- Commits: 47
+- Last commit: 46b07fb refactor: UC-004 keep e2e file compact
+- Use cases complete: 3 / 35
 
 ## By Use Case
 
@@ -15,7 +15,7 @@ _Last updated: 2026-05-18T15:10:01Z_
 | UC-001 | Sign up for a workspace | ✓ DONE | 5/5 |
 | UC-002 | Log in | ✓ DONE | 5/5 |
 | UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
-| UC-004 | Create a project | ○ NOT STARTED | 0/0 |
+| UC-004 | Create a project | ✓ DONE | 6/6 |
 | UC-005 | Define an actor | ○ NOT STARTED | 0/0 |
 | UC-006 | Define a stakeholder | ○ NOT STARTED | 0/0 |
 | UC-007 | Manage the actor-goal list | ○ NOT STARTED | 0/0 |

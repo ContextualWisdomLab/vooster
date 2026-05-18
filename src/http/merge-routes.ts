@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { hardLockConflict, mergeConflicts, useCaseKey } from "./merge-conflict-support.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
@@ -36,7 +37,7 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   const targetHeads = mainHeadRevisions(state, project, target);
   const touched = touchedEntityIds(source, targetHeads);
   const hardLock = hardLockConflict(state, touched);
-  const conflicts = structuralConflicts(state, source, targetHeads, touched);
+  const conflicts = mergeConflicts(state, source, targetHeads, touched);
   const strategy = conflicts.length === 0 && isFastForward(source, targetHeads, touched)
     ? "FAST_FORWARD"
     : "SQUASH";
@@ -110,36 +111,6 @@ function mergeRequestFor(
   };
 }
 
-function structuralConflicts(
-  state: SignupState,
-  source: StoredSpecBranch,
-  targetHeads: Record<string, string>,
-  touched: string[]
-) {
-  return touched
-    .filter((entityId) => source.base_revision_ids?.[entityId] !== targetHeads[entityId])
-    .flatMap((entityId) => {
-      const mine = titleAtRevision(state, source.head_revision_ids?.[entityId] ?? "");
-      const theirs = titleAtRevision(state, targetHeads[entityId] ?? "");
-      return mine !== undefined && theirs !== undefined && mine !== theirs
-        ? [{
-            entity_id: entityId,
-            entity_type: "USECASE",
-            field: "title",
-            mine_value: mine,
-            theirs_value: theirs,
-            type: "STRUCTURAL"
-          }]
-        : [];
-    });
-}
-
-function hardLockConflict(state: SignupState, touched: string[]) {
-  return touched
-    .map((entityId) => state.stepLocksByUseCaseId.get(entityId))
-    .find((lock) => lock?.mode === "HARD");
-}
-
 function isFastForward(
   source: StoredSpecBranch,
   targetHeads: Record<string, string>,
@@ -172,19 +143,4 @@ function touchedEntityIds(source: StoredSpecBranch, targetHeads: Record<string, 
 
 function severityFor(state: SignupState, entityId: string): string {
   return state.revisionsByEntityId.get(entityId)?.at(-1)?.severity ?? "NON_BREAKING";
-}
-
-function useCaseKey(state: SignupState, usecaseId: string): string {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId)?.key ?? usecaseId;
-}
-
-function titleAtRevision(state: SignupState, revisionId: string): string | undefined {
-  const snapshot = [...state.revisionsByEntityId.values()]
-    .flat()
-    .find((revision) => revision.id === revisionId)?.snapshot;
-  return snapshot !== undefined && "title" in snapshot
-    ? snapshot.title
-    : undefined;
 }

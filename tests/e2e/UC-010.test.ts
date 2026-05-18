@@ -30,6 +30,11 @@ type InterestResponse = {
     stakeholder: Stakeholder;
   }>;
 };
+type ProblemResponse = {
+  existing_interest?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -78,4 +83,42 @@ describe("UC-010 - Define stakeholder interests", () => {
     ]);
     expect(body.next_missing_role_hint).toBe("No regulatory stakeholder yet.");
   });
+
+  test("3a: duplicate stakeholder interest returns edit guidance", async () => {
+    const setup = await createProject(server, "Duplicate Interest", "duplicate-interest", "stub-duplicate-interest");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+    const first = await addInterest(usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    expect(first.status).toBe(201);
+
+    const duplicate = await addInterest(usecase.id, setup.cookie, {
+      interest: "Checkout revenue remains protected.",
+      stakeholder: "Product Manager"
+    });
+
+    expect(duplicate.status).toBe(409);
+    const body = (await duplicate.json()) as ProblemResponse;
+    expect(body.title).toMatch(/stakeholder interest.*already exists/i);
+    expect(body.existing_interest).toBe("Checkout revenue is protected.");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase set --field stakeholder-interest",
+      reason: "Edit the existing stakeholder interest."
+    });
+  });
 });
+
+async function addInterest(
+  usecaseId: string,
+  cookie: string,
+  body: { interest: string; protection_mechanism?: string; stakeholder: string }
+) {
+  return server.fetch(`/v1/usecases/${usecaseId}/stakeholder-interests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({ protection_mechanism: "", ...body })
+  });
+}

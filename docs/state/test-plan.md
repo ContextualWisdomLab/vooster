@@ -139,3 +139,12 @@ write. This guides your TDD cycles within an iteration._
 - **6b**: `no_merge` requested -> completes the session and releases locks without merge request, leaves branch ACTIVE, and suggests `vspec merge open <branch>`.
 - **2a**: session is already COMPLETED or ABANDONED -> 409 with current status and `vspec session show <id>` guidance, no state change.
 - ***a**: simulated transactional failure mid-completion -> session remains ACTIVE, locks remain held, no merge request is created, and response gives retry guidance.
+
+### UC-019
+
+- **MAIN**: authenticated project member creates a branch from main -> ACTIVE HUMAN-owned branch with immutable `base_revision_ids`, matching `head_revision_ids`, unique name, and checkout/edit next actions.
+- **2a**: caller lacks editor role -> 403 with `vspec member list` guidance and no branch.
+- **3a**: requested base branch is not `main` -> 422 with single-level-branch rule and `--from main` guidance, no branch.
+- **5a**: branch name collides in project -> 422 with a de-collided suggested name, no branch.
+- **4a**: main has open merge requests targeting it -> still creates branch and returns warnings listing in-flight merge request ids.
+- ***a**: simulated snapshot transaction failure -> no branch row persists and response includes exit code 5 with retry guidance.

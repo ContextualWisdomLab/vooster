@@ -157,3 +157,12 @@ write. This guides your TDD cycles within an iteration._
 - **4c**: source and main both added different extensions at the same extension point -> returns an OPEN MR with semantic conflict descriptors and leaves main unchanged.
 - **5a**: caller forces `FAST_FORWARD` after main advanced from the branch base -> 422 suggesting `vspec merge open <branch> --strategy squash`, aborts before write, and leaves main unchanged.
 - ***a**: simulated write-phase failure -> returns exit code 5 with retry guidance, leaves MR OPEN, source branch ACTIVE, and main head revisions unchanged.
+
+### UC-021
+
+- **MAIN**: authenticated project member resolves every OPEN MR conflict with `THEIRS`/`MINE`/`MANUAL` and current `base_revision` -> writes resolved main revisions, advances main heads, marks MR/source branch MERGED, and suggests `vspec usecase show <KEY>`.
+- **2a**: supplied `base_revision` is stale -> 409 with current MR revision, refreshed conflicts, `vspec merge show <id>` guidance, and no state change.
+- **3a**: a `MANUAL` resolution omits `value` -> 400 naming the offending entity/field, `vspec merge show <id>` guidance, and no merge.
+- **3b**: resolution list does not cover every conflict -> 422 listing uncovered conflict keys, full-resolution guidance, and MR unchanged.
+- **5a**: a HARD lock is acquired on a touched entity after MR open -> 409 with holding session and `vspec who <KEY>` guidance, MR stays OPEN, and main unchanged.
+- ***a**: simulated resolution write failure -> exit code 5 with retry guidance, MR stays OPEN, source branch ACTIVE, and main unchanged.

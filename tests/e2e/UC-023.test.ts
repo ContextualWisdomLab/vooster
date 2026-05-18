@@ -10,40 +10,7 @@ import {
 } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
-
-type WhoResponse = {
-  archived?: boolean;
-  locks: Array<{
-    expires_at: string;
-    held_by_session_id: null | string;
-    held_by_user_id: string;
-    id: string;
-    lock_type: string;
-  }>;
-  merge_requests: Array<{
-    conflict_count: number;
-    id: string;
-    source_branch_id: string;
-    status: string;
-  }>;
-  sessions: Array<{
-    agent_type: string;
-    id: string;
-    intent: string;
-    started_at: string;
-    user_id: string;
-  }>;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  usecase: { id: string; key: string };
-};
-type WhoProblem = {
-  key_format?: string;
-  locks?: unknown;
-  merge_requests?: unknown;
-  sessions?: unknown;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
+import { whoUseCase, type WhoProblem, type WhoResponse } from "../helpers/who-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -74,9 +41,7 @@ describe("UC-023 - See who is working on a use case", () => {
     const opened = await openMerge(server, setup, branch.id);
     const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/who`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await whoUseCase(server, setup, usecase.id);
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as WhoResponse;
@@ -113,9 +78,7 @@ describe("UC-023 - See who is working on a use case", () => {
   test("2a: missing use case returns search guidance", async () => {
     const { setup } = await projectUseCase(server, "Missing Who", "missing-who", "stub-missing-who");
 
-    const response = await server.fetch("/v1/usecases/CHK-999/who", {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await whoUseCase(server, setup, "CHK-999");
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as WhoProblem;
@@ -147,9 +110,7 @@ describe("UC-023 - See who is working on a use case", () => {
     });
     expect(archived.status).toBe(200);
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/who`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await whoUseCase(server, setup, usecase.id);
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as WhoResponse;
@@ -165,9 +126,7 @@ describe("UC-023 - See who is working on a use case", () => {
   test("4a: empty who result suggests starting a session", async () => {
     const { setup, usecase } = await projectUseCase(server, "Empty Who", "empty-who", "stub-empty-who");
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/who`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await whoUseCase(server, setup, usecase.id);
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as WhoResponse;

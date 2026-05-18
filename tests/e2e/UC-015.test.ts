@@ -10,6 +10,11 @@ type ArchiveResponse = {
   usecase: { archived_at: string; id: string; key: string };
 };
 type HistoryResponse = { revisions: Array<{ change_summary?: string; version_number: number }> };
+type ArchiveProblem = {
+  archived_at?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 type SearchResponse = { items: Array<{ key: string }> };
 
 let server: TestServer;
@@ -43,6 +48,26 @@ describe("UC-015 - Archive or restore a use case", () => {
 
     const list = await listUseCases(setup.projectId, setup.cookie);
     expect(list.items).toEqual([]);
+  });
+
+  test("2a: already archived use case returns restore guidance", async () => {
+    const setup = await createProject(server, "Archive Twice", "archive-twice", "stub-archive-twice");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews archive twice");
+    const archived = (await (await archiveUseCase(usecase.id, setup.cookie)).json()) as ArchiveResponse;
+
+    const response = await archiveUseCase(usecase.id, setup.cookie);
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as ArchiveProblem;
+    expect(problem.title).toMatch(/already archived/i);
+    expect(problem.archived_at).toBe(archived.usecase.archived_at);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the archived use case instead."
+    });
+    const history = await revisionHistory(usecase.id, setup.cookie);
+    expect(history.revisions.map((revision) => revision.version_number)).toEqual([2, 1]);
   });
 });
 

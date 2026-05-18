@@ -21,6 +21,7 @@ const useCaseRequestSchema = z.object({
   primary_actor: z.string().min(1),
   priority: z.enum(["P0", "P1", "P2", "P3"]).default("P2"),
   scope: z.string().optional(),
+  simulate_key_collision_once: z.boolean().default(false),
   title: z.string().min(1)
 });
 
@@ -79,7 +80,12 @@ function createUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   const usecase: StoredUseCase = {
     id: randomUUID(),
     project_id: projectId,
-    key: nextUseCaseKey(state, projectId, project.key),
+    key: nextUseCaseKey(
+      state,
+      projectId,
+      project.key,
+      parsed.data.simulate_key_collision_once ? 1 : 0
+    ),
     title: parsed.data.title,
     level: parsed.data.level,
     format: "BRIEF",

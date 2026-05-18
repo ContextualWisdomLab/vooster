@@ -4,9 +4,10 @@ import type { SignupState, StoredUseCase } from "./signup-types.js";
 export function nextUseCaseKey(
   state: SignupState,
   projectId: string,
-  projectKey: string
+  projectKey: string,
+  skipCount = 0
 ): string {
-  const nextNumber = (state.usecasesByProjectId.get(projectId) ?? []).length + 1;
+  const nextNumber = (state.usecasesByProjectId.get(projectId) ?? []).length + 1 + skipCount;
   return `${projectKey}-${String(nextNumber).padStart(3, "0")}`;
 }
 

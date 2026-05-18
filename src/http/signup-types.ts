@@ -102,7 +102,7 @@ export type StoredRevision = {
   entity_id: string;
   version_number: number;
   snapshot: StoredActor | StoredGoal | StoredStakeholder | StoredUseCase;
-  change_summary?: string;
+  change_summary?: string; parent_revision_id?: string;
   severity?: "BREAKING" | "COSMETIC" | "NON_BREAKING";
 };
 

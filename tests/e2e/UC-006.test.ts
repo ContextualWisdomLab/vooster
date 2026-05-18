@@ -78,6 +78,19 @@ describe("UC-006 - Define a stakeholder", () => {
       reason: "Amend the existing stakeholder."
     });
   });
+
+  test("4a: invalid stakeholder type lists valid values", async () => {
+    const setup = await createProject("Invalid Stakeholder", "invalid-stakeholder", "stub-stakeholder-type");
+    const response = await createStakeholder(setup, {
+      name: "Compliance",
+      type: "LEGAL"
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/invalid stakeholder type/i);
+    expect(body.valid_types).toEqual(["INTERNAL", "EXTERNAL", "REGULATORY"]);
+  });
 });
 
 async function createStakeholder(

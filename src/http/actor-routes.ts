@@ -44,6 +44,17 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     );
   }
 
+  if (parsed.data.name === "System") {
+    return reply.code(422).send(
+      problem(422, "System actor name is reserved", {}, [
+        {
+          command: "vspec actor show System",
+          reason: "Inspect the canonical system actor."
+        }
+      ])
+    );
+  }
+
   const archived = archivedActorNamed(state, projectId, parsed.data.name);
   if (archived !== undefined) {
     return reply.code(409).send(

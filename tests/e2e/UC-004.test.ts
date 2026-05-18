@@ -32,6 +32,7 @@ type ProblemResponse = {
   title: string;
   key_pattern?: string;
   example_keys?: string[];
+  existing_project?: { id: string; key: string; name: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -138,6 +139,36 @@ describe("UC-004 - Create a project", () => {
     expect(body.key_pattern).toBe("^[A-Z][A-Z0-9]{1,7}$");
     expect(body.example_keys).toEqual(["PAY", "PAY2", "OPS2026"]);
   });
+
+  test("3b: duplicate project key reports existing project", async () => {
+    const signedUp = await signup("Duplicate Key", "duplicate-key", "stub-duplicate-key");
+    const first = await createProject(signedUp, {
+      name: "Payments",
+      key: "PAY",
+      visibility: "PRIVATE"
+    });
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as ProjectResponse;
+
+    const duplicate = await createProject(signedUp, {
+      name: "Payouts",
+      key: "PAY",
+      visibility: "INTERNAL"
+    });
+
+    expect(duplicate.status).toBe(422);
+    const body = (await duplicate.json()) as ProblemResponse;
+    expect(body.title).toMatch(/project key.*already in use/i);
+    expect(body.existing_project).toEqual({
+      id: firstBody.project.id,
+      key: "PAY",
+      name: "Payments"
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec project show PAY",
+      reason: "Verify whether the existing project is the intended target."
+    });
+  });
 });
 
 async function signup(name: string, slug: string, code: string) {
@@ -159,4 +190,18 @@ async function signup(name: string, slug: string, code: string) {
     userId: body.user.id,
     workspaceId: body.workspace.id
   };
+}
+
+async function createProject(
+  signedUp: { cookie: string; workspaceId: string },
+  body: { key: string; name: string; visibility: string }
+) {
+  return server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: signedUp.cookie
+    },
+    body: JSON.stringify(body)
+  });
 }

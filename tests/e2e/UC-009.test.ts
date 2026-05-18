@@ -134,4 +134,27 @@ describe("UC-009 - Author a use case from scratch", () => {
       reason: "Create the actor before authoring the use case."
     });
   });
+
+  test("5c: key collision retries with next available key", async () => {
+    const setup = await createProject(server, "Collision UseCase", "collision-usecase", "stub-collision-usecase");
+    await createActor(server, setup, "Customer");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        primary_actor: "Customer",
+        simulate_key_collision_once: true,
+        title: "Places an order"
+      })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as UseCaseResponse;
+    expect(body.usecase.key).toBe("CHK-002");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase show CHK-002",
+      reason: "Open the new use case."
+    });
+  });
 });

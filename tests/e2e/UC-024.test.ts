@@ -87,4 +87,26 @@ describe("UC-024 - View use case revision history", () => {
       reason: "Find a use case in the current project."
     });
   });
+
+  test("2b: non-member cannot view revision history", async () => {
+    const mine = await createUseCaseWithMainStep(server, "History Mine", "history-mine", "stub-history-mine");
+    const other = await createUseCaseWithMainStep(server, "History Other", "history-other", "stub-history-other");
+
+    const response = await server.fetch(`/v1/usecases/${other.usecase.id}/revisions`, {
+      headers: { Cookie: mine.setup.cookie }
+    });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as HistoryProblem;
+    expect(problem.title).toMatch(/not authorized/i);
+    expect(problem.history).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for read access."
+    });
+  });
 });

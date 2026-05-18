@@ -52,7 +52,7 @@ function pullFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(400).send(problem(400, "Invalid sync pull request"));
   }
   if (membershipForProject(request, state, projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Not authorized to sync files"));
+    return reply.code(403).send(syncAccessProblem());
   }
   const files = activeUseCases(state, projectId).map((usecase) => ({
     content: usecaseMarkdown(usecase),
@@ -72,7 +72,7 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(400).send(problem(400, "Invalid sync push request"));
   }
   if (membershipForProject(request, state, projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Not authorized to sync files"));
+    return reply.code(403).send(syncAccessProblem());
   }
   const parseErrors = parsed.data.files.flatMap(parseFileErrors);
   if (parseErrors.length > 0) {
@@ -138,6 +138,24 @@ function pushFile(
 function usecaseForFile(state: SignupState, projectId: string, path: string) {
   return activeUseCases(state, projectId).find(
     (candidate) => usecasePath(candidate) === path
+  );
+}
+
+function syncAccessProblem() {
+  return problem(
+    403,
+    "Not authorized to sync files",
+    { exit_code: 3 },
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate before syncing files."
+      },
+      {
+        command: "vspec api-key refresh",
+        reason: "Refresh the agent API key if non-interactive auth failed."
+      }
+    ]
   );
 }
 

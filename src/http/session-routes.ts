@@ -1,13 +1,18 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  archivedPinProblem,
+  hardLockedPinProblem,
+  resolvePins,
+  type PinnedUseCases
+} from "./session-pin-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
   StoredAgentType,
   StoredMembership,
-  StoredUseCase,
   StoredWorkSession
 } from "./signup-types.js";
 
@@ -48,6 +53,9 @@ function startSession(
   if (pinned.status === "ARCHIVED") {
     return reply.code(422).send(archivedPinProblem(pinned.key));
   }
+  if (pinned.status === "HARD_LOCKED") {
+    return reply.code(409).send(hardLockedPinProblem(pinned.key, pinned.holder));
+  }
   if (pinned.status !== "OK") {
     return reply.code(422).send(problem(422, "Pinned use case not found"));
   }
@@ -70,42 +78,6 @@ function createPinnedSession(
   }
 
   return reply.code(201).send(sessionStartResponse(session, pinned.keys));
-}
-
-type PinnedUseCases = {
-  status: "OK";
-  keys: string[];
-  revisions: Record<string, string>;
-  usecases: StoredUseCase[];
-};
-type PinResolution = PinnedUseCases | { key: string; status: "ARCHIVED" | "MISSING" };
-
-function resolvePins(
-  state: SignupState,
-  projectId: string,
-  keys: string[]
-): PinResolution {
-  const usecases = state.usecasesByProjectId.get(projectId) ?? [];
-  const resolved: StoredUseCase[] = [];
-  for (const key of keys) {
-    const usecase = usecases.find((candidate) => candidate.key === key);
-    if (usecase === undefined) {
-      return { key, status: "MISSING" };
-    }
-    if (usecase.archived_at !== null) {
-      return { key, status: "ARCHIVED" };
-    }
-    resolved.push(usecase);
-  }
-
-  return {
-    status: "OK",
-    keys,
-    revisions: Object.fromEntries(
-      resolved.map((usecase) => [usecase.id, latestRevisionId(state, usecase)])
-    ),
-    usecases: resolved
-  };
 }
 
 function workSession(
@@ -149,20 +121,6 @@ function sessionStartResponse(session: StoredWorkSession, keys: string[]) {
   };
 }
 
-function archivedPinProblem(key: string) {
-  return problem(
-    422,
-    "Pinned use case is archived",
-    { offending_key: key, session_count: 0 },
-    [
-      {
-        command: `vspec usecase restore ${key}`,
-        reason: "Restore the archived use case before pinning it."
-      }
-    ]
-  );
-}
-
 function membershipForProject(
   state: SignupState,
   userId: string | undefined,
@@ -176,11 +134,6 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
-}
-
-function latestRevisionId(state: SignupState, usecase: StoredUseCase): string {
-  const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
-  return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
 }
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { createActor, createProject, createUseCase, createWorkspaceMember } from "../helpers/uc-fixtures.js";
+import { createWorkspaceMember } from "../helpers/member-fixtures.js";
+import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 type CommentPayload = {
   author_id: string;

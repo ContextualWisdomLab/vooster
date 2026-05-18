@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { emptyBodyProblem, missingUseCaseProblem, notOwnerProblem } from "./comment-problems.js";
 import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -81,6 +82,9 @@ function patchComment(request: FastifyRequest, reply: FastifyReply, state: Signu
   if (found === undefined) {
     return;
   }
+  if (found.comment.author_id !== found.userId) {
+    return reply.code(403).send(notOwnerProblem());
+  }
   const parsed = patchSchema.safeParse(request.body);
   if (!parsed.success || parsed.data.body?.trim() === "") {
     return reply.code(422).send(emptyBodyProblem());
@@ -100,6 +104,9 @@ function deleteComment(request: FastifyRequest, reply: FastifyReply, state: Sign
   const found = authorizedComment(request, reply, state);
   if (found === undefined) {
     return;
+  }
+  if (found.comment.author_id !== found.userId) {
+    return reply.code(403).send(notOwnerProblem());
   }
   comments(state).delete(found.comment.id);
   return reply.send(commentResponse(found.comment, found.usecase));
@@ -150,34 +157,6 @@ function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
       }
     ]
   };
-}
-
-function emptyBodyProblem() {
-  return problem(
-    422,
-    "empty_body",
-    { code: "empty_body" },
-    [
-      {
-        command: "vspec comment add --body \"<text>\"",
-        reason: "Provide a non-empty markdown body."
-      }
-    ]
-  );
-}
-
-function missingUseCaseProblem() {
-  return problem(
-    404,
-    "Use case not found",
-    {},
-    [
-      {
-        command: "vspec usecase list",
-        reason: "Find a valid non-archived use case."
-      }
-    ]
-  );
 }
 
 function comments(state: SignupState) {

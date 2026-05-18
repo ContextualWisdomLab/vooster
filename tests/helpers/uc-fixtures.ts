@@ -77,20 +77,6 @@ export async function createProject(
   return { ...signedUp, projectId: body.project.id };
 }
 
-export async function createWorkspaceMember(
-  server: TestServer,
-  workspaceId: string,
-  name: string,
-  slug: string,
-  code: string
-): Promise<Omit<ProjectSetup, "projectId">> {
-  const signedUp = await signup(server, name, slug, code);
-  await server.fetch(`/__test/workspaces/${workspaceId}/members/${signedUp.userId}`, {
-    method: "POST"
-  });
-  return signedUp;
-}
-
 export async function createActor(
   server: TestServer,
   setup: ProjectSetup,
@@ -190,7 +176,7 @@ export async function listGoals(
   });
 }
 
-async function signup(server: TestServer, name: string, slug: string, code: string) {
+export async function signup(server: TestServer, name: string, slug: string, code: string) {
   const start = await server.fetch("/v1/auth/github/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

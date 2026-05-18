@@ -3,6 +3,7 @@ import { addInterest } from "../helpers/interest-fixtures.js";
 import {
   addStep,
   createMainScenario,
+  createScenarioReadyUseCase,
   type ProblemResponse,
   type ScenarioResponse,
   type StepResponse
@@ -91,23 +92,19 @@ describe("UC-011 - Write the main success scenario", () => {
   });
 
   test("2a: duplicate main success scenario returns edit guidance", async () => {
-    const setup = await createProject(server, "Duplicate Scenario", "duplicate-scenario", "stub-duplicate-scenario");
-    await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
-    await createStakeholder(server, setup, "Product Manager");
-    await addInterest(server, usecase.id, setup.cookie, {
-      interest: "Checkout revenue is protected.",
-      stakeholder: "Product Manager"
-    });
-    const first = await createMainScenario(server, usecase.id, setup.cookie);
-    const firstBody = (await first.json()) as ScenarioResponse;
+    const { scenario, setup, usecase } = await createScenarioReadyUseCase(
+      server,
+      "Duplicate Scenario",
+      "duplicate-scenario",
+      "stub-duplicate-scenario"
+    );
 
     const duplicate = await createMainScenario(server, usecase.id, setup.cookie);
 
     expect(duplicate.status).toBe(409);
     const problem = (await duplicate.json()) as ProblemResponse;
     expect(problem.title).toMatch(/main_success scenario already exists/i);
-    expect(problem.existing_scenario_id).toBe(firstBody.scenario.id);
+    expect(problem.existing_scenario_id).toBe(scenario.scenario.id);
     expect(problem.suggested_next_actions).toEqual([
       {
         command: "vspec step add",
@@ -121,19 +118,12 @@ describe("UC-011 - Write the main success scenario", () => {
   });
 
   test("3b: empty and passive step actions require correction or force", async () => {
-    const setup = await createProject(server, "Step Action", "step-action", "stub-step-action");
-    await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
-    await createStakeholder(server, setup, "Product Manager");
-    await addInterest(server, usecase.id, setup.cookie, {
-      interest: "Checkout revenue is protected.",
-      stakeholder: "Product Manager"
-    });
-    const scenario = (await (await createMainScenario(
+    const { scenario, setup } = await createScenarioReadyUseCase(
       server,
-      usecase.id,
-      setup.cookie
-    )).json()) as ScenarioResponse;
+      "Step Action",
+      "step-action",
+      "stub-step-action"
+    );
 
     const empty = await addStep(server, scenario.scenario.id, setup.cookie, {
       action: "",

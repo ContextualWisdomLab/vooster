@@ -1,4 +1,11 @@
+import { addInterest } from "./interest-fixtures.js";
 import type { TestServer } from "./server.js";
+import {
+  createActor,
+  createProject,
+  createStakeholder,
+  createUseCase
+} from "./uc-fixtures.js";
 
 export type Scenario = {
   id: string;
@@ -61,4 +68,23 @@ export async function addStep(
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify(body)
   });
+}
+
+export async function createScenarioReadyUseCase(
+  server: TestServer,
+  name: string,
+  slug: string,
+  code: string
+) {
+  const setup = await createProject(server, name, slug, code);
+  const actor = await createActor(server, setup, "Customer");
+  const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+  await createStakeholder(server, setup, "Product Manager");
+  await addInterest(server, usecase.id, setup.cookie, {
+    interest: "Checkout revenue is protected.",
+    stakeholder: "Product Manager"
+  });
+  const response = await createMainScenario(server, usecase.id, setup.cookie);
+  const scenario = (await response.json()) as ScenarioResponse;
+  return { actor, scenario, setup, usecase };
 }

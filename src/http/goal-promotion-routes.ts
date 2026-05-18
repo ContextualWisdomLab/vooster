@@ -68,6 +68,9 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
   state.revisionsByEntityId.set(usecase.id, [revision]);
   found.goal.status = "PROMOTED";
   found.goal.linked_usecase_id = usecase.id;
+  const titleWarning = titleLooksLikeVerbPhrase(usecase.title)
+    ? undefined
+    : { field: "title", message: "Title may not be a verb phrase." };
 
   return reply.code(201).send({
     usecase,
@@ -78,8 +81,17 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
         command: "vspec usecase add-stakeholder",
         reason: "Attach stakeholders and interests."
       },
-      { command: "vspec scenario main", reason: "Write the main success scenario." }
-    ]
+      { command: "vspec scenario main", reason: "Write the main success scenario." },
+      ...(titleWarning === undefined
+        ? []
+        : [
+            {
+              command: `vspec usecase set ${usecase.key} --field title`,
+              reason: "Revise the title into a verb phrase."
+            }
+          ])
+    ],
+    ...(titleWarning === undefined ? {} : { warnings: [titleWarning] })
   });
 }
 
@@ -107,6 +119,12 @@ function useCaseRevision(usecase: StoredUseCase, changeSummary: string) {
     snapshot: { ...usecase },
     change_summary: changeSummary
   };
+}
+
+function titleLooksLikeVerbPhrase(title: string): boolean {
+  return /^(adds?|approves?|cancels?|creates?|places?|promotes?|renews?|requests?|reviews?|submits?|tracks?|writes?)\b/i.test(
+    title
+  );
 }
 
 function membershipForProject(

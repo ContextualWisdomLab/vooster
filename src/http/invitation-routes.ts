@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   alreadyMemberProblem,
   editorOwnerInviteProblem,
+  emailMismatchProblem,
   invitationExpiredProblem
 } from "./invitation-problems.js";
 import {
@@ -88,6 +89,9 @@ function acceptInvitation(
     return reply.code(410).send(invitationExpiredProblem());
   }
   const profile = githubProfile(options, parsed.data.code);
+  if (profile.email !== invitation.email) {
+    return reply.code(422).send(emailMismatchProblem());
+  }
   const user = userForProfile(state, profile);
   const membership = {
     id: randomUUID(),

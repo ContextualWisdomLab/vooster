@@ -41,3 +41,17 @@ export function invitationExpiredProblem() {
     ]
   );
 }
+
+export function emailMismatchProblem() {
+  return problem(
+    422,
+    "GitHub email does not match the invitation",
+    { code: "email_mismatch" },
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate with the GitHub account that owns the invited email."
+      }
+    ]
+  );
+}

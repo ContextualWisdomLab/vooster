@@ -29,6 +29,14 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
   if (project === undefined) {
     return reply.code(404).send(problem(404, "Project not found"));
   }
+  if (found.goal.linked_usecase_id !== null) {
+    return reply.code(409).send(
+      problem(409, "Goal is already promoted", {
+        existing_usecase_key:
+          useCaseWithId(state, found.projectId, found.goal.linked_usecase_id)?.key
+      })
+    );
+  }
 
   const usecase: StoredUseCase = {
     id: randomUUID(),
@@ -68,6 +76,16 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
 function nextUseCaseKey(state: SignupState, projectId: string, projectKey: string): string {
   const nextNumber = (state.usecasesByProjectId.get(projectId) ?? []).length + 1;
   return `${projectKey}-${String(nextNumber).padStart(3, "0")}`;
+}
+
+function useCaseWithId(
+  state: SignupState,
+  projectId: string,
+  usecaseId: string
+): StoredUseCase | undefined {
+  return (state.usecasesByProjectId.get(projectId) ?? []).find(
+    (usecase) => usecase.id === usecaseId
+  );
 }
 
 function useCaseRevision(usecase: StoredUseCase, changeSummary: string) {

@@ -1,30 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
 
-type OAuthStart = {
-  state: string;
-};
-
-type SignupResponse = {
-  workspace: { id: string };
-};
-
 type ProjectResponse = {
-  project: {
-    id: string;
-    workspace_id: string;
-    name: string;
-    key: string;
-    visibility: string;
-    default_branch_id: string;
-  };
-  default_branch: {
-    id: string;
-    project_id: string;
-    name: string;
-    owner_type: string;
-    owner_id: string;
-  };
+  project: Record<"default_branch_id" | "id" | "key" | "name" | "visibility" | "workspace_id", string>;
+  default_branch: Record<"id" | "name" | "owner_id" | "owner_type" | "project_id", string>;
   recommended_next_command: string;
 };
 
@@ -51,21 +30,11 @@ describe("UC-004 - Create a project", () => {
   test("MAIN: workspace member creates a project with main branch", async () => {
     const signedUp = await signup("Project Owner", "project-owner", "stub-project-owner");
 
-    const response = await server.fetch(
-      `/v1/workspaces/${signedUp.workspaceId}/projects`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: signedUp.cookie
-        },
-        body: JSON.stringify({
-          name: "Payments",
-          key: "PAY",
-          visibility: "INTERNAL"
-        })
-      }
-    );
+    const response = await createProject(signedUp, {
+      name: "Payments",
+      key: "PAY",
+      visibility: "INTERNAL"
+    });
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as ProjectResponse;
@@ -93,18 +62,10 @@ describe("UC-004 - Create a project", () => {
       "stub-project-outsider"
     );
 
-    const response = await server.fetch(`/v1/workspaces/${owner.workspaceId}/projects`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: outsider.cookie
-      },
-      body: JSON.stringify({
-        name: "Fraud",
-        key: "FRD",
-        visibility: "PRIVATE"
-      })
-    });
+    const response = await createProject(
+      { cookie: outsider.cookie, workspaceId: owner.workspaceId },
+      { name: "Fraud", key: "FRD", visibility: "PRIVATE" }
+    );
 
     expect(response.status).toBe(403);
     const body = (await response.json()) as ProblemResponse;
@@ -118,21 +79,11 @@ describe("UC-004 - Create a project", () => {
   test("3a: invalid project key returns pattern and examples", async () => {
     const signedUp = await signup("Invalid Key", "invalid-key", "stub-invalid-key");
 
-    const response = await server.fetch(
-      `/v1/workspaces/${signedUp.workspaceId}/projects`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: signedUp.cookie
-        },
-        body: JSON.stringify({
-          name: "Invalid Project",
-          key: "pay",
-          visibility: "PRIVATE"
-        })
-      }
-    );
+    const response = await createProject(signedUp, {
+      name: "Invalid Project",
+      key: "pay",
+      visibility: "PRIVATE"
+    });
 
     expect(response.status).toBe(400);
     const body = (await response.json()) as ProblemResponse;
@@ -200,13 +151,16 @@ async function signup(name: string, slug: string, code: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ workspace: { name, slug } })
   });
-  const startBody = (await start.json()) as OAuthStart;
+  const startBody = (await start.json()) as { state: string };
   const params = new URLSearchParams({ code, state: startBody.state });
   const callback = await server.fetch(
     `/v1/auth/github/callback?${params.toString()}`,
     { headers: { Cookie: start.headers.get("set-cookie") ?? "" } }
   );
-  const body = (await callback.json()) as SignupResponse & { user: { id: string } };
+  const body = (await callback.json()) as {
+    user: { id: string };
+    workspace: { id: string };
+  };
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

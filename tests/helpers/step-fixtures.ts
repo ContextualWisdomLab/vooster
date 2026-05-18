@@ -46,3 +46,16 @@ export async function createPinnedSession(
     body: JSON.stringify(body)
   });
 }
+
+export async function createStepLock(
+  server: TestServer,
+  usecaseId: string,
+  cookie: string,
+  body: { expires_at: string; holder: string; mode: "HARD" | "SEMANTIC"; reason: string }
+) {
+  return server.fetch(`/__test/usecases/${usecaseId}/locks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+}

@@ -5,6 +5,7 @@ import {
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
   createPinnedSession,
+  createStepLock,
   patchStep,
   type StepPatchResponse,
   type StepProblemResponse
@@ -139,15 +140,11 @@ describe("UC-013 - Edit a use case step", () => {
         "stub-semantic-lock"
       );
     const expiresAt = "2026-06-01T00:00:00.000Z";
-    const locked = await server.fetch(`/__test/usecases/${usecase.id}/locks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        expires_at: expiresAt,
-        holder: "agent-session-1",
-        mode: "SEMANTIC",
-        reason: "Agent is editing implementation."
-      })
+    const locked = await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: expiresAt,
+      holder: "agent-session-1",
+      mode: "SEMANTIC",
+      reason: "Agent is editing implementation."
     });
     expect(locked.status).toBe(201);
 

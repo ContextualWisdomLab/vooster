@@ -244,3 +244,12 @@ write. This guides your TDD cycles within an iteration._
 - **3a**: simulated network failure with only a previous-version cached guide -> returns stale guide with a prominent warning and retry guidance.
 - **2a**: cached guide version differs from requested CLI version -> force-refreshes from server and returns current-version cache metadata rather than stale content.
 - ***a**: simulated network failure with no cached guide -> returns exit code 5 and public guide URL bootstrap without partial guidance.
+
+### UC-034
+
+- **MAIN**: authenticated caller fetches `format=agent` for an active use case -> JSON envelope with structured use case data, scenarios, steps, stakeholder interests, primary actor, context project/branch/session/revision/request id, safe next actions, empty warnings, and `format_version: 1`.
+- **3a**: requested revision is missing for this use case -> 404 with requested revision id and `vspec history <KEY>` guidance.
+- **3b**: active owned session pins this use case and a conflicting revision flag is supplied -> response uses pinned revision and warns that the flag was overridden.
+- **4a**: active owned session does not pin this use case -> falls back to revision/head, warns about unpinned concurrent-edit risk, and suggests `vspec session pin <KEY>`.
+- **2a**: unauthenticated caller -> 401 with `vspec login` and API-key creation guidance.
+- ***a**: use case is archived -> 404 with `vspec usecase list --status=` guidance and no structured data envelope.

@@ -113,6 +113,14 @@ write. This guides your TDD cycles within an iteration._
 - **6a**: active sessions pinning this use case -> edit succeeds and returns affected session ids in the impact payload.
 - ***a**: hard lock -> all edits return 409 with unlock/contact-holder guidance and no write.
 
+### UC-014
+
+- **MAIN**: authenticated member lists use cases with `q`, `status`, `level`, `actor_id`, `limit`, and `cursor` -> returns key-ordered previews, hides archived rows, and uses an opaque next cursor for the next page.
+- **2a**: unknown `status` or `level` filter -> 400 listing valid values and no partial items.
+- **2b**: `actor_id` does not resolve in the project -> 200 empty items with `vspec actor list` guidance.
+- **4a**: malformed cursor -> 400 with the opaque-cursor message; cursor past the last row -> 200 empty page with `next_cursor: null`.
+- ***a**: no rows match filters -> 200 empty items, `next_cursor: null`, and broadening-filter guidance.
+
 ### UC-016
 
 - **MAIN**: authenticated project member starts a work session with pinned use case keys -> creates an ACTIVE session with pinned current revisions, writes `.vspec/session.json` metadata, and returns show/complete next actions.

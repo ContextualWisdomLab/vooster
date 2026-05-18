@@ -20,6 +20,11 @@ type UseCaseResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: UseCase;
 };
+type ProblemResponse = {
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  suggested_titles?: string[];
+  title: string;
+};
 
 let server: TestServer;
 
@@ -73,5 +78,36 @@ describe("UC-009 - Author a use case from scratch", () => {
       command: "vspec scenario add",
       reason: "Write the main success scenario."
     });
+  });
+
+  test("2a: non-verb title requires force override", async () => {
+    const setup = await createProject(server, "Weak UseCase", "weak-usecase", "stub-weak-usecase");
+    await createActor(server, setup, "Customer");
+
+    const rejected = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "Order status" })
+    });
+
+    expect(rejected.status).toBe(422);
+    const problem = (await rejected.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/title.*verb phrase/i);
+    expect(problem.suggested_titles).toContain("Reviews order status");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase create --force",
+      reason: "Create anyway after reviewing the title."
+    });
+
+    const forced = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        force: true,
+        primary_actor: "Customer",
+        title: "Order status"
+      })
+    });
+    expect(forced.status).toBe(201);
   });
 });

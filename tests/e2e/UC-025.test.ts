@@ -24,6 +24,7 @@ type DiffResponse = {
   cross_branch?: boolean;
   format: string;
   from_revision: string;
+  note?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   summary: { breaking: number; cosmetic: number; non_breaking: number };
   to_revision: string;
@@ -148,5 +149,22 @@ describe("UC-025 - Compare two revisions of a use case", () => {
       severity: "BREAKING",
       source_branch: "main"
     });
+  });
+
+  test("4a: identical revisions return empty diff with byte match note", async () => {
+    const { mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(server, "Diff Identical", "diff-identical", "stub-diff-same");
+
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/diff?from=${mainStepRevision.id}&to=${mainStepRevision.id}&format=human`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as DiffResponse;
+    expect(body.format).toBe("human");
+    expect(body.changes).toEqual([]);
+    expect(body.summary).toEqual({ breaking: 0, cosmetic: 0, non_breaking: 0 });
+    expect(body.note).toBe("Revisions match byte-for-byte.");
   });
 });

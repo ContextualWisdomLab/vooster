@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
 import type { GithubProfile, PendingSignup, ServerOptions } from "./signup-types.js";
 
+export class GithubNetworkError extends Error {}
+
 export function clearOAuthState(reply: FastifyReply) {
   reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
 }
@@ -34,6 +36,10 @@ export function signupResponse(profile: GithubProfile, pending: PendingSignup) {
 export function githubProfile(options: ServerOptions, code: string): GithubProfile {
   if (!options.authStub) {
     throw new Error("GitHub OAuth is not configured.");
+  }
+
+  if (code === "stub-github-network-failure") {
+    throw new GithubNetworkError("GitHub is unavailable.");
   }
 
   if (code === "stub-unverified-email") {
@@ -77,14 +83,15 @@ export function alternativeSlug(slug: string, existingSlugs: Set<string>): strin
 export function problem(
   status: number,
   title: string,
-  extra: Record<string, string> = {}
+  extra: Record<string, string> = {},
+  suggestedNextActions = [{ command: "vspec login", reason: "Restart signup." }]
 ) {
   return {
     type: "https://vspec.dev/errors/bad-request",
     title,
     status,
     ...extra,
-    suggested_next_actions: [{ command: "vspec login", reason: "Restart signup." }]
+    suggested_next_actions: suggestedNextActions
   };
 }
 

@@ -5,12 +5,18 @@ import {
   alternativeSlug,
   clearOAuthState,
   establishSession,
+  GithubNetworkError,
   githubProfile,
   problem,
   readCookie,
   signupResponse
 } from "./signup-support.js";
-import type { PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
+import type {
+  GithubProfile,
+  PendingSignup,
+  ServerOptions,
+  SignupState
+} from "./signup-types.js";
 
 const startSignupSchema = z.object({
   workspace: z.object({
@@ -90,14 +96,41 @@ function completeSignup(
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 
-  const profile = githubProfile(options, parsed.data.code);
+  const profile = fetchGithubProfile(options, parsed.data.code);
   state.pendingSignups.delete(parsed.data.state);
   clearOAuthState(reply);
+  if (profile === undefined) {
+    return githubUnavailable(reply);
+  }
+
   if (!profile.emailVerified) {
     return reply.code(422).send(problem(422, "Verify your GitHub email"));
   }
 
   return completeVerifiedSignup(reply, state, profile, pending);
+}
+
+function fetchGithubProfile(
+  options: ServerOptions,
+  code: string
+): GithubProfile | undefined {
+  try {
+    return githubProfile(options, code);
+  } catch (error) {
+    if (error instanceof GithubNetworkError) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+function githubUnavailable(reply: FastifyReply) {
+  return reply.code(502).send(
+    problem(502, "GitHub is unavailable", {}, [
+      { command: "vspec login", reason: "Retry signup after GitHub is reachable." }
+    ])
+  );
 }
 
 function completeVerifiedSignup(

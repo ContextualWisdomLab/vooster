@@ -23,6 +23,14 @@ export function createExtensionScenario(
   if (data.extension_point === undefined || data.condition === undefined) {
     return reply.code(400).send(problem(400, "Invalid extension scenario request"));
   }
+  if (!validExtensionPoint(data.extension_point)) {
+    return reply.code(400).send(
+      problem(400, "Invalid extension point", {
+        example_extension_points: ["3a", "7c", "*a"],
+        valid_extension_point_forms: ["^\\d+[a-z]$", "^\\*[a-z]$"]
+      })
+    );
+  }
   const parentStepNumber = extensionPointParentStep(data.extension_point);
   const mainScenario = mainSuccessScenario(state, found.usecase.id);
   if (
@@ -54,4 +62,8 @@ export function createExtensionScenario(
   );
 
   return reply.code(201).send({ scenario, revision, steps: [] });
+}
+
+function validExtensionPoint(extensionPoint: string): boolean {
+  return /^(\d+|\*)[a-z]$/.test(extensionPoint);
 }

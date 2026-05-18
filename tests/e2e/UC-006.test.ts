@@ -108,6 +108,22 @@ describe("UC-006 - Define a stakeholder", () => {
       reason: "Create an actor for step actions."
     });
   });
+
+  test("*a: archived project workspace aborts stakeholder creation", async () => {
+    const setup = await createProject("Archived Stakeholder", "archived-stakeholder", "stub-stakeholder-archive");
+    await server.fetch(`/__test/workspaces/${setup.workspaceId}/archive`, {
+      method: "POST"
+    });
+
+    const response = await createStakeholder(setup, {
+      name: "Auditor",
+      type: "REGULATORY"
+    });
+
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/workspace.*archived/i);
+  });
 });
 
 async function createStakeholder(

@@ -86,6 +86,39 @@ export async function advanceMain(
   return (await response.json()) as BranchRevisionResponse;
 }
 
+export async function advanceBranchExtension(
+  server: TestServer,
+  setup: ProjectSetup,
+  branchId: string,
+  usecaseId: string,
+  extensionPoint: string,
+  condition: string
+) {
+  const response = await server.fetch(`/__test/branches/${branchId}/usecases/${usecaseId}/extensions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ condition, extension_point: extensionPoint })
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as BranchRevisionResponse;
+}
+
+export async function advanceMainExtension(
+  server: TestServer,
+  setup: ProjectSetup,
+  usecaseId: UseCase["id"],
+  extensionPoint: string,
+  condition: string
+) {
+  const response = await server.fetch(`/__test/usecases/${usecaseId}/extensions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ condition, extension_point: extensionPoint })
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as BranchRevisionResponse;
+}
+
 export function openMerge(server: TestServer, setup: ProjectSetup, branchId: string) {
   return server.fetch("/v1/merges", {
     method: "POST",

@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   advanceBranch,
+  advanceBranchExtension,
   advanceMain,
+  advanceMainExtension,
   createBranch,
   openMerge,
   projectUseCase,
@@ -100,6 +102,35 @@ describe("UC-020 - Merge a branch", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the hard lock."
+    });
+  });
+
+  test("4c: semantic conflict leaves merge request open", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Semantic Merge", "semantic-merge", "stub-semantic-merge");
+    const branch = await createBranch(server, setup, "feature/semantic-conflict");
+    await advanceBranchExtension(server, setup, branch.id, usecase.id, "3a", "Card is declined online");
+    await advanceMainExtension(server, setup, usecase.id, "3a", "Card is declined in store");
+
+    const response = await openMerge(server, setup, branch.id);
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as MergeOpenResponse;
+    expect(body.merge_request).toMatchObject({
+      source_branch_id: branch.id,
+      status: "OPEN",
+      strategy: "SQUASH"
+    });
+    expect(body.merge_request.conflicts).toContainEqual({
+      entity_id: usecase.id,
+      extension_point: "3a",
+      mine_scenario: "Card is declined online",
+      theirs_scenario: "Card is declined in store",
+      type: "SEMANTIC"
+    });
+    expect(body.source_branch).toMatchObject({ id: branch.id, status: "ACTIVE" });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec merge resolve ${body.merge_request.id}`,
+      reason: "Resolve conflicts before this branch can merge."
     });
   });
 });

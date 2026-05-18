@@ -13,12 +13,13 @@ export function syncPull(server: TestServer, setup: SyncSetup) {
 export function syncPush(
   server: TestServer,
   setup: SyncSetup,
-  file: { base_revision: string; content: string | undefined; path: string }
+  file: { base_revision: string; content: string | undefined; path: string },
+  options: { dry_run?: boolean } = {}
 ) {
   return server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ branch: "main", files: [file] })
+    body: JSON.stringify({ branch: "main", files: [file], ...options })
   });
 }
 

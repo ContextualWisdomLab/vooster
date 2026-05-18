@@ -12,6 +12,7 @@ type PushResponse = {
   results: Array<{
     conflict_content?: string;
     current_revision: string;
+    dry_run?: boolean;
     impact?: { entity_id: string; severity: string };
     path: string;
     status: string;
@@ -158,6 +159,34 @@ describe("UC-029 - Sync local files with the server", () => {
 
     await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
       serverRevision,
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("1a: dry-run push reports outcome without revision or cache update", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Sync Dry Run", "sync-dry-run", "stub-sync-dry-run");
+
+    const pulled = await syncPull(server, setup);
+    const pull = (await pulled.json()) as PullResponse;
+    const path = `specs/${usecase.key}.md`;
+
+    const dryRun = await syncPush(server, setup, {
+      base_revision: usecase.current_revision_id,
+      content: pull.files[0]?.content.replace("# Reviews a refund", "# Reviews a refund later"),
+      path
+    }, { dry_run: true });
+
+    expect(dryRun.status).toBe(200);
+    const push = (await dryRun.json()) as PushResponse;
+    expect(push.results[0]).toMatchObject({
+      current_revision: usecase.current_revision_id,
+      dry_run: true,
+      path,
+      status: "OK"
+    });
+    expect(push.cache.entries).toEqual([]);
+    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
       usecase.current_revision_id
     ]);
   });

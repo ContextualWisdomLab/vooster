@@ -1,6 +1,32 @@
 import type { TestServer } from "./server.js";
 
 export type Actor = { id: string; name: string; project_id: string };
+export type Goal = {
+  actor_id: string;
+  archived_at: null;
+  description: string;
+  id: string;
+  level: string;
+  linked_usecase_id: null;
+  priority: string;
+  project_id: string;
+  status: string;
+};
+export type GoalResponse = {
+  goal: Goal;
+  recommended_next_command?: string;
+  revision: { entity_id: string; entity_type: string; version_number: number };
+};
+export type GoalListResponse = {
+  actors: Array<{ actor: Actor; goals: Goal[] }>;
+};
+export type ProblemResponse = {
+  actor_id?: string;
+  allowed_status_transitions?: string[];
+  description_rule?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 export type ProjectSetup = {
   cookie: string;
   projectId: string;

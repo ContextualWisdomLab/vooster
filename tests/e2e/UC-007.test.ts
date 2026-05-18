@@ -6,35 +6,10 @@ import {
   createProject,
   listGoals,
   patchGoal,
-  type Actor
+  type GoalListResponse,
+  type GoalResponse,
+  type ProblemResponse
 } from "../helpers/uc-fixtures.js";
-
-type Goal = {
-  actor_id: string;
-  archived_at: null;
-  description: string;
-  id: string;
-  level: string;
-  linked_usecase_id: null;
-  priority: string;
-  project_id: string;
-  status: string;
-};
-type GoalResponse = {
-  goal: Goal;
-  recommended_next_command?: string;
-  revision: { entity_id: string; entity_type: string; version_number: number };
-};
-type GoalListResponse = {
-  actors: Array<{ actor: Actor; goals: Goal[] }>;
-};
-type ProblemResponse = {
-  actor_id?: string;
-  allowed_status_transitions?: string[];
-  description_rule?: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 

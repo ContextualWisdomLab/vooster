@@ -14,6 +14,7 @@ type RevertResponse = {
 type RevertProblem = {
   affected_sessions?: string[]; expires_at?: string; expected_entity_id?: string;
   breaking_changes?: Array<{ path: string; revision: string; severity: string }>;
+  exit_code?: number;
   held_by_user_id?: string; holding_session?: string; missing_revision?: string; reason?: string;
   suggested_next_actions: Action[];
   title: string;
@@ -147,6 +148,26 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       message: "Pinned CI feature files will drift on next sync.", type: "GHERKIN_DRIFT"
     });
     expect(body.revision.change_summary).toBe(`Revert to ${targetRevision}`);
+  });
+
+  test("*a: write failure rolls back revert", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Revert Failure", "revert-failure", "stub-revert-failure");
+    const targetRevision = usecase.current_revision_id;
+    const currentHead = await advanceNonBreaking(usecase.id, setup.cookie, "Reviews a refund safely");
+
+    const response = await revert(usecase.id, setup.cookie, {
+      revision_id: targetRevision, simulate_write_failure: true
+    });
+
+    expect(response.status).toBe(500);
+    const problem = (await response.json()) as RevertProblem;
+    expect(problem.exit_code).toBe(5);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec revert ${usecase.key} --to ${targetRevision} --retry`,
+      reason: "Retry after the revert write failure."
+    });
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([currentHead, targetRevision]);
   });
 });
 

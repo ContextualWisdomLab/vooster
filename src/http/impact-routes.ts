@@ -9,7 +9,8 @@ import { useCaseWithProjectId } from "./usecase-support.js";
 const previewSchema = z.object({
   base_revision: z.string().min(1),
   entity_id: z.string().min(1),
-  entity_type: z.literal("USECASE")
+  entity_type: z.literal("USECASE"),
+  proposed_change_path: z.string().optional()
 });
 
 export function registerImpactRoutes(app: FastifyInstance, state: SignupState) {
@@ -27,6 +28,11 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to preview impact"));
+  }
+  if (parsed.data.proposed_change_path !== undefined) {
+    return reply
+      .code(400)
+      .send(missingProposedChangeProblem(found.usecase, parsed.data.proposed_change_path));
   }
   const revision = revisionById(state, found.usecase.id, parsed.data.base_revision);
   if (revision === undefined) {
@@ -63,6 +69,24 @@ function impactHash(revisionId: string, snapshot: StoredRevision["snapshot"]) {
   return createHash("sha256")
     .update(JSON.stringify({ revisionId, snapshot }))
     .digest("hex");
+}
+
+function missingProposedChangeProblem(usecase: StoredUseCase, path: string) {
+  return problem(
+    400,
+    "Proposed change file is not readable",
+    { path },
+    [
+      {
+        command: "vspec impact --proposed-change <path>",
+        reason: "Verify the proposed-change path and retry."
+      },
+      {
+        command: `vspec impact ${usecase.key}`,
+        reason: "Rerun without a proposed-change file to analyze the current head."
+      }
+    ]
+  );
 }
 
 function nextActions(usecase: StoredUseCase, previewId: string) {

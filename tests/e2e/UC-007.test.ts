@@ -4,6 +4,7 @@ import {
   createActor,
   createGoal,
   createProject,
+  listGoals,
   patchGoal,
   type Actor
 } from "../helpers/uc-fixtures.js";
@@ -21,7 +22,7 @@ type Goal = {
 };
 type GoalResponse = {
   goal: Goal;
-  recommended_next_command: string;
+  recommended_next_command?: string;
   revision: { entity_id: string; entity_type: string; version_number: number };
 };
 type GoalListResponse = {
@@ -76,10 +77,7 @@ describe("UC-007 - Manage the actor-goal list", () => {
     });
     expect(body.recommended_next_command).toBe("vspec goal list");
 
-    const listed = await server.fetch(
-      `/v1/projects/${setup.projectId}/goals?actor_id=${actor.id}`,
-      { headers: { Cookie: setup.cookie } }
-    );
+    const listed = await listGoals(server, setup, actor.id);
     expect(listed.status).toBe(200);
     const listBody = (await listed.json()) as GoalListResponse;
     expect(listBody.actors).toEqual([
@@ -163,11 +161,40 @@ describe("UC-007 - Manage the actor-goal list", () => {
       "any -> REJECTED"
     ]);
 
-    const listed = await server.fetch(
-      `/v1/projects/${setup.projectId}/goals?actor_id=${actor.id}`,
-      { headers: { Cookie: setup.cookie } }
-    );
+    const listed = await listGoals(server, setup, actor.id);
     const listBody = (await listed.json()) as GoalListResponse;
     expect(listBody.actors[0]?.goals[0]?.status).toBe("IDENTIFIED");
+  });
+
+  test("6a: rejecting a promoted goal requires archiving the use case first", async () => {
+    const setup = await createProject(server, "Promoted Goal", "promoted-goal", "stub-goal-promoted");
+    const actor = await createActor(server, setup, "Subscriber");
+    const created = await createGoal(server, setup, {
+      actor_id: actor.id,
+      description: "Renews a subscription",
+      level: "USER_GOAL",
+      priority: "P0"
+    });
+    const goal = ((await created.json()) as GoalResponse).goal;
+    const inDesign = await patchGoal(server, setup, goal.id, { status: "IN_DESIGN" });
+    expect(inDesign.status).toBe(200);
+    const inDesignBody = (await inDesign.json()) as GoalResponse;
+    expect(inDesignBody.goal.status).toBe("IN_DESIGN");
+    expect(inDesignBody.revision.version_number).toBe(2);
+    const promoted = await patchGoal(server, setup, goal.id, { status: "PROMOTED" });
+    expect(promoted.status).toBe(200);
+    const promotedBody = (await promoted.json()) as GoalResponse;
+    expect(promotedBody.goal.status).toBe("PROMOTED");
+    expect(promotedBody.revision.version_number).toBe(3);
+    const rejected = await patchGoal(server, setup, goal.id, { status: "REJECTED" });
+    expect(rejected.status).toBe(422);
+    const body = (await rejected.json()) as ProblemResponse;
+    expect(body.title).toMatch(/use case.*archive/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase archive",
+      reason: "Deprecate the linked use case before rejecting the goal."
+    });
+    const listBody = (await (await listGoals(server, setup, actor.id)).json()) as GoalListResponse;
+    expect(listBody.actors[0]?.goals[0]?.status).toBe("PROMOTED");
   });
 });

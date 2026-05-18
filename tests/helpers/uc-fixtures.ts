@@ -72,6 +72,16 @@ export async function patchGoal(
   });
 }
 
+export async function listGoals(
+  server: TestServer,
+  setup: ProjectSetup,
+  actorId: string
+) {
+  return server.fetch(`/v1/projects/${setup.projectId}/goals?actor_id=${actorId}`, {
+    headers: { Cookie: setup.cookie }
+  });
+}
+
 async function signup(server: TestServer, name: string, slug: string, code: string) {
   const start = await server.fetch("/v1/auth/github/start", {
     method: "POST",

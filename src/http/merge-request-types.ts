@@ -1,6 +1,7 @@
 export type StoredMergeRequest = {
   conflicts: Array<Record<string, unknown>>;
   created_by?: string;
+  current_revision_id?: string;
   id: string;
   impact: {
     affected_branches: string[];

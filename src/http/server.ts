@@ -6,6 +6,7 @@ import { registerBranchTestRoutes } from "./branch-test-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerMergeRoutes } from "./merge-routes.js";
+import { registerMergeResolveRoutes } from "./merge-resolve-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerScenarioRoutes } from "./scenario-routes.js";
 import { registerSessionCompleteRoutes } from "./session-complete-routes.js";
@@ -27,6 +28,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerBranchRoutes(app, state);
   registerBranchTestRoutes(app, state);
   registerMergeRoutes(app, state);
+  registerMergeResolveRoutes(app, state);
   registerActorRoutes(app, state);
   registerActorTestRoutes(app, state);
   registerGoalRoutes(app, state);

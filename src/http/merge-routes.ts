@@ -132,6 +132,7 @@ function mergeRequestFor(
 ): StoredMergeRequest {
   return {
     id: randomUUID(),
+    current_revision_id: randomUUID(),
     source_branch_id: source.id,
     target_branch_id: targetBranchId,
     status: "OPEN",

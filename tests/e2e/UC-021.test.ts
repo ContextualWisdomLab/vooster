@@ -58,13 +58,8 @@ describe("UC-021 - Resolve a merge conflict", () => {
     });
     expect(Date.parse(body.merge_request.resolved_at)).not.toBeNaN();
     expect(body.source_branch).toMatchObject({ id: branch.id, status: "MERGED" });
-    expect(body.new_revisions).toContainEqual(
-      expect.objectContaining({
-        entity_id: usecase.id,
-        snapshot: expect.objectContaining({ title: "Reviews a refund quickly" })
-      })
-    );
     const newRevision = body.new_revisions.find((revision) => revision.entity_id === usecase.id);
+    expect(newRevision?.snapshot.title).toBe("Reviews a refund quickly");
     expect(body.main_head_revision_ids[usecase.id]).toBe(newRevision?.id);
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec usecase show ${usecase.key}`,

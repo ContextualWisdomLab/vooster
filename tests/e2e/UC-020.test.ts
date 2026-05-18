@@ -133,4 +133,23 @@ describe("UC-020 - Merge a branch", () => {
       reason: "Resolve conflicts before this branch can merge."
     });
   });
+
+  test("5a: forced fast-forward is rejected after main advances", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Forced Fast Forward", "forced-fast-forward", "stub-forced-fast-forward");
+    const branch = await createBranch(server, setup, "feature/force-fast-forward");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund quickly");
+
+    const response = await openMerge(server, setup, branch.id, "FAST_FORWARD");
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as MergeProblemResponse;
+    expect(problem.title).toMatch(/fast-forward.*main.*advanced/i);
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(mainRevision.revision_id);
+    expect(problem.source_branch).toMatchObject({ status: "ACTIVE" });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec merge open feature/force-fast-forward --strategy squash",
+      reason: "Retry with the safe squash strategy."
+    });
+  });
 });

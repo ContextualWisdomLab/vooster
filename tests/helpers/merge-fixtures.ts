@@ -32,7 +32,9 @@ export type MergeOpenResponse = {
 };
 export type MergeProblemResponse = {
   holding_session?: string;
+  main_head_revision_ids?: Record<string, string>;
   merge_request?: { status: string };
+  source_branch?: { status: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -119,10 +121,15 @@ export async function advanceMainExtension(
   return (await response.json()) as BranchRevisionResponse;
 }
 
-export function openMerge(server: TestServer, setup: ProjectSetup, branchId: string) {
+export function openMerge(
+  server: TestServer,
+  setup: ProjectSetup,
+  branchId: string,
+  strategy?: "FAST_FORWARD" | "SQUASH"
+) {
   return server.fetch("/v1/merges", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ source_branch_id: branchId, target: "main" })
+    body: JSON.stringify({ source_branch_id: branchId, strategy, target: "main" })
   });
 }

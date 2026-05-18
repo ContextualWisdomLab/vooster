@@ -102,30 +102,36 @@ function completeSignup(
 
   if ("error" in parsed.data) {
     state.pendingSignups.delete(parsed.data.state);
-    reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
+    clearOAuthState(reply);
     return reply.code(400).send(problem(400, "GitHub authorization denied"));
   }
 
   const pending = pendingSignup(request, state, parsed.data.state);
   if (pending === undefined) {
-    reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
+    clearOAuthState(reply);
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 
   const profile = githubProfile(options, parsed.data.code);
   state.pendingSignups.delete(parsed.data.state);
-  reply.header("set-cookie", [
-    expiredCookie("vspec_oauth_state")
-  ]);
+  clearOAuthState(reply);
   if (!profile.emailVerified) {
     return reply.code(422).send(problem(422, "Verify your GitHub email"));
   }
 
+  establishSession(reply);
+  return reply.code(201).send(signupResponse(profile, pending));
+}
+
+function clearOAuthState(reply: FastifyReply) {
+  reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
+}
+
+function establishSession(reply: FastifyReply) {
   reply.header("set-cookie", [
     cookie("vspec_session", randomUUID()),
     expiredCookie("vspec_oauth_state")
   ]);
-  return reply.code(201).send(signupResponse(profile, pending));
 }
 
 function pendingSignup(

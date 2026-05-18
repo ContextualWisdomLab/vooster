@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T22:17:40Z_
+_Last updated: 2026-05-18T22:43:17Z_
 
 ## Overall
 
-- Commits: 404
-- Last commit: 4556af9 green: UC-034 hide archived agent spec
-- Use cases complete: 28 / 35
+- Commits: 426
+- Last commit: ec1099c green: UC-035 commit valid preview
+- Use cases complete: 29 / 35
 
 ## By Use Case
 
@@ -46,4 +46,4 @@ _Last updated: 2026-05-18T22:17:40Z_
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
 | UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 |
 | UC-034 | Fetch a structured spec (AI agent) | ✓ DONE | 6/6 |
-| UC-035 | Propose a spec change (AI agent) | ○ NOT STARTED | 0/0 |
+| UC-035 | Propose a spec change (AI agent) | ✓ DONE | 8/8 |

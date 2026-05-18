@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T21:33:38Z_
+_Last updated: 2026-05-18T21:49:58Z_
 
 ## Overall
 
-- Commits: 364
-- Last commit: 17f9713 green: UC-029 guide unauthorized sync push
-- Use cases complete: 25 / 35
+- Commits: 378
+- Last commit: 3ab03e7 green: UC-030 reject archived gherkin export
+- Use cases complete: 26 / 35
 
 ## By Use Case
 
@@ -41,7 +41,7 @@ _Last updated: 2026-05-18T21:33:38Z_
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 |
 | UC-028 | Comment on a use case | ○ NOT STARTED | 0/0 |
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 |
-| UC-030 | Export a use case to Gherkin | ○ NOT STARTED | 0/0 |
+| UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 |
 | UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
 | UC-033 | Learn how to use vspec (AI agent) | ○ NOT STARTED | 0/0 |

@@ -30,11 +30,13 @@ function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupStat
   const sessions = activeSessions(state, usecase.id).map(sessionRow);
   const locks = activeLocks(state, usecase.id).map(lockRow);
   const mergeRequests = openMergeRequests(state, usecase.id).map(mergeRow);
+  const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
   return reply.send({
+    ...(usecase.archived_at === null ? {} : { archived: true }),
     locks,
     merge_requests: mergeRequests,
     sessions,
-    suggested_next_actions: nextActions(locks, mergeRequests),
+    suggested_next_actions: nextActions(locks, mergeRequests, usecase, hasActiveWork),
     usecase: { id: usecase.id, key: usecase.key }
   });
 }
@@ -102,9 +104,19 @@ function mergeRow(merge: StoredMergeRequest) {
 
 function nextActions(
   locks: ReturnType<typeof lockRow>[],
-  merges: Array<ReturnType<typeof mergeRow>>
+  merges: Array<ReturnType<typeof mergeRow>>,
+  usecase: StoredUseCase,
+  hasActiveWork: boolean
 ) {
   return [
+    ...(
+      usecase.archived_at !== null && hasActiveWork
+        ? [{
+            command: `vspec usecase restore ${usecase.key}`,
+            reason: "Restore the archived use case before coordinating active work."
+          }]
+        : []
+    ),
     ...(
       locks.length === 0
         ? []

@@ -7,7 +7,10 @@ import type { SignupState, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
-const querySchema = z.object({ format: z.enum(["agent", "human", "json"]).default("human") });
+const querySchema = z.object({
+  format: z.enum(["agent", "human", "json"]).default("human"),
+  revision: z.string().optional()
+});
 
 export function registerUseCaseAgentRoutes(app: FastifyInstance, state: SignupState) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
@@ -28,14 +31,26 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });
   }
-  return reply.send(agentEnvelope(request, state, found.projectId, found.usecase));
+  const revision = resolveRevision(state, found.usecase, query.revision);
+  if (revision === undefined) {
+    return reply.code(404).send(
+      problem(404, "Revision not found", { revision: query.revision }, [
+        {
+          command: `vspec history ${found.usecase.key}`,
+          reason: "Find a valid revision for this use case."
+        }
+      ])
+    );
+  }
+  return reply.send(agentEnvelope(request, state, found.projectId, found.usecase, revision));
 }
 
 function agentEnvelope(
   request: FastifyRequest,
   state: SignupState,
   projectId: string,
-  usecase: StoredUseCase
+  usecase: StoredUseCase,
+  revision: string
 ) {
   const project = state.projectsById.get(projectId);
   return {
@@ -43,7 +58,7 @@ function agentEnvelope(
       branch: "main",
       project_key: project?.key ?? "",
       request_id: requestId(request),
-      revision: usecase.current_revision_id,
+      revision,
       session_id: null
     },
     data: agentData(state, projectId, usecase),
@@ -60,6 +75,19 @@ function agentEnvelope(
     ],
     warnings: []
   };
+}
+
+function resolveRevision(
+  state: SignupState,
+  usecase: StoredUseCase,
+  requestedRevision: string | undefined
+) {
+  if (requestedRevision === undefined) {
+    return usecase.current_revision_id;
+  }
+  const exists = (state.revisionsByEntityId.get(usecase.id) ?? [])
+    .some((revision) => revision.id === requestedRevision);
+  return exists ? requestedRevision : undefined;
 }
 
 function agentData(state: SignupState, projectId: string, usecase: StoredUseCase) {

@@ -109,7 +109,7 @@ function authorizedUseCase(request: FastifyRequest, reply: FastifyReply, state: 
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const found = useCaseWithProjectId(state, params.usecaseId);
   if (found === undefined || found.usecase.archived_at !== null) {
-    reply.code(404).send(problem(404, "Use case not found"));
+    reply.code(404).send(missingUseCaseProblem());
     return undefined;
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
@@ -161,6 +161,20 @@ function emptyBodyProblem() {
       {
         command: "vspec comment add --body \"<text>\"",
         reason: "Provide a non-empty markdown body."
+      }
+    ]
+  );
+}
+
+function missingUseCaseProblem() {
+  return problem(
+    404,
+    "Use case not found",
+    {},
+    [
+      {
+        command: "vspec usecase list",
+        reason: "Find a valid non-archived use case."
       }
     ]
   );

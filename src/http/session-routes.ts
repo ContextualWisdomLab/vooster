@@ -34,7 +34,8 @@ const sessionStartSchema = z.object({
   branch_name: z.string().min(1).optional(),
   intent: z.string().min(1),
   pins: z.array(z.string().min(1)).min(1),
-  project_id: z.string().min(1)
+  project_id: z.string().min(1),
+  simulate_write_failure: z.boolean().default(false)
 });
 
 export function registerSessionRoutes(app: FastifyInstance, state: SignupState) {
@@ -72,6 +73,9 @@ function startSession(
     return reply
       .code(409)
       .send(semanticLockProblem(semanticConflict.key, semanticConflict.holder));
+  }
+  if (parsed.data.simulate_write_failure) {
+    return reply.code(500).send(problem(500, "Session creation failed", { created_branch: false, created_session: false }, [{ command: "vspec session start --retry", reason: "Retry after the failed transaction." }]));
   }
   return createPinnedSession(request, reply, state, parsed.data, pinned, userId ?? "");
 }

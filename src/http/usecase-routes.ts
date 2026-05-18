@@ -60,7 +60,20 @@ function createUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   }
   const actor = activeActorNamed(state, projectId, parsed.data.primary_actor);
   if (actor === undefined) {
-    return reply.code(422).send(problem(422, "Primary actor is not available"));
+    return reply.code(422).send(
+      problem(
+        422,
+        "Primary actor is not available",
+        { actor_name: parsed.data.primary_actor },
+        [
+          { command: "vspec actor list", reason: "Find a valid actor for this project." },
+          {
+            command: `vspec actor create --name ${parsed.data.primary_actor}`,
+            reason: "Create the actor before authoring the use case."
+          }
+        ]
+      )
+    );
   }
 
   const usecase: StoredUseCase = {

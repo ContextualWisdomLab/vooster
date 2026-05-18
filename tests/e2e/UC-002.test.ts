@@ -80,6 +80,29 @@ describe("UC-002 - Log in", () => {
       reason: "Sign up before logging in."
     });
   });
+
+  test("3a: denied GitHub authorization returns login retry hint", async () => {
+    const loginStart = await startLogin();
+    const deniedParams = new URLSearchParams({
+      error: "access_denied",
+      state: loginStart.state
+    });
+    const denied = await server.fetch(
+      `/v1/auth/github/callback?${deniedParams.toString()}`,
+      { headers: { Cookie: loginStart.cookie } }
+    );
+
+    expect(denied.status).toBe(401);
+    expect(denied.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(denied.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await denied.json()) as ProblemResponse;
+    expect(body.title).toMatch(/authorization denied/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Retry login."
+    });
+  });
 });
 
 async function startSignup(name: string, slug: string) {

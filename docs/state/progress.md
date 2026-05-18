@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T23:11:14Z_
+_Last updated: 2026-05-18T23:29:40Z_
 
 ## Overall
 
-- Commits: 452
-- Last commit: edc06fe green: UC-015 reject hard delete request
-- Use cases complete: 31 / 35
+- Commits: 466
+- Last commit: 25e2de8 test: UC-028 cover idempotent resolve
+- Use cases complete: 32 / 35
 
 ## By Use Case
 
@@ -39,7 +39,7 @@ _Last updated: 2026-05-18T23:11:14Z_
 | UC-025 | Compare two revisions of a use case | ✓ DONE | 5/5 |
 | UC-026 | Revert a use case to a previous revision | ✓ DONE | 6/6 |
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 |
-| UC-028 | Comment on a use case | ○ NOT STARTED | 0/0 |
+| UC-028 | Comment on a use case | ✓ DONE | 7/7 |
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 |
 | UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 |
 | UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |

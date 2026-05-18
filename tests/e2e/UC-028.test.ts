@@ -88,6 +88,29 @@ describe("UC-028 - Comment on a use case", () => {
     });
     expect((await listComments(usecase.id, setup.cookie)).comments).toEqual([]);
   });
+
+  test("3b: missing or archived target returns use case list guidance", async () => {
+    const setup = await createProject(server, "Comment Missing", "comment-missing", "stub-comment-missing");
+    await createActor(server, setup, "Customer");
+    const archived = await createUseCase(server, setup, "Customer", "Reviews archived comments");
+    await server.fetch(`/__test/usecases/${archived.id}/archive`, { method: "POST" });
+
+    const missing = await addComment("usecase-missing", setup.cookie, "Review this");
+    expect(missing.status).toBe(404);
+    const missingProblem = (await missing.json()) as CommentProblem;
+    expect(missingProblem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list",
+      reason: "Find a valid non-archived use case."
+    });
+
+    const archivedResponse = await addComment(archived.id, setup.cookie, "Review archived");
+    expect(archivedResponse.status).toBe(404);
+    const archivedProblem = (await archivedResponse.json()) as CommentProblem;
+    expect(archivedProblem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list",
+      reason: "Find a valid non-archived use case."
+    });
+  });
 });
 
 function addComment(usecaseId: string, cookie: string, body: string) {

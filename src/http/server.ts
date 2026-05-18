@@ -17,6 +17,7 @@ type PendingSignup = {
 
 type SignupState = {
   pendingSignups: Map<string, PendingSignup>;
+  workspaceSlugs: Set<string>;
 };
 
 type GithubProfile = {
@@ -51,7 +52,10 @@ const callbackQuerySchema = z.union([
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  registerSignupRoutes(app, options, { pendingSignups: new Map() });
+  registerSignupRoutes(app, options, {
+    pendingSignups: new Map(),
+    workspaceSlugs: new Set()
+  });
 
   return app;
 }
@@ -119,6 +123,15 @@ function completeSignup(
     return reply.code(422).send(problem(422, "Verify your GitHub email"));
   }
 
+  if (state.workspaceSlugs.has(pending.slug)) {
+    return reply.code(422).send(
+      problem(422, "Workspace slug is already taken", {
+        suggested_alternative_slug: alternativeSlug(pending.slug, state.workspaceSlugs)
+      })
+    );
+  }
+
+  state.workspaceSlugs.add(pending.slug);
   establishSession(reply);
   return reply.code(201).send(signupResponse(profile, pending));
 }
@@ -219,11 +232,24 @@ function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax`;
 }
 
-function problem(status: number, title: string) {
+function alternativeSlug(slug: string, existingSlugs: Set<string>): string {
+  let suffix = 2;
+  let candidate = `${slug}-${String(suffix)}`;
+
+  while (existingSlugs.has(candidate)) {
+    suffix += 1;
+    candidate = `${slug}-${String(suffix)}`;
+  }
+
+  return candidate;
+}
+
+function problem(status: number, title: string, extra: Record<string, string> = {}) {
   return {
     type: "https://vspec.dev/errors/bad-request",
     title,
     status,
+    ...extra,
     suggested_next_actions: [{ command: "vspec login", reason: "Restart signup." }]
   };
 }

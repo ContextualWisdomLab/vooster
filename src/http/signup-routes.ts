@@ -190,13 +190,17 @@ function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubP
 
   user.last_login_at = new Date().toISOString();
   establishSession(reply);
+  const workspaces = workspacesForUser(
+    state.membershipsByUserId.get(user.id) ?? [],
+    state.workspacesById
+  );
 
   return reply.code(200).send({
     user,
-    workspaces: workspacesForUser(
-      state.membershipsByUserId.get(user.id) ?? [],
-      state.workspacesById
-    )
+    workspaces,
+    ...(workspaces.length === 0
+      ? { recommended_next_command: "vspec workspace create" }
+      : {})
   });
 }
 

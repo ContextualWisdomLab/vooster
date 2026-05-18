@@ -51,11 +51,24 @@ function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: Sig
   const sorted = filteredUseCases(state, projectId, parsed.data, cursor)
     .sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);
+  const emptyActions = items.length === 0 ? {
+    suggested_next_actions: [
+      {
+        command: "vspec usecase list --status=DRAFT,IN_REVIEW",
+        reason: "Broaden lifecycle filters and retry."
+      },
+      {
+        command: "vspec usecase list",
+        reason: "Drop the search text to browse all visible use cases."
+      }
+    ]
+  } : {};
   return reply.send({
     items: items.map((usecase) => preview(usecase, actors)),
     next_cursor: sorted.length > items.length && items.length > 0
       ? encodeCursor(items[items.length - 1]?.key ?? "")
-      : null
+      : null,
+    ...emptyActions
   });
 }
 

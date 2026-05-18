@@ -6,6 +6,7 @@ import {
   duplicateMainSuccessProblem,
   mainSuccessScenario,
   passiveActionProblem,
+  unknownStepActorProblem,
   usesPassiveVoice
 } from "./scenario-support.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -106,7 +107,7 @@ function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupStat
   }
   const actor = activeActorNamed(state, found.projectId, parsed.data.actor);
   if (actor === undefined) {
-    return reply.code(422).send(problem(422, "Step actor is not available"));
+    return reply.code(422).send(unknownStepActorProblem(state, found.projectId));
   }
 
   const steps = state.stepsByScenarioId.get(found.scenario.id) ?? [];

@@ -29,6 +29,7 @@ type SignupCallbackResponse = {
 
 type ProblemResponse = {
   title: string;
+  suggested_alternative_slug?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -166,4 +167,48 @@ describe("UC-001 - Sign up for a workspace", () => {
       reason: "Restart signup."
     });
   });
+
+  test("6a: duplicate workspace slug rolls back signup", async () => {
+    const firstStart = await startSignup("First Duplicate", "duplicate-slug");
+    const firstCallback = await completeSignup(
+      "stub-first-duplicate",
+      firstStart.state,
+      firstStart.cookie
+    );
+    expect(firstCallback.status).toBe(201);
+
+    const secondStart = await startSignup("Second Duplicate", "duplicate-slug");
+    const secondCallback = await completeSignup(
+      "stub-second-duplicate",
+      secondStart.state,
+      secondStart.cookie
+    );
+
+    expect(secondCallback.status).toBe(422);
+    expect(secondCallback.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(secondCallback.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await secondCallback.json()) as ProblemResponse;
+    expect(body.title).toMatch(/workspace slug.*taken/i);
+    expect(body.suggested_alternative_slug).toBe("duplicate-slug-2");
+  });
 });
+
+async function startSignup(name: string, slug: string) {
+  const response = await server.fetch("/v1/auth/github/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workspace: { name, slug } })
+  });
+  const body = (await response.json()) as StartSignupResponse;
+
+  return { state: body.state, cookie: response.headers.get("set-cookie") ?? "" };
+}
+
+async function completeSignup(code: string, state: string, cookieHeader: string) {
+  const params = new URLSearchParams({ code, state });
+
+  return server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
+    headers: { Cookie: cookieHeader }
+  });
+}

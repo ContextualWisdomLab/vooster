@@ -38,7 +38,9 @@ export function createExtensionScenario(
     (parentStepNumber !== null &&
       !mainScenarioHasStep(state, mainScenario, parentStepNumber))
   ) {
-    return reply.code(422).send(problem(422, "Extension parent step is not available"));
+    return reply
+      .code(422)
+      .send(parentStepOutOfRangeProblem(found.usecase.key, parentStepNumber));
   }
 
   const scenario: StoredScenario = {
@@ -66,4 +68,18 @@ export function createExtensionScenario(
 
 function validExtensionPoint(extensionPoint: string): boolean {
   return /^(\d+|\*)[a-z]$/.test(extensionPoint);
+}
+
+function parentStepOutOfRangeProblem(usecaseKey: string, parentStepNumber: number | null) {
+  return problem(
+    422,
+    "Extension parent step is out of range",
+    { parent_step_number: parentStepNumber },
+    [
+      {
+        command: `vspec usecase show ${usecaseKey}`,
+        reason: "Inspect the current main scenario step numbering."
+      }
+    ]
+  );
 }

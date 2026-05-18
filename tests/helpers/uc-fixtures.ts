@@ -7,7 +7,7 @@ export type Goal = {
   description: string;
   id: string;
   level: string;
-  linked_usecase_id: null;
+  linked_usecase_id: null | string;
   priority: string;
   project_id: string;
   status: string;

@@ -63,3 +63,11 @@ write. This guides your TDD cycles within an iteration._
 - **6a**: rejecting a promoted goal -> 422 explaining the linked use case must be archived first.
 - **6b**: near-duplicate goal for same actor -> still creates the goal with duplicate warning and `vspec goal show`.
 - ***a**: project is archived before a mutating goal operation -> 409 and no goal/revision.
+
+### UC-008
+
+- **MAIN**: promote an identified goal -> creates a seeded BRIEF use case with first revision, updates the goal to PROMOTED, and returns next actions.
+- **2a**: promote a goal that is already linked -> 409 pointing at the existing use case key.
+- **2b**: promote a rejected goal -> failure with `vspec goal edit <id> --status in-design` guidance and no use case.
+- **4a**: promoted title fails the verb-phrase heuristic -> still creates the use case with a title-edit warning.
+- ***a**: simulated server error during use-case creation -> aborts without mutating goal or leaving a use case/revision.

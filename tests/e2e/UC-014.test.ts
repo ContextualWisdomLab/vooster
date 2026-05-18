@@ -13,6 +13,12 @@ type SearchResponse = {
   }>;
   next_cursor: null | string;
 };
+type SearchProblem = {
+  items?: unknown[];
+  title: string;
+  valid_levels?: string[];
+  valid_statuses?: string[];
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -62,6 +68,22 @@ describe("UC-014 - Search and filter use cases", () => {
     const secondBody = (await second.json()) as SearchResponse;
     expect(secondBody.items.map((item) => item.key)).toEqual(["CHK-002"]);
     expect(secondBody.next_cursor).toBeNull();
+  });
+
+  test("2a: unknown enum filters are rejected with valid values", async () => {
+    const setup = await createProject(server, "Search Filters", "search-filters", "stub-filter");
+
+    const response = await searchUseCases(setup.cookie, setup.projectId, {
+      level: "EPIC",
+      status: "READY"
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as SearchProblem;
+    expect(problem.title).toMatch(/unknown use case filter/i);
+    expect(problem.valid_statuses).toEqual(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]);
+    expect(problem.valid_levels).toEqual(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]);
+    expect(problem.items).toBeUndefined();
   });
 });
 

@@ -79,6 +79,28 @@ describe("UC-031 - Export a use case to markdown", () => {
       reason: "Overwrite the existing markdown file after reviewing the diff."
     });
   });
+
+  test("6b: unwritable output directory returns local config guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Markdown Output", "markdown-output", "stub-markdown-output");
+
+    const response = await exportMarkdown(usecase.id, setup.cookie, {
+      output_path: "missing/CHK-001.md"
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as {
+      exit_code: number;
+      path: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+    };
+    expect(problem.exit_code).toBe(6);
+    expect(problem.path).toBe("missing/CHK-001.md");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "mkdir -p missing",
+      reason: "Create the export output directory."
+    });
+  });
 });
 
 function exportMarkdown(usecaseId: string, cookie: string, body: Record<string, unknown> = {}) {

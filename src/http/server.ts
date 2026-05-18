@@ -1,18 +1,25 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerProjectRoutes } from "./project-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  registerSignupRoutes(app, options, initialState(options));
+  const state = initialState(options);
+  registerSignupRoutes(app, options, state);
+  registerProjectRoutes(app, state);
 
   return app;
 }
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
+    branchesById: new Map(),
     membershipsByUserId: new Map(),
     pendingOAuth: new Map(),
+    projectKeysByWorkspaceId: new Map(),
+    projectsById: new Map(),
+    sessionsByToken: new Map(),
     usersByGithubId: new Map(),
     workspacesById: new Map(),
     workspaceSlugs: new Set()

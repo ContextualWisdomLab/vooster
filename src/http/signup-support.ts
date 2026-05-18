@@ -16,13 +16,6 @@ export function clearOAuthState(reply: FastifyReply) {
   reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
 }
 
-export function establishSession(reply: FastifyReply) {
-  reply.header("set-cookie", [
-    cookie("vspec_session", randomUUID()),
-    expiredCookie("vspec_oauth_state")
-  ]);
-}
-
 export function addMembership(
   membershipsByUserId: Map<string, StoredMembership[]>,
   membership: StoredMembership
@@ -129,7 +122,7 @@ export function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"
 
 export function readCookie(header: string | undefined, name: string): string | undefined {
   return header
-    ?.split(";")
+    ?.split(/[;,]/)
     .map((part) => part.trim().split("="))
     .find(([key]) => key === name)?.[1];
 }

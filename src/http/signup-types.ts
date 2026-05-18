@@ -12,8 +12,12 @@ export type PendingOAuth =
   | { flow: "signup"; workspace: PendingSignup };
 
 export type SignupState = {
+  branchesById: Map<string, StoredSpecBranch>;
   membershipsByUserId: Map<string, StoredMembership[]>;
   pendingOAuth: Map<string, PendingOAuth>;
+  projectKeysByWorkspaceId: Map<string, Map<string, string>>;
+  projectsById: Map<string, StoredProject>;
+  sessionsByToken: Map<string, string>;
   usersByGithubId: Map<string, StoredUser>;
   workspacesById: Map<string, StoredWorkspace>;
   workspaceSlugs: Set<string>;
@@ -49,4 +53,22 @@ export type StoredMembership = {
   user_id: string;
   workspace_id: string;
   role: "OWNER";
+};
+
+export type StoredProject = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  key: string;
+  visibility: "INTERNAL" | "PRIVATE";
+  default_branch_id: string;
+};
+
+export type StoredSpecBranch = {
+  id: string;
+  project_id: string;
+  name: "main";
+  owner_type: "HUMAN";
+  owner_id: string;
+  base_branch_id: null;
 };

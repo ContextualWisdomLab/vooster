@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { establishSession } from "./session-support.js";
 import {
   alternativeSlug,
   addMembership,
   clearOAuthState,
   cookie,
-  establishSession,
   fetchGithubProfile,
   githubUnavailable,
   problem,
@@ -149,7 +149,7 @@ function completeVerifiedSignup(
   state.workspacesById.set(entities.workspace.id, entities.workspace);
   addMembership(state.membershipsByUserId, entities.membership);
 
-  establishSession(reply);
+  establishSession(reply, state.sessionsByToken, entities.user.id);
   return reply
     .code(201)
     .send(signupResponse(entities.user, entities.workspace, entities.membership));
@@ -166,7 +166,7 @@ function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubP
   }
 
   user.last_login_at = new Date().toISOString();
-  establishSession(reply);
+  establishSession(reply, state.sessionsByToken, user.id);
   const workspaces = workspacesForUser(
     state.membershipsByUserId.get(user.id) ?? [],
     state.workspacesById

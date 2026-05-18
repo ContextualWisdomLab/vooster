@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { alreadyMemberProblem, editorOwnerInviteProblem } from "./invitation-problems.js";
+import {
+  alreadyMemberProblem,
+  editorOwnerInviteProblem,
+  invitationExpiredProblem
+} from "./invitation-problems.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
 import { addMembership, githubProfile, problem } from "./signup-support.js";
 import type { ServerOptions, SignupState, StoredMembership, StoredUser } from "./signup-types.js";
@@ -21,7 +25,8 @@ const invitationsByState = new WeakMap<SignupState, Map<string, StoredInvitation
 const inviteSchema = z.object({
   email: z.email(),
   role: z.enum(["EDITOR", "OWNER"]),
-  simulate_delivery_failure: z.boolean().optional()
+  simulate_delivery_failure: z.boolean().optional(),
+  simulate_expired: z.boolean().optional()
 });
 const acceptSchema = z.object({ code: z.string().min(1) });
 
@@ -63,7 +68,7 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
     accepted_at: null,
     delivery_status: parsed.data.simulate_delivery_failure === true ? "FAILED" as const : "SENT" as const,
     email: parsed.data.email,
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expires_at: expiryFor(parsed.data.simulate_expired === true),
     id: randomUUID(),
     role: parsed.data.role,
     token: randomUUID(),
@@ -84,6 +89,9 @@ function acceptInvitation(
   const invitation = invitations(state).get(token);
   if (!parsed.success || invitation === undefined) {
     return reply.code(404).send(problem(404, "Invitation not found"));
+  }
+  if (Date.parse(invitation.expires_at) <= Date.now()) {
+    return reply.code(410).send(invitationExpiredProblem());
   }
   const profile = githubProfile(options, parsed.data.code);
   const user = userForProfile(state, profile);
@@ -125,6 +133,11 @@ function pendingInvitationForEmail(state: SignupState, workspaceId: string, emai
       invitation.accepted_at === null &&
       Date.parse(invitation.expires_at) > now
   );
+}
+
+function expiryFor(expired: boolean) {
+  const offset = expired ? -60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() + offset).toISOString();
 }
 
 function userForProfile(

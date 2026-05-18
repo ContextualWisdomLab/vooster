@@ -27,3 +27,17 @@ export function alreadyMemberProblem() {
     ]
   );
 }
+
+export function invitationExpiredProblem() {
+  return problem(
+    410,
+    "Invitation has expired",
+    { code: "invitation_expired" },
+    [
+      {
+        command: "vspec member invite",
+        reason: "Ask a workspace owner for a fresh invitation."
+      }
+    ]
+  );
+}

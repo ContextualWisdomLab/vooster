@@ -11,6 +11,13 @@ type StakeholderResponse = {
   recommended_next_command: string;
 };
 
+type ProblemResponse = {
+  existing_stakeholder_id?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+  valid_types?: string[];
+};
+
 let server: TestServer;
 
 beforeAll(async () => {
@@ -46,6 +53,30 @@ describe("UC-006 - Define a stakeholder", () => {
       version_number: 1
     });
     expect(body.recommended_next_command).toBe("vspec usecase add-stakeholder");
+  });
+
+  test("3a: duplicate active stakeholder name returns existing guidance", async () => {
+    const setup = await createProject("Duplicate Stakeholder", "duplicate-stakeholder", "stub-stakeholder-dup");
+    const first = await createStakeholder(setup, {
+      name: "Product Manager",
+      type: "INTERNAL"
+    });
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as StakeholderResponse;
+
+    const duplicate = await createStakeholder(setup, {
+      name: "Product Manager",
+      type: "EXTERNAL"
+    });
+
+    expect(duplicate.status).toBe(422);
+    const body = (await duplicate.json()) as ProblemResponse;
+    expect(body.title).toMatch(/stakeholder name.*already exists/i);
+    expect(body.existing_stakeholder_id).toBe(firstBody.stakeholder.id);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec stakeholder edit",
+      reason: "Amend the existing stakeholder."
+    });
   });
 });
 

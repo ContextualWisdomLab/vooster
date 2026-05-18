@@ -166,4 +166,26 @@ describe("UC-012 - Add an extension flow", () => {
     const body = (await next.json()) as ScenarioResponse;
     expect(body.revision.version_number).toBe(6);
   });
+
+  test("5a: omitted outcome defaults to failure with confirmation warning", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Default Extension Outcome",
+      "default-extension-outcome",
+      "stub-default-extension-outcome"
+    );
+
+    const response = await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Payment is declined.",
+      extension_point: "1a"
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as ScenarioResponse;
+    expect(body.scenario.outcome).toBe("FAILURE");
+    expect(body.warnings).toContainEqual({
+      type: "DEFAULT_EXTENSION_OUTCOME",
+      message: "Outcome defaulted to FAILURE; confirm it or edit the scenario outcome."
+    });
+  });
 });

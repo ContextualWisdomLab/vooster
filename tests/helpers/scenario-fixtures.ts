@@ -36,6 +36,7 @@ export type ScenarioResponse = {
   revision: RevisionResponse;
   scenario: Scenario;
   steps: ScenarioStep[];
+  warnings?: Array<{ message: string; type: string }>;
 };
 export type StepResponse = {
   revision: RevisionResponse;

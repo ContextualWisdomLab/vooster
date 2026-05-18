@@ -27,7 +27,18 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
     return reply.code(404).send(problem(404, "Use case not found"));
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
-    return reply.code(401).send(problem(401, "Authentication required"));
+    return reply.code(401).send(
+      problem(401, "Authentication required", {}, [
+        {
+          command: "vspec login",
+          reason: "Authenticate before fetching private specs."
+        },
+        {
+          command: "vspec api-key create --scopes read",
+          reason: "Create a read-scoped key for non-interactive agents."
+        }
+      ])
+    );
   }
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });

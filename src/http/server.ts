@@ -5,7 +5,10 @@ import type { ServerOptions } from "./signup-types.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   registerSignupRoutes(app, options, {
-    pendingSignups: new Map(),
+    membershipsByUserId: new Map(),
+    pendingOAuth: new Map(),
+    usersByGithubId: new Map(),
+    workspacesById: new Map(),
     workspaceSlugs: new Set()
   });
 

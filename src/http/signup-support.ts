@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
-import type { GithubProfile, PendingSignup, ServerOptions } from "./signup-types.js";
+import type {
+  GithubProfile,
+  PendingSignup,
+  ServerOptions,
+  StoredMembership,
+  StoredUser,
+  StoredWorkspace
+} from "./signup-types.js";
 
 export class GithubNetworkError extends Error {}
 
@@ -15,8 +22,8 @@ export function establishSession(reply: FastifyReply) {
   ]);
 }
 
-export function signupResponse(profile: GithubProfile, pending: PendingSignup) {
-  const user = {
+export function signupEntities(profile: GithubProfile, pending: PendingSignup) {
+  const user: StoredUser = {
     id: randomUUID(),
     github_id: profile.githubId,
     email: profile.email,
@@ -28,7 +35,19 @@ export function signupResponse(profile: GithubProfile, pending: PendingSignup) {
   return {
     user,
     workspace,
-    membership: ownerMembership(user.id, workspace.id),
+    membership: ownerMembership(user.id, workspace.id)
+  };
+}
+
+export function signupResponse(
+  user: StoredUser,
+  workspace: StoredWorkspace,
+  membership: StoredMembership
+) {
+  return {
+    user,
+    workspace,
+    membership,
     recommended_next_command: "vspec project create"
   };
 }
@@ -95,7 +114,7 @@ export function problem(
   };
 }
 
-function workspaceFor(pending: PendingSignup, ownerId: string) {
+function workspaceFor(pending: PendingSignup, ownerId: string): StoredWorkspace {
   return {
     id: randomUUID(),
     name: pending.name,
@@ -105,7 +124,7 @@ function workspaceFor(pending: PendingSignup, ownerId: string) {
   };
 }
 
-function ownerMembership(userId: string, workspaceId: string) {
+function ownerMembership(userId: string, workspaceId: string): StoredMembership {
   return {
     id: randomUUID(),
     user_id: userId,

@@ -9,21 +9,28 @@ import {
   githubProfile,
   problem,
   readCookie,
+  signupEntities,
   signupResponse
 } from "./signup-support.js";
 import type {
   GithubProfile,
+  PendingOAuth,
   PendingSignup,
   ServerOptions,
-  SignupState
+  SignupState,
+  StoredMembership,
+  StoredWorkspace
 } from "./signup-types.js";
 
-const startSignupSchema = z.object({
-  workspace: z.object({
-    name: z.string().min(1),
-    slug: z.string().min(1)
-  })
-});
+const startSignupSchema = z.union([
+  z.object({
+    workspace: z.object({
+      name: z.string().min(1),
+      slug: z.string().min(1)
+    })
+  }),
+  z.object({ flow: z.literal("login") })
+]);
 
 const callbackSuccessQuerySchema = z.object({
   code: z.string().min(1),
@@ -64,7 +71,7 @@ function startSignup(
   }
 
   const oauthState = randomUUID();
-  state.pendingSignups.set(oauthState, parsed.data.workspace);
+  state.pendingOAuth.set(oauthState, pendingOAuth(parsed.data));
   reply.header("set-cookie", cookie("vspec_oauth_state", oauthState));
 
   return {
@@ -85,19 +92,19 @@ function completeSignup(
   }
 
   if ("error" in parsed.data) {
-    state.pendingSignups.delete(parsed.data.state);
+    state.pendingOAuth.delete(parsed.data.state);
     clearOAuthState(reply);
     return reply.code(400).send(problem(400, "GitHub authorization denied"));
   }
 
-  const pending = pendingSignup(request, state, parsed.data.state);
+  const pending = pendingOAuthFor(request, state, parsed.data.state);
   if (pending === undefined) {
     clearOAuthState(reply);
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 
   const profile = fetchGithubProfile(options, parsed.data.code);
-  state.pendingSignups.delete(parsed.data.state);
+  state.pendingOAuth.delete(parsed.data.state);
   clearOAuthState(reply);
   if (profile === undefined) {
     return githubUnavailable(reply);
@@ -107,7 +114,15 @@ function completeSignup(
     return reply.code(422).send(problem(422, "Verify your GitHub email"));
   }
 
-  return completeVerifiedSignup(reply, state, profile, pending);
+  if (pending.flow === "login") {
+    return completeLogin(reply, state, profile);
+  }
+
+  return completeVerifiedSignup(reply, state, profile, pending.workspace);
+}
+
+function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
+  return "flow" in data ? { flow: "login" } : { flow: "signup", workspace: data.workspace };
 }
 
 function fetchGithubProfile(
@@ -148,17 +163,59 @@ function completeVerifiedSignup(
   }
 
   state.workspaceSlugs.add(pending.slug);
+  const entities = signupEntities(profile, pending);
+  state.usersByGithubId.set(entities.user.github_id, entities.user);
+  state.workspacesById.set(entities.workspace.id, entities.workspace);
+  addMembership(state, entities.membership);
+
   establishSession(reply);
-  return reply.code(201).send(signupResponse(profile, pending));
+  return reply
+    .code(201)
+    .send(signupResponse(entities.user, entities.workspace, entities.membership));
 }
 
-function pendingSignup(
+function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubProfile) {
+  const user = state.usersByGithubId.get(profile.githubId);
+  if (user === undefined) {
+    return reply.code(404).send(problem(404, "No vspec user exists for GitHub identity"));
+  }
+
+  user.last_login_at = new Date().toISOString();
+  establishSession(reply);
+
+  return reply.code(200).send({
+    user,
+    workspaces: workspacesForUser(state, user.id)
+  });
+}
+
+function pendingOAuthFor(
   request: FastifyRequest,
   state: SignupState,
   oauthState: string
-): PendingSignup | undefined {
+): PendingOAuth | undefined {
   const stateCookie = readCookie(request.headers.cookie, "vspec_oauth_state");
-  return stateCookie === oauthState ? state.pendingSignups.get(oauthState) : undefined;
+  return stateCookie === oauthState ? state.pendingOAuth.get(oauthState) : undefined;
+}
+
+function addMembership(state: SignupState, membership: StoredMembership) {
+  const existing = state.membershipsByUserId.get(membership.user_id) ?? [];
+  state.membershipsByUserId.set(membership.user_id, [...existing, membership]);
+}
+
+function workspacesForUser(state: SignupState, userId: string) {
+  return (state.membershipsByUserId.get(userId) ?? []).flatMap((membership) => {
+    const workspace = state.workspacesById.get(membership.workspace_id);
+    return workspace === undefined ? [] : [workspaceSummary(workspace, membership)];
+  });
+}
+
+function workspaceSummary(workspace: StoredWorkspace, membership: StoredMembership) {
+  return {
+    id: workspace.id,
+    slug: workspace.slug,
+    role: membership.role
+  };
 }
 
 function cookie(name: string, value: string): string {

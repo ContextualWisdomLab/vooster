@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T21:09:06Z_
+_Last updated: 2026-05-18T21:33:38Z_
 
 ## Overall
 
-- Commits: 345
-- Last commit: b00c24d green: UC-027 deny non-member impact
-- Use cases complete: 24 / 35
+- Commits: 364
+- Last commit: 17f9713 green: UC-029 guide unauthorized sync push
+- Use cases complete: 25 / 35
 
 ## By Use Case
 
@@ -40,7 +40,7 @@ _Last updated: 2026-05-18T21:09:06Z_
 | UC-026 | Revert a use case to a previous revision | ✓ DONE | 6/6 |
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 |
 | UC-028 | Comment on a use case | ○ NOT STARTED | 0/0 |
-| UC-029 | Sync local files with the server | ○ NOT STARTED | 0/0 |
+| UC-029 | Sync local files with the server | ✓ DONE | 6/6 |
 | UC-030 | Export a use case to Gherkin | ○ NOT STARTED | 0/0 |
 | UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |

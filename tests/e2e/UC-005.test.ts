@@ -93,10 +93,10 @@ async function signup(name: string, slug: string, code: string) {
     body: JSON.stringify({ workspace: { name, slug } })
   });
   const startBody = (await start.json()) as { state: string };
-  const callback = await server.fetch(
-    `/v1/auth/github/callback?${new URLSearchParams({ code, state: startBody.state })}`,
-    { headers: { Cookie: start.headers.get("set-cookie") ?? "" } }
-  );
+  const params = new URLSearchParams({ code, state: startBody.state });
+  const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
+    headers: { Cookie: start.headers.get("set-cookie") ?? "" }
+  });
   const body = (await callback.json()) as { workspace: { id: string } };
 
   return {

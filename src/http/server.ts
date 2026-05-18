@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerActorRoutes } from "./actor-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
@@ -8,17 +9,20 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const state = initialState(options);
   registerSignupRoutes(app, options, state);
   registerProjectRoutes(app, state);
+  registerActorRoutes(app, state);
 
   return app;
 }
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
+    actorsByProjectId: new Map(),
     branchesById: new Map(),
     membershipsByUserId: new Map(),
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),
     projectsById: new Map(),
+    revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
     usersByGithubId: new Map(),
     workspaceArchivedAt: new Map(),

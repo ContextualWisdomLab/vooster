@@ -12,12 +12,14 @@ export type PendingOAuth =
   | { flow: "signup"; workspace: PendingSignup };
 
 export type SignupState = {
+  actorsByProjectId: Map<string, StoredActor[]>;
   branchesById: Map<string, StoredSpecBranch>;
   membershipsByUserId: Map<string, StoredMembership[]>;
   pendingOAuth: Map<string, PendingOAuth>;
   projectKeysByWorkspaceId: Map<string, Map<string, string>>;
   projectsById: Map<string, StoredProject>;
   sessionsByToken: Map<string, string>;
+  revisionsByEntityId: Map<string, StoredRevision[]>;
   usersByGithubId: Map<string, StoredUser>;
   workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
@@ -72,4 +74,23 @@ export type StoredSpecBranch = {
   owner_type: "HUMAN";
   owner_id: string;
   base_branch_id: null;
+};
+
+export type StoredActor = {
+  id: string;
+  project_id: string;
+  name: string;
+  type: "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
+  description: string;
+  is_human: boolean;
+  aliases: string[];
+  archived_at: null;
+};
+
+export type StoredRevision = {
+  id: string;
+  entity_type: "ACTOR";
+  entity_id: string;
+  version_number: number;
+  snapshot: StoredActor;
 };

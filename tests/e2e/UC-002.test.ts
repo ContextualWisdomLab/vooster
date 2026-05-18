@@ -22,6 +22,7 @@ type LoginResponse = {
     slug: string;
     role: string;
   }>;
+  recommended_next_command?: string;
 };
 
 type ProblemResponse = {
@@ -102,6 +103,19 @@ describe("UC-002 - Log in", () => {
       command: "vspec login",
       reason: "Retry login."
     });
+  });
+
+  test("6a: known user with no workspaces is guided to create one", async () => {
+    const loginStart = await startLogin();
+    const login = await completeOAuth("stub-zero-workspace-user", loginStart);
+
+    expect(login.status).toBe(200);
+    expect(login.headers.get("set-cookie")).toContain("vspec_session=");
+
+    const body = (await login.json()) as LoginResponse;
+    expect(body.user.github_id).toBe("stub-zero-workspace-user");
+    expect(body.workspaces).toEqual([]);
+    expect(body.recommended_next_command).toBe("vspec workspace create");
   });
 });
 

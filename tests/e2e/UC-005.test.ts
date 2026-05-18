@@ -25,6 +25,12 @@ type ActorResponse = {
   recommended_next_command: string;
 };
 
+type ProblemResponse = {
+  title: string;
+  existing_actor_id?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
+
 let server: TestServer;
 
 beforeAll(async () => {
@@ -72,7 +78,45 @@ describe("UC-005 - Define an actor", () => {
     });
     expect(body.recommended_next_command).toBe("vspec stakeholder create");
   });
+
+  test("3a: duplicate active actor name returns existing actor guidance", async () => {
+    const setup = await createProject("Duplicate Actor", "duplicate-actor", "stub-actor-dup");
+    const first = await createActor(setup, { name: "Customer", type: "PRIMARY" });
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as ActorResponse;
+
+    const duplicate = await createActor(setup, { name: "Customer", type: "SUPPORTING" });
+
+    expect(duplicate.status).toBe(422);
+    const body = (await duplicate.json()) as ProblemResponse;
+    expect(body.title).toMatch(/actor name.*already exists/i);
+    expect(body.existing_actor_id).toBe(firstBody.actor.id);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor edit",
+      reason: "Amend the existing actor."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor edit --add-alias Customer",
+      reason: "Attach the submitted name as an alias."
+    });
+  });
 });
+
+async function createActor(
+  setup: { cookie: string; projectId: string },
+  body: { name: string; type: string }
+) {
+  return server.fetch(`/v1/projects/${setup.projectId}/actors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({
+      aliases: [],
+      description: "",
+      is_human: true,
+      ...body
+    })
+  });
+}
 
 async function createProject(name: string, slug: string, code: string) {
   const signedUp = await signup(name, slug, code);

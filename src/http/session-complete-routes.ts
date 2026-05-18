@@ -111,17 +111,18 @@ function releaseSessionLocks(
   const warnings: Array<{ lock_id: string; message: string; type: string }> = [];
   for (const [usecaseId, lock] of state.stepLocksByUseCaseId) {
     if (lock.holder === sessionId) {
-      if (usecaseId === failedLockId) {
+      const lockId = lock.id ?? usecaseId;
+      if (failedLockId !== undefined && (usecaseId === failedLockId || lock.id === failedLockId)) {
         state.stepLocksByUseCaseId.delete(usecaseId);
         warnings.push({
-          lock_id: usecaseId,
+          lock_id: lockId,
           type: "LOCK_RELEASE_FAILED",
           message: "Lock was already released before completion."
         });
         continue;
       }
       state.stepLocksByUseCaseId.delete(usecaseId);
-      releasedLockIds.push(usecaseId);
+      releasedLockIds.push(lockId);
     }
   }
   return { releasedLockIds, warnings };

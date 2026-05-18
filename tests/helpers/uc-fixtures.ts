@@ -77,6 +77,20 @@ export async function createProject(
   return { ...signedUp, projectId: body.project.id };
 }
 
+export async function createWorkspaceMember(
+  server: TestServer,
+  workspaceId: string,
+  name: string,
+  slug: string,
+  code: string
+): Promise<Omit<ProjectSetup, "projectId">> {
+  const signedUp = await signup(server, name, slug, code);
+  await server.fetch(`/__test/workspaces/${workspaceId}/members/${signedUp.userId}`, {
+    method: "POST"
+  });
+  return signedUp;
+}
+
 export async function createActor(
   server: TestServer,
   setup: ProjectSetup,

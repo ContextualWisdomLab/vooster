@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { SignupState } from "./signup-types.js";
+import { addMembership } from "./signup-support.js";
 
 export function registerActorTestRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
@@ -8,6 +10,9 @@ export function registerActorTestRoutes(app: FastifyInstance, state: SignupState
   );
   app.post("/__test/workspaces/:workspaceId/members/:userId/read-only", (request, reply) =>
     markReadOnly(request, reply, state)
+  );
+  app.post("/__test/workspaces/:workspaceId/members/:userId", (request, reply) =>
+    addTestMember(request, reply, state)
   );
 }
 
@@ -31,4 +36,17 @@ function markReadOnly(request: FastifyRequest, reply: FastifyReply, state: Signu
     .parse(request.params);
   state.readOnlyMemberships.add(`${params.userId}:${params.workspaceId}`);
   return reply.send({ read_only: true });
+}
+
+function addTestMember(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const params = z
+    .object({ userId: z.string().min(1), workspaceId: z.string().min(1) })
+    .parse(request.params);
+  addMembership(state.membershipsByUserId, {
+    id: randomUUID(),
+    role: "OWNER",
+    user_id: params.userId,
+    workspace_id: params.workspaceId
+  });
+  return reply.send({ member: true });
 }

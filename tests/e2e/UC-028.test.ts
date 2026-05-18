@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
+import { createActor, createProject, createUseCase, createWorkspaceMember } from "../helpers/uc-fixtures.js";
 
 type CommentPayload = {
   author_id: string;
@@ -111,7 +111,58 @@ describe("UC-028 - Comment on a use case", () => {
       reason: "Find a valid non-archived use case."
     });
   });
+
+  test("4b: another workspace member cannot delete the comment", async () => {
+    const setup = await commentFixture("Delete Other", "delete-other", "stub-delete-other");
+    const added = await addComment(setup.usecase.id, setup.cookie, "Keep this");
+    const addedBody = (await added.json()) as CommentResponse;
+    const other = await createWorkspaceMember(
+      server,
+      setup.workspaceId,
+      "Comment Delete Other",
+      "member-delete-other",
+      "stub-comment-delete-other"
+    );
+
+    const response = await deleteComment(addedBody.comment.id, other.cookie);
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as CommentProblem;
+    expect(problem.code).toBe("not_owner");
+    expect((await listComments(setup.usecase.id, setup.cookie)).comments).toEqual([
+      addedBody.comment
+    ]);
+  });
+
+  test("5b: another workspace member cannot edit the comment", async () => {
+    const setup = await commentFixture("Edit Other", "edit-other", "stub-edit-other");
+    const added = await addComment(setup.usecase.id, setup.cookie, "Original body");
+    const addedBody = (await added.json()) as CommentResponse;
+    const other = await createWorkspaceMember(
+      server,
+      setup.workspaceId,
+      "Comment Edit Other",
+      "member-edit-other",
+      "stub-comment-edit-other"
+    );
+
+    const response = await patchComment(addedBody.comment.id, other.cookie, { body: "Changed" });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as CommentProblem;
+    expect(problem.code).toBe("not_owner");
+    expect((await listComments(setup.usecase.id, setup.cookie)).comments[0]?.body).toBe(
+      "Original body"
+    );
+  });
 });
+
+async function commentFixture(name: string, slug: string, code: string) {
+  const setup = await createProject(server, `Comment ${name}`, `comment-${slug}`, code);
+  await createActor(server, setup, "Customer");
+  const usecase = await createUseCase(server, setup, "Customer", `Reviews ${name}`);
+  return { ...setup, usecase };
+}
 
 function addComment(usecaseId: string, cookie: string, body: string) {
   return server.fetch(`/v1/usecases/${usecaseId}/comments`, {

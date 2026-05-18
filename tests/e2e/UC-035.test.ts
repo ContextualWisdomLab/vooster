@@ -142,4 +142,35 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       usecase.current_revision_id
     ]);
   });
+
+  test("7b: auto-commit non-cosmetic change returns preview with warning", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Auto Commit", "auto-commit", "stub-auto-commit");
+
+    const response = await proposeChange(server, setup.cookie, {
+      auto_commit: true,
+      base_revision: usecase.current_revision_id,
+      patch: {
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        fields: { title: "Reviews a refund with reviewer approval" }
+      },
+      usecase_key: usecase.key
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as ChangePreviewResponse;
+    expect(body.severity).toBe("NON_BREAKING");
+    expect(body.warnings).toContainEqual({
+      message: "NON_BREAKING changes require explicit human commit.",
+      type: "AUTO_COMMIT_REFUSED"
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec change commit --preview-id ${body.preview_id}`,
+      reason: "Commit the preview after human review."
+    });
+    expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
 });

@@ -29,6 +29,7 @@ export type SignupState = {
   stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
   usecasesByProjectId: Map<string, StoredUseCase[]>;
   usersByGithubId: Map<string, StoredUser>;
+  workSessionsById: Map<string, StoredWorkSession>;
   workSessionsByUseCaseId: Map<string, StoredWorkSession[]>;
   workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
@@ -166,11 +167,21 @@ export type StoredLock = {
 };
 
 export type StoredWorkSession = {
+  agent_identifier?: string;
+  agent_type?: StoredAgentType;
+  branch_id?: null | string;
   id: string;
-  pinned_revision_id: string;
+  intent?: string;
+  pinned_revision_id?: string;
+  pinned_revisions?: Record<string, string>;
+  project_id?: string;
+  started_at?: string;
   status: "ACTIVE";
-  usecase_id: string;
+  usecase_id?: string;
+  user_id?: string;
 };
+
+export type StoredAgentType = "CLAUDE_CODE" | "CODEX" | "CURSOR" | "HUMAN" | "OTHER" | "WINDSURF";
 
 export type StoredUseCase = {
   id: string;

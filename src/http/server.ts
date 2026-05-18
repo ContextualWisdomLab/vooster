@@ -5,6 +5,7 @@ import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerScenarioRoutes } from "./scenario-routes.js";
+import { registerSessionRoutes } from "./session-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
 import { registerStakeholderRoutes } from "./stakeholder-routes.js";
 import { registerStakeholderInterestRoutes } from "./stakeholder-interest-routes.js";
@@ -25,6 +26,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerStakeholderInterestRoutes(app, state);
   registerUseCaseRoutes(app, state);
   registerScenarioRoutes(app, state);
+  registerSessionRoutes(app, state);
   registerStepRoutes(app, state);
 
   return app;
@@ -49,6 +51,7 @@ function initialState(options: ServerOptions): SignupState {
     stakeholdersByProjectId: new Map(),
     usecasesByProjectId: new Map(),
     usersByGithubId: new Map(),
+    workSessionsById: new Map(),
     workSessionsByUseCaseId: new Map(),
     workspaceArchivedAt: new Map(),
     workspacesById: new Map(),

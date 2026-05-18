@@ -18,6 +18,8 @@ const pushSchema = z.object({
   })).min(1)
 });
 
+type PushFile = z.infer<typeof pushSchema>["files"][number];
+
 export function registerSyncRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
     pullFiles(request, reply, state)
@@ -56,6 +58,10 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   if (membershipForProject(request, state, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to sync files"));
   }
+  const parseErrors = parsed.data.files.flatMap(parseFileErrors);
+  if (parseErrors.length > 0) {
+    return reply.code(400).send(parseFilesProblem(parseErrors));
+  }
   const results = parsed.data.files.map((file) => pushFile(state, projectId, file));
   return reply.send({
     cache: {
@@ -78,7 +84,7 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
 function pushFile(
   state: SignupState,
   projectId: string,
-  file: z.infer<typeof pushSchema>["files"][number]
+  file: PushFile
 ) {
   const usecase = activeUseCases(state, projectId).find(
     (candidate) => usecasePath(candidate) === file.path
@@ -96,6 +102,30 @@ function pushFile(
   ]);
   advanceMainHead(state, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
+}
+
+function parseFileErrors(file: PushFile) {
+  if (!file.content.startsWith("---\n")) {
+    return [{ line: 1, message: "Missing frontmatter", path: file.path }];
+  }
+  if (file.content.split("\n").findIndex((line, index) => index > 0 && line === "---") < 1) {
+    return [{ line: 1, message: "Unclosed frontmatter", path: file.path }];
+  }
+  return [];
+}
+
+function parseFilesProblem(
+  offendingFiles: Array<{ line: number; message: string; path: string }>
+) {
+  return problem(
+    400,
+    "Sync file parse failed",
+    { offending_files: offendingFiles },
+    offendingFiles.map((file) => ({
+      command: `vspec doctor ${file.path}`,
+      reason: "Validate the local file before pushing."
+    }))
+  );
 }
 
 function syncRevision(

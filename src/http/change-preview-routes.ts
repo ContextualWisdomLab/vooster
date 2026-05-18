@@ -13,18 +13,13 @@ type ChangePreview = {
   severity: "NON_BREAKING";
   usecase_id: string;
 };
-type ChangeDiff = {
-  after: string;
-  before: string;
-  entity_id: string;
-  entity_type: "USECASE";
-  path: "title";
-  severity: "NON_BREAKING";
-};
+type ChangeDiff = { after: string; before: string; entity_id: string;
+  entity_type: "USECASE"; path: "title"; severity: "NON_BREAKING" };
 
 const previewsByState = new WeakMap<SignupState, Map<string, ChangePreview>>();
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
 const proposalSchema = z.object({
+  auto_commit: z.boolean().optional(),
   base_revision: z.string().min(1),
   patch: z.object({
     entity_id: z.string().min(1),
@@ -93,7 +88,12 @@ export function previewSpecChange(
         reason: "Commit the preview after human review."
       }
     ],
-    warnings: []
+    warnings: parsed.data.auto_commit === true ? [
+      {
+        message: "NON_BREAKING changes require explicit human commit.",
+        type: "AUTO_COMMIT_REFUSED"
+      }
+    ] : []
   });
 }
 

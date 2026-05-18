@@ -21,6 +21,9 @@ type AcceptanceResponse = {
   membership: { role: "EDITOR" | "OWNER"; user_id: string; workspace_id: string };
   user: { email: string; id: string };
 };
+type ProblemResponse = {
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -59,6 +62,33 @@ describe("UC-003 - Invite a member", () => {
       workspace_id: owner.workspaceId
     });
     expect(acceptBody.invitation.accepted_at).not.toBeNull();
+  });
+
+  test("2a: editor cannot invite an owner and gets editor-role guidance", async () => {
+    const owner = await signup(server, "Invite Role", "invite-role", "stub-invite-role-owner");
+    const editorInvite = await inviteMember(
+      owner.workspaceId,
+      owner.cookie,
+      "stub-invite-editor@users.noreply.github.com",
+      "EDITOR"
+    );
+    const editorInviteBody = (await editorInvite.json()) as InvitationResponse;
+    const accepted = await acceptInvitation(editorInviteBody.invitation.token, "stub-invite-editor");
+    const editorCookie = accepted.headers.get("set-cookie") ?? "";
+
+    const response = await inviteMember(
+      owner.workspaceId,
+      editorCookie,
+      "stub-invite-owner-target@users.noreply.github.com",
+      "OWNER"
+    );
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as ProblemResponse;
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member invite --role editor",
+      reason: "Invite the teammate as an editor or ask a workspace owner."
+    });
   });
 });
 

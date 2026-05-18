@@ -25,6 +25,12 @@ type SessionListResponse = {
   suggested_next_actions?: Array<{ command: string; reason: string }>;
   total: number;
 };
+type SessionListProblem = {
+  sessions?: unknown;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+  total?: unknown;
+};
 
 let server: TestServer;
 
@@ -145,5 +151,24 @@ describe("UC-017 - Monitor active sessions", () => {
     const body = await response.text();
     expect(body).toContain("event: snapshot");
     expect(body).toContain(`"id":"${session.id}"`);
+  });
+
+  test("2a: non-member cannot list another workspace sessions", async () => {
+    const mine = await createUseCaseWithMainStep(server, "Mine Sessions", "mine-sessions", "stub-mine-sessions");
+    const other = await createUseCaseWithMainStep(server, "Other Sessions", "other-sessions", "stub-other-sessions");
+
+    const response = await server.fetch(`/v1/sessions?workspace_id=${other.setup.workspaceId}`, {
+      headers: { Cookie: mine.setup.cookie }
+    });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as SessionListProblem;
+    expect(problem.title).toMatch(/workspace membership required/i);
+    expect(problem.total).toBeUndefined();
+    expect(problem.sessions).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec workspace list",
+      reason: "Choose a workspace you can access."
+    });
   });
 });

@@ -8,6 +8,7 @@ import {
   type MergeOpenResponse
 } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { createStepLock } from "../helpers/step-fixtures.js";
 
 type MergeResolveResponse = {
   main_head_revision_ids: Record<string, string>;
@@ -25,6 +26,9 @@ type MergeResolveProblem = {
   conflicts?: unknown[];
   current_revision?: string;
   field?: string;
+  holding_session?: string;
+  main_head_revision_ids?: Record<string, string>;
+  merge_request?: { status: string };
   offending_entity_id?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
@@ -156,6 +160,41 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec merge resolve ${merge.id} --all`,
       reason: "Submit one resolution for each outstanding conflict."
+    });
+  });
+
+  test("5a: late hard lock blocks conflict resolution", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Locked Resolve", "locked-resolve", "stub-locked-resolve");
+    const branch = await createBranch(server, setup, "feature/locked-resolve");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const opened = await openMerge(server, setup, branch.id);
+    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: "2026-06-01T00:00:00.000Z",
+      holder: "late-lock-holder",
+      mode: "HARD",
+      reason: "Lock acquired after MR opened."
+    });
+
+    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: merge.current_revision_id,
+        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
+      })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as MergeResolveProblem;
+    expect(problem.title).toMatch(/hard lock/i);
+    expect(problem.holding_session).toBe("late-lock-holder");
+    expect(problem.merge_request).toMatchObject({ status: "OPEN" });
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(usecase.current_revision_id);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Inspect the session holding the hard lock."
     });
   });
 });

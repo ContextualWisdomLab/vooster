@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T18:42:39Z_
+_Last updated: 2026-05-18T19:01:13Z_
 
 ## Overall
 
-- Commits: 217
-- Last commit: 99ebfbc green: UC-018 warn on failed lock release
-- Use cases complete: 15 / 35
+- Commits: 232
+- Last commit: 7992bd9 refactor: UC-019 share membership access checks
+- Use cases complete: 16 / 35
 
 ## By Use Case
 
@@ -30,7 +30,7 @@ _Last updated: 2026-05-18T18:42:39Z_
 | UC-016 | Start a work session | ✓ DONE | 7/7 |
 | UC-017 | Monitor active sessions | ✓ DONE | 5/5 |
 | UC-018 | Complete a work session | ✓ DONE | 6/6 |
-| UC-019 | Create a branch | ○ NOT STARTED | 0/0 |
+| UC-019 | Create a branch | ✓ DONE | 6/6 |
 | UC-020 | Merge a branch | ○ NOT STARTED | 0/0 |
 | UC-021 | Resolve a merge conflict | ○ NOT STARTED | 0/0 |
 | UC-022 | Lock a use case | ○ NOT STARTED | 0/0 |

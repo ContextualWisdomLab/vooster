@@ -45,17 +45,18 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
     return reply.code(404).send(problem(404, "Revision not found"));
   }
 
+  const affectedSessions = affectedActiveSessions(state, found.usecase.id);
   const inputHash = impactHash(revision.id, revision.snapshot);
   const previewId = randomUUID();
   return reply.send({
     cached: false,
     impact: {
       affected_branches: [],
-      affected_sessions: [],
+      affected_sessions: affectedSessions,
       affected_tests: [],
       confidence: 1,
       input_hash: inputHash,
-      severity: revision.severity ?? "NON_BREAKING"
+      severity: affectedSessions.length > 0 ? "BREAKING" : revision.severity ?? "NON_BREAKING"
     },
     preview_id: previewId,
     suggested_next_actions: nextActions(found.usecase, previewId)
@@ -75,6 +76,17 @@ function impactHash(revisionId: string, snapshot: StoredRevision["snapshot"]) {
   return createHash("sha256")
     .update(JSON.stringify({ revisionId, snapshot }))
     .digest("hex");
+}
+
+function affectedActiveSessions(state: SignupState, usecaseId: string) {
+  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+    .filter((session) => session.status === "ACTIVE")
+    .map((session) => ({
+      agent_type: session.agent_type,
+      id: session.id,
+      owner: session.user_id,
+      pinned_revision: session.pinned_revisions?.[usecaseId]
+    }));
 }
 
 function missingProposedChangeProblem(usecase: StoredUseCase, path: string) {

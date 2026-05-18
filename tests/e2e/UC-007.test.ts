@@ -24,6 +24,7 @@ type GoalListResponse = {
 };
 type ProblemResponse = {
   actor_id?: string;
+  allowed_status_transitions?: string[];
   description_rule?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
@@ -125,6 +126,36 @@ describe("UC-007 - Manage the actor-goal list", () => {
     expect(body.title).toMatch(/goal description.*verb phrase/i);
     expect(body.description_rule).toBe("Use a non-empty verb phrase.");
   });
+
+  test("5b: illegal status transition leaves goal unchanged", async () => {
+    const setup = await createProject("Illegal Goal Status", "illegal-goal-status", "stub-goal-illegal-status");
+    const actor = await createActor(setup, "Buyer");
+    const created = await createGoal(setup, {
+      actor_id: actor.id,
+      description: "Tracks an order",
+      level: "USER_GOAL",
+      priority: "P1"
+    });
+    const goal = ((await created.json()) as GoalResponse).goal;
+
+    const response = await patchGoal(setup, goal.id, { status: "PROMOTED" });
+
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/illegal status transition/i);
+    expect(body.allowed_status_transitions).toEqual([
+      "IDENTIFIED -> IN_DESIGN",
+      "IN_DESIGN -> PROMOTED",
+      "any -> REJECTED"
+    ]);
+
+    const listed = await server.fetch(
+      `/v1/projects/${setup.projectId}/goals?actor_id=${actor.id}`,
+      { headers: { Cookie: setup.cookie } }
+    );
+    const listBody = (await listed.json()) as GoalListResponse;
+    expect(listBody.actors[0]?.goals[0]?.status).toBe("IDENTIFIED");
+  });
 });
 
 async function createGoal(
@@ -152,6 +183,18 @@ async function createActor(setup: { cookie: string; projectId: string }, name: s
   });
   const body = (await response.json()) as ActorResponse;
   return body.actor;
+}
+
+async function patchGoal(
+  setup: { cookie: string },
+  goalId: string,
+  body: { status: string }
+) {
+  return server.fetch(`/v1/goals/${goalId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify(body)
+  });
 }
 
 async function createProject(name: string, slug: string, code: string) {

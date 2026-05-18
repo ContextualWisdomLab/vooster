@@ -149,13 +149,11 @@ describe("UC-004 - Create a project", () => {
     await server.fetch(`/__test/workspaces/${signedUp.workspaceId}/archive`, {
       method: "POST"
     });
-
     const response = await createProject(signedUp, {
-      name: "Archive Attempt",
       key: "ARC",
+      name: "Archive Attempt",
       visibility: "PRIVATE"
     });
-
     expect(response.status).toBe(409);
     const body = (await response.json()) as ProblemResponse;
     expect(body.title).toMatch(/workspace.*archived/i);
@@ -174,10 +172,7 @@ async function signup(name: string, slug: string, code: string) {
     `/v1/auth/github/callback?${params.toString()}`,
     { headers: { Cookie: start.headers.get("set-cookie") ?? "" } }
   );
-  const body = (await callback.json()) as {
-    user: { id: string };
-    workspace: { id: string };
-  };
+  const body = (await callback.json()) as SignedUp;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -188,12 +183,7 @@ async function signup(name: string, slug: string, code: string) {
 
 async function createProject(
   signedUp: { cookie: string; workspaceId: string },
-  body: {
-    key: string;
-    name: string;
-    simulate_branch_insert_failure?: boolean;
-    visibility: string;
-  }
+  body: ProjectRequest
 ) {
   return server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
     method: "POST",
@@ -204,3 +194,6 @@ async function createProject(
     body: JSON.stringify(body)
   });
 }
+
+type SignedUp = { user: { id: string }; workspace: { id: string } };
+type ProjectRequest = { key: string; name: string; simulate_branch_insert_failure?: boolean; visibility: string };

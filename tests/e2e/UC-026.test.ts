@@ -12,6 +12,7 @@ type RevertResponse = {
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: { current_revision_id: string; id: string; title: string };
+  warnings?: Array<{ message: string; type: string }>;
 };
 type RevertProblem = {
   affected_sessions?: string[]; expires_at?: string; expected_entity_id?: string;
@@ -161,6 +162,26 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
 
     expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([usecase.current_revision_id]);
   });
+
+  test("5a: gherkin drift warning does not block revert", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Revert Gherkin", "revert-gherkin", "stub-revert-gherkin");
+    const targetRevision = usecase.current_revision_id;
+    await advanceNonBreaking(usecase.id, setup.cookie, "Reviews a refund with Gherkin drift");
+
+    const response = await revert(usecase.id, setup.cookie, {
+      revision_id: targetRevision,
+      simulate_gherkin_drift: true
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as RevertResponse;
+    expect(body.warnings).toContainEqual({
+      message: "Pinned CI feature files will drift on next sync.",
+      type: "GHERKIN_DRIFT"
+    });
+    expect(body.revision.change_summary).toBe(`Revert to ${targetRevision}`);
+  });
 });
 
 function jsonHeaders(cookie: string) {
@@ -181,4 +202,13 @@ async function historyRevisionIds(usecaseId: string, cookie: string) {
   });
   const body = (await history.json()) as HistoryResponse;
   return body.revisions.map((revision) => revision.revision);
+}
+
+async function advanceNonBreaking(usecaseId: string, cookie: string, title: string) {
+  const response = await server.fetch(`/__test/usecases/${usecaseId}/revisions`, {
+    method: "POST",
+    headers: jsonHeaders(cookie),
+    body: JSON.stringify({ severity: "NON_BREAKING", title })
+  });
+  return ((await response.json()) as BranchRevisionResponse).revision_id;
 }

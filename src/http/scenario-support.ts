@@ -13,7 +13,7 @@ type UseCaseRevisionResponse = {
   entity_id: string;
   entity_type: "USECASE";
   id: string;
-  severity: "NON_BREAKING";
+  severity: "BREAKING" | "NON_BREAKING";
   snapshot: StoredUseCase;
   version_number: number;
 };
@@ -60,7 +60,8 @@ export function scenarioWithUseCase(
 export function appendUseCaseRevision(
   state: SignupState,
   usecase: StoredUseCase,
-  changeSummary: string
+  changeSummary: string,
+  severity: "BREAKING" | "NON_BREAKING" = "NON_BREAKING"
 ) {
   const revision = {
     id: randomUUID(),
@@ -69,7 +70,7 @@ export function appendUseCaseRevision(
     version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
     snapshot: { ...usecase },
     change_summary: changeSummary,
-    severity: "NON_BREAKING" as const
+    severity
   };
   state.revisionsByEntityId.set(usecase.id, [
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),

@@ -1,0 +1,98 @@
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { z } from "zod";
+import { appendUseCaseRevision, scenarioWithUseCase } from "./scenario-support.js";
+import { authenticatedUserId } from "./session-support.js";
+import { problem } from "./signup-support.js";
+import type {
+  SignupState,
+  StoredMembership,
+  StoredStep,
+  StoredUseCase
+} from "./signup-types.js";
+
+const stepPatchSchema = z.object({
+  action: z.string().optional(),
+  base_revision: z.string().min(1)
+});
+
+export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
+  app.patch("/v1/steps/:stepId", (request, reply) => patchStep(request, reply, state));
+}
+
+function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const found = stepWithUseCase(state, stepIdFrom(request.params));
+  if (found === undefined) {
+    return reply.code(404).send(problem(404, "Step not found"));
+  }
+  if (membershipForProject(request, state, found.projectId) === undefined) {
+    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  const parsed = stepPatchSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid step update"));
+  }
+  if (parsed.data.base_revision !== currentRevisionId(state, found.usecase)) {
+    return reply.code(409).send(problem(409, "Base revision is stale"));
+  }
+
+  const updated = { ...found.step, action: parsed.data.action ?? found.step.action };
+  state.stepsByScenarioId.set(
+    found.step.scenario_id,
+    found.steps.map((step) => (step.id === updated.id ? updated : step))
+  );
+  const revision = appendUseCaseRevision(
+    state,
+    found.usecase,
+    `Edited step ${updated.id}`,
+    "BREAKING"
+  );
+
+  return reply.send({ affected_sessions: [], revision, step: updated });
+}
+
+function stepWithUseCase(
+  state: SignupState,
+  stepId: string
+):
+  | {
+      projectId: string;
+      step: StoredStep;
+      steps: StoredStep[];
+      usecase: StoredUseCase;
+    }
+  | undefined {
+  for (const [scenarioId, steps] of state.stepsByScenarioId) {
+    const step = steps.find((candidate) => candidate.id === stepId);
+    const found = step === undefined ? undefined : scenarioWithUseCase(state, scenarioId);
+    if (step !== undefined && found !== undefined) {
+      return { projectId: found.projectId, step, steps, usecase: found.usecase };
+    }
+  }
+
+  return undefined;
+}
+
+function currentRevisionId(state: SignupState, usecase: StoredUseCase): string {
+  const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
+  return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
+}
+
+function membershipForProject(
+  request: FastifyRequest,
+  state: SignupState,
+  projectId: string
+): StoredMembership | undefined {
+  const project = state.projectsById.get(projectId);
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (project === undefined || userId === undefined) {
+    return undefined;
+  }
+
+  return (state.membershipsByUserId.get(userId) ?? []).find(
+    (membership) => membership.workspace_id === project.workspace_id
+  );
+}
+
+function stepIdFrom(params: unknown): string {
+  return z.object({ stepId: z.string().min(1) }).parse(params).stepId;
+}

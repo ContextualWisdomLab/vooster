@@ -5,6 +5,7 @@ type GuideResponse = {
   cache: { cli_version: string; status: string };
   content: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings?: Array<{ message: string; type: string }>;
 };
 type JsonGuideResponse = {
   examples: Array<{ commands: string[]; title: string }>;
@@ -60,6 +61,31 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.suggested_next_actions[0]).toEqual({
       command: "vspec login",
       reason: "Authenticate before working with private specs."
+    });
+  });
+
+  test("3a: network failure falls back to previous cached guide with warning", async () => {
+    const response = await server.fetch("/v1/ai-guide?cli_version=1.0.0", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cached_guides: [{ cli_version: "0.9.0", content: "# Old vspec AI Agent Guide\n" }],
+        simulate_network_failure: true
+      })
+    });
+
+    expect(response.status).toBe(200);
+    const guide = (await response.json()) as GuideResponse;
+    expect(guide.cache).toEqual({ cli_version: "0.9.0", status: "STALE_FALLBACK" });
+    expect(guide.content).toContain("WARNING: this guide may be out of date");
+    expect(guide.content).toContain("# Old vspec AI Agent Guide");
+    expect(guide.warnings).toContainEqual({
+      type: "STALE_AI_GUIDE",
+      message: "Using cached guide 0.9.0 because the current guide could not be fetched."
+    });
+    expect(guide.suggested_next_actions).toContainEqual({
+      command: "vspec ai-guide",
+      reason: "Retry once connectivity returns."
     });
   });
 });

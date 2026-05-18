@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T20:22:54Z_
+_Last updated: 2026-05-18T20:35:00Z_
 
 ## Overall
 
-- Commits: 305
-- Last commit: 81d4292 green: UC-024 retry failed history read
-- Use cases complete: 21 / 35
+- Commits: 317
+- Last commit: af38452 green: UC-025 deny non-member diff
+- Use cases complete: 22 / 35
 
 ## By Use Case
 
@@ -36,7 +36,7 @@ _Last updated: 2026-05-18T20:22:54Z_
 | UC-022 | Lock a use case | ✓ DONE | 6/6 |
 | UC-023 | See who is working on a use case | ✓ DONE | 6/6 |
 | UC-024 | View a use case revision history | ✓ DONE | 5/5 |
-| UC-025 | Compare two revisions of a use case | ○ NOT STARTED | 0/0 |
+| UC-025 | Compare two revisions of a use case | ✓ DONE | 5/5 |
 | UC-026 | Revert a use case to a previous revision | ○ NOT STARTED | 0/0 |
 | UC-027 | Analyze the impact of a proposed change | ○ NOT STARTED | 0/0 |
 | UC-028 | Comment on a use case | ○ NOT STARTED | 0/0 |

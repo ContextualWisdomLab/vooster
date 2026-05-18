@@ -37,6 +37,16 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
       })
     );
   }
+  if (found.goal.status === "REJECTED") {
+    return reply.code(422).send(
+      problem(422, "Rejected goal cannot be promoted", {}, [
+        {
+          command: `vspec goal edit ${found.goal.id} --status in-design`,
+          reason: "Reopen the goal before promotion."
+        }
+      ])
+    );
+  }
 
   const usecase: StoredUseCase = {
     id: randomUUID(),

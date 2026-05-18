@@ -4,16 +4,17 @@ import {
   expirePreview,
   historyRevisionIds,
   proposeChange,
+  titlePatch,
   type ChangePreviewResponse,
   type ChangeProblem
 } from "../helpers/change-fixtures.js";
 import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
 afterAll(async () => { await server.stop(); });
-
 describe("UC-035 - Propose a spec change (AI agent)", () => {
   test("MAIN: propose a title change preview without writing a revision", async () => {
     const { setup, usecase } =
@@ -172,5 +173,27 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     expect(await historyRevisionIds(server, usecase.id, setup.cookie)).toEqual([
       usecase.current_revision_id
     ]);
+  });
+
+  test("6a: preview lists active sessions pinning touched revisions", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Affected Sessions", "affected-sessions", "stub-affected");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Implement affected flow",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const response = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews a refund with affected sessions"));
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as ChangePreviewResponse;
+    expect(body.impact.affected_sessions).toContainEqual(
+      { agent_type: "CODEX", id: session.id, owner: setup.userId, pinned_usecase_keys: [usecase.key] }
+    );
+    expect(body.suggested_next_actions).toContainEqual(
+      { command: `vspec who ${usecase.key}`, reason: "Coordinate with active sessions before committing." }
+    );
   });
 });

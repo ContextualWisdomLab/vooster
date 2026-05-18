@@ -1,4 +1,5 @@
 import type { TestServer } from "./server.js";
+import type { UseCase } from "./uc-fixtures.js";
 
 export type ChangePreviewResponse = {
   diff: Array<{
@@ -50,4 +51,13 @@ export async function historyRevisionIds(server: TestServer, usecaseId: string, 
   });
   const body = (await history.json()) as HistoryResponse;
   return body.revisions.map((revision) => revision.revision);
+}
+
+export function titlePatch(usecase: UseCase, title: string, extra: Record<string, unknown> = {}) {
+  return {
+    ...extra,
+    base_revision: usecase.current_revision_id,
+    patch: { entity_id: usecase.id, entity_type: "USECASE", fields: { title } },
+    usecase_key: usecase.key
+  };
 }

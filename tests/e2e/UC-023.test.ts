@@ -164,4 +164,22 @@ describe("UC-023 - See who is working on a use case", () => {
       reason: "Review and explicitly abandon the stale active session."
     });
   });
+
+  test("*a: non-member cannot see who is working", async () => {
+    const mine = await projectUseCase(server, "Who Mine", "who-mine", "stub-who-mine");
+    const other = await projectUseCase(server, "Who Other", "who-other", "stub-who-other");
+
+    const response = await whoUseCase(server, mine.setup, other.usecase.id);
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as WhoProblem;
+    expect(problem.title).toMatch(/workspace membership required/i);
+    expect(problem.sessions).toBeUndefined();
+    expect(problem.locks).toBeUndefined();
+    expect(problem.merge_requests).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec workspace list",
+      reason: "Choose a workspace you can access."
+    });
+  });
 });

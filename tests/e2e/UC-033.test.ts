@@ -108,4 +108,22 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.content).toContain("# vspec AI Agent Guide");
     expect(guide.content).not.toContain("Old cached guide");
   });
+
+  test("*a: cold offline start returns exit code 5 and public guide URL", async () => {
+    const response = await server.fetch("/v1/ai-guide?cli_version=1.0.0", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ simulate_network_failure: true })
+    });
+
+    expect(response.status).toBe(503);
+    const problem = (await response.json()) as {
+      bootstrap: string;
+      exit_code: number;
+      title: string;
+    };
+    expect(problem.title).toMatch(/ai guide unavailable/i);
+    expect(problem.exit_code).toBe(5);
+    expect(problem.bootstrap).toBe("Read https://vspec.dev/ai-guide and retry vspec ai-guide once online.");
+  });
 });

@@ -130,3 +130,12 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: active session heartbeat older than 30 minutes -> row is marked `ZOMBIE` and suggests `vspec session abandon <id>` without mutating state.
 - **3a**: no sessions match the filter -> returns `total: 0`, empty rows, and `vspec session start --intent "..."` guidance.
 - ***a**: watch endpoint requested -> streams the same snapshot as Server-Sent Events without mutating session, branch, or lock state.
+
+### UC-018
+
+- **MAIN**: session owner completes an active auto-branch session -> marks it COMPLETED, stamps `ended_at`, releases held locks, opens one OPEN merge request with impact/conflicts, clears session file metadata, and suggests `vspec merge show <id>`.
+- **4a**: one held lock is already gone during release -> session still completes, remaining locks release, and response includes one warning for the failed lock release.
+- **6a**: branch has conflicts versus main -> opens an OPEN merge request with populated conflicts and suggests `vspec merge resolve <id>`.
+- **6b**: `no_merge` requested -> completes the session and releases locks without merge request, leaves branch ACTIVE, and suggests `vspec merge open <branch>`.
+- **2a**: session is already COMPLETED or ABANDONED -> 409 with current status and `vspec session show <id>` guidance, no state change.
+- ***a**: simulated transactional failure mid-completion -> session remains ACTIVE, locks remain held, no merge request is created, and response gives retry guidance.

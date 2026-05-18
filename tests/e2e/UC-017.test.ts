@@ -14,6 +14,7 @@ type SessionListResponse = {
     idle_seconds: number;
     intent: string;
     lock_count: number;
+    markers?: string[];
     pinned_keys: string[];
     project_id: string;
     started_at: string;
@@ -21,6 +22,7 @@ type SessionListResponse = {
     user_id: string;
   }>;
   summary: { total_conflicts: number };
+  suggested_next_actions?: Array<{ command: string; reason: string }>;
   total: number;
 };
 
@@ -76,5 +78,33 @@ describe("UC-017 - Monitor active sessions", () => {
     });
     expect(body.sessions[0]?.idle_seconds).toBeGreaterThanOrEqual(0);
     expect(Date.parse(body.sessions[0]?.started_at ?? "")).not.toBeNaN();
+  });
+
+  test("4a: stale active session is marked zombie with abandon guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Zombie Session", "zombie-session", "stub-zombie-session");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Forget to heartbeat",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const aged = await server.fetch(`/__test/sessions/${session.id}/heartbeat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ last_activity_at: "2020-01-01T00:00:00.000Z" })
+    });
+    expect(aged.status).toBe(200);
+
+    const response = await server.fetch(`/v1/sessions?workspace_id=${setup.workspaceId}`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    const body = (await response.json()) as SessionListResponse;
+    expect(body.sessions[0]?.markers).toContain("ZOMBIE");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec session abandon ${session.id}`,
+      reason: "Review and explicitly abandon the stale active session."
+    });
   });
 });

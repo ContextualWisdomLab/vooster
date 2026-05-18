@@ -1,19 +1,19 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T15:00:13Z_
+_Last updated: 2026-05-18T15:10:01Z_
 
 ## Overall
 
-- Commits: 19
-- Last commit: 7b48893 green: UC-001 return retry guidance for github failure
-- Use cases complete: 1 / 35
+- Commits: 32
+- Last commit: 6ba5188 refactor: UC-002 move github failure helpers
+- Use cases complete: 2 / 35
 
 ## By Use Case
 
 | ID | Title | Status | Tests |
 | --- | --- | --- | --- |
 | UC-001 | Sign up for a workspace | ✓ DONE | 5/5 |
-| UC-002 | Log in | ○ NOT STARTED | 0/0 |
+| UC-002 | Log in | ✓ DONE | 5/5 |
 | UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
 | UC-004 | Create a project | ○ NOT STARTED | 0/0 |
 | UC-005 | Define an actor | ○ NOT STARTED | 0/0 |

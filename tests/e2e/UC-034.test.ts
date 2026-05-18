@@ -92,13 +92,13 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   test("3b: session pin overrides requested revision", async () => {
     const { scenario, setup, usecase } =
       await createUseCaseWithMainStep(server, "Agent Pinned", "agent-pinned", "stub-agent-pinned");
-    const pinnedRevision = usecase.current_revision_id;
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Read pinned spec",
       pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
+    const pinnedRevision = session.pinned_revisions[usecase.id] ?? "";
     const changed = await addStep(server, scenario.scenario.id, setup.cookie, {
       action: "Confirms the order.",
       actor: "Customer"

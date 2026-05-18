@@ -9,7 +9,8 @@ import { useCaseWithProjectId } from "./usecase-support.js";
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
   format: z.enum(["agent", "human", "json"]).default("human"),
-  revision: z.string().optional()
+  revision: z.string().optional(),
+  session: z.string().optional()
 });
 
 export function registerUseCaseAgentRoutes(app: FastifyInstance, state: SignupState) {
@@ -31,7 +32,8 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });
   }
-  const revision = resolveRevision(state, found.usecase, query.revision);
+  const pinned = pinnedRevision(state, found.usecase.id, query.session);
+  const revision = pinned ?? resolveRevision(state, found.usecase, query.revision);
   if (revision === undefined) {
     return reply.code(404).send(
       problem(404, "Revision not found", { revision: query.revision }, [
@@ -42,7 +44,21 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
       ])
     );
   }
-  return reply.send(agentEnvelope(request, state, found.projectId, found.usecase, revision));
+  const warnings = pinned !== undefined && query.revision !== undefined && query.revision !== pinned
+    ? [{
+        type: "REVISION_OVERRIDDEN_BY_SESSION",
+        message: "Requested revision was ignored because the active session pins this use case."
+      }]
+    : [];
+  return reply.send(agentEnvelope(
+    request,
+    state,
+    found.projectId,
+    found.usecase,
+    revision,
+    pinned === undefined ? null : query.session ?? null,
+    warnings
+  ));
 }
 
 function agentEnvelope(
@@ -50,7 +66,9 @@ function agentEnvelope(
   state: SignupState,
   projectId: string,
   usecase: StoredUseCase,
-  revision: string
+  revision: string,
+  sessionId: null | string,
+  warnings: Array<{ message: string; type: string }>
 ) {
   const project = state.projectsById.get(projectId);
   return {
@@ -59,7 +77,7 @@ function agentEnvelope(
       project_key: project?.key ?? "",
       request_id: requestId(request),
       revision,
-      session_id: null
+      session_id: sessionId
     },
     data: agentData(state, projectId, usecase),
     format_version: 1,
@@ -73,7 +91,7 @@ function agentEnvelope(
         reason: "Generate executable acceptance-test scaffolding."
       }
     ],
-    warnings: []
+    warnings
   };
 }
 
@@ -88,6 +106,18 @@ function resolveRevision(
   const exists = (state.revisionsByEntityId.get(usecase.id) ?? [])
     .some((revision) => revision.id === requestedRevision);
   return exists ? requestedRevision : undefined;
+}
+
+function pinnedRevision(
+  state: SignupState,
+  usecaseId: string,
+  sessionId: string | undefined
+) {
+  if (sessionId === undefined) {
+    return undefined;
+  }
+  const session = state.workSessionsById.get(sessionId);
+  return session?.status === "ACTIVE" ? session.pinned_revisions?.[usecaseId] : undefined;
 }
 
 function agentData(state: SignupState, projectId: string, usecase: StoredUseCase) {

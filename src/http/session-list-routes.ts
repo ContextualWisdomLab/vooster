@@ -10,9 +10,13 @@ const sessionListSchema = z.object({
   user_id: z.string().optional(),
   workspace_id: z.string().min(1)
 });
+const heartbeatSchema = z.object({ last_activity_at: z.iso.datetime() });
 
 export function registerSessionListRoutes(app: FastifyInstance, state: SignupState) {
   app.get("/v1/sessions", (request, reply) => listSessions(request, reply, state));
+  app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
+    ageSessionHeartbeat(request, reply, state)
+  );
 }
 
 function listSessions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -40,8 +44,23 @@ function listSessions(request: FastifyRequest, reply: FastifyReply, state: Signu
     sessions,
     summary: {
       total_conflicts: sessions.reduce((total, session) => total + session.conflict_markers.length, 0)
-    }
+    },
+    suggested_next_actions: zombieActions(sessions)
   });
+}
+
+function ageSessionHeartbeat(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
+  const session = state.workSessionsById.get(sessionIdFrom(request.params));
+  const parsed = heartbeatSchema.safeParse(request.body);
+  if (session === undefined || !parsed.success) {
+    return reply.code(404).send(problem(404, "Session not found"));
+  }
+  session.last_activity_at = parsed.data.last_activity_at;
+  return reply.send({ updated: true });
 }
 
 function hasWorkspaceMembership(
@@ -83,9 +102,10 @@ function sessionRow(state: SignupState, session: StoredWorkSession) {
     intent: session.intent,
     pinned_keys: pinnedKeys(state, session),
     branch_name: branchName(state, session),
-    idle_seconds: idleSeconds(session.started_at),
+    idle_seconds: idleSeconds(session.last_activity_at ?? session.started_at),
     lock_count: lockCount(state, session),
     conflict_markers: conflictMarkers(state, session),
+    markers: sessionMarkers(session),
     status: session.status,
     started_at: session.started_at
   };
@@ -119,4 +139,21 @@ function conflictMarkers(state: SignupState, session: StoredWorkSession): string
     .filter((other) => other.id !== session.id)
     .filter((other) => Object.keys(other.pinned_revisions ?? {}).some((key) => pinned.has(key)))
     .map((other) => `PINNED_BY:${other.id}`);
+}
+
+function sessionMarkers(session: StoredWorkSession): string[] {
+  return idleSeconds(session.last_activity_at ?? session.started_at) > 1800 ? ["ZOMBIE"] : [];
+}
+
+function zombieActions(sessions: Array<{ id: string; markers: string[] }>) {
+  return sessions
+    .filter((session) => session.markers.includes("ZOMBIE"))
+    .map((session) => ({
+      command: `vspec session abandon ${session.id}`,
+      reason: "Review and explicitly abandon the stale active session."
+    }));
+}
+
+function sessionIdFrom(params: unknown): string {
+  return z.object({ sessionId: z.string().min(1) }).parse(params).sessionId;
 }

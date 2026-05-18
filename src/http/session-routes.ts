@@ -124,7 +124,8 @@ function workSession(
     pinned_revisions: pinned.revisions,
     branch_id: null,
     status: "ACTIVE",
-    started_at: new Date().toISOString()
+    started_at: new Date().toISOString(),
+    last_activity_at: new Date().toISOString()
   };
 }
 

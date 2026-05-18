@@ -12,6 +12,10 @@ type ArchiveResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: { archived_at: string; id: string; key: string };
 };
+type RestoreResponse = {
+  revision: { change_summary: string; id: string };
+  usecase: { archived_at: null; id: string; key: string };
+};
 type HistoryResponse = { revisions: Array<{ change_summary?: string; version_number: number }> };
 type ArchiveProblem = {
   archived_at?: string;
@@ -118,12 +122,40 @@ describe("UC-015 - Archive or restore a use case", () => {
     expect(await revisionHistory(usecase.id, setup.cookie))
       .toMatchObject({ revisions: [{ version_number: 1 }] });
   });
+
+  test("*a: restore clears archive flag, writes revision, and lists use case again", async () => {
+    const setup = await createProject(server, "Restore Use Case", "restore-usecase", "stub-restore");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews restored archive");
+    await archiveUseCase(usecase.id, setup.cookie);
+
+    const response = await restoreUseCase(usecase.id, setup.cookie);
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as RestoreResponse;
+    expect(body.usecase).toEqual({ archived_at: null, id: usecase.id, key: usecase.key });
+    expect(body.revision.change_summary).toBe(`Restored use case ${usecase.key}`);
+    expect(typeof body.revision.id).toBe("string");
+    const history = await revisionHistory(usecase.id, setup.cookie);
+    expect(history.revisions.map((revision) => revision.version_number)).toEqual([3, 2, 1]);
+    expect(history.revisions[0]?.change_summary).toBe(`Restored use case ${usecase.key}`);
+    const list = await listUseCases(setup.projectId, setup.cookie);
+    expect(list.items).toEqual([{ key: usecase.key }]);
+  });
 });
 
 function archiveUseCase(usecaseId: string, cookie: string) {
   return server.fetch(`/v1/usecases/${usecaseId}`, {
     method: "DELETE",
     headers: { Cookie: cookie }
+  });
+}
+
+function restoreUseCase(usecaseId: string, cookie: string) {
+  return server.fetch(`/v1/usecases/${usecaseId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({ archived_at: null })
   });
 }
 

@@ -1,6 +1,6 @@
 import { useCaseKey } from "./merge-conflict-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredLock } from "./signup-types.js";
+import type { SignupState, StoredLock, StoredSpecBranch } from "./signup-types.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
 
 type MergeResolution = {
@@ -88,6 +88,29 @@ export function hardLockResolutionProblem(
       {
         command: `vspec who ${useCaseKey(state, lock.usecase_id)}`,
         reason: "Inspect the session holding the hard lock."
+      }
+    ]
+  );
+}
+
+export function resolutionWriteFailureProblem(
+  merge: StoredMergeRequest,
+  source: StoredSpecBranch,
+  mainHeadRevisionIds: Record<string, string>
+) {
+  return problem(
+    500,
+    "Conflict resolution write failed",
+    {
+      exit_code: 5,
+      main_head_revision_ids: mainHeadRevisionIds,
+      merge_request: merge,
+      source_branch: source
+    },
+    [
+      {
+        command: `vspec merge resolve ${merge.id} --retry`,
+        reason: "Retry after the failed conflict resolution."
       }
     ]
   );

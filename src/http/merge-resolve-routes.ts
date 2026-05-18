@@ -7,6 +7,7 @@ import {
   hardLockResolutionProblem,
   missingManualValueProblem,
   manualResolutionMissingValue,
+  resolutionWriteFailureProblem,
   staleBaseProblem,
   uncoveredConflictsProblem,
   uncoveredConflicts
@@ -22,7 +23,8 @@ const resolutionSchema = z.object({
 });
 const resolveSchema = z.object({
   base_revision: z.string().min(1),
-  resolutions: z.array(resolutionSchema).min(1)
+  resolutions: z.array(resolutionSchema).min(1),
+  simulate_write_failure: z.boolean().default(false)
 });
 
 export function registerMergeResolveRoutes(app: FastifyInstance, state: SignupState) {
@@ -67,6 +69,11 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
     return reply
       .code(409)
       .send(hardLockResolutionProblem(state, merge, target.head_revision_ids ?? {}, hardLock));
+  }
+  if (parsed.data.simulate_write_failure) {
+    return reply
+      .code(500)
+      .send(resolutionWriteFailureProblem(merge, source, target.head_revision_ids ?? {}));
   }
   const newRevisions = resolvedRevisions(state, merge.conflicts, parsed.data.resolutions);
   for (const revision of newRevisions) {

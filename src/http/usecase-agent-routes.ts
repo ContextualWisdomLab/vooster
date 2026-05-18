@@ -40,6 +40,16 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
       ])
     );
   }
+  if (found.usecase.archived_at !== null) {
+    return reply.code(404).send(
+      problem(404, "Use case not found", {}, [
+        {
+          command: "vspec usecase list --status=",
+          reason: "List visible use cases, including archived ones when authorized."
+        }
+      ])
+    );
+  }
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });
   }

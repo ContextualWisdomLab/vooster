@@ -149,4 +149,26 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
       reason: "Pin this use case before relying on it for edits."
     });
   });
+
+  test("2a: unauthenticated caller gets login and API-key guidance", async () => {
+    const { usecase } =
+      await createUseCaseWithMainStep(server, "Agent Auth", "agent-auth", "stub-agent-auth");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}?format=agent`);
+
+    expect(response.status).toBe(401);
+    const problem = (await response.json()) as {
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/authentication required/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Authenticate before fetching private specs."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec api-key create --scopes read",
+      reason: "Create a read-scoped key for non-interactive agents."
+    });
+  });
 });

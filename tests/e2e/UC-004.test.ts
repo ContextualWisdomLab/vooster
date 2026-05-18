@@ -28,6 +28,11 @@ type ProjectResponse = {
   recommended_next_command: string;
 };
 
+type ProblemResponse = {
+  title: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
+
 let server: TestServer;
 
 beforeAll(async () => {
@@ -74,6 +79,36 @@ describe("UC-004 - Create a project", () => {
     expect(body.project.default_branch_id).toBe(body.default_branch.id);
     expect(body.default_branch.owner_id).toBe(signedUp.userId);
     expect(body.recommended_next_command).toBe("vspec actor define");
+  });
+
+  test("2a: non-member cannot create a project in the workspace", async () => {
+    const owner = await signup("Member Workspace", "member-workspace", "stub-member-owner");
+    const outsider = await signup(
+      "Outsider Workspace",
+      "outsider-workspace",
+      "stub-project-outsider"
+    );
+
+    const response = await server.fetch(`/v1/workspaces/${owner.workspaceId}/projects`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: outsider.cookie
+      },
+      body: JSON.stringify({
+        name: "Fraud",
+        key: "FRD",
+        visibility: "PRIVATE"
+      })
+    });
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/request an invitation/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec workspace invitations request",
+      reason: "Ask a workspace owner for access."
+    });
   });
 });
 

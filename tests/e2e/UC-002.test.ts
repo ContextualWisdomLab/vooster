@@ -24,6 +24,11 @@ type LoginResponse = {
   }>;
 };
 
+type ProblemResponse = {
+  title: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
+
 let server: TestServer;
 
 beforeAll(async () => {
@@ -58,6 +63,21 @@ describe("UC-002 - Log in", () => {
       id: signedUp.workspace.id,
       slug: "login-workspace",
       role: "OWNER"
+    });
+  });
+
+  test("4a: unknown GitHub identity is told to sign up", async () => {
+    const loginStart = await startLogin();
+    const login = await completeOAuth("stub-unknown-login", loginStart);
+
+    expect(login.status).toBe(404);
+    expect(login.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await login.json()) as ProblemResponse;
+    expect(body.title).toMatch(/no vspec user/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Sign up before logging in."
     });
   });
 });

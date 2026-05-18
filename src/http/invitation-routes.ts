@@ -40,12 +40,15 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
   const parsed = inviteSchema.safeParse(request.body);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  const membership = ownerMembership(state, userId, params.workspaceId);
+  const membership = workspaceMembership(state, userId, params.workspaceId);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid invitation request"));
   }
   if (!state.workspacesById.has(params.workspaceId) || membership === undefined) {
     return reply.code(403).send(problem(403, "Workspace owner role required"));
+  }
+  if (membership.role !== "OWNER" && parsed.data.role === "OWNER") {
+    return reply.code(403).send(editorOwnerInviteProblem());
   }
   const invitation = {
     accepted_at: null,
@@ -87,13 +90,27 @@ function acceptInvitation(
   return reply.send({ invitation, membership, user });
 }
 
-function ownerMembership(
+function workspaceMembership(
   state: SignupState,
   userId: string | undefined,
   workspaceId: string
 ): StoredMembership | undefined {
   return (state.membershipsByUserId.get(userId ?? "") ?? []).find(
-    (membership) => membership.workspace_id === workspaceId && membership.role === "OWNER"
+    (membership) => membership.workspace_id === workspaceId
+  );
+}
+
+function editorOwnerInviteProblem() {
+  return problem(
+    403,
+    "Only workspace owners can invite owners",
+    {},
+    [
+      {
+        command: "vspec member invite --role editor",
+        reason: "Invite the teammate as an editor or ask a workspace owner."
+      }
+    ]
   );
 }
 

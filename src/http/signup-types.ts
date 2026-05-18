@@ -21,7 +21,9 @@ export type SignupState = {
   projectsById: Map<string, StoredProject>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
+  scenariosByUseCaseId: Map<string, StoredScenario[]>;
   stakeholderInterestsByUseCaseId: Map<string, StoredStakeholderInterest[]>;
+  stepsByScenarioId: Map<string, StoredStep[]>;
   revisionsByEntityId: Map<string, StoredRevision[]>;
   stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
   usecasesByProjectId: Map<string, StoredUseCase[]>;
@@ -129,6 +131,28 @@ export type StoredStakeholderInterest = {
   stakeholder_id: string;
   interest: string;
   protection_mechanism: string;
+};
+
+export type StoredScenario = {
+  id: string;
+  usecase_id: string;
+  type: "EXTENSION" | "MAIN_SUCCESS";
+  extension_point: null | string;
+  parent_step_number: null | number;
+  condition: null | string;
+  outcome: "FAILURE" | "PARTIAL" | "SUCCESS";
+  order_index: number;
+};
+
+export type StoredStep = {
+  id: string;
+  scenario_id: string;
+  step_number: number;
+  actor_id: string;
+  action: string;
+  is_system_step: boolean;
+  notes: null | string;
+  order_index: number;
 };
 
 export type StoredUseCase = {

@@ -1,4 +1,5 @@
 import type { StoredUseCase } from "./signup-types.js";
+import { problem } from "./signup-support.js";
 import { usecaseMarkdown } from "./sync-markdown.js";
 
 export type SyncResult = {
@@ -14,6 +15,10 @@ type ConflictFile = {
   content: string;
   path: string;
 };
+type PendingFile = {
+  base_revision: string;
+  path: string;
+};
 
 export function cacheEntries(results: SyncResult[]) {
   return results.map((result) => ({
@@ -21,6 +26,28 @@ export function cacheEntries(results: SyncResult[]) {
     revision: result.current_revision,
     status: result.status === "CONFLICT" ? "UNRESOLVED" : "SYNCED"
   }));
+}
+
+export function networkFailureProblem(files: PendingFile[]) {
+  return problem(
+    503,
+    "Sync network unavailable",
+    {
+      pending_push: {
+        files: files.map((file) => ({
+          base_revision: file.base_revision,
+          path: file.path
+        })),
+        status: "QUEUED"
+      }
+    },
+    [
+      {
+        command: "vspec push",
+        reason: "Retry the queued push once connectivity returns."
+      }
+    ]
+  );
 }
 
 export function staleFileConflict(usecase: StoredUseCase, file: ConflictFile): SyncResult {

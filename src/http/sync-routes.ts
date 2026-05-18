@@ -12,6 +12,7 @@ import {
 } from "./sync-markdown.js";
 import {
   cacheEntries,
+  networkFailureProblem,
   staleFileConflict,
   suggestedSyncActions,
   type SyncResult
@@ -29,7 +30,8 @@ const pushSchema = z.object({
     base_revision: z.string().min(1),
     content: z.string().min(1),
     path: z.string().min(1)
-  })).min(1)
+  })).min(1),
+  simulate_network_failure: z.boolean().default(false)
 });
 
 type PushFile = z.infer<typeof pushSchema>["files"][number];
@@ -75,6 +77,9 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   const parseErrors = parsed.data.files.flatMap(parseFileErrors);
   if (parseErrors.length > 0) {
     return reply.code(400).send(parseFilesProblem(parseErrors));
+  }
+  if (parsed.data.simulate_network_failure) {
+    return reply.code(503).send(networkFailureProblem(parsed.data.files));
   }
   const results = parsed.data.dry_run
     ? parsed.data.files.map((file) => previewFile(state, projectId, file))

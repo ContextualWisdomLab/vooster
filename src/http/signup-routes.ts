@@ -3,24 +3,19 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   alternativeSlug,
+  addMembership,
   clearOAuthState,
+  cookie,
   establishSession,
   GithubNetworkError,
   githubProfile,
   problem,
   readCookie,
   signupEntities,
-  signupResponse
+  signupResponse,
+  workspacesForUser
 } from "./signup-support.js";
-import type {
-  GithubProfile,
-  PendingOAuth,
-  PendingSignup,
-  ServerOptions,
-  SignupState,
-  StoredMembership,
-  StoredWorkspace
-} from "./signup-types.js";
+import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
 
 const startSignupSchema = z.union([
   z.object({
@@ -166,7 +161,7 @@ function completeVerifiedSignup(
   const entities = signupEntities(profile, pending);
   state.usersByGithubId.set(entities.user.github_id, entities.user);
   state.workspacesById.set(entities.workspace.id, entities.workspace);
-  addMembership(state, entities.membership);
+  addMembership(state.membershipsByUserId, entities.membership);
 
   establishSession(reply);
   return reply
@@ -185,7 +180,10 @@ function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubP
 
   return reply.code(200).send({
     user,
-    workspaces: workspacesForUser(state, user.id)
+    workspaces: workspacesForUser(
+      state.membershipsByUserId.get(user.id) ?? [],
+      state.workspacesById
+    )
   });
 }
 
@@ -196,28 +194,4 @@ function pendingOAuthFor(
 ): PendingOAuth | undefined {
   const stateCookie = readCookie(request.headers.cookie, "vspec_oauth_state");
   return stateCookie === oauthState ? state.pendingOAuth.get(oauthState) : undefined;
-}
-
-function addMembership(state: SignupState, membership: StoredMembership) {
-  const existing = state.membershipsByUserId.get(membership.user_id) ?? [];
-  state.membershipsByUserId.set(membership.user_id, [...existing, membership]);
-}
-
-function workspacesForUser(state: SignupState, userId: string) {
-  return (state.membershipsByUserId.get(userId) ?? []).flatMap((membership) => {
-    const workspace = state.workspacesById.get(membership.workspace_id);
-    return workspace === undefined ? [] : [workspaceSummary(workspace, membership)];
-  });
-}
-
-function workspaceSummary(workspace: StoredWorkspace, membership: StoredMembership) {
-  return {
-    id: workspace.id,
-    slug: workspace.slug,
-    role: membership.role
-  };
-}
-
-function cookie(name: string, value: string): string {
-  return `${name}=${value}; HttpOnly; Path=/; SameSite=Lax`;
 }

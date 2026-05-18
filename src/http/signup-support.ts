@@ -22,6 +22,24 @@ export function establishSession(reply: FastifyReply) {
   ]);
 }
 
+export function addMembership(
+  membershipsByUserId: Map<string, StoredMembership[]>,
+  membership: StoredMembership
+) {
+  const existing = membershipsByUserId.get(membership.user_id) ?? [];
+  membershipsByUserId.set(membership.user_id, [...existing, membership]);
+}
+
+export function workspacesForUser(
+  memberships: StoredMembership[],
+  workspacesById: Map<string, StoredWorkspace>
+) {
+  return memberships.flatMap((membership) => {
+    const workspace = workspacesById.get(membership.workspace_id);
+    return workspace === undefined ? [] : [workspaceSummary(workspace, membership)];
+  });
+}
+
 export function signupEntities(profile: GithubProfile, pending: PendingSignup) {
   const user: StoredUser = {
     id: randomUUID(),
@@ -133,10 +151,18 @@ function ownerMembership(userId: string, workspaceId: string): StoredMembership 
   };
 }
 
-function cookie(name: string, value: string): string {
+export function cookie(name: string, value: string): string {
   return `${name}=${value}; HttpOnly; Path=/; SameSite=Lax`;
 }
 
 function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax`;
+}
+
+function workspaceSummary(workspace: StoredWorkspace, membership: StoredMembership) {
+  return {
+    id: workspace.id,
+    slug: workspace.slug,
+    role: membership.role
+  };
 }

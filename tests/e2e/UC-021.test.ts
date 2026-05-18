@@ -24,6 +24,8 @@ type MergeResolveResponse = {
 type MergeResolveProblem = {
   conflicts?: unknown[];
   current_revision?: string;
+  field?: string;
+  offending_entity_id?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -98,6 +100,34 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec merge show ${merge.id}`,
       reason: "Reload the current conflict list before resolving."
+    });
+  });
+
+  test("3a: manual resolution requires a value", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Manual Resolve", "manual-resolve", "stub-manual-resolve");
+    const branch = await createBranch(server, setup, "feature/manual-resolve");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const opened = await openMerge(server, setup, branch.id);
+    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+
+    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: merge.current_revision_id,
+        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "MANUAL" }]
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as MergeResolveProblem;
+    expect(problem.title).toMatch(/manual.*value/i);
+    expect(problem.offending_entity_id).toBe(usecase.id);
+    expect(problem.field).toBe("title");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec merge show ${merge.id}`,
+      reason: "Review the original conflict before resolving manually."
     });
   });
 });

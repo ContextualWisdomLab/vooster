@@ -22,6 +22,10 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export markdown"));
   }
+  const prerequisiteProblem = markdownPrerequisiteProblem(state, found.usecase);
+  if (prerequisiteProblem !== undefined) {
+    return reply.code(422).send(prerequisiteProblem);
+  }
   return reply.type("text/markdown").send(renderMarkdown(state, found.projectId, found.usecase));
 }
 
@@ -38,6 +42,24 @@ function renderMarkdown(state: SignupState, projectId: string, usecase: StoredUs
     "## Minimal Guarantee\n\nNot recorded.",
     "## Notes\n"
   ].join("\n\n");
+}
+
+function markdownPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
+  const main = scenarios(state, usecase.id).find((scenario) => scenario.type === "MAIN_SUCCESS");
+  if (scenarioSteps(state, main?.id).length > 0) {
+    return undefined;
+  }
+  return problem(
+    422,
+    "Cannot export incomplete use case",
+    { missing_required_field: "main_success.steps" },
+    [
+      {
+        command: `vspec doctor ${usecase.key}`,
+        reason: "Inspect missing markdown export prerequisites."
+      }
+    ]
+  );
 }
 
 function frontmatter(state: SignupState, projectId: string, usecase: StoredUseCase) {

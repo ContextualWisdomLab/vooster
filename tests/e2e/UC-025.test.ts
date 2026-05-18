@@ -4,12 +4,7 @@ import {
   createUseCaseWithMainStep,
   type StepResponse
 } from "../helpers/scenario-fixtures.js";
-import {
-  advanceBranch,
-  advanceMain,
-  createBranch,
-  projectUseCase
-} from "../helpers/merge-fixtures.js";
+import { advanceBranch, advanceMain, createBranch, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
 type DiffResponse = {
@@ -170,12 +165,8 @@ describe("UC-025 - Compare two revisions of a use case", () => {
 
   test("*a: non-member cannot compare revisions", async () => {
     const mine = await createUseCaseWithMainStep(server, "Diff Mine", "diff-mine", "stub-diff-mine");
-    const other = await createUseCaseWithMainStep(
-      server,
-      "Diff Other",
-      "diff-other",
-      "stub-diff-other"
-    );
+    const other =
+      await createUseCaseWithMainStep(server, "Diff Other", "diff-other", "stub-diff-other");
 
     const response = await server.fetch(
       `/v1/usecases/${other.usecase.id}/diff?from=${other.usecase.current_revision_id}&to=${other.mainStepRevision.id}&format=json`,

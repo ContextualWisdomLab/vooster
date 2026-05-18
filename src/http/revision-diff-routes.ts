@@ -2,12 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredRevision,
-  StoredSpecBranch,
-  StoredUseCase
-} from "./signup-types.js";
+import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 type DiffChange = {
@@ -31,11 +26,7 @@ export function registerRevisionDiffRoutes(app: FastifyInstance, state: SignupSt
   );
 }
 
-function compareRevisions(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  state: SignupState
-) {
+function compareRevisions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = diffQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -46,7 +37,7 @@ function compareRevisions(
     return reply.code(404).send(problem(404, "Use case not found"));
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Not authorized to compare revisions"));
+    return reply.code(403).send(diffAccessProblem());
   }
 
   const revisions = state.revisionsByEntityId.get(found.usecase.id) ?? [];
@@ -83,11 +74,7 @@ function revisionById(revisions: StoredRevision[], id: string): StoredRevision |
   return revisions.find((revision) => revision.id === id);
 }
 
-function revisionsBetween(
-  revisions: StoredRevision[],
-  from: StoredRevision,
-  to: StoredRevision
-) {
+function revisionsBetween(revisions: StoredRevision[], from: StoredRevision, to: StoredRevision) {
   return revisions.filter(
     (revision) =>
       revision.version_number > from.version_number &&
@@ -120,11 +107,7 @@ function diffChange(revision: StoredRevision, sourceBranch?: string): DiffChange
   };
 }
 
-function branchForRevision(
-  state: SignupState,
-  projectId: string,
-  revisionId: string
-): StoredSpecBranch | undefined {
+function branchForRevision(state: SignupState, projectId: string, revisionId: string) {
   return [...state.branchesById.values()].find(
     (branch) =>
       branch.project_id === projectId &&
@@ -165,6 +148,24 @@ function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
       {
         command: `vspec history ${usecase.key}`,
         reason: "Find valid revision IDs for this use case."
+      }
+    ]
+  );
+}
+
+function diffAccessProblem() {
+  return problem(
+    403,
+    "Not authorized to compare revisions",
+    {},
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate with an account that has project access."
+      },
+      {
+        command: "vspec member set-role",
+        reason: "Ask a workspace owner for read access."
       }
     ]
   );

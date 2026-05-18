@@ -31,13 +31,12 @@ describe("UC-029 - Sync local files with the server", () => {
     expect(pulled.status).toBe(200);
     const pull = (await pulled.json()) as PullResponse;
     expect(pull.cursor).toBe(usecase.current_revision_id);
-    expect(pull.files).toEqual([
-      {
-        content: expect.stringContaining(`revision: ${usecase.current_revision_id}`),
-        path: `specs/${usecase.key}.md`,
-        revision: usecase.current_revision_id
-      }
-    ]);
+    expect(pull.files).toHaveLength(1);
+    expect(pull.files[0]).toMatchObject({
+      path: `specs/${usecase.key}.md`,
+      revision: usecase.current_revision_id
+    });
+    expect(pull.files[0]?.content).toContain(`revision: ${usecase.current_revision_id}`);
     expect(pull.files[0]?.content).toContain(`# ${usecase.title}`);
 
     const editedContent = pull.files[0]?.content.replace(

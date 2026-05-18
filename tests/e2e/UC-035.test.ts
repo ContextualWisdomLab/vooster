@@ -20,15 +20,8 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Change Preview", "change-preview", "stub-change-preview");
 
-    const response = await proposeChange(server, setup.cookie, {
-      base_revision: usecase.current_revision_id,
-      patch: {
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        fields: { title: "Reviews a refund with audit trail" }
-      },
-      usecase_key: usecase.key
-    });
+    const response = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews a refund with audit trail"));
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as ChangePreviewResponse;
@@ -62,15 +55,8 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       await projectUseCase(server, "Stale Preview", "stale-preview", "stub-stale-preview");
     const current = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
 
-    const response = await proposeChange(server, setup.cookie, {
-      base_revision: usecase.current_revision_id,
-      patch: {
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        fields: { title: "Reviews a refund with audit trail" }
-      },
-      usecase_key: usecase.key
-    });
+    const response = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews a refund with audit trail"));
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as ChangeProblem;
@@ -115,15 +101,8 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
   test("*a: commit with expired preview is rejected", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Expired Preview", "expired-preview", "stub-expired-preview");
-    const previewResponse = await proposeChange(server, setup.cookie, {
-      base_revision: usecase.current_revision_id,
-      patch: {
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        fields: { title: "Reviews an expired preview" }
-      },
-      usecase_key: usecase.key
-    });
+    const previewResponse = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews an expired preview"));
     const preview = (await previewResponse.json()) as ChangePreviewResponse;
     await expirePreview(server, preview.preview_id);
 
@@ -148,16 +127,8 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Auto Commit", "auto-commit", "stub-auto-commit");
 
-    const response = await proposeChange(server, setup.cookie, {
-      auto_commit: true,
-      base_revision: usecase.current_revision_id,
-      patch: {
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        fields: { title: "Reviews a refund with reviewer approval" }
-      },
-      usecase_key: usecase.key
-    });
+    const response = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews a refund with reviewer approval", { auto_commit: true }));
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as ChangePreviewResponse;

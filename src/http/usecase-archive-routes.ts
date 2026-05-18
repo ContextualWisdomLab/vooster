@@ -20,6 +20,9 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
+  if (found.usecase.archived_at !== null) {
+    return reply.code(409).send(alreadyArchivedProblem(found.usecase));
+  }
 
   const archivedAt = new Date().toISOString();
   found.usecase.archived_at = archivedAt;
@@ -58,6 +61,20 @@ function archiveRevision(state: SignupState, usecase: StoredUseCase): StoredRevi
     snapshot: { ...usecase },
     change_summary: `Archived use case ${usecase.key}`
   };
+}
+
+function alreadyArchivedProblem(usecase: StoredUseCase) {
+  return problem(
+    409,
+    "Use case is already archived",
+    { archived_at: usecase.archived_at },
+    [
+      {
+        command: `vspec usecase restore ${usecase.key}`,
+        reason: "Restore the archived use case instead."
+      }
+    ]
+  );
 }
 
 function advanceMainHead(state: SignupState, usecase: StoredUseCase, revisionId: string) {

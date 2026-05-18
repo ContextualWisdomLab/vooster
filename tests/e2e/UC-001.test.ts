@@ -134,4 +134,36 @@ describe("UC-001 - Sign up for a workspace", () => {
     expect(retryResponse.status).toBe(400);
     expect(retryResponse.headers.get("set-cookie")).not.toContain("vspec_session=");
   });
+
+  test("4a: unverified GitHub email aborts signup", async () => {
+    const startResponse = await server.fetch("/v1/auth/github/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspace: { name: "Unverified Email", slug: "unverified-email" }
+      })
+    });
+    const startBody = (await startResponse.json()) as StartSignupResponse;
+    const stateCookie = startResponse.headers.get("set-cookie");
+
+    const params = new URLSearchParams({
+      code: "stub-unverified-email",
+      state: startBody.state
+    });
+    const callbackResponse = await server.fetch(
+      `/v1/auth/github/callback?${params.toString()}`,
+      { headers: { Cookie: stateCookie ?? "" } }
+    );
+
+    expect(callbackResponse.status).toBe(422);
+    expect(callbackResponse.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(callbackResponse.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await callbackResponse.json()) as ProblemResponse;
+    expect(body.title).toMatch(/verify.*github email/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Restart signup."
+    });
+  });
 });

@@ -154,4 +154,25 @@ describe("UC-022 - Lock a use case", () => {
     }, "session-after-complete");
     expect(reacquired.status).toBe(201);
   });
+
+  test("*a: expired locks do not block fresh acquisition", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Expired Fresh", "expired-fresh", "stub-expired-fresh");
+    const expired = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "This lock expires immediately.",
+      ttl_minutes: 0.000001
+    }, "session-expired-lock");
+    const expiredLock = ((await expired.json()) as LockCreateResponse).lock;
+
+    const response = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "HARD",
+      reason: "Fresh session can proceed."
+    }, "session-fresh-lock");
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as LockCreateResponse;
+    expect(body.lock.id).not.toBe(expiredLock.id);
+    expect(body.lock.held_by_session_id).toBe("session-fresh-lock");
+    expect(body.lock.lock_type).toBe("HARD");
+  });
 });

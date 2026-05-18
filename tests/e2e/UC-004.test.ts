@@ -33,6 +33,7 @@ type ProblemResponse = {
   key_pattern?: string;
   example_keys?: string[];
   existing_project?: { id: string; key: string; name: string };
+  request_id?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -169,6 +170,28 @@ describe("UC-004 - Create a project", () => {
       reason: "Verify whether the existing project is the intended target."
     });
   });
+
+  test("6a: branch insert failure rolls back project creation", async () => {
+    const signedUp = await signup("Rollback", "rollback", "stub-rollback");
+    const failed = await createProject(signedUp, {
+      name: "Catalog",
+      key: "CAT",
+      visibility: "PRIVATE",
+      simulate_branch_insert_failure: true
+    });
+
+    expect(failed.status).toBe(500);
+    const failure = (await failed.json()) as ProblemResponse;
+    expect(failure.title).toMatch(/project creation failed/i);
+    expect(failure.request_id?.length).toBeGreaterThan(0);
+
+    const retry = await createProject(signedUp, {
+      name: "Catalog",
+      key: "CAT",
+      visibility: "PRIVATE"
+    });
+    expect(retry.status).toBe(201);
+  });
 });
 
 async function signup(name: string, slug: string, code: string) {
@@ -194,7 +217,12 @@ async function signup(name: string, slug: string, code: string) {
 
 async function createProject(
   signedUp: { cookie: string; workspaceId: string },
-  body: { key: string; name: string; visibility: string }
+  body: {
+    key: string;
+    name: string;
+    simulate_branch_insert_failure?: boolean;
+    visibility: string;
+  }
 ) {
   return server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
     method: "POST",

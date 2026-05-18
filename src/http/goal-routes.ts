@@ -4,9 +4,11 @@ import { z } from "zod";
 import {
   allowedStatusTransitions,
   canTransition,
+  goalCreateResponse,
   goalIdFrom,
   goalRevision,
   goalWithProjectId,
+  nearDuplicateGoal,
   projectIdFrom
 } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -84,6 +86,7 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
     priority: parsed.data.priority,
     archived_at: null
   };
+  const duplicateGoal = nearDuplicateGoal(state, projectId, actor.id, goal.description);
   const revision = goalRevision(goal, 1);
 
   state.goalsByProjectId.set(projectId, [
@@ -92,11 +95,7 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
   ]);
   state.revisionsByEntityId.set(goal.id, [revision]);
 
-  return reply.code(201).send({
-    goal,
-    revision,
-    recommended_next_command: "vspec goal list"
-  });
+  return reply.code(201).send(goalCreateResponse(goal, revision, duplicateGoal));
 }
 
 function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {

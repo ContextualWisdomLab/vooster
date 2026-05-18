@@ -44,8 +44,54 @@ export function goalRevision(goal: StoredGoal, versionNumber: number) {
   };
 }
 
+export function nearDuplicateGoal(
+  state: SignupState,
+  projectId: string,
+  actorId: string,
+  description: string
+): StoredGoal | undefined {
+  const normalized = comparableDescription(description);
+  return (state.goalsByProjectId.get(projectId) ?? []).find(
+    (goal) =>
+      goal.actor_id === actorId && comparableDescription(goal.description) === normalized
+  );
+}
+
+export function goalCreateResponse(
+  goal: StoredGoal,
+  revision: ReturnType<typeof goalRevision>,
+  duplicate: StoredGoal | undefined
+) {
+  return {
+    goal,
+    revision,
+    recommended_next_command: "vspec goal list",
+    ...(duplicate === undefined
+      ? {}
+      : {
+          warnings: [
+            {
+              type: "NEAR_DUPLICATE_GOAL",
+              candidate_goal_id: duplicate.id,
+              command: `vspec goal show ${duplicate.id}`
+            }
+          ]
+        })
+  };
+}
+
 export function projectIdFrom(params: unknown): string {
   return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+}
+
+function comparableDescription(description: string): string {
+  return description
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, "")
+    .split(" ")
+    .filter((word) => word.length > 0)
+    .map((word) => word.replace(/s$/, ""))
+    .join(" ");
 }
 
 export function goalIdFrom(params: unknown): string {

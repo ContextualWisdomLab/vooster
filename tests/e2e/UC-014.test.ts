@@ -77,7 +77,7 @@ function searchUseCases(
   projectId: string,
   query: Record<string, string>
 ) {
-  return server.fetch(`/v1/projects/${projectId}/usecases?${new URLSearchParams(query)}`, {
+  return server.fetch(`/v1/projects/${projectId}/usecases?${String(new URLSearchParams(query))}`, {
     headers: { Cookie: cookie }
   });
 }

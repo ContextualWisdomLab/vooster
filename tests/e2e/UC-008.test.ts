@@ -28,6 +28,10 @@ type PromoteResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: UseCase;
 };
+type ProblemResponse = {
+  existing_usecase_key?: string;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -80,5 +84,26 @@ describe("UC-008 - Promote a goal to a use case", () => {
       command: "vspec scenario main",
       reason: "Write the main success scenario."
     });
+  });
+
+  test("2a: already promoted goal points to existing use case", async () => {
+    const setup = await createProject(server, "Promoted Twice", "promoted-twice", "stub-promoted-twice");
+    const actor = await createActor(server, setup, "Customer");
+    const goal = await createGoalForActor(server, setup, actor, "Requests a refund");
+    const first = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+    const firstBody = (await first.json()) as PromoteResponse;
+
+    const second = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(second.status).toBe(409);
+    const body = (await second.json()) as ProblemResponse;
+    expect(body.title).toMatch(/already promoted/i);
+    expect(body.existing_usecase_key).toBe(firstBody.usecase.key);
   });
 });

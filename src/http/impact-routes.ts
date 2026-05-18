@@ -10,6 +10,7 @@ const previewSchema = z.object({
   base_revision: z.string().min(1),
   entity_id: z.string().min(1),
   entity_type: z.literal("USECASE"),
+  proposed_change_content: z.string().optional(),
   proposed_change_path: z.string().optional()
 });
 
@@ -28,6 +29,11 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to preview impact"));
+  }
+  if (parsed.data.proposed_change_content !== undefined) {
+    return reply
+      .code(400)
+      .send(parseProposedChangeProblem(parsed.data.proposed_change_path ?? "<inline>"));
   }
   if (parsed.data.proposed_change_path !== undefined) {
     return reply
@@ -84,6 +90,20 @@ function missingProposedChangeProblem(usecase: StoredUseCase, path: string) {
       {
         command: `vspec impact ${usecase.key}`,
         reason: "Rerun without a proposed-change file to analyze the current head."
+      }
+    ]
+  );
+}
+
+function parseProposedChangeProblem(path: string) {
+  return problem(
+    400,
+    "Proposed change parse failed",
+    { parser_error: "Missing frontmatter" },
+    [
+      {
+        command: `vspec doctor ${path}`,
+        reason: "Validate the proposed-change file format."
       }
     ]
   );

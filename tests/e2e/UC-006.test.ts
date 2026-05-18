@@ -91,6 +91,23 @@ describe("UC-006 - Define a stakeholder", () => {
     expect(body.title).toMatch(/invalid stakeholder type/i);
     expect(body.valid_types).toEqual(["INTERNAL", "EXTERNAL", "REGULATORY"]);
   });
+
+  test("1a: attaching stakeholder to a step explains actor distinction", async () => {
+    const setup = await createProject("Misuse Stakeholder", "misuse-stakeholder", "stub-stakeholder-misuse");
+    const response = await createStakeholder(setup, {
+      attach_to_step: true,
+      name: "Customer",
+      type: "EXTERNAL"
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/actors do.*stakeholders care/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor create",
+      reason: "Create an actor for step actions."
+    });
+  });
 });
 
 async function createStakeholder(

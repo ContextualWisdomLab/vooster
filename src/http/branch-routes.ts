@@ -36,6 +36,22 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
       ])
     );
   }
+  if (branchNameExists(state, projectId, parsed.data.name)) {
+    const suggestedName = nextBranchName(state, projectId, parsed.data.name);
+    return reply.code(422).send(
+      problem(
+        422,
+        "Branch name is already in use",
+        { suggested_name: suggestedName },
+        [
+          {
+            command: `vspec branch create ${suggestedName}`,
+            reason: "Create the branch with an available name."
+          }
+        ]
+      )
+    );
+  }
 
   const project = state.projectsById.get(projectId);
   const baseBranch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
@@ -98,6 +114,22 @@ function latestRevisionId(state: SignupState, entityId: string): string | undefi
 
 function firstUseCaseKey(state: SignupState, projectId: string): string {
   return state.usecasesByProjectId.get(projectId)?.[0]?.key ?? "<KEY>";
+}
+
+function branchNameExists(state: SignupState, projectId: string, name: string): boolean {
+  return [...state.branchesById.values()].some(
+    (branch) => branch.project_id === projectId && branch.name === name
+  );
+}
+
+function nextBranchName(state: SignupState, projectId: string, name: string): string {
+  let suffix = 2;
+  let candidate = `${name}-${String(suffix)}`;
+  while (branchNameExists(state, projectId, candidate)) {
+    suffix += 1;
+    candidate = `${name}-${String(suffix)}`;
+  }
+  return candidate;
 }
 
 function projectIdFrom(params: unknown): string {

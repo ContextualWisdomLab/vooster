@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T22:54:24Z_
+_Last updated: 2026-05-18T23:11:14Z_
 
 ## Overall
 
-- Commits: 438
-- Last commit: d09aef8 green: UC-014 distinguish stale cursor page
-- Use cases complete: 30 / 35
+- Commits: 452
+- Last commit: edc06fe green: UC-015 reject hard delete request
+- Use cases complete: 31 / 35
 
 ## By Use Case
 
@@ -26,7 +26,7 @@ _Last updated: 2026-05-18T22:54:24Z_
 | UC-012 | Add an extension flow | ✓ DONE | 5/5 |
 | UC-013 | Edit a use case step | ✓ DONE | 6/6 |
 | UC-014 | Search and filter use cases | ✓ DONE | 5/5 |
-| UC-015 | Archive or restore a use case | ○ NOT STARTED | 0/0 |
+| UC-015 | Archive or restore a use case | ✓ DONE | 6/6 |
 | UC-016 | Start a work session | ✓ DONE | 7/7 |
 | UC-017 | Monitor active sessions | ✓ DONE | 5/5 |
 | UC-018 | Complete a work session | ✓ DONE | 6/6 |

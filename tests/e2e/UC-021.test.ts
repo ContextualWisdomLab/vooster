@@ -28,6 +28,7 @@ type MergeResolveProblem = {
   offending_entity_id?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
+  uncovered_conflicts?: unknown[];
 };
 
 let server: TestServer;
@@ -128,6 +129,33 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the original conflict before resolving manually."
+    });
+  });
+
+  test("3b: every conflict must have a resolution", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Partial Resolve", "partial-resolve", "stub-partial-resolve");
+    const branch = await createBranch(server, setup, "feature/partial-resolve");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const opened = await openMerge(server, setup, branch.id);
+    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+
+    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: merge.current_revision_id,
+        resolutions: [{ entity_id: "other-usecase", field: "title", strategy: "THEIRS" }]
+      })
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as MergeResolveProblem;
+    expect(problem.title).toMatch(/cover every conflict/i);
+    expect(problem.uncovered_conflicts).toEqual(merge.conflicts);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec merge resolve ${merge.id} --all`,
+      reason: "Submit one resolution for each outstanding conflict."
     });
   });
 });

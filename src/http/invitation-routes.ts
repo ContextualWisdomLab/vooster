@@ -20,7 +20,8 @@ type StoredInvitation = {
 const invitationsByState = new WeakMap<SignupState, Map<string, StoredInvitation>>();
 const inviteSchema = z.object({
   email: z.email(),
-  role: z.enum(["EDITOR", "OWNER"])
+  role: z.enum(["EDITOR", "OWNER"]),
+  simulate_delivery_failure: z.boolean().optional()
 });
 const acceptSchema = z.object({ code: z.string().min(1) });
 
@@ -60,7 +61,7 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   }
   const invitation = {
     accepted_at: null,
-    delivery_status: "SENT" as const,
+    delivery_status: parsed.data.simulate_delivery_failure === true ? "FAILED" as const : "SENT" as const,
     email: parsed.data.email,
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     id: randomUUID(),
@@ -155,6 +156,14 @@ function invitationResponse(invitation: StoredInvitation, includeResend = false)
       },
       ...(includeResend
         ? [{ command: "vspec member invite --resend", reason: "Resend the existing invitation email." }]
+        : []),
+      ...(invitation.delivery_status === "FAILED"
+        ? [
+            {
+              command: "vspec member invite --email <corrected>",
+              reason: "Correct the address and send a new invitation."
+            }
+          ]
         : [])
     ]
   };

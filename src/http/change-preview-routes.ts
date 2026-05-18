@@ -64,18 +64,23 @@ export function previewSpecChange(
   }
 
   const preview = changePreview(usecase, parsed.data.base_revision, patch.fields.title);
+  const affectedSessions = affectedActiveSessions(state, usecase);
   previews(state).set(preview.id, preview);
   return reply.code(201).send({
     diff: preview.diff,
     expires_at: preview.expires_at,
-    impact: { affected_sessions: [], severity: preview.severity },
+    impact: { affected_sessions: affectedSessions, severity: preview.severity },
     preview_id: preview.id,
     severity: preview.severity,
     suggested_next_actions: [
       {
         command: `vspec change commit --preview-id ${preview.id}`,
         reason: "Commit the preview after human review."
-      }
+      },
+      ...(affectedSessions.length === 0 ? [] : [{
+        command: `vspec who ${usecase.key}`,
+        reason: "Coordinate with active sessions before committing."
+      }])
     ],
     warnings: parsed.data.auto_commit === true ? [
       {
@@ -170,4 +175,15 @@ function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
       }
     ]
   );
+}
+
+function affectedActiveSessions(state: SignupState, usecase: StoredUseCase) {
+  return (state.workSessionsByUseCaseId.get(usecase.id) ?? [])
+    .filter((session) => session.status === "ACTIVE")
+    .map((session) => ({
+      agent_type: session.agent_type,
+      id: session.id,
+      owner: session.user_id,
+      pinned_usecase_keys: [usecase.key]
+    }));
 }

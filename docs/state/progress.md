@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T17:20:55Z_
+_Last updated: 2026-05-18T17:44:10Z_
 
 ## Overall
 
-- Commits: 151
-- Last commit: 1cd54fc green: UC-012 warn on default outcome
-- Use cases complete: 11 / 35
+- Commits: 169
+- Last commit: a3386f8 green: UC-013 honor hard lock
+- Use cases complete: 12 / 35
 
 ## By Use Case
 
@@ -24,7 +24,7 @@ _Last updated: 2026-05-18T17:20:55Z_
 | UC-010 | Define stakeholder interests | ✓ DONE | 5/5 |
 | UC-011 | Write the main success scenario | ✓ DONE | 5/5 |
 | UC-012 | Add an extension flow | ✓ DONE | 5/5 |
-| UC-013 | Edit a use case step | ○ NOT STARTED | 0/0 |
+| UC-013 | Edit a use case step | ✓ DONE | 6/6 |
 | UC-014 | Search and filter use cases | ○ NOT STARTED | 0/0 |
 | UC-015 | Archive or restore a use case | ○ NOT STARTED | 0/0 |
 | UC-016 | Start a work session | ○ NOT STARTED | 0/0 |

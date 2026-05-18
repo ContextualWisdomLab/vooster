@@ -50,6 +50,9 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   if (membership.role !== "OWNER" && parsed.data.role === "OWNER") {
     return reply.code(403).send(editorOwnerInviteProblem());
   }
+  if (activeMembershipForEmail(state, params.workspaceId, parsed.data.email) !== undefined) {
+    return reply.code(422).send(alreadyMemberProblem());
+  }
   const invitation = {
     accepted_at: null,
     delivery_status: "SENT" as const,
@@ -109,6 +112,27 @@ function editorOwnerInviteProblem() {
       {
         command: "vspec member invite --role editor",
         reason: "Invite the teammate as an editor or ask a workspace owner."
+      }
+    ]
+  );
+}
+
+function activeMembershipForEmail(state: SignupState, workspaceId: string, email: string) {
+  const user = [...state.usersByGithubId.values()].find((candidate) => candidate.email === email);
+  return (state.membershipsByUserId.get(user?.id ?? "") ?? []).find(
+    (membership) => membership.workspace_id === workspaceId
+  );
+}
+
+function alreadyMemberProblem() {
+  return problem(
+    422,
+    "Email already belongs to a workspace member",
+    { code: "already_member" },
+    [
+      {
+        command: "vspec member set-role",
+        reason: "Change the existing member role instead of inviting again."
       }
     ]
   );

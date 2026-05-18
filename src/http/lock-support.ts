@@ -9,6 +9,9 @@ export function blockingLock(
   if (lock === undefined || lock.held_by_session_id === sessionId) {
     return undefined;
   }
+  if (Date.parse(lock.expires_at) <= Date.now()) {
+    return undefined;
+  }
   if (requestedType === "HARD") {
     return lock;
   }

@@ -167,4 +167,34 @@ describe("UC-025 - Compare two revisions of a use case", () => {
     expect(body.summary).toEqual({ breaking: 0, cosmetic: 0, non_breaking: 0 });
     expect(body.note).toBe("Revisions match byte-for-byte.");
   });
+
+  test("*a: non-member cannot compare revisions", async () => {
+    const mine = await createUseCaseWithMainStep(server, "Diff Mine", "diff-mine", "stub-diff-mine");
+    const other = await createUseCaseWithMainStep(
+      server,
+      "Diff Other",
+      "diff-other",
+      "stub-diff-other"
+    );
+
+    const response = await server.fetch(
+      `/v1/usecases/${other.usecase.id}/diff?from=${other.usecase.current_revision_id}&to=${other.mainStepRevision.id}&format=json`,
+      { headers: { Cookie: mine.setup.cookie } }
+    );
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as DiffProblem;
+    expect(problem.title).toMatch(/not authorized/i);
+    expect(problem.diff).toBeUndefined();
+    expect(problem.usecase).toBeUndefined();
+    expect(problem.missing_revision).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for read access."
+    });
+  });
 });

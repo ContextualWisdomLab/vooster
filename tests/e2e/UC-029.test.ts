@@ -5,6 +5,7 @@ import {
   expectDryRunSyncPush,
   expectHistoryRevisions,
   expectNetworkFailureSyncPush,
+  expectUnauthorizedSyncPush,
   pulledSyncFile,
   syncPull,
   syncPush,
@@ -152,5 +153,9 @@ describe("UC-029 - Sync local files with the server", () => {
 
   test("4b: simulated network failure queues pending push metadata", async () => {
     await expectNetworkFailureSyncPush(server);
+  });
+
+  test("*a: unauthorized sync push returns login and API-key guidance", async () => {
+    await expectUnauthorizedSyncPush(server);
   });
 });

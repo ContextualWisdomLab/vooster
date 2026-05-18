@@ -30,6 +30,11 @@ export type NetworkFailureProblem = SyncProblem & {
     status: "QUEUED";
   };
 };
+type AuthProblem = {
+  exit_code: number;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 export function syncPull(server: TestServer, setup: SyncSetup) {
   return server.fetch(`/v1/projects/${setup.projectId}/sync/pull`, {
@@ -122,6 +127,38 @@ export async function expectNetworkFailureSyncPush(server: TestServer) {
   expect(problem.suggested_next_actions).toContainEqual({
     command: "vspec push",
     reason: "Retry the queued push once connectivity returns."
+  });
+  await expectHistoryRevisions(server, setup.cookie, usecase.id, [
+    usecase.current_revision_id
+  ]);
+}
+
+export async function expectUnauthorizedSyncPush(server: TestServer) {
+  const { setup, usecase } =
+    await projectUseCase(server, "Sync Auth", "sync-auth", "stub-sync-auth");
+  const { content, path } = await pulledSyncFile(server, setup, usecase.key);
+  const denied = await server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      branch: "main",
+      files: [{
+        base_revision: usecase.current_revision_id,
+        content: content.replace("# Reviews a refund", "# Reviews a refund without auth"),
+        path
+      }]
+    })
+  });
+  expect(denied.status).toBe(403);
+  const problem = (await denied.json()) as AuthProblem;
+  expect(problem.exit_code).toBe(3);
+  expect(problem.suggested_next_actions).toContainEqual({
+    command: "vspec login",
+    reason: "Authenticate before syncing files."
+  });
+  expect(problem.suggested_next_actions).toContainEqual({
+    command: "vspec api-key refresh",
+    reason: "Refresh the agent API key if non-interactive auth failed."
   });
   await expectHistoryRevisions(server, setup.cookie, usecase.id, [
     usecase.current_revision_id

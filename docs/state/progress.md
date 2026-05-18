@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T15:51:48Z_
+_Last updated: 2026-05-18T16:12:31Z_
 
 ## Overall
 
-- Commits: 72
-- Last commit: 2441981 green: UC-006 reject archived stakeholder project
-- Use cases complete: 5 / 35
+- Commits: 89
+- Last commit: c7465af green: UC-007 reject archived goal project
+- Use cases complete: 6 / 35
 
 ## By Use Case
 
@@ -18,7 +18,7 @@ _Last updated: 2026-05-18T15:51:48Z_
 | UC-004 | Create a project | ✓ DONE | 6/6 |
 | UC-005 | Define an actor | ✓ DONE | 6/6 |
 | UC-006 | Define a stakeholder | ✓ DONE | 5/5 |
-| UC-007 | Manage the actor-goal list | ○ NOT STARTED | 0/0 |
+| UC-007 | Manage the actor-goal list | ✓ DONE | 7/7 |
 | UC-008 | Promote a goal to a use case | ○ NOT STARTED | 0/0 |
 | UC-009 | Author a use case from scratch | ○ NOT STARTED | 0/0 |
 | UC-010 | Define stakeholder interests | ○ NOT STARTED | 0/0 |

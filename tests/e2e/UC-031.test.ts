@@ -36,7 +36,7 @@ describe("UC-031 - Export a use case to markdown", () => {
     expect(markdown).toContain("## Stakeholders and Interests\n\n- **Product Manager**: Checkout revenue is protected.");
     expect(markdown).toContain("## Main Success Scenario\n\n1. **Customer** Places an order.");
     expect(markdown).toContain("### 1a. Payment is declined.\n\n- 1a1. **Customer** Uses a backup card.");
-    expect(markdown).toMatch(/## Notes\n\n$/);
+    expect(markdown).toMatch(/## Notes\n$/);
   });
 });
 

@@ -9,6 +9,7 @@ import {
   type SessionStartResponse
 } from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
+import { createUseCase } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
 
@@ -165,5 +166,34 @@ describe("UC-018 - Complete a work session", () => {
       throw new Error("expected merge request");
     }
     expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge resolve ${body.merge_request.id}`, reason: "Resolve conflicts before the merge request can be approved." });
+  });
+
+  test("4a: failed lock release warns while completing session", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(server, "Partial Lock Release", "partial-lock-release", "stub-partial-lock-release");
+    const secondUseCase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Complete with partial release",
+      pins: [usecase.key, secondUseCase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    for (const locked of [usecase, secondUseCase]) {
+      await createStepLock(server, locked.id, setup.cookie, {
+        expires_at: "2026-06-01T00:00:00.000Z",
+        holder: session.id,
+        mode: "SEMANTIC",
+        reason: "Session owns semantic edits."
+      });
+    }
+    const response = await completeWorkSession(server, session.id, setup.cookie, {
+      simulate_failed_lock_release: secondUseCase.id,
+      summary: "Complete despite one missing lock."
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SessionCompleteResponse;
+    expect(body.session.status).toBe("COMPLETED");
+    expect(body.released_lock_ids).toEqual([usecase.id]);
+    expect(body.warnings).toContainEqual({ lock_id: secondUseCase.id, type: "LOCK_RELEASE_FAILED", message: "Lock was already released before completion." });
   });
 });

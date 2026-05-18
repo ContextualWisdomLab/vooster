@@ -102,6 +102,7 @@ export function completeWorkSession(
     no_merge?: boolean;
     simulate_conflicts?: boolean;
     simulate_completion_failure?: boolean;
+    simulate_failed_lock_release?: string;
     summary?: string;
   }
 ) {

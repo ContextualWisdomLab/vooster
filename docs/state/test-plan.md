@@ -122,3 +122,11 @@ write. This guides your TDD cycles within an iteration._
 - **4b**: auto-branch semantic lock acquisition fails -> rolls back branch, locks, and session, then returns 409 naming the conflicting session.
 - **2a**: unrecognized `agent_type` -> stores `OTHER`, preserves the raw label in `agent_identifier`, returns a warning, and still starts the session.
 - ***a**: transactional write fails mid-creation -> leaves no session, branch, or lock and returns retry guidance.
+
+### UC-017
+
+- **MAIN**: workspace member lists active sessions by workspace -> rows sorted by newest start with user, agent, intent, pinned keys, branch name, idle age, lock count, conflict markers, and conflict summary.
+- **2a**: caller without workspace membership -> 403 with `vspec workspace list` guidance and no session disclosure.
+- **4a**: active session heartbeat older than 30 minutes -> row is marked `ZOMBIE` and suggests `vspec session abandon <id>` without mutating state.
+- **3a**: no sessions match the filter -> returns `total: 0`, empty rows, and `vspec session start --intent "..."` guidance.
+- ***a**: watch endpoint requested -> streams the same snapshot as Server-Sent Events without mutating session, branch, or lock state.

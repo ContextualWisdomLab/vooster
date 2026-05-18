@@ -2,7 +2,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 const guideQuerySchema = z.object({
-  cli_version: z.string().default("1.0.0")
+  cli_version: z.string().default("1.0.0"),
+  format: z.enum(["json", "markdown"]).default("markdown")
 });
 
 export function registerAiGuideRoutes(app: FastifyInstance) {
@@ -11,12 +12,50 @@ export function registerAiGuideRoutes(app: FastifyInstance) {
 
 function aiGuide(request: FastifyRequest, reply: FastifyReply) {
   const parsed = guideQuerySchema.safeParse(request.query);
-  const cliVersion = parsed.success ? parsed.data.cli_version : "1.0.0";
+  const query = parsed.success ? parsed.data : { cli_version: "1.0.0", format: "markdown" };
+  if (query.format === "json") {
+    return reply.send(jsonGuide(query.cli_version));
+  }
   return reply.send({
-    cache: { cli_version: cliVersion, status: "REFRESHED" },
+    cache: { cli_version: query.cli_version, status: "REFRESHED" },
     content: guideMarkdown(),
     suggested_next_actions: suggestedNextActions()
   });
+}
+
+function jsonGuide(cliVersion: string) {
+  return {
+    examples: [
+      {
+        commands: ["vspec login", "vspec project list", "vspec session start"],
+        title: "First safe task"
+      }
+    ],
+    sections: guideSections(),
+    suggested_next_actions: suggestedNextActions(),
+    version: cliVersion
+  };
+}
+
+function guideSections() {
+  return [
+    {
+      heading: "Why sessions exist",
+      body: "Sessions pin the exact use case revisions an agent may inspect and edit."
+    },
+    {
+      heading: "Mandatory workflow",
+      body: "pin -> fetch via --format=agent -> propose-change -> commit"
+    },
+    {
+      heading: "The --format=agent payload contract",
+      body: "Agent payloads are JSON with context, suggested_next_actions, warnings, and format_version."
+    },
+    {
+      heading: "Forbidden actions",
+      body: "Do not write without a pin, force a merge, or ignore suggested_next_actions."
+    }
+  ];
 }
 
 function guideMarkdown() {

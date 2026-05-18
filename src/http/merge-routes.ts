@@ -35,12 +35,28 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   }
   const targetHeads = mainHeadRevisions(state, project, target);
   const touched = touchedEntityIds(source, targetHeads);
+  const hardLock = hardLockConflict(state, touched);
   const conflicts = structuralConflicts(state, source, targetHeads, touched);
   const strategy = conflicts.length === 0 && isFastForward(source, targetHeads, touched)
     ? "FAST_FORWARD"
     : "SQUASH";
   const mergeRequest = mergeRequestFor(request, source, target.id, touched, state, strategy, conflicts);
   state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
+  if (hardLock !== undefined) {
+    return reply.code(409).send(
+      problem(
+        409,
+        "Target entity has a hard lock",
+        { holding_session: hardLock.holder, merge_request: mergeRequest },
+        [
+          {
+            command: `vspec who ${useCaseKey(state, hardLock.usecase_id)}`,
+            reason: "Inspect the session holding the hard lock."
+          }
+        ]
+      )
+    );
+  }
   if (conflicts.length > 0) {
     return reply.code(201).send({
       merge_request: mergeRequest,
@@ -118,6 +134,12 @@ function structuralConflicts(
     });
 }
 
+function hardLockConflict(state: SignupState, touched: string[]) {
+  return touched
+    .map((entityId) => state.stepLocksByUseCaseId.get(entityId))
+    .find((lock) => lock?.mode === "HARD");
+}
+
 function isFastForward(
   source: StoredSpecBranch,
   targetHeads: Record<string, string>,
@@ -150,6 +172,12 @@ function touchedEntityIds(source: StoredSpecBranch, targetHeads: Record<string, 
 
 function severityFor(state: SignupState, entityId: string): string {
   return state.revisionsByEntityId.get(entityId)?.at(-1)?.severity ?? "NON_BREAKING";
+}
+
+function useCaseKey(state: SignupState, usecaseId: string): string {
+  return [...state.usecasesByProjectId.values()]
+    .flat()
+    .find((usecase) => usecase.id === usecaseId)?.key ?? usecaseId;
 }
 
 function titleAtRevision(state: SignupState, revisionId: string): string | undefined {

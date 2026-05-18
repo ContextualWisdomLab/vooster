@@ -246,6 +246,16 @@ write. This guides your TDD cycles within an iteration._
 - **5b**: editing another user's comment -> 403 `not_owner`, preserves the body.
 - ***a**: simulated server write failure -> returns exit code 5 with retry guidance and no inserted/removed comment.
 
+### UC-003
+
+- **MAIN**: workspace owner invites an editor by email, invitee accepts with matching GitHub email -> creates a single-use invitation with 7-day expiry, then marks it accepted and creates EDITOR membership.
+- **2a**: EDITOR member attempts to invite an OWNER -> 403 with `--role editor` guidance and no invitation.
+- **3a**: invite email already belongs to an active workspace member -> 422 with `vspec member set-role` guidance and no invitation.
+- **3b**: non-expired invitation already exists for the email -> returns the existing invitation/token and resend guidance without duplicating it.
+- **5a**: simulated email delivery failure -> persists the invitation as `delivery_failed`, returns admin guidance to correct/reinvite or copy the acceptance link.
+- **6a**: invitee accepts an expired token -> 410 with fresh-invite guidance, marks invitation expired, and creates no membership.
+- **6b**: invitee authenticates with a different verified GitHub email -> 422 email mismatch, preserves pending invitation, and creates no membership.
+
 ### UC-029
 
 - **MAIN**: authenticated member pulls and pushes one use case markdown file -> pull returns canonical content with revision frontmatter; push with matching `base_revision` appends a server revision, returns `OK`, fresh revision, refreshed cache entry, and suggested next actions.

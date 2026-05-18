@@ -53,3 +53,13 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: invalid stakeholder type -> 400 listing INTERNAL, EXTERNAL, and REGULATORY.
 - **1a**: request attempts to attach a stakeholder to a step -> 400 explaining actors do and stakeholders care, suggesting actor creation.
 - ***a**: project is archived before insert -> failure response and no stakeholder/revision.
+
+### UC-007
+
+- **MAIN**: authenticated project member creates a goal for an existing actor, then lists goals grouped by that actor with the initial revision.
+- **3a**: referenced actor is missing or archived -> 422 naming the actor and suggesting actor list/create.
+- **5a**: description is blank or whitespace -> 400 explaining goal descriptions must be verb phrases.
+- **5b**: illegal status transition -> 422 listing the allowed transitions and leaves status unchanged.
+- **6a**: rejecting a promoted goal -> 422 explaining the linked use case must be archived first.
+- **6b**: near-duplicate goal for same actor -> still creates the goal with duplicate warning and `vspec goal show`.
+- ***a**: project is archived before a mutating goal operation -> 409 and no goal/revision.

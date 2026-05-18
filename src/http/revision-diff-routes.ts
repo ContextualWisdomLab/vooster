@@ -71,6 +71,7 @@ function compareRevisions(
     ...(crossBranch ? crossBranchWarning(fromBranch, toBranch) : {}),
     format: parsed.data.format,
     from_revision: from.id,
+    ...(from.id === to.id ? { note: "Revisions match byte-for-byte." } : {}),
     suggested_next_actions: nextActions(found.usecase, from.id),
     summary: summarize(changes),
     to_revision: to.id,

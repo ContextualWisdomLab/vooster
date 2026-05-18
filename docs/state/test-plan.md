@@ -253,3 +253,13 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: active owned session does not pin this use case -> falls back to revision/head, warns about unpinned concurrent-edit risk, and suggests `vspec session pin <KEY>`.
 - **2a**: unauthenticated caller -> 401 with `vspec login` and API-key creation guidance.
 - ***a**: use case is archived -> 404 with `vspec usecase list --status=` guidance and no structured data envelope.
+
+### UC-035
+
+- **MAIN**: authenticated writer proposes a title patch against the known `base_revision` -> persists a 15-minute `ChangePreview` with preview id, rendered diff, NON_BREAKING impact, commit guidance, and no new revision.
+- **4a**: proposed `base_revision` is stale -> 409 with `current_revision`, impact since the base, re-read/re-propose guidance, and no preview.
+- ***a**: commit references an expired preview -> 410 with `vspec change propose` guidance and no revision.
+- **7a**: commit omits or references an unknown `preview_id` -> 400 explaining commits require a still-valid preview and suggesting propose.
+- **7b**: `auto_commit` is set for a NON_BREAKING/BREAKING preview -> returns the preview plus human-review warning and does not append a revision.
+- **6a**: proposed change touches revisions pinned by other active sessions -> preview impact lists session id, owner, agent type, and pinned use case keys, with `vspec who <KEY-NNN>` coordination guidance.
+- **2a**: another session holds a HARD lock -> 409 with holding session, `vspec who <KEY-NNN>` and owner unlock guidance, and no preview.

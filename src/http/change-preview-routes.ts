@@ -2,21 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
+import { previewProblem, previews, type ChangePreview } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 
-type ChangePreview = {
-  base_revision: string;
-  diff: ChangeDiff[];
-  expires_at: string;
-  id: string;
-  severity: "NON_BREAKING";
-  usecase_id: string;
-};
-type ChangeDiff = { after: string; before: string; entity_id: string;
-  entity_type: "USECASE"; path: "title"; severity: "NON_BREAKING" };
-
-const previewsByState = new WeakMap<SignupState, Map<string, ChangePreview>>();
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
 const proposalSchema = z.object({
   auto_commit: z.boolean().optional(),
@@ -138,16 +127,6 @@ function changePreview(usecase: StoredUseCase, baseRevision: string, title: stri
   return preview;
 }
 
-function previews(state: SignupState) {
-  const existing = previewsByState.get(state);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const created = new Map<string, ChangePreview>();
-  previewsByState.set(state, created);
-  return created;
-}
-
 function accessibleUseCaseByKey(
   request: FastifyRequest,
   state: SignupState,
@@ -191,8 +170,4 @@ function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
       }
     ]
   );
-}
-
-function previewProblem(status: number, title: string, reason: string) {
-  return problem(status, title, {}, [{ command: "vspec change propose", reason }]);
 }

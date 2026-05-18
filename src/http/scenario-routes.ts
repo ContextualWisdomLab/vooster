@@ -4,7 +4,9 @@ import { z } from "zod";
 import { activeActorNamed } from "./goal-support.js";
 import {
   duplicateMainSuccessProblem,
-  mainSuccessScenario
+  mainSuccessScenario,
+  passiveActionProblem,
+  usesPassiveVoice
 } from "./scenario-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -21,7 +23,7 @@ const scenarioRequestSchema = z.object({
   type: z.enum(["MAIN_SUCCESS"])
 });
 const stepRequestSchema = z.object({
-  action: z.string().min(1),
+  action: z.string(),
   actor: z.string().min(1),
   force: z.boolean().default(false)
 });
@@ -95,6 +97,12 @@ function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupStat
   const parsed = stepRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step request"));
+  }
+  if (parsed.data.action.trim().length === 0) {
+    return reply.code(400).send(problem(400, "Step action is required"));
+  }
+  if (!parsed.data.force && usesPassiveVoice(parsed.data.action)) {
+    return reply.code(422).send(passiveActionProblem(parsed.data.action));
   }
   const actor = activeActorNamed(state, found.projectId, parsed.data.actor);
   if (actor === undefined) {

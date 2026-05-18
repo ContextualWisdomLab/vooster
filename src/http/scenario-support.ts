@@ -27,3 +27,39 @@ export function duplicateMainSuccessProblem(existing: StoredScenario) {
     ]
   );
 }
+
+export function passiveActionProblem(action: string) {
+  return problem(
+    422,
+    "Step action uses passive voice",
+    { suggested_action: activeRewrite(action) },
+    [
+      {
+        command: "vspec step add --force",
+        reason: "Persist this wording after reviewing the passive voice warning."
+      }
+    ]
+  );
+}
+
+export function usesPassiveVoice(action: string): boolean {
+  return /^.+?\s+is\s+\w+ed\.?$/i.test(action.trim());
+}
+
+function activeRewrite(action: string): string {
+  const match = /^(?<object>.+?)\s+is\s+(?<verb>\w+)\.?$/i.exec(action.trim());
+  if (match?.groups === undefined) {
+    return "Rewrite the step in active voice.";
+  }
+  const object = match.groups.object;
+  const verb = match.groups.verb;
+  if (object === undefined || verb === undefined) {
+    return "Rewrite the step in active voice.";
+  }
+
+  return `${activeVerb(verb)} the ${object.toLowerCase()}.`;
+}
+
+function activeVerb(verb: string): string {
+  return verb.toLowerCase() === "submitted" ? "Submits" : verb;
+}

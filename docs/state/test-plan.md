@@ -200,3 +200,12 @@ write. This guides your TDD cycles within an iteration._
 - **3a**: compared revisions resolve to different branches -> still returns changes with `cross_branch: true`, a warning naming both branches, and branch labels on each change.
 - **4a**: comparing byte-identical revisions -> returns an empty `changes` array, zeroed summary, and a human note that the revisions match byte-for-byte.
 - ***a**: caller lacks workspace membership -> 403 without revealing whether the use case or revisions exist and returns no diff.
+
+### UC-026
+
+- **MAIN**: authenticated member reverts a use case to an earlier revision -> appends a new forward revision with `parent_revision_id` set to the prior head, restores the target snapshot, advances the use case current revision, returns impact and history/session next actions.
+- **2a**: requested target revision is absent or belongs to another use case -> 404 with the missing revision, expected entity id, `vspec history <KEY-NNN>` guidance, and no appended revision.
+- **3a**: another session holds a HARD lock on the use case -> 409 with holder, reason, expiry, `vspec who <KEY-NNN>` guidance, and no appended revision.
+- **4a**: revert would reintroduce a BREAKING change without `force` -> 409 listing breaking changes and affected active sessions, suggests rerunning with `--force --summary`, and writes nothing.
+- **5a**: revert changes downstream Gherkin export -> succeeds with a `GHERKIN_DRIFT` warning while still appending the revert revision.
+- ***a**: simulated write failure during revert -> returns exit code 5 with retry guidance and leaves revision history/current head unchanged.

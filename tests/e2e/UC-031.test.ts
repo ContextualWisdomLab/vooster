@@ -57,6 +57,28 @@ describe("UC-031 - Export a use case to markdown", () => {
       reason: "Inspect missing markdown export prerequisites."
     });
   });
+
+  test("6a: existing output requires force and returns proposed diff", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Markdown Exists", "markdown-exists", "stub-markdown-exists");
+
+    const response = await exportMarkdown(usecase.id, setup.cookie, {
+      existing_file_content: "# Old checkout\n",
+      output_path: "specs/usecases/CHK-001.md"
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as {
+      diff: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+    };
+    expect(problem.diff).toContain("-# Old checkout");
+    expect(problem.diff).toContain("+# Places an order");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec export markdown --force",
+      reason: "Overwrite the existing markdown file after reviewing the diff."
+    });
+  });
 });
 
 function exportMarkdown(usecaseId: string, cookie: string, body: Record<string, unknown> = {}) {

@@ -24,6 +24,7 @@ const pullSchema = z.object({
 });
 const pushSchema = z.object({
   branch: z.string().default("main"),
+  dry_run: z.boolean().default(false),
   files: z.array(z.object({
     base_revision: z.string().min(1),
     content: z.string().min(1),
@@ -75,12 +76,34 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   if (parseErrors.length > 0) {
     return reply.code(400).send(parseFilesProblem(parseErrors));
   }
-  const results = parsed.data.files.map((file) => pushFile(state, projectId, file));
+  const results = parsed.data.dry_run
+    ? parsed.data.files.map((file) => previewFile(state, projectId, file))
+    : parsed.data.files.map((file) => pushFile(state, projectId, file));
   return reply.send({
-    cache: { entries: cacheEntries(results) },
+    cache: { entries: parsed.data.dry_run ? [] : cacheEntries(results) },
     results,
     suggested_next_actions: suggestedSyncActions(results)
   });
+}
+
+function previewFile(
+  state: SignupState,
+  projectId: string,
+  file: PushFile
+): SyncResult {
+  const usecase = usecaseForFile(state, projectId, file.path);
+  if (usecase === undefined) {
+    return { current_revision: "", dry_run: true, path: file.path, status: "SKIPPED" };
+  }
+  if (file.base_revision !== usecase.current_revision_id) {
+    return staleFileConflict(usecase, file);
+  }
+  return {
+    current_revision: usecase.current_revision_id,
+    dry_run: true,
+    path: file.path,
+    status: "OK"
+  };
 }
 
 function pushFile(
@@ -88,9 +111,7 @@ function pushFile(
   projectId: string,
   file: PushFile
 ): SyncResult {
-  const usecase = activeUseCases(state, projectId).find(
-    (candidate) => usecasePath(candidate) === file.path
-  );
+  const usecase = usecaseForFile(state, projectId, file.path);
   if (usecase === undefined) {
     return { current_revision: "", path: file.path, status: "SKIPPED" };
   }
@@ -107,6 +128,12 @@ function pushFile(
   ]);
   advanceMainHead(state, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
+}
+
+function usecaseForFile(state: SignupState, projectId: string, path: string) {
+  return activeUseCases(state, projectId).find(
+    (candidate) => usecasePath(candidate) === path
+  );
 }
 
 function syncRevision(

@@ -4,6 +4,7 @@ import { usecaseMarkdown } from "./sync-markdown.js";
 export type SyncResult = {
   conflict_content?: string;
   current_revision: string;
+  dry_run?: true;
   impact?: { entity_id: string; severity: "BREAKING" };
   path: string;
   status: "CONFLICT" | "OK" | "SKIPPED";

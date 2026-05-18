@@ -19,6 +19,7 @@ type HistoryResponse = {
   usecase: { id: string; key: string };
 };
 type HistoryProblem = {
+  exit_code?: number;
   history?: unknown;
   project_key?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -127,5 +128,31 @@ describe("UC-024 - View use case revision history", () => {
       command: `vspec history ${usecase.key} --limit 4`,
       reason: "Rerun with a larger limit to include suppressed rows."
     });
+  });
+
+  test("*a: history read failure returns retry guidance without mutation", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "History Failure", "history-failure", "stub-history-failure");
+
+    const failed = await server.fetch(
+      `/v1/usecases/${usecase.id}/revisions?simulate_server_error=true`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(failed.status).toBe(500);
+    const problem = (await failed.json()) as HistoryProblem;
+    expect(problem.exit_code).toBe(5);
+    expect(problem.history).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key} --retry`,
+      reason: "Retry the history request."
+    });
+
+    const retry = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    expect(retry.status).toBe(200);
+    const body = (await retry.json()) as HistoryResponse;
+    expect(body.revisions.map((revision) => revision.version_number)).toEqual([4, 3, 2, 1]);
   });
 });

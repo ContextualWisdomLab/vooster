@@ -36,6 +36,23 @@ function createStakeholder(
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
 
+  const existing = activeStakeholderNamed(state, projectId, parsed.data.name);
+  if (existing !== undefined) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Stakeholder name already exists",
+        { existing_stakeholder_id: existing.id },
+        [
+          {
+            command: "vspec stakeholder edit",
+            reason: "Amend the existing stakeholder."
+          }
+        ]
+      )
+    );
+  }
+
   const stakeholder: StoredStakeholder = {
     id: randomUUID(),
     project_id: projectId,
@@ -63,6 +80,16 @@ function createStakeholder(
     revision,
     recommended_next_command: "vspec usecase add-stakeholder"
   });
+}
+
+function activeStakeholderNamed(
+  state: SignupState,
+  projectId: string,
+  name: string
+): StoredStakeholder | undefined {
+  return (state.stakeholdersByProjectId.get(projectId) ?? []).find(
+    (stakeholder) => stakeholder.name === name && stakeholder.archived_at === null
+  );
 }
 
 function membershipForProject(

@@ -122,6 +122,21 @@ describe("UC-028 - Comment on a use case", () => {
     ]);
   });
 
+  test("4a: resolving an already-resolved comment is an idempotent no-op", async () => {
+    const setup = await createCommentFixture(server, "Resolve Again", "resolve-again", "stub-resolve-again");
+    const added = await addComment(server, setup.usecase.id, setup.cookie, "Done after review");
+    const addedBody = (await added.json()) as CommentResponse;
+
+    const first = await patchComment(server, addedBody.comment.id, setup.cookie, { resolved: true });
+    const firstBody = (await first.json()) as CommentResponse;
+    const second = await patchComment(server, addedBody.comment.id, setup.cookie, { resolved: true });
+    const secondBody = (await second.json()) as CommentResponse;
+
+    expect(second.status).toBe(200);
+    expect(secondBody.comment).toEqual(firstBody.comment);
+    expect(secondBody.comment.resolved_at).toBe(firstBody.comment.resolved_at);
+  });
+
   test("5b: another workspace member cannot edit the comment", async () => {
     const setup = await createCommentFixture(server, "Edit Other", "edit-other", "stub-edit-other");
     const added = await addComment(server, setup.usecase.id, setup.cookie, "Original body");

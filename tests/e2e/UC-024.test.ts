@@ -109,4 +109,23 @@ describe("UC-024 - View use case revision history", () => {
       reason: "Ask a workspace owner for read access."
     });
   });
+
+  test("5a: limit truncates history with suppressed row guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "History Limit", "history-limit", "stub-history-limit");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/revisions?limit=2`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as HistoryResponse;
+    expect(body.revisions).toHaveLength(2);
+    expect(body.truncated).toBe(true);
+    expect(body.suppressed_count).toBe(2);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key} --limit 4`,
+      reason: "Rerun with a larger limit to include suppressed rows."
+    });
+  });
 });

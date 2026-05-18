@@ -112,3 +112,13 @@ write. This guides your TDD cycles within an iteration._
 - **5a**: semantic lock by another holder -> notes-only edit succeeds as COSMETIC; action/actor change returns 409 with holder/reason/expires.
 - **6a**: active sessions pinning this use case -> edit succeeds and returns affected session ids in the impact payload.
 - ***a**: hard lock -> all edits return 409 with unlock/contact-holder guidance and no write.
+
+### UC-016
+
+- **MAIN**: authenticated project member starts a work session with pinned use case keys -> creates an ACTIVE session with pinned current revisions, writes `.vspec/session.json` metadata, and returns show/complete next actions.
+- **3a**: requested pin is archived -> 422 with offending key and `vspec usecase restore <KEY>` guidance, no session.
+- **3b**: requested pin is HARD-locked by another session -> 409 with holding session and `vspec who <KEY>` guidance, no session.
+- **4a**: auto-branch branch-name collision -> appends a suffix, creates one ACTIVE agent branch, and starts the session on that branch.
+- **4b**: auto-branch semantic lock acquisition fails -> rolls back branch, locks, and session, then returns 409 naming the conflicting session.
+- **2a**: unrecognized `agent_type` -> stores `OTHER`, preserves the raw label in `agent_identifier`, returns a warning, and still starts the session.
+- ***a**: transactional write fails mid-creation -> leaves no session, branch, or lock and returns retry guidance.

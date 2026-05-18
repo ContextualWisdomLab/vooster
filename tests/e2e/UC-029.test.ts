@@ -8,7 +8,13 @@ type PullResponse = {
 };
 type PushResponse = {
   cache: { entries: Array<{ path: string; revision: string; status: string }> };
-  results: Array<{ current_revision: string; path: string; status: string }>;
+  results: Array<{
+    conflict_content?: string;
+    current_revision: string;
+    impact?: { entity_id: string; severity: string };
+    path: string;
+    status: string;
+  }>;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type HistoryResponse = { revisions: Array<{ revision: string; version_number: number }> };
@@ -124,6 +130,82 @@ describe("UC-029 - Sync local files with the server", () => {
     });
     const historyBody = (await history.json()) as HistoryResponse;
     expect(historyBody.revisions.map((revision) => revision.revision)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("4a: stale base revision returns conflict details without overwriting", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Sync Conflict", "sync-conflict", "stub-sync-conflict");
+
+    const pulled = await server.fetch(`/v1/projects/${setup.projectId}/sync/pull`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ branch: "main" })
+    });
+    const pull = (await pulled.json()) as PullResponse;
+    const path = `specs/${usecase.key}.md`;
+    const originalContent = pull.files[0]?.content ?? "";
+
+    const serverPush = await server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        branch: "main",
+        files: [{
+          base_revision: usecase.current_revision_id,
+          content: originalContent.replace("# Reviews a refund", "# Reviews a refund on server"),
+          path
+        }]
+      })
+    });
+    const serverRevision = ((await serverPush.json()) as PushResponse)
+      .results[0]?.current_revision ?? "";
+
+    const stalePush = await server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        branch: "main",
+        files: [{
+          base_revision: usecase.current_revision_id,
+          content: originalContent.replace("# Reviews a refund", "# Reviews a refund locally"),
+          path
+        }]
+      })
+    });
+
+    expect(stalePush.status).toBe(200);
+    const conflict = (await stalePush.json()) as PushResponse;
+    expect(conflict.results[0]).toMatchObject({
+      current_revision: serverRevision,
+      impact: { entity_id: usecase.id, severity: "BREAKING" },
+      path,
+      status: "CONFLICT"
+    });
+    expect(conflict.results[0]?.conflict_content).toContain("<<<<<<< local");
+    expect(conflict.results[0]?.conflict_content).toContain("=======");
+    expect(conflict.results[0]?.conflict_content).toContain(`>>>>>>> remote (${serverRevision}`);
+    expect(conflict.cache.entries).toContainEqual({
+      path,
+      revision: serverRevision,
+      status: "UNRESOLVED"
+    });
+    expect(conflict.suggested_next_actions).toContainEqual({
+      command: "vspec diff",
+      reason: "Inspect the server and local changes before resolving the conflict."
+    });
+    expect(conflict.suggested_next_actions).toContainEqual({
+      command: "vspec push",
+      reason: "Push again after removing conflict markers."
+    });
+
+    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    const historyBody = (await history.json()) as HistoryResponse;
+    expect(historyBody.revisions.map((revision) => revision.revision)).toEqual([
+      serverRevision,
       usecase.current_revision_id
     ]);
   });

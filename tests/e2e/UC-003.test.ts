@@ -154,4 +154,21 @@ describe("UC-003 - Invite a member", () => {
     const freshInvite = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
     expect(freshInvite.status).toBe(201);
   });
+
+  test("6b: accepting with a different GitHub email is rejected without membership", async () => {
+    const owner = await signup(server, "Invite Mismatch", "invite-mismatch", "stub-mismatch-owner");
+    const email = "stub-expected-invitee@users.noreply.github.com";
+    const invited = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
+    const inviteBody = (await invited.json()) as InvitationResponse;
+
+    const mismatch = await acceptInvitation(server, inviteBody.invitation.token, "stub-other-invitee");
+
+    expect(mismatch.status).toBe(422);
+    const problem = (await mismatch.json()) as ProblemResponse;
+    expect(problem.code).toBe("email_mismatch");
+    const duplicate = await inviteMember(server, owner.workspaceId, owner.cookie, email, "EDITOR");
+    const duplicateBody = (await duplicate.json()) as InvitationResponse;
+    expect(duplicate.status).toBe(200);
+    expect(duplicateBody.invitation.token).toBe(inviteBody.invitation.token);
+  });
 });

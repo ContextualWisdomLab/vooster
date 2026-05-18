@@ -10,6 +10,7 @@ import type {
 } from "./signup-types.js";
 
 const stakeholderRequestSchema = z.object({
+  attach_to_step: z.boolean().optional(),
   description: z.string().default(""),
   name: z.string().min(1),
   type: z.string()
@@ -36,6 +37,14 @@ function createStakeholder(
   const parsed = stakeholderRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
+  }
+
+  if (parsed.data.attach_to_step === true) {
+    return reply.code(400).send(
+      problem(400, "Actors do; stakeholders care", {}, [
+        { command: "vspec actor create", reason: "Create an actor for step actions." }
+      ])
+    );
   }
 
   if (!isStakeholderType(parsed.data.type)) {

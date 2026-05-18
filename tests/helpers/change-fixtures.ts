@@ -25,6 +25,10 @@ export type ChangeProblem = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
+export type ChangeCommitResponse = {
+  revisions: Array<{ entity_id: string; revision_id: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 
 export function proposeChange(server: TestServer, cookie: string, body: Record<string, unknown>) {

@@ -12,8 +12,10 @@ import type {
 const stakeholderRequestSchema = z.object({
   description: z.string().default(""),
   name: z.string().min(1),
-  type: z.enum(["INTERNAL", "EXTERNAL", "REGULATORY"])
+  type: z.string()
 });
+
+const stakeholderTypes = ["INTERNAL", "EXTERNAL", "REGULATORY"] as const;
 
 export function registerStakeholderRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
@@ -34,6 +36,14 @@ function createStakeholder(
   const parsed = stakeholderRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
+  }
+
+  if (!isStakeholderType(parsed.data.type)) {
+    return reply.code(400).send(
+      problem(400, "Invalid stakeholder type", {
+        valid_types: [...stakeholderTypes]
+      })
+    );
   }
 
   const existing = activeStakeholderNamed(state, projectId, parsed.data.name);
@@ -80,6 +90,10 @@ function createStakeholder(
     revision,
     recommended_next_command: "vspec usecase add-stakeholder"
   });
+}
+
+function isStakeholderType(type: string): type is StoredStakeholder["type"] {
+  return stakeholderTypes.includes(type as StoredStakeholder["type"]);
 }
 
 function activeStakeholderNamed(

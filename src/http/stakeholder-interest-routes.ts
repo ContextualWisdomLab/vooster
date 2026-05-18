@@ -51,6 +51,22 @@ function addStakeholderInterest(
   if (stakeholder === undefined) {
     return reply.code(422).send(problem(422, "Stakeholder is not available"));
   }
+  const existing = existingInterestForStakeholder(state, found.usecase.id, stakeholder.id);
+  if (existing !== undefined) {
+    return reply.code(409).send(
+      problem(
+        409,
+        "Stakeholder interest already exists",
+        { existing_interest: existing.interest },
+        [
+          {
+            command: "vspec usecase set --field stakeholder-interest",
+            reason: "Edit the existing stakeholder interest."
+          }
+        ]
+      )
+    );
+  }
 
   const stakeholderInterest: StoredStakeholderInterest = {
     id: randomUUID(),
@@ -103,6 +119,16 @@ function missingRoleHint(state: SignupState, usecaseId: string, projectId: strin
     ({ stakeholder }) => stakeholder.type === "REGULATORY"
   );
   return hasRegulatory ? "" : "No regulatory stakeholder yet.";
+}
+
+function existingInterestForStakeholder(
+  state: SignupState,
+  usecaseId: string,
+  stakeholderId: string
+): StoredStakeholderInterest | undefined {
+  return (state.stakeholderInterestsByUseCaseId.get(usecaseId) ?? []).find(
+    (interest) => interest.stakeholder_id === stakeholderId
+  );
 }
 
 function activeStakeholderNamed(

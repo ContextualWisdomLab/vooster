@@ -39,6 +39,10 @@ function createStakeholder(
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
 
+  if (projectWorkspaceArchived(state, projectId)) {
+    return reply.code(409).send(problem(409, "Workspace has been archived"));
+  }
+
   if (parsed.data.attach_to_step === true) {
     return reply.code(400).send(
       problem(400, "Actors do; stakeholders care", {}, [
@@ -113,6 +117,11 @@ function activeStakeholderNamed(
   return (state.stakeholdersByProjectId.get(projectId) ?? []).find(
     (stakeholder) => stakeholder.name === name && stakeholder.archived_at === null
   );
+}
+
+function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
+  const project = state.projectsById.get(projectId);
+  return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
 }
 
 function membershipForProject(

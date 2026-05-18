@@ -38,7 +38,7 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
     return reply.code(404).send(problem(404, "Use case not found"));
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Not authorized to preview impact"));
+    return reply.code(403).send(impactAccessProblem());
   }
   if (parsed.data.proposed_change_content !== undefined) {
     return reply
@@ -155,6 +155,24 @@ function parseProposedChangeProblem(path: string) {
       {
         command: `vspec doctor ${path}`,
         reason: "Validate the proposed-change file format."
+      }
+    ]
+  );
+}
+
+function impactAccessProblem() {
+  return problem(
+    403,
+    "Not authorized to preview impact",
+    {},
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate with an account that has project access."
+      },
+      {
+        command: "vspec member set-role",
+        reason: "Ask a workspace owner for read access."
       }
     ]
   );

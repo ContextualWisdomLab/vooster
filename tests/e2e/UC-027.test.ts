@@ -5,22 +5,14 @@ import { startWorkSession, type SessionStartResponse } from "../helpers/session-
 
 type ImpactResponse = {
   cached: boolean;
-  impact: {
-    affected_branches: string[];
-    affected_sessions: unknown[];
-    affected_tests: string[];
-    confidence: number;
-    input_hash: string;
-    severity: string;
-  };
+  impact: { affected_branches: string[]; affected_sessions: unknown[];
+    affected_tests: string[]; confidence: number; input_hash: string; severity: string };
   preview_id: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 type ImpactProblem = {
-  impact?: unknown;
-  parser_error?: string;
-  path?: string;
+  impact?: unknown; parser_error?: string; path?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -36,18 +28,12 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const baseRevision = usecase.current_revision_id;
     const current = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
 
-    const response = await server.fetch("/v1/changes/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: current.revision_id,
-        entity_id: usecase.id,
-        entity_type: "USECASE"
-      })
+    const body = await previewImpact(setup.cookie, {
+      base_revision: current.revision_id,
+      entity_id: usecase.id,
+      entity_type: "USECASE"
     });
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as ImpactResponse;
     expect(body.cached).toBe(false);
     expect(body.preview_id).toEqual(expect.any(String));
     expect(body.impact).toMatchObject({
@@ -71,11 +57,7 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
       reason: "Commit the previewed change after review."
     });
 
-    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
-      headers: { Cookie: setup.cookie }
-    });
-    const historyBody = (await history.json()) as HistoryResponse;
-    expect(historyBody.revisions.map((revision) => revision.revision)).toEqual([
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
       current.revision_id,
       baseRevision
     ]);
@@ -85,15 +67,11 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Impact Missing", "impact-missing", "stub-impact-missing");
 
-    const response = await server.fetch("/v1/changes/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: usecase.current_revision_id,
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        proposed_change_path: "missing/usecase.md"
-      })
+    const response = await previewResponse(setup.cookie, {
+      base_revision: usecase.current_revision_id,
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      proposed_change_path: "missing/usecase.md"
     });
 
     expect(response.status).toBe(400);
@@ -114,16 +92,12 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Impact Parse", "impact-parse", "stub-impact-parse");
 
-    const response = await server.fetch("/v1/changes/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: usecase.current_revision_id,
-        entity_id: usecase.id,
-        entity_type: "USECASE",
-        proposed_change_content: "# Missing frontmatter",
-        proposed_change_path: "bad/usecase.md"
-      })
+    const response = await previewResponse(setup.cookie, {
+      base_revision: usecase.current_revision_id,
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      proposed_change_content: "# Missing frontmatter",
+      proposed_change_path: "bad/usecase.md"
     });
 
     expect(response.status).toBe(400);
@@ -140,24 +114,16 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Impact Sessions", "impact-sessions", "stub-impact-sessions");
     const started = await startWorkSession(server, setup, {
-      agent_type: "CODEX",
-      intent: "Implement refund flow",
-      pins: [usecase.key]
+      agent_type: "CODEX", intent: "Implement refund flow", pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
 
-    const response = await server.fetch("/v1/changes/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: usecase.current_revision_id,
-        entity_id: usecase.id,
-        entity_type: "USECASE"
-      })
+    const body = await previewImpact(setup.cookie, {
+      base_revision: usecase.current_revision_id,
+      entity_id: usecase.id,
+      entity_type: "USECASE"
     });
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as ImpactResponse;
     expect(body.impact.severity).toBe("BREAKING");
     expect(body.impact.affected_sessions).toContainEqual({
       agent_type: "CODEX",
@@ -188,14 +154,10 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const mine = await projectUseCase(server, "Impact Mine", "impact-mine", "stub-impact-mine");
     const other = await projectUseCase(server, "Impact Other", "impact-other", "stub-impact-other");
 
-    const response = await server.fetch("/v1/changes/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: mine.setup.cookie },
-      body: JSON.stringify({
-        base_revision: other.usecase.current_revision_id,
-        entity_id: other.usecase.id,
-        entity_type: "USECASE"
-      })
+    const response = await previewResponse(mine.setup.cookie, {
+      base_revision: other.usecase.current_revision_id,
+      entity_id: other.usecase.id,
+      entity_type: "USECASE"
     });
 
     expect(response.status).toBe(403);
@@ -214,11 +176,23 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
 });
 
 async function previewImpact(cookie: string, body: Record<string, unknown>) {
-  const response = await server.fetch("/v1/changes/preview", {
+  const response = await previewResponse(cookie, body);
+  expect(response.status).toBe(200);
+  return (await response.json()) as ImpactResponse;
+}
+
+async function previewResponse(cookie: string, body: Record<string, unknown>) {
+  return server.fetch("/v1/changes/preview", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify(body)
   });
-  expect(response.status).toBe(200);
-  return (await response.json()) as ImpactResponse;
+}
+
+async function historyRevisionIds(usecaseId: string, cookie: string) {
+  const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
+    headers: { Cookie: cookie }
+  });
+  const body = (await history.json()) as HistoryResponse;
+  return body.revisions.map((revision) => revision.revision);
 }

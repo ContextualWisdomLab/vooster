@@ -35,8 +35,22 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   }
   const targetHeads = mainHeadRevisions(state, project, target);
   const touched = touchedEntityIds(source, targetHeads);
-  const mergeRequest = mergeRequestFor(request, source, target.id, touched, state);
+  const conflicts = structuralConflicts(state, source, targetHeads, touched);
+  const strategy = conflicts.length === 0 && isFastForward(source, targetHeads, touched)
+    ? "FAST_FORWARD"
+    : "SQUASH";
+  const mergeRequest = mergeRequestFor(request, source, target.id, touched, state, strategy, conflicts);
   state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
+  if (conflicts.length > 0) {
+    return reply.code(201).send({
+      merge_request: mergeRequest,
+      source_branch: source,
+      main_head_revision_ids: targetHeads,
+      suggested_next_actions: [
+        { command: `vspec merge resolve ${mergeRequest.id}`, reason: "Resolve conflicts before this branch can merge." }
+      ]
+    });
+  }
   target.head_revision_ids = {
     ...targetHeads,
     ...Object.fromEntries(touched.map((entityId) => [entityId, source.head_revision_ids?.[entityId] ?? ""]))
@@ -60,22 +74,56 @@ function mergeRequestFor(
   source: StoredSpecBranch,
   targetBranchId: string,
   touched: string[],
-  state: SignupState
+  state: SignupState,
+  strategy: "FAST_FORWARD" | "SQUASH",
+  conflicts: Array<Record<string, unknown>>
 ): StoredMergeRequest {
   return {
     id: randomUUID(),
     source_branch_id: source.id,
     target_branch_id: targetBranchId,
     status: "OPEN",
-    strategy: "FAST_FORWARD",
+    strategy,
     created_by: membershipForProject(request, state, source.project_id)?.user_id ?? "",
     impact: {
       affected_branches: [],
       affected_sessions: [],
       severity_by_entity: Object.fromEntries(touched.map((entityId) => [entityId, severityFor(state, entityId)]))
     },
-    conflicts: []
+    conflicts
   };
+}
+
+function structuralConflicts(
+  state: SignupState,
+  source: StoredSpecBranch,
+  targetHeads: Record<string, string>,
+  touched: string[]
+) {
+  return touched
+    .filter((entityId) => source.base_revision_ids?.[entityId] !== targetHeads[entityId])
+    .flatMap((entityId) => {
+      const mine = titleAtRevision(state, source.head_revision_ids?.[entityId] ?? "");
+      const theirs = titleAtRevision(state, targetHeads[entityId] ?? "");
+      return mine !== undefined && theirs !== undefined && mine !== theirs
+        ? [{
+            entity_id: entityId,
+            entity_type: "USECASE",
+            field: "title",
+            mine_value: mine,
+            theirs_value: theirs,
+            type: "STRUCTURAL"
+          }]
+        : [];
+    });
+}
+
+function isFastForward(
+  source: StoredSpecBranch,
+  targetHeads: Record<string, string>,
+  touched: string[]
+) {
+  return touched.every((entityId) => source.base_revision_ids?.[entityId] === targetHeads[entityId]);
 }
 
 function mainHeadRevisions(
@@ -102,4 +150,13 @@ function touchedEntityIds(source: StoredSpecBranch, targetHeads: Record<string, 
 
 function severityFor(state: SignupState, entityId: string): string {
   return state.revisionsByEntityId.get(entityId)?.at(-1)?.severity ?? "NON_BREAKING";
+}
+
+function titleAtRevision(state: SignupState, revisionId: string): string | undefined {
+  const snapshot = [...state.revisionsByEntityId.values()]
+    .flat()
+    .find((revision) => revision.id === revisionId)?.snapshot;
+  return snapshot !== undefined && "title" in snapshot
+    ? snapshot.title
+    : undefined;
 }

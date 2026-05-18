@@ -14,7 +14,7 @@ const completeSchema = z.object({
   summary: z.string().optional()
 });
 type MergeRequestResponse = {
-  conflicts: Array<{ entity_id: string; type: string }>;
+  conflicts: unknown[];
   id: string;
 };
 

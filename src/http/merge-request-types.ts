@@ -1,5 +1,5 @@
 export type StoredMergeRequest = {
-  conflicts: Array<{ entity_id: string; type: string }>;
+  conflicts: Array<Record<string, unknown>>;
   created_by?: string;
   id: string;
   impact: {
@@ -9,7 +9,7 @@ export type StoredMergeRequest = {
   };
   source_branch_id: null | string;
   status: "CLOSED" | "MERGED" | "OPEN";
-  strategy: "FAST_FORWARD";
+  strategy: "FAST_FORWARD" | "SQUASH";
   target_branch_id: string;
   resolved_at?: string;
 };

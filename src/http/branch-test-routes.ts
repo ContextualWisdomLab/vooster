@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredRevision } from "./signup-types.js";
+import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 
 const branchRevisionSchema = z.object({
   severity: z.enum(["BREAKING", "COSMETIC", "NON_BREAKING"]),
@@ -12,6 +12,9 @@ const branchRevisionSchema = z.object({
 export function registerBranchTestRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/__test/branches/:branchId/usecases/:usecaseId/revisions", (request, reply) =>
     advanceBranchUseCase(request, reply, state)
+  );
+  app.post("/__test/usecases/:usecaseId/revisions", (request, reply) =>
+    advanceMainUseCase(request, reply, state)
   );
 }
 
@@ -34,14 +37,7 @@ function advanceBranchUseCase(
   if (branch === undefined || usecase === undefined) {
     return reply.code(404).send(problem(404, "Branch use case not found"));
   }
-  const revision: StoredRevision = {
-    id: randomUUID(),
-    entity_type: "USECASE",
-    entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
-    snapshot: { ...usecase, title: parsed.data.title },
-    severity: parsed.data.severity
-  };
+  const revision = useCaseRevision(state, usecase, parsed.data);
   branch.head_revision_ids = {
     ...(branch.head_revision_ids ?? branch.base_revision_ids ?? {}),
     [usecase.id]: revision.id
@@ -51,4 +47,50 @@ function advanceBranchUseCase(
     revision
   ]);
   return reply.send({ revision_id: revision.id });
+}
+
+function advanceMainUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
+  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
+  const parsed = branchRevisionSchema.safeParse(request.body);
+  const usecase = [...state.usecasesByProjectId.values()]
+    .flat()
+    .find((candidate) => candidate.id === params.usecaseId);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid main revision request"));
+  }
+  if (usecase === undefined) {
+    return reply.code(404).send(problem(404, "Use case not found"));
+  }
+  const revision = useCaseRevision(state, usecase, parsed.data);
+  usecase.title = parsed.data.title;
+  usecase.current_revision_id = revision.id;
+  state.revisionsByEntityId.set(usecase.id, [
+    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
+    revision
+  ]);
+  const project = state.projectsById.get(usecase.project_id);
+  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  if (main !== undefined) {
+    main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+  }
+  return reply.send({ revision_id: revision.id });
+}
+
+function useCaseRevision(
+  state: SignupState,
+  usecase: StoredUseCase,
+  data: { severity: "BREAKING" | "COSMETIC" | "NON_BREAKING"; title: string }
+): StoredRevision {
+  return {
+    id: randomUUID(),
+    entity_type: "USECASE",
+    entity_id: usecase.id,
+    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    snapshot: { ...usecase, title: data.title },
+    severity: data.severity
+  };
 }

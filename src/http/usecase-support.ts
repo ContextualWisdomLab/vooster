@@ -45,3 +45,17 @@ export function useCaseWithId(
     (usecase) => usecase.id === usecaseId
   );
 }
+
+export function useCaseWithProjectId(
+  state: SignupState,
+  usecaseId: string
+): { projectId: string; usecase: StoredUseCase } | undefined {
+  for (const [projectId, usecases] of state.usecasesByProjectId) {
+    const usecase = usecases.find((candidate) => candidate.id === usecaseId);
+    if (usecase !== undefined) {
+      return { projectId, usecase };
+    }
+  }
+
+  return undefined;
+}

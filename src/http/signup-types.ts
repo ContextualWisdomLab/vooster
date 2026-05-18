@@ -21,6 +21,7 @@ export type SignupState = {
   projectsById: Map<string, StoredProject>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
+  stakeholderInterestsByUseCaseId: Map<string, StoredStakeholderInterest[]>;
   revisionsByEntityId: Map<string, StoredRevision[]>;
   stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
   usecasesByProjectId: Map<string, StoredUseCase[]>;
@@ -98,6 +99,7 @@ export type StoredRevision = {
   version_number: number;
   snapshot: StoredActor | StoredGoal | StoredStakeholder | StoredUseCase;
   change_summary?: string;
+  severity?: "BREAKING" | "NON_BREAKING";
 };
 
 export type StoredGoal = {
@@ -119,6 +121,14 @@ export type StoredStakeholder = {
   type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
   description: string;
   archived_at: null | string;
+};
+
+export type StoredStakeholderInterest = {
+  id: string;
+  usecase_id: string;
+  stakeholder_id: string;
+  interest: string;
+  protection_mechanism: string;
 };
 
 export type StoredUseCase = {

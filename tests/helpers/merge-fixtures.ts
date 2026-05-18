@@ -31,6 +31,7 @@ export type MergeOpenResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 export type MergeProblemResponse = {
+  exit_code?: number;
   holding_session?: string;
   main_head_revision_ids?: Record<string, string>;
   merge_request?: { status: string };
@@ -125,11 +126,17 @@ export function openMerge(
   server: TestServer,
   setup: ProjectSetup,
   branchId: string,
-  strategy?: "FAST_FORWARD" | "SQUASH"
+  strategy?: "FAST_FORWARD" | "SQUASH",
+  simulateWriteFailure = false
 ) {
   return server.fetch("/v1/merges", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ source_branch_id: branchId, strategy, target: "main" })
+    body: JSON.stringify({
+      simulate_write_failure: simulateWriteFailure,
+      source_branch_id: branchId,
+      strategy,
+      target: "main"
+    })
   });
 }

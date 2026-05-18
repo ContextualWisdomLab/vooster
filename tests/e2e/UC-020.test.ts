@@ -152,4 +152,23 @@ describe("UC-020 - Merge a branch", () => {
       reason: "Retry with the safe squash strategy."
     });
   });
+
+  test("*a: write failure leaves merge request open and main unchanged", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Failed Merge", "failed-merge", "stub-failed-merge");
+    const branch = await createBranch(server, setup, "feature/failed-merge");
+    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund safely");
+
+    const response = await openMerge(server, setup, branch.id, undefined, true);
+
+    expect(response.status).toBe(500);
+    const problem = (await response.json()) as MergeProblemResponse;
+    expect(problem.exit_code).toBe(5);
+    expect(problem.merge_request).toMatchObject({ status: "OPEN" });
+    expect(problem.source_branch).toMatchObject({ status: "ACTIVE" });
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(usecase.current_revision_id);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec merge open feature/failed-merge --retry",
+      reason: "Retry after the failed merge write."
+    });
+  });
 });

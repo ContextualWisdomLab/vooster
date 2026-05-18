@@ -19,8 +19,12 @@ export function registerBranchRoutes(app: FastifyInstance, state: SignupState) {
 function createBranch(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const projectId = projectIdFrom(request.params);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (membershipForProject(state, userId, projectId) === undefined) {
+  const membership = membershipForProject(state, userId, projectId);
+  if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  if (isReadOnly(state, membership)) {
+    return readOnly(reply);
   }
   const parsed = branchCreateSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -84,6 +88,17 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
   });
 }
 
+function readOnly(reply: FastifyReply) {
+  return reply.code(403).send(
+    problem(403, "Editor role required to create branches", {}, [
+      {
+        command: "vspec member list",
+        reason: "Find a workspace editor or owner who can create branches."
+      }
+    ])
+  );
+}
+
 function membershipForProject(
   state: SignupState,
   userId: string | undefined,
@@ -96,6 +111,16 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
+}
+
+function isReadOnly(state: SignupState, membership: StoredMembership): boolean {
+  return state.readOnlyMemberships.has(
+    membershipKey(membership.user_id, membership.workspace_id)
+  );
+}
+
+function membershipKey(userId: string, workspaceId: string): string {
+  return `${userId}:${workspaceId}`;
 }
 
 function mainHeadSnapshot(state: SignupState, project: StoredProject): Record<string, string> {

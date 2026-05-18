@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
+import {
+  completeWorkSession,
+  startWorkSession,
+  type SessionCompleteResponse,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 type BranchCreateResponse = {
@@ -15,6 +21,7 @@ type BranchCreateResponse = {
     status: string;
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings?: Array<{ merge_request_id: string; type: string }>;
 };
 type BranchProblemResponse = {
   suggested_name?: string;
@@ -127,6 +134,41 @@ describe("UC-019 - Create a branch", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec branch create feature/collide-2",
       reason: "Create the branch with an available name."
+    });
+  });
+
+  test("4a: branch creation warns about in-flight merge requests", async () => {
+    const setup = await createProject(server, "Branch Warning", "branch-warning", "stub-branch-warning");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/branch-warning",
+      intent: "Prepare an in-flight merge request",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const completed = await completeWorkSession(server, session.id, setup.cookie, {
+      summary: "Open merge request."
+    });
+    const mergeRequest = ((await completed.json()) as SessionCompleteResponse).merge_request;
+    if (mergeRequest === undefined) {
+      throw new Error("expected merge request");
+    }
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/warn-about-merge" })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as BranchCreateResponse;
+    expect(body.branch.name).toBe("feature/warn-about-merge");
+    expect(body.warnings).toContainEqual({
+      merge_request_id: mergeRequest.id,
+      type: "IN_FLIGHT_MERGE_REQUEST"
     });
   });
 });

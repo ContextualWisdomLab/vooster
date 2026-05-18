@@ -28,11 +28,23 @@ function aiGuide(request: FastifyRequest, reply: FastifyReply) {
   if (query.format === "json") {
     return reply.send(jsonGuide(query.cli_version));
   }
+  const cache = refreshedCache(query.cli_version, cachedGuide?.cli_version);
   return reply.send({
-    cache: { cli_version: query.cli_version, status: "REFRESHED" },
+    cache,
     content: guideMarkdown(),
     suggested_next_actions: suggestedNextActions()
   });
+}
+
+function refreshedCache(cliVersion: string, cachedVersion: string | undefined) {
+  if (cachedVersion !== undefined && cachedVersion !== cliVersion) {
+    return {
+      cli_version: cliVersion,
+      previous_cli_version: cachedVersion,
+      status: "REFRESHED_VERSION_MISMATCH"
+    };
+  }
+  return { cli_version: cliVersion, status: "REFRESHED" };
 }
 
 function staleGuide(cached: { cli_version: string; content: string }) {

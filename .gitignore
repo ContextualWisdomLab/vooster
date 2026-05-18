@@ -1,0 +1,38 @@
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Test artifacts
+coverage/
+.vitest/
+*.lcov
+
+# Local agent state (kept ignored to avoid leaking between agent runs)
+.state/
+.vspec/cache/
+.vspec/session.json
+.omc/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Prisma
+prisma/migrations/*/migration_lock.toml

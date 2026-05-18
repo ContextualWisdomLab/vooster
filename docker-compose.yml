@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: vspec-db
+    environment:
+      POSTGRES_USER: vspec
+      POSTGRES_PASSWORD: vspec
+      POSTGRES_DB: vspec
+    ports:
+      - "5432:5432"
+    volumes:
+      - vspec_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vspec -d vspec"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  db_test:
+    image: postgres:15-alpine
+    container_name: vspec-db-test
+    environment:
+      POSTGRES_USER: vspec
+      POSTGRES_PASSWORD: vspec
+      POSTGRES_DB: vspec_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vspec -d vspec_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vspec_db:

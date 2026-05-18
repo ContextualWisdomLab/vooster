@@ -95,3 +95,11 @@ write. This guides your TDD cycles within an iteration._
 - **3b**: empty step action -> 400 with no step; passive action -> 422 warning with active rewrite guidance; force -> persists the passive action.
 - **5a**: step actor is unknown -> 422 listing known actors and `vspec actor create` guidance with no persisted step.
 - **6a**: adding the tenth main step -> persists the step with an over-nine-steps warning.
+
+### UC-012
+
+- **MAIN**: add an EXTENSION scenario at an existing main step -> creates ordered extension with condition/outcome/parent step, appends NON_BREAKING use case revision, then accepts extension substeps.
+- **2a**: invalid extension point syntax -> 400 with valid forms and examples, and no scenario/revision.
+- **3b**: parent step number is out of range -> 422 with `vspec usecase show <KEY-NNN>` guidance and no scenario/revision.
+- **4a**: extension point already exists -> 409 with existing condition and next free extension letter.
+- **5a**: outcome omitted -> defaults to FAILURE and returns a warning to confirm or edit the outcome.

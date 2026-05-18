@@ -23,6 +23,7 @@ export type SignupState = {
   sessionsByToken: Map<string, string>;
   revisionsByEntityId: Map<string, StoredRevision[]>;
   stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
+  usecasesByProjectId: Map<string, StoredUseCase[]>;
   usersByGithubId: Map<string, StoredUser>;
   workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
@@ -92,10 +93,11 @@ export type StoredActor = {
 
 export type StoredRevision = {
   id: string;
-  entity_type: "ACTOR" | "GOAL" | "STAKEHOLDER";
+  entity_type: "ACTOR" | "GOAL" | "STAKEHOLDER" | "USECASE";
   entity_id: string;
   version_number: number;
-  snapshot: StoredActor | StoredGoal | StoredStakeholder;
+  snapshot: StoredActor | StoredGoal | StoredStakeholder | StoredUseCase;
+  change_summary?: string;
 };
 
 export type StoredGoal = {
@@ -116,5 +118,17 @@ export type StoredStakeholder = {
   name: string;
   type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
   description: string;
+  archived_at: null | string;
+};
+
+export type StoredUseCase = {
+  id: string;
+  project_id: string;
+  key: string;
+  title: string;
+  level: "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";
+  format: "BRIEF";
+  primary_actor_id: string;
+  status: "DRAFT";
   archived_at: null | string;
 };

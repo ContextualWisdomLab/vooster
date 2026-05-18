@@ -8,6 +8,7 @@ import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 
 const mergeOpenSchema = z.object({
+  simulate_write_failure: z.boolean().default(false),
   source_branch_id: z.string().min(1),
   strategy: z.enum(["FAST_FORWARD", "SQUASH"]).optional(),
   target: z.literal("main").default("main")
@@ -81,6 +82,26 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
         { command: `vspec merge resolve ${mergeRequest.id}`, reason: "Resolve conflicts before this branch can merge." }
       ]
     });
+  }
+  if (parsed.data.simulate_write_failure) {
+    return reply.code(500).send(
+      problem(
+        500,
+        "Merge write failed",
+        {
+          exit_code: 5,
+          main_head_revision_ids: targetHeads,
+          merge_request: mergeRequest,
+          source_branch: source
+        },
+        [
+          {
+            command: `vspec merge open ${source.name} --retry`,
+            reason: "Retry after the failed merge write."
+          }
+        ]
+      )
+    );
   }
   target.head_revision_ids = {
     ...targetHeads,

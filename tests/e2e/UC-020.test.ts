@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
-import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
+import {
+  createActor,
+  createProject,
+  createUseCase,
+  type ProjectSetup,
+  type UseCase
+} from "../helpers/uc-fixtures.js";
 
 type BranchCreateResponse = {
   branch: {
@@ -35,6 +41,7 @@ type MergeProblemResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
+type Severity = "BREAKING" | "COSMETIC" | "NON_BREAKING";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -47,31 +54,10 @@ afterAll(async () => {
 
 describe("UC-020 - Merge a branch", () => {
   test("MAIN: clean branch merge fast-forwards main", async () => {
-    const setup = await createProject(server, "Merge Branch", "merge-branch", "stub-merge-branch");
-    await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
-    const createdBranch = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ name: "feature/merge-refund" })
-    });
-    const branch = ((await createdBranch.json()) as BranchCreateResponse).branch;
-    const advanced = await server.fetch(
-      `/__test/branches/${branch.id}/usecases/${usecase.id}/revisions`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-        body: JSON.stringify({ severity: "NON_BREAKING", title: "Reviews a refund quickly" })
-      }
-    );
-    expect(advanced.status).toBe(200);
-    const branchRevision = (await advanced.json()) as BranchRevisionResponse;
-
-    const response = await server.fetch("/v1/merges", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ source_branch_id: branch.id, target: "main" })
-    });
+    const { setup, usecase } = await projectUseCase("Merge Branch", "merge-branch", "stub-merge-branch");
+    const branch = await createBranch(setup, "feature/merge-refund");
+    const branchRevision = await advanceBranch(setup, branch.id, usecase.id, "Reviews a refund quickly", "NON_BREAKING");
+    const response = await openMerge(setup, branch.id);
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as MergeOpenResponse;
@@ -96,33 +82,11 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("4a: structural conflict leaves merge request open", async () => {
-    const setup = await createProject(server, "Structural Merge", "structural-merge", "stub-structural-merge");
-    await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
-    const createdBranch = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ name: "feature/structural-conflict" })
-    });
-    const branch = ((await createdBranch.json()) as BranchCreateResponse).branch;
-    await server.fetch(`/__test/branches/${branch.id}/usecases/${usecase.id}/revisions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund quickly" })
-    });
-    const mainAdvanced = await server.fetch(`/__test/usecases/${usecase.id}/revisions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund manually" })
-    });
-    expect(mainAdvanced.status).toBe(200);
-    const mainRevision = (await mainAdvanced.json()) as BranchRevisionResponse;
-
-    const response = await server.fetch("/v1/merges", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ source_branch_id: branch.id, target: "main" })
-    });
+    const { setup, usecase } = await projectUseCase("Structural Merge", "structural-merge", "stub-structural-merge");
+    const branch = await createBranch(setup, "feature/structural-conflict");
+    await advanceBranch(setup, branch.id, usecase.id, "Reviews a refund quickly");
+    const mainRevision = await advanceMain(setup, usecase.id, "Reviews a refund manually");
+    const response = await openMerge(setup, branch.id);
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as MergeOpenResponse;
@@ -148,20 +112,9 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("4b: hard lock blocks merge and keeps merge request open", async () => {
-    const setup = await createProject(server, "Locked Merge", "locked-merge", "stub-locked-merge");
-    await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
-    const createdBranch = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ name: "feature/locked-merge" })
-    });
-    const branch = ((await createdBranch.json()) as BranchCreateResponse).branch;
-    await server.fetch(`/__test/branches/${branch.id}/usecases/${usecase.id}/revisions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund with audit" })
-    });
+    const { setup, usecase } = await projectUseCase("Locked Merge", "locked-merge", "stub-locked-merge");
+    const branch = await createBranch(setup, "feature/locked-merge");
+    await advanceBranch(setup, branch.id, usecase.id, "Reviews a refund with audit");
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
       holder: "session-lock-holder",
@@ -169,11 +122,7 @@ describe("UC-020 - Merge a branch", () => {
       reason: "Another session owns the target."
     });
 
-    const response = await server.fetch("/v1/merges", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ source_branch_id: branch.id, target: "main" })
-    });
+    const response = await openMerge(setup, branch.id);
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as MergeProblemResponse;
@@ -186,3 +135,53 @@ describe("UC-020 - Merge a branch", () => {
     });
   });
 });
+
+async function projectUseCase(name: string, slug: string, code: string) {
+  const setup = await createProject(server, name, slug, code);
+  await createActor(server, setup, "Customer");
+  const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+  return { setup, usecase };
+}
+
+async function createBranch(setup: ProjectSetup, name: string) {
+  const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ name })
+  });
+  return ((await response.json()) as BranchCreateResponse).branch;
+}
+
+async function advanceBranch(
+  setup: ProjectSetup,
+  branchId: string,
+  usecaseId: string,
+  title: string,
+  severity: Severity = "BREAKING"
+) {
+  const response = await server.fetch(`/__test/branches/${branchId}/usecases/${usecaseId}/revisions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ severity, title })
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as BranchRevisionResponse;
+}
+
+async function advanceMain(setup: ProjectSetup, usecaseId: UseCase["id"], title: string) {
+  const response = await server.fetch(`/__test/usecases/${usecaseId}/revisions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ severity: "BREAKING", title })
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as BranchRevisionResponse;
+}
+
+function openMerge(setup: ProjectSetup, branchId: string) {
+  return server.fetch("/v1/merges", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ source_branch_id: branchId, target: "main" })
+  });
+}

@@ -20,6 +20,15 @@ type RevertResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: { current_revision_id: string; id: string; title: string };
 };
+type RevertProblem = {
+  expected_entity_id?: string;
+  missing_revision?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
+type HistoryResponse = {
+  revisions: Array<{ revision: string }>;
+};
 
 let server: TestServer;
 beforeAll(async () => {
@@ -81,5 +90,34 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       command: "vspec session list --status=active",
       reason: "Check sessions affected by the revert."
     });
+  });
+
+  test("2a: missing target revision returns history guidance without appending", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Revert Missing", "revert-missing", "stub-revert-missing");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ revision_id: "rev-missing" })
+    });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as RevertProblem;
+    expect(problem.title).toMatch(/revision not found/i);
+    expect(problem.missing_revision).toBe("rev-missing");
+    expect(problem.expected_entity_id).toBe(usecase.id);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key}`,
+      reason: "Find valid revision IDs for this use case."
+    });
+
+    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    const body = (await history.json()) as HistoryResponse;
+    expect(body.revisions.map((revision) => revision.revision)).toEqual([
+      usecase.current_revision_id
+    ]);
   });
 });

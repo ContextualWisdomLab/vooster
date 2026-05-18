@@ -19,6 +19,7 @@ export type SignupState = {
   projectsById: Map<string, StoredProject>;
   sessionsByToken: Map<string, string>;
   usersByGithubId: Map<string, StoredUser>;
+  workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
   workspaceSlugs: Set<string>;
 };

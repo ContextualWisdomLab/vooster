@@ -18,6 +18,9 @@ export function registerProjectRoutes(app: FastifyInstance, state: SignupState) 
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
     createProject(request, reply, state)
   );
+  app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
+    archiveWorkspace(request, reply, state)
+  );
 }
 
 function createProject(
@@ -51,6 +54,10 @@ function createProject(
         example_keys: ["PAY", "PAY2", "OPS2026"]
       })
     );
+  }
+
+  if (state.workspaceArchivedAt.has(workspaceId)) {
+    return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
   const existing = existingProjectForKey(state, workspaceId, parsed.data.key);
@@ -104,6 +111,15 @@ function createProject(
     default_branch: branch,
     recommended_next_command: "vspec actor define"
   });
+}
+
+function archiveWorkspace(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
+  state.workspaceArchivedAt.set(workspaceIdFrom(request.params), new Date().toISOString());
+  return reply.send({ archived: true });
 }
 
 function workspaceIdFrom(params: unknown): string {

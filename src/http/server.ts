@@ -21,6 +21,7 @@ function initialState(options: ServerOptions): SignupState {
     projectsById: new Map(),
     sessionsByToken: new Map(),
     usersByGithubId: new Map(),
+    workspaceArchivedAt: new Map(),
     workspacesById: new Map(),
     workspaceSlugs: new Set()
   };

@@ -12,6 +12,11 @@ type PushResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type HistoryResponse = { revisions: Array<{ revision: string; version_number: number }> };
+type SyncProblem = {
+  offending_files: Array<{ line: number; message: string; path: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -80,6 +85,45 @@ describe("UC-029 - Sync local files with the server", () => {
     const historyBody = (await history.json()) as HistoryResponse;
     expect(historyBody.revisions.map((revision) => revision.revision)).toEqual([
       newRevision,
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("3a: malformed push file returns doctor guidance without a revision", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Sync Parse", "sync-parse", "stub-sync-parse");
+
+    const pushed = await server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        branch: "main",
+        files: [{
+          base_revision: usecase.current_revision_id,
+          content: "# Missing frontmatter",
+          path: `specs/${usecase.key}.md`
+        }]
+      })
+    });
+
+    expect(pushed.status).toBe(400);
+    const problem = (await pushed.json()) as SyncProblem;
+    expect(problem.title).toMatch(/sync file parse failed/i);
+    expect(problem.offending_files).toContainEqual({
+      line: 1,
+      message: "Missing frontmatter",
+      path: `specs/${usecase.key}.md`
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec doctor specs/${usecase.key}.md`,
+      reason: "Validate the local file before pushing."
+    });
+
+    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    const historyBody = (await history.json()) as HistoryResponse;
+    expect(historyBody.revisions.map((revision) => revision.revision)).toEqual([
       usecase.current_revision_id
     ]);
   });

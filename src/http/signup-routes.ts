@@ -172,7 +172,11 @@ function completeVerifiedSignup(
 function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubProfile) {
   const user = state.usersByGithubId.get(profile.githubId);
   if (user === undefined) {
-    return reply.code(404).send(problem(404, "No vspec user exists for GitHub identity"));
+    return reply.code(404).send(
+      problem(404, "No vspec user exists for GitHub identity", {}, [
+        { command: "vspec login", reason: "Sign up before logging in." }
+      ])
+    );
   }
 
   user.last_login_at = new Date().toISOString();

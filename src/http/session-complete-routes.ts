@@ -32,6 +32,21 @@ function completeSession(
   if (!canCompleteSession(request, state, session)) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
+  if (session.status !== "ACTIVE") {
+    return reply.code(409).send(
+      problem(
+        409,
+        "Session is not active",
+        { current_status: session.status },
+        [
+          {
+            command: `vspec session show ${session.id}`,
+            reason: "Inspect the current session state before retrying."
+          }
+        ]
+      )
+    );
+  }
 
   const releasedLockIds = releaseSessionLocks(state, session.id);
   session.status = "COMPLETED";

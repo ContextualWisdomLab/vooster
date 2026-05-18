@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { addInterest } from "../helpers/interest-fixtures.js";
+import {
+  addStep,
+  createMainScenario,
+  type ProblemResponse,
+  type ScenarioResponse,
+  type StepResponse
+} from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
   createActor,
@@ -7,43 +14,6 @@ import {
   createStakeholder,
   createUseCase
 } from "../helpers/uc-fixtures.js";
-
-type Scenario = {
-  id: string;
-  order_index: number;
-  outcome: string;
-  type: string;
-  usecase_id: string;
-};
-type ScenarioStep = {
-  action: string;
-  actor_id: string;
-  id: string;
-  scenario_id: string;
-  step_number: number;
-};
-type RevisionResponse = {
-  change_summary: string;
-  entity_id: string;
-  entity_type: string;
-  severity: string;
-  version_number: number;
-};
-type ScenarioResponse = {
-  revision: RevisionResponse;
-  scenario: Scenario;
-  steps: ScenarioStep[];
-};
-type StepResponse = {
-  revision: RevisionResponse;
-  scenario_steps: ScenarioStep[];
-  step: ScenarioStep;
-};
-type ProblemResponse = {
-  existing_scenario_id?: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 
@@ -67,11 +37,7 @@ describe("UC-011 - Write the main success scenario", () => {
       stakeholder: "Product Manager"
     });
 
-    const createdScenario = await server.fetch(`/v1/usecases/${usecase.id}/scenarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ type: "MAIN_SUCCESS" })
-    });
+    const createdScenario = await createMainScenario(server, usecase.id, setup.cookie);
 
     expect(createdScenario.status).toBe(201);
     const scenarioBody = (await createdScenario.json()) as ScenarioResponse;
@@ -90,7 +56,7 @@ describe("UC-011 - Write the main success scenario", () => {
     });
     expect(scenarioBody.steps).toEqual([]);
 
-    const firstStep = await addStep(scenarioBody.scenario.id, setup.cookie, {
+    const firstStep = await addStep(server, scenarioBody.scenario.id, setup.cookie, {
       action: "Places an order.",
       actor: "Customer"
     });
@@ -104,7 +70,7 @@ describe("UC-011 - Write the main success scenario", () => {
     });
     expect(firstStepBody.revision.version_number).toBe(4);
 
-    const secondStep = await addStep(scenarioBody.scenario.id, setup.cookie, {
+    const secondStep = await addStep(server, scenarioBody.scenario.id, setup.cookie, {
       action: "Reviews the order.",
       actor: "Fulfillment Clerk"
     });
@@ -133,18 +99,10 @@ describe("UC-011 - Write the main success scenario", () => {
       interest: "Checkout revenue is protected.",
       stakeholder: "Product Manager"
     });
-    const first = await server.fetch(`/v1/usecases/${usecase.id}/scenarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ type: "MAIN_SUCCESS" })
-    });
+    const first = await createMainScenario(server, usecase.id, setup.cookie);
     const firstBody = (await first.json()) as ScenarioResponse;
 
-    const duplicate = await server.fetch(`/v1/usecases/${usecase.id}/scenarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ type: "MAIN_SUCCESS" })
-    });
+    const duplicate = await createMainScenario(server, usecase.id, setup.cookie);
 
     expect(duplicate.status).toBe(409);
     const problem = (await duplicate.json()) as ProblemResponse;
@@ -162,15 +120,3 @@ describe("UC-011 - Write the main success scenario", () => {
     ]);
   });
 });
-
-async function addStep(
-  scenarioId: string,
-  cookie: string,
-  body: { action: string; actor: string; force?: boolean }
-) {
-  return server.fetch(`/v1/scenarios/${scenarioId}/steps`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify(body)
-  });
-}

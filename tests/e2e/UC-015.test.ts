@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { lockUseCase, type LockCreateResponse } from "../helpers/lock-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
@@ -14,6 +15,8 @@ type ArchiveResponse = {
 type HistoryResponse = { revisions: Array<{ change_summary?: string; version_number: number }> };
 type ArchiveProblem = {
   archived_at?: string;
+  expires_at?: string;
+  holding_session?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -93,6 +96,27 @@ describe("UC-015 - Archive or restore a use case", () => {
       id: session.id,
       pinned_revision: usecase.current_revision_id
     });
+  });
+
+  test("3b: active hard lock blocks archive without writing a revision", async () => {
+    const setup = await createProject(server, "Archive Locked", "archive-locked", "stub-archive-locked");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews locked archive");
+    const created = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "HARD",
+      reason: "Session owns the archive boundary."
+    }, "session-archive-lock");
+    const lock = ((await created.json()) as LockCreateResponse).lock;
+
+    const response = await archiveUseCase(usecase.id, setup.cookie);
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as ArchiveProblem;
+    expect(problem.title).toMatch(/hard lock/i);
+    expect(problem.holding_session).toBe("session-archive-lock");
+    expect(problem.expires_at).toBe(lock.expires_at);
+    expect(await revisionHistory(usecase.id, setup.cookie))
+      .toMatchObject({ revisions: [{ version_number: 1 }] });
   });
 });
 

@@ -126,18 +126,40 @@ describe("UC-003 - Invite a member", () => {
       reason: "Resend the existing invitation email."
     });
   });
+
+  test("5a: delivery failure persists invitation with correction guidance", async () => {
+    const owner = await signup(server, "Invite Delivery", "invite-delivery", "stub-delivery-owner");
+
+    const response = await inviteMember(
+      owner.workspaceId,
+      owner.cookie,
+      "stub-delivery-fail@users.noreply.github.com",
+      "EDITOR",
+      { simulate_delivery_failure: true }
+    );
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as InvitationResponse;
+    expect(body.invitation.delivery_status).toBe("FAILED");
+    expect(body.invitation.token).toHaveLength(36);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec member invite --email <corrected>",
+      reason: "Correct the address and send a new invitation."
+    });
+  });
 });
 
 function inviteMember(
   workspaceId: string,
   cookie: string,
   email: string,
-  role: "EDITOR" | "OWNER"
+  role: "EDITOR" | "OWNER",
+  extra: Record<string, unknown> = {}
 ) {
   return server.fetch(`/v1/workspaces/${workspaceId}/invitations`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify({ email, role })
+    body: JSON.stringify({ email, role, ...extra })
   });
 }
 

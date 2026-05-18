@@ -36,6 +36,18 @@ function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: Sig
     return reply.code(400).send(problem(400, "cursor is opaque — pass exactly what the previous response returned"));
   }
   const actors = state.actorsByProjectId.get(projectId) ?? [];
+  if (
+    parsed.data.actor_id !== undefined &&
+    !actors.some((actor) => actor.id === parsed.data.actor_id)
+  ) {
+    return reply.send({
+      items: [],
+      next_cursor: null,
+      suggested_next_actions: [
+        { command: "vspec actor list", reason: "Find a valid actor id for this project." }
+      ]
+    });
+  }
   const sorted = filteredUseCases(state, projectId, parsed.data, cursor)
     .sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);

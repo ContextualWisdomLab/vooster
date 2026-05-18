@@ -4,6 +4,12 @@ import {
   createUseCaseWithMainStep,
   type StepResponse
 } from "../helpers/scenario-fixtures.js";
+import {
+  advanceBranch,
+  advanceMain,
+  createBranch,
+  projectUseCase
+} from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
 type DiffResponse = {
@@ -13,13 +19,16 @@ type DiffResponse = {
     path: string;
     revision: string;
     severity: string;
+    source_branch?: string;
   }>;
+  cross_branch?: boolean;
   format: string;
   from_revision: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   summary: { breaking: number; cosmetic: number; non_breaking: number };
   to_revision: string;
   usecase: { id: string; key: string };
+  warnings?: Array<{ from_branch: string; to_branch: string; type: string }>;
 };
 type DiffProblem = {
   diff?: unknown;
@@ -101,6 +110,43 @@ describe("UC-025 - Compare two revisions of a use case", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec history ${usecase.key}`,
       reason: "Find valid revision IDs for this use case."
+    });
+  });
+
+  test("3a: cross-branch diff returns warning and branch labels", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Diff Cross Branch", "diff-cross-branch", "stub-diff-cross");
+    const branch = await createBranch(server, setup, "feature/diff-cross");
+    const branchRevision = await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund quickly"
+    );
+    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/diff?from=${branchRevision.revision_id}&to=${mainRevision.revision_id}&format=json`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as DiffResponse;
+    expect(body.cross_branch).toBe(true);
+    expect(body.warnings).toContainEqual({
+      from_branch: "feature/diff-cross",
+      to_branch: "main",
+      type: "CROSS_BRANCH_DIFF"
+    });
+    expect(body.summary).toEqual({ breaking: 1, cosmetic: 0, non_breaking: 0 });
+    expect(body.changes).toContainEqual({
+      change_type: "CHANGE",
+      entity_type: "USECASE",
+      path: "usecase.title",
+      revision: mainRevision.revision_id,
+      severity: "BREAKING",
+      source_branch: "main"
     });
   });
 });

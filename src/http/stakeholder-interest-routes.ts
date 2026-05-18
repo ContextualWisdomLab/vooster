@@ -152,10 +152,21 @@ function removeStakeholderInterest(
     revision
   ]);
 
+  const remaining = interestsWithStakeholders(state, found.usecase.id, found.projectId);
   return reply.send({
     removed_stakeholder_interest_id: removed.id,
     revision,
-    stakeholder_interests: interestsWithStakeholders(state, found.usecase.id, found.projectId)
+    stakeholder_interests: remaining,
+    ...(remaining.length === 0
+      ? {
+          warnings: [
+            {
+              type: "NO_STAKEHOLDER_INTERESTS",
+              message: "Use case cannot leave DRAFT until an interest is added."
+            }
+          ]
+        }
+      : {})
   });
 }
 

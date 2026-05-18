@@ -36,14 +36,11 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       await projectUseCase(server, "Revert Main", "revert-main", "stub-revert-main");
     const targetRevision = usecase.current_revision_id;
     const currentHead = await advanceNonBreaking(
-      usecase.id,
-      setup.cookie,
-      "Reviews a refund quickly"
+      usecase.id, setup.cookie, "Reviews a refund quickly"
     );
 
     const response = await revert(usecase.id, setup.cookie, {
-      revision_id: targetRevision,
-      summary: "Restore refund wording"
+      revision_id: targetRevision, summary: "Restore refund wording"
     });
 
     expect(response.status).toBe(201);
@@ -101,9 +98,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       `vspec revert ${usecase.key} --to ${targetRevision} --force --summary "<reason>"`,
       reason: "Rerun with force only if the breaking impact is acceptable." });
 
-    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
-      currentHead.revision_id, targetRevision
-    ]);
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([currentHead.revision_id, targetRevision]);
   });
 
   test("3a: hard lock held by another session blocks revert", async () => {
@@ -114,9 +109,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       "session-revert-holder");
     const lock = ((await locked.json()) as LockCreateResponse).lock;
 
-    const response = await revert(usecase.id, setup.cookie, {
-      revision_id: usecase.current_revision_id
-    });
+    const response = await revert(usecase.id, setup.cookie, { revision_id: usecase.current_revision_id });
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as RevertProblem;
@@ -171,9 +164,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
   });
 });
 
-function jsonHeaders(cookie: string) {
-  return { "Content-Type": "application/json", Cookie: cookie };
-}
+function jsonHeaders(cookie: string) { return { "Content-Type": "application/json", Cookie: cookie }; }
 
 function historyAction(key: string) {
   return { command: `vspec history ${key}`, reason: "Review the append-only revision history." };

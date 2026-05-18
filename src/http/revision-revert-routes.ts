@@ -10,13 +10,12 @@ const revertBodySchema = z.object({
   force: z.boolean().default(false),
   revision_id: z.string().min(1),
   simulate_gherkin_drift: z.boolean().default(false),
+  simulate_write_failure: z.boolean().default(false),
   summary: z.string().optional()
 });
 
 export function registerRevisionRevertRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
-    revertUseCase(request, reply, state)
-  );
+  app.post("/v1/usecases/:usecaseId/revert", (request, reply) => revertUseCase(request, reply, state));
 }
 
 function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -52,6 +51,9 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
     return reply
       .code(409)
       .send(breakingRevertProblem(found.usecase, target.id, current, state));
+  }
+  if (parsed.data.simulate_write_failure) {
+    return reply.code(500).send(writeFailureProblem(found.usecase, target.id));
   }
 
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
@@ -107,15 +109,9 @@ function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
   return problem(
     404,
     "Revision not found",
-    {
-      expected_entity_id: usecase.id,
-      missing_revision: revisionId
-    },
+    { expected_entity_id: usecase.id, missing_revision: revisionId },
     [
-      {
-        command: `vspec history ${usecase.key}`,
-        reason: "Find valid revision IDs for this use case."
-      }
+      { command: `vspec history ${usecase.key}`, reason: "Find valid revision IDs for this use case." }
     ]
   );
 }
@@ -124,17 +120,10 @@ function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
   return problem(
     409,
     "Use case is HARD locked",
-    {
-      expires_at: lock.expires_at,
-      held_by_user_id: lock.held_by_user_id,
-      holding_session: lock.held_by_session_id,
-      reason: lock.reason
-    },
+    { expires_at: lock.expires_at, held_by_user_id: lock.held_by_user_id,
+      holding_session: lock.held_by_session_id, reason: lock.reason },
     [
-      {
-        command: `vspec who ${usecase.key}`,
-        reason: "Find the lock holder before retrying the revert."
-      }
+      { command: `vspec who ${usecase.key}`, reason: "Find the lock holder before retrying the revert." }
     ]
   );
 }
@@ -170,21 +159,24 @@ function activeSessionIds(state: SignupState, usecaseId: string) {
 }
 
 function gherkinDriftWarning() {
-  return {
-    message: "Pinned CI feature files will drift on next sync.",
-    type: "GHERKIN_DRIFT"
-  };
+  return { message: "Pinned CI feature files will drift on next sync.", type: "GHERKIN_DRIFT" };
+}
+
+function writeFailureProblem(usecase: StoredUseCase, targetRevision: string) {
+  return problem(
+    500,
+    "Revert write failed",
+    { exit_code: 5 },
+    [
+      { command: `vspec revert ${usecase.key} --to ${targetRevision} --retry`,
+        reason: "Retry after the revert write failure." }
+    ]
+  );
 }
 
 function nextActions(key: string) {
   return [
-    {
-      command: `vspec history ${key}`,
-      reason: "Review the append-only revision history."
-    },
-    {
-      command: "vspec session list --status=active",
-      reason: "Check sessions affected by the revert."
-    }
+    { command: `vspec history ${key}`, reason: "Review the append-only revision history." },
+    { command: "vspec session list --status=active", reason: "Check sessions affected by the revert." }
   ];
 }

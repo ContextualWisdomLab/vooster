@@ -236,6 +236,16 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: same input hash is previewed twice -> second response is byte-identical for impact fields and marks `cached: true`.
 - ***a**: caller lacks workspace membership -> 403 without disclosing the use case or affected sessions.
 
+### UC-028
+
+- **MAIN**: authenticated member adds, lists, edits, resolves, and deletes own use-case comment -> comment payload preserves markdown body, authorship, timestamps, target metadata, and next actions.
+- **3a**: add/edit receives empty or whitespace-only body -> 422 `empty_body` with `--body "<text>"` guidance and no comment mutation.
+- **3b**: target use case is missing or archived -> 404 with requested key/id and `vspec usecase list` guidance.
+- **4a**: resolving an already resolved comment -> returns existing payload without changing `resolved_at`.
+- **4b**: deleting another user's comment -> 403 `not_owner`, preserves the comment.
+- **5b**: editing another user's comment -> 403 `not_owner`, preserves the body.
+- ***a**: simulated server write failure -> returns exit code 5 with retry guidance and no inserted/removed comment.
+
 ### UC-029
 
 - **MAIN**: authenticated member pulls and pushes one use case markdown file -> pull returns canonical content with revision frontmatter; push with matching `base_revision` appends a server revision, returns `OK`, fresh revision, refreshed cache entry, and suggested next actions.

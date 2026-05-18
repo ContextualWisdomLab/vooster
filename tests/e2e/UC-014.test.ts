@@ -1,0 +1,83 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { startServer, type TestServer } from "../helpers/server.js";
+import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
+
+type SearchResponse = {
+  items: Array<{
+    key: string;
+    level: string;
+    primary_actor: string;
+    status: string;
+    title: string;
+    trigger_excerpt: string;
+  }>;
+  next_cursor: null | string;
+};
+
+let server: TestServer;
+beforeAll(async () => { server = await startServer(); });
+afterAll(async () => { await server.stop(); });
+
+describe("UC-014 - Search and filter use cases", () => {
+  test("MAIN: list filtered use case previews with cursor pagination", async () => {
+    const setup = await createProject(server, "Search Use Cases", "search-usecases", "stub-search");
+    const customer = await createActor(server, setup, "Customer");
+    await createUseCase(server, setup, "Customer", "Reviews a refund");
+    await createUseCase(server, setup, "Customer", "Reviews an invoice");
+    await createActor(server, setup, "Admin");
+    await createUseCase(server, setup, "Admin", "Reviews an admin report");
+    const archived = await createUseCase(server, setup, "Customer", "Reviews an archived refund");
+    await archiveUseCase(archived.id, setup.cookie);
+
+    const first = await searchUseCases(setup.cookie, setup.projectId, {
+      actor_id: customer.id,
+      level: "USER_GOAL",
+      limit: "1",
+      q: "Reviews",
+      status: "DRAFT"
+    });
+
+    expect(first.status).toBe(200);
+    const firstBody = (await first.json()) as SearchResponse;
+    expect(firstBody.items).toEqual([{
+      key: "CHK-001",
+      level: "USER_GOAL",
+      primary_actor: "Customer",
+      status: "DRAFT",
+      title: "Reviews a refund",
+      trigger_excerpt: ""
+    }]);
+    expect(firstBody.next_cursor).toEqual(expect.any(String));
+
+    const second = await searchUseCases(setup.cookie, setup.projectId, {
+      actor_id: customer.id,
+      cursor: firstBody.next_cursor ?? "",
+      level: "USER_GOAL",
+      limit: "1",
+      q: "Reviews",
+      status: "DRAFT"
+    });
+
+    expect(second.status).toBe(200);
+    const secondBody = (await second.json()) as SearchResponse;
+    expect(secondBody.items.map((item) => item.key)).toEqual(["CHK-002"]);
+    expect(secondBody.next_cursor).toBeNull();
+  });
+});
+
+async function archiveUseCase(usecaseId: string, cookie: string) {
+  await server.fetch(`/__test/usecases/${usecaseId}/archive`, {
+    method: "POST",
+    headers: { Cookie: cookie }
+  });
+}
+
+function searchUseCases(
+  cookie: string,
+  projectId: string,
+  query: Record<string, string>
+) {
+  return server.fetch(`/v1/projects/${projectId}/usecases?${new URLSearchParams(query)}`, {
+    headers: { Cookie: cookie }
+  });
+}

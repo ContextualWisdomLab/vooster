@@ -121,6 +121,15 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: malformed cursor -> 400 with the opaque-cursor message; cursor past the last row -> 200 empty page with `next_cursor: null`.
 - ***a**: no rows match filters -> 200 empty items, `next_cursor: null`, and broadening-filter guidance.
 
+### UC-015
+
+- **MAIN**: authenticated writer archives an active use case -> sets `archived_at`, appends an archive revision, reports affected session/lock counts, and hides it from default UC-014 listing.
+- **2a**: archive is requested for an already archived use case -> 409 with existing `archived_at`, restore guidance, and no new revision.
+- **3a**: active sessions pin this use case -> archive still succeeds and response lists affected session ids while pinned reads remain possible.
+- **3b**: active HARD lock exists -> archive returns 409 with holder/expires and leaves `archived_at` and revisions unchanged.
+- ***a**: restore an archived use case -> clears `archived_at`, appends a restore revision, and re-includes it in default UC-014 listing.
+- ***b**: hard delete flag is supplied -> 400 explaining destructive deletion is post-MVP and pointing to archive.
+
 ### UC-016
 
 - **MAIN**: authenticated project member starts a work session with pinned use case keys -> creates an ACTIVE session with pinned current revisions, writes `.vspec/session.json` metadata, and returns show/complete next actions.

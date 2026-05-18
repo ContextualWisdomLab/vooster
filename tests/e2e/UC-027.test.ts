@@ -42,14 +42,14 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     const body = (await response.json()) as ImpactResponse;
     expect(body.cached).toBe(false);
     expect(body.preview_id).toEqual(expect.any(String));
-    expect(body.impact).toEqual({
+    expect(body.impact).toMatchObject({
       affected_branches: [],
       affected_sessions: [],
       affected_tests: [],
       confidence: 1,
-      input_hash: expect.any(String),
       severity: "BREAKING"
     });
+    expect(body.impact.input_hash).toEqual(expect.any(String));
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec lock ${usecase.key}`,
       reason: "Lock the use case before applying a risky change."

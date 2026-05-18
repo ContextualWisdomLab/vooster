@@ -16,6 +16,7 @@ import type {
 } from "./signup-types.js";
 
 const useCaseRequestSchema = z.object({
+  force: z.boolean().default(false),
   level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]).default("USER_GOAL"),
   primary_actor: z.string().min(1),
   priority: z.enum(["P0", "P1", "P2", "P3"]).default("P2"),
@@ -37,6 +38,21 @@ function createUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   const parsed = useCaseRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid use case request"));
+  }
+  if (!parsed.data.force && !titleLooksLikeVerbPhrase(parsed.data.title)) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Use case title should be a verb phrase",
+        { suggested_titles: suggestedTitles(parsed.data.title) },
+        [
+          {
+            command: "vspec usecase create --force",
+            reason: "Create anyway after reviewing the title."
+          }
+        ]
+      )
+    );
   }
   const project = state.projectsById.get(projectId);
   if (project === undefined) {
@@ -92,4 +108,14 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
+}
+
+function titleLooksLikeVerbPhrase(title: string): boolean {
+  return /^(adds?|approves?|cancels?|creates?|places?|promotes?|renews?|requests?|reviews?|submits?|tracks?|writes?)\b/i.test(
+    title
+  );
+}
+
+function suggestedTitles(title: string): string[] {
+  return [`Reviews ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
 }

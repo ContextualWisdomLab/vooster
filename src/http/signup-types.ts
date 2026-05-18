@@ -83,6 +83,7 @@ export type StoredSpecBranch = {
   owner_id: string;
   base_branch_id: null | string;
   head_revision_ids?: Record<string, string>;
+  merged_at?: string;
   status?: "ABANDONED" | "ACTIVE" | "MERGED";
 };
 export type StoredActor = {
@@ -95,7 +96,6 @@ export type StoredActor = {
   aliases: string[];
   archived_at: null | string;
 };
-
 export type StoredRevision = {
   id: string;
   entity_type: "ACTOR" | "GOAL" | "STAKEHOLDER" | "USECASE";

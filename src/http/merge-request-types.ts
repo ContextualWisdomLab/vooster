@@ -1,5 +1,6 @@
 export type StoredMergeRequest = {
   conflicts: Array<{ entity_id: string; type: string }>;
+  created_by?: string;
   id: string;
   impact: {
     affected_branches: string[];
@@ -10,4 +11,5 @@ export type StoredMergeRequest = {
   status: "CLOSED" | "MERGED" | "OPEN";
   strategy: "FAST_FORWARD";
   target_branch_id: string;
+  resolved_at?: string;
 };

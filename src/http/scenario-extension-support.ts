@@ -42,6 +42,23 @@ export function createExtensionScenario(
       .code(422)
       .send(parentStepOutOfRangeProblem(found.usecase.key, parentStepNumber));
   }
+  const existing = extensionAtPoint(state, found.usecase.id, data.extension_point);
+  if (existing !== undefined) {
+    return reply.code(409).send(
+      problem(
+        409,
+        "Extension point is already taken",
+        {
+          existing_condition: existing.condition,
+          suggested_extension_point: nextExtensionPoint(
+            state,
+            found.usecase.id,
+            data.extension_point
+          )
+        }
+      )
+    );
+  }
 
   const scenario: StoredScenario = {
     id: randomUUID(),
@@ -82,4 +99,31 @@ function parentStepOutOfRangeProblem(usecaseKey: string, parentStepNumber: numbe
       }
     ]
   );
+}
+
+function extensionAtPoint(
+  state: SignupState,
+  usecaseId: string,
+  extensionPoint: string
+): StoredScenario | undefined {
+  return (state.scenariosByUseCaseId.get(usecaseId) ?? []).find(
+    (scenario) => scenario.extension_point === extensionPoint
+  );
+}
+
+function nextExtensionPoint(
+  state: SignupState,
+  usecaseId: string,
+  extensionPoint: string
+): string {
+  const prefix = extensionPoint.slice(0, -1);
+  let letterCode = extensionPoint.charCodeAt(extensionPoint.length - 1) + 1;
+  let candidate = `${prefix}${String.fromCharCode(letterCode)}`;
+
+  while (extensionAtPoint(state, usecaseId, candidate) !== undefined) {
+    letterCode += 1;
+    candidate = `${prefix}${String.fromCharCode(letterCode)}`;
+  }
+
+  return candidate;
 }

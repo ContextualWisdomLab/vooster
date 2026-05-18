@@ -62,7 +62,7 @@ export type StoredMembership = {
   id: string;
   user_id: string;
   workspace_id: string;
-  role: "OWNER";
+  role: "EDITOR" | "OWNER";
 };
 
 export type StoredProject = {

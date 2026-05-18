@@ -10,6 +10,7 @@ import { registerGherkinExportRoutes } from "./gherkin-export-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerImpactRoutes } from "./impact-routes.js";
+import { registerInvitationRoutes } from "./invitation-routes.js";
 import { registerLockRoutes } from "./lock-routes.js";
 import { registerMergeRoutes } from "./merge-routes.js";
 import { registerMergeResolveRoutes } from "./merge-resolve-routes.js";
@@ -51,6 +52,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerGoalRoutes(app, state);
   registerGoalPromotionRoutes(app, state);
   registerImpactRoutes(app, state);
+  registerInvitationRoutes(app, options, state);
   registerCommentRoutes(app, state);
   registerChangeCommitRoutes(app, state);
   registerStakeholderRoutes(app, state);

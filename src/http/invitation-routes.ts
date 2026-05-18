@@ -54,6 +54,10 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   if (activeMembershipForEmail(state, params.workspaceId, parsed.data.email) !== undefined) {
     return reply.code(422).send(alreadyMemberProblem());
   }
+  const existing = pendingInvitationForEmail(state, params.workspaceId, parsed.data.email);
+  if (existing !== undefined) {
+    return reply.code(200).send(invitationResponse(existing, true));
+  }
   const invitation = {
     accepted_at: null,
     delivery_status: "SENT" as const,
@@ -111,6 +115,17 @@ function activeMembershipForEmail(state: SignupState, workspaceId: string, email
   );
 }
 
+function pendingInvitationForEmail(state: SignupState, workspaceId: string, email: string) {
+  const now = Date.now();
+  return [...invitations(state).values()].find(
+    (invitation) =>
+      invitation.workspace_id === workspaceId &&
+      invitation.email === email &&
+      invitation.accepted_at === null &&
+      Date.parse(invitation.expires_at) > now
+  );
+}
+
 function userForProfile(
   state: SignupState,
   profile: { avatarUrl: string; email: string; githubId: string; name: string }
@@ -130,14 +145,17 @@ function userForProfile(
   return user;
 }
 
-function invitationResponse(invitation: StoredInvitation) {
+function invitationResponse(invitation: StoredInvitation, includeResend = false) {
   return {
     invitation,
     suggested_next_actions: [
       {
         command: "vspec member list",
         reason: "Review pending and active workspace members."
-      }
+      },
+      ...(includeResend
+        ? [{ command: "vspec member invite --resend", reason: "Resend the existing invitation email." }]
+        : [])
     ]
   };
 }

@@ -65,6 +65,25 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
       )
     );
   }
+  const missingManualValue = manualResolutionMissingValue(parsed.data.resolutions);
+  if (missingManualValue !== undefined) {
+    return reply.code(400).send(
+      problem(
+        400,
+        "Manual resolution requires a value",
+        {
+          field: missingManualValue.field,
+          offending_entity_id: missingManualValue.entity_id
+        },
+        [
+          {
+            command: `vspec merge show ${merge.id}`,
+            reason: "Review the original conflict before resolving manually."
+          }
+        ]
+      )
+    );
+  }
 
   const newRevisions = resolvedRevisions(state, merge.conflicts, parsed.data.resolutions);
   for (const revision of newRevisions) {
@@ -87,6 +106,12 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
     source_branch: source,
     suggested_next_actions: nextActions(state, newRevisions)
   });
+}
+
+function manualResolutionMissingValue(resolutions: Array<z.infer<typeof resolutionSchema>>) {
+  return resolutions.find(
+    (resolution) => resolution.strategy === "MANUAL" && resolution.value === undefined
+  );
 }
 
 function resolvedRevisions(

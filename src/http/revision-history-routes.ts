@@ -7,7 +7,8 @@ import { useCaseWithProjectId } from "./usecase-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 
 const historyQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(200).default(50)
+  limit: z.coerce.number().int().positive().max(200).default(50),
+  project_id: z.string().optional()
 });
 
 export function registerRevisionHistoryRoutes(app: FastifyInstance, state: SignupState) {
@@ -19,12 +20,13 @@ export function registerRevisionHistoryRoutes(app: FastifyInstance, state: Signu
 function listHistory(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = historyQuerySchema.safeParse(request.query);
-  const found = useCaseWithProjectId(state, params.usecaseId);
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
-  }
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid history request"));
+  }
+  const found = useCaseWithProjectId(state, params.usecaseId);
+  if (found === undefined) {
+    const projectKey = projectKeyFor(state, parsed.data.project_id);
+    return reply.code(404).send(missingHistoryProblem(projectKey));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
@@ -43,6 +45,24 @@ function listHistory(request: FastifyRequest, reply: FastifyReply, state: Signup
     truncated: allRows.length > revisions.length,
     usecase: { id: found.usecase.id, key: found.usecase.key }
   });
+}
+
+function missingHistoryProblem(projectKey: string) {
+  return problem(
+    404,
+    "Use case not found",
+    { project_key: projectKey },
+    [
+      {
+        command: `vspec usecase list --project ${projectKey}`,
+        reason: "Find a use case in the current project."
+      }
+    ]
+  );
+}
+
+function projectKeyFor(state: SignupState, projectId: string | undefined): string {
+  return state.projectsById.get(projectId ?? "")?.key ?? "unknown";
 }
 
 function revisionsFor(state: SignupState, usecase: StoredUseCase) {

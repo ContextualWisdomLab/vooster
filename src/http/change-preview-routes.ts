@@ -46,17 +46,20 @@ export function previewSpecChange(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid change proposal"));
   }
-  const usecase = useCaseByKey(state, parsed.data.usecase_key);
-  if (usecase === undefined || usecase.archived_at !== null) {
+  const access = accessibleUseCaseByKey(request, state, parsed.data.usecase_key);
+  if (access === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  const membership = membershipForProject(request, state, usecase.project_id);
-  if (membership === undefined || isReadOnlyMembership(state, membership)) {
+  const { membership, usecase } = access;
+  if (isReadOnlyMembership(state, membership)) {
     return reply.code(403).send(problem(403, "Write access required"));
   }
   const patch = parsed.data.patch;
   if (patch.entity_id !== usecase.id) {
     return reply.code(400).send(problem(400, "Patch targets a different use case"));
+  }
+  if (parsed.data.base_revision !== usecase.current_revision_id) {
+    return reply.code(409).send(staleBaseProblem(state, usecase));
   }
 
   const preview = changePreview(usecase, parsed.data.base_revision, patch.fields.title);
@@ -108,12 +111,47 @@ function previews(state: SignupState) {
   return created;
 }
 
-function useCaseByKey(state: SignupState, key: string): StoredUseCase | undefined {
-  for (const usecases of state.usecasesByProjectId.values()) {
-    const usecase = usecases.find((candidate) => candidate.key === key);
-    if (usecase !== undefined) {
-      return usecase;
-    }
+function accessibleUseCaseByKey(
+  request: FastifyRequest,
+  state: SignupState,
+  key: string
+) {
+  const usecase = useCasesByKey(state, key).find((candidate) =>
+    membershipForProject(request, state, candidate.project_id) !== undefined);
+  if (usecase === undefined || usecase.archived_at !== null) {
+    return undefined;
   }
-  return undefined;
+  const membership = membershipForProject(request, state, usecase.project_id);
+  return membership === undefined ? undefined : { membership, usecase };
+}
+
+function useCasesByKey(state: SignupState, key: string): StoredUseCase[] {
+  const matches = [];
+  for (const usecases of state.usecasesByProjectId.values()) {
+    matches.push(...usecases.filter((candidate) => candidate.key === key));
+  }
+  return matches;
+}
+
+function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
+  const current = (state.revisionsByEntityId.get(usecase.id) ?? [])
+    .find((revision) => revision.id === usecase.current_revision_id);
+  return problem(
+    409,
+    "Stale base revision",
+    {
+      current_revision: usecase.current_revision_id,
+      impact: { affected_sessions: [], severity: current?.severity ?? "NON_BREAKING" }
+    },
+    [
+      {
+        command: `vspec usecase show ${usecase.key} --format=agent`,
+        reason: "Re-read the current use case before proposing again."
+      },
+      {
+        command: `vspec change propose ${usecase.key}`,
+        reason: "Propose the change again against the fresh base revision."
+      }
+    ]
+  );
 }

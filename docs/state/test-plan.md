@@ -274,6 +274,15 @@ write. This guides your TDD cycles within an iteration._
 - **2a**: requested revision id is stale or unknown -> 404 with `vspec history <KEY>` guidance and no export payload.
 - ***a**: target use case is archived -> failure with restore guidance and no export payload.
 
+### UC-031
+
+- **MAIN**: authenticated reader exports a fully-dressed use case to markdown -> `text/markdown` with canonical frontmatter including revision, ordered sections, stakeholder interests, scenarios/steps, stable extension ordering, and export next actions.
+- **4a**: FULLY_DRESSED use case is missing required export data -> 422 naming the missing field, `vspec doctor <KEY-NNN>` guidance, and no markdown payload.
+- **6a**: `existing_file_content` is supplied without force -> 409 with proposed diff, force/alternate-path guidance, and no overwrite payload.
+- **6b**: output directory is simulated as not writable -> 400 with exit code 6 and path/permission guidance.
+- **5a**: multiple extensions share one parent step -> markdown orders `1a` before `1b`, then any-step `*a`, and response marks round-trip self-check passed.
+- ***a**: requested revision id is missing -> 404 with `vspec history <KEY-NNN>` guidance and no markdown payload.
+
 ### UC-033
 
 - **MAIN**: unauthenticated caller requests the AI guide for the current CLI version -> 200 markdown covering sessions, pin/fetch/propose/commit workflow, `--format=agent`, forbidden actions, worked example, cache metadata, and suggested next actions for login/project list/session start.

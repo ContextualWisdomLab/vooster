@@ -39,13 +39,9 @@ describe("UC-013 - Edit a use case step", () => {
         "stub-edit-step"
       );
 
-    const response = await server.fetch(`/v1/steps/${mainStep.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        action: "Reviews the order.",
-        base_revision: mainStepRevision.id
-      })
+    const response = await patchStep(mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: mainStepRevision.id
     });
 
     expect(response.status).toBe(200);
@@ -75,13 +71,9 @@ describe("UC-013 - Edit a use case step", () => {
         "stub-stale-step"
       );
 
-    const stale = await server.fetch(`/v1/steps/${mainStep.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        action: "Reviews the order.",
-        base_revision: usecase.current_revision_id
-      })
+    const stale = await patchStep(mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: usecase.current_revision_id
     });
 
     expect(stale.status).toBe(409);
@@ -97,13 +89,9 @@ describe("UC-013 - Edit a use case step", () => {
       reason: "Inspect the current use case before retrying the step edit."
     });
 
-    const valid = await server.fetch(`/v1/steps/${mainStep.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        action: "Reviews the order.",
-        base_revision: mainStepRevision.id
-      })
+    const valid = await patchStep(mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: mainStepRevision.id
     });
     const body = (await valid.json()) as StepPatchResponse;
     expect(body.step.action).toBe("Reviews the order.");

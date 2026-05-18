@@ -87,10 +87,7 @@ describe("UC-018 - Complete a work session", () => {
     if (mergeRequest === undefined) {
       throw new Error("expected merge request");
     }
-    expect(body.suggested_next_actions).toContainEqual({
-      command: `vspec merge show ${mergeRequest.id}`,
-      reason: "Review the merge request opened for this completed session."
-    });
+    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge show ${mergeRequest.id}`, reason: "Review the merge request opened for this completed session." });
   });
 
   test("2a: completing an already completed session returns current status", async () => {
@@ -112,10 +109,7 @@ describe("UC-018 - Complete a work session", () => {
     const problem = (await second.json()) as SessionCompleteProblem;
     expect(problem.title).toMatch(/session is not active/i);
     expect(problem.current_status).toBe("COMPLETED");
-    expect(problem.suggested_next_actions).toContainEqual({
-      command: `vspec session show ${session.id}`,
-      reason: "Inspect the current session state before retrying."
-    });
+    expect(problem.suggested_next_actions).toContainEqual({ command: `vspec session show ${session.id}`, reason: "Inspect the current session state before retrying." });
   });
 
   test("6b: no_merge completes session without opening merge request", async () => {
@@ -139,10 +133,7 @@ describe("UC-018 - Complete a work session", () => {
     const body = (await response.json()) as SessionCompleteResponse;
     expect(body.session.status).toBe("COMPLETED");
     expect(body.merge_request).toBeUndefined();
-    expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec merge open agent/no-merge-session",
-      reason: "Open a merge request for the completed branch later."
-    });
+    expect(body.suggested_next_actions).toContainEqual({ command: "vspec merge open agent/no-merge-session", reason: "Open a merge request for the completed branch later." });
   });
 
   test("*a: transactional failure leaves session active and locks held", async () => {

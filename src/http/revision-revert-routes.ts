@@ -9,6 +9,7 @@ import { useCaseWithProjectId } from "./usecase-support.js";
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
   revision_id: z.string().min(1),
+  simulate_gherkin_drift: z.boolean().default(false),
   summary: z.string().optional()
 });
 
@@ -66,7 +67,8 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
     },
     revision,
     suggested_next_actions: nextActions(found.usecase.key),
-    usecase: found.usecase
+    usecase: found.usecase,
+    ...(parsed.data.simulate_gherkin_drift ? { warnings: [gherkinDriftWarning()] } : {})
   });
 }
 
@@ -165,6 +167,13 @@ function activeSessionIds(state: SignupState, usecaseId: string) {
   return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
     .filter((session) => session.status === "ACTIVE")
     .map((session) => session.id);
+}
+
+function gherkinDriftWarning() {
+  return {
+    message: "Pinned CI feature files will drift on next sync.",
+    type: "GHERKIN_DRIFT"
+  };
 }
 
 function nextActions(key: string) {

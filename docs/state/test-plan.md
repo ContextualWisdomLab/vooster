@@ -27,3 +27,12 @@ write. This guides your TDD cycles within an iteration._
 - **3a**: callback contains `error=access_denied` during login -> 401, clears OAuth state cookie, and returns retry guidance.
 - **6a**: existing user has zero workspace memberships -> 200 with `workspaces: []` and recommended next command `vspec workspace create`.
 - ***a**: GitHub API is unreachable during login -> 502 with retry guidance and no session cookie.
+
+### UC-004
+
+- **MAIN**: authenticated workspace member posts valid project name/key/visibility -> 201 with project, `main` default branch owned by requester, and recommendation to create actors.
+- **2a**: authenticated user who is not a workspace member posts to the workspace -> 403 with invitation guidance and no project.
+- **3a**: key fails `^[A-Z][A-Z0-9]{1,7}$` -> 400 with regex and three example keys.
+- **3b**: key already exists in the workspace -> 422 listing the existing project and suggesting `vspec project show <KEY>`.
+- **6a**: branch insertion fails after project insert -> 500 with request id and no orphan project or branch.
+- ***a**: workspace is archived before commit -> failure response and no project/branch.

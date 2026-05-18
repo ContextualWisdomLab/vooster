@@ -171,4 +171,29 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
       reason: "Create a read-scoped key for non-interactive agents."
     });
   });
+
+  test("*a: archived use case is hidden from agent fetch", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Agent Archived", "agent-archived", "stub-agent-archived");
+    await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}?format=agent`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as {
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/use case not found/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list --status=",
+      reason: "List visible use cases, including archived ones when authorized."
+    });
+    expect(JSON.stringify(problem)).not.toContain(usecase.id);
+  });
 });

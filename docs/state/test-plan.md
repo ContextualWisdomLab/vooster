@@ -236,3 +236,11 @@ write. This guides your TDD cycles within an iteration._
 - **6b**: output file already exists without force -> refuses overwrite, returns proposed diff summary, suggests `--force` or alternate output, and does not mutate server revisions.
 - **2a**: requested revision id is stale or unknown -> 404 with `vspec history <KEY>` guidance and no export payload.
 - ***a**: target use case is archived -> failure with restore guidance and no export payload.
+
+### UC-033
+
+- **MAIN**: unauthenticated caller requests the AI guide for the current CLI version -> 200 markdown covering sessions, pin/fetch/propose/commit workflow, `--format=agent`, forbidden actions, worked example, cache metadata, and suggested next actions for login/project list/session start.
+- **1a**: `format=json` -> returns the same guide as structured JSON with version, sections, examples, and machine-readable suggested next actions.
+- **3a**: simulated network failure with only a previous-version cached guide -> returns stale guide with a prominent warning and retry guidance.
+- **2a**: cached guide version differs from requested CLI version -> force-refreshes from server and returns current-version cache metadata rather than stale content.
+- ***a**: simulated network failure with no cached guide -> returns exit code 5 and public guide URL bootstrap without partial guidance.

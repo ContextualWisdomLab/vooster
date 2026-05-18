@@ -52,6 +52,29 @@ function createProject(
     );
   }
 
+  const existing = existingProjectForKey(state, workspaceId, parsed.data.key);
+  if (existing !== undefined) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Project key is already in use",
+        {
+          existing_project: {
+            id: existing.id,
+            key: existing.key,
+            name: existing.name
+          }
+        },
+        [
+          {
+            command: `vspec project show ${existing.key}`,
+            reason: "Verify whether the existing project is the intended target."
+          }
+        ]
+      )
+    );
+  }
+
   const project = newProject(workspaceId, parsed.data);
   const branch = {
     id: randomUUID(),
@@ -105,6 +128,15 @@ function newProject(
     visibility: data.visibility,
     default_branch_id: ""
   };
+}
+
+function existingProjectForKey(
+  state: SignupState,
+  workspaceId: string,
+  key: string
+): StoredProject | undefined {
+  const projectId = state.projectKeysByWorkspaceId.get(workspaceId)?.get(key);
+  return projectId === undefined ? undefined : state.projectsById.get(projectId);
 }
 
 function recordProjectKey(state: SignupState, project: StoredProject) {

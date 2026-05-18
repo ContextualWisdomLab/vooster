@@ -142,7 +142,7 @@ export function alternativeSlug(slug: string, existingSlugs: Set<string>): strin
 export function problem(
   status: number,
   title: string,
-  extra: Record<string, string | string[]> = {},
+  extra: Record<string, unknown> = {},
   suggestedNextActions = [{ command: "vspec login", reason: "Restart signup." }]
 ) {
   return {

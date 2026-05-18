@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  allowedStatusTransitions,
+  canTransition,
+  goalIdFrom,
+  goalWithProjectId,
+  projectIdFrom
+} from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type {
@@ -16,6 +23,9 @@ const goalRequestSchema = z.object({
   level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]),
   priority: z.enum(["P0", "P1", "P2", "P3"])
 });
+const goalPatchSchema = z.object({
+  status: z.enum(["IDENTIFIED", "IN_DESIGN", "PROMOTED", "REJECTED"]).optional()
+});
 
 export function registerGoalRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
@@ -24,6 +34,7 @@ export function registerGoalRoutes(app: FastifyInstance, state: SignupState) {
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
     listGoals(request, reply, state)
   );
+  app.patch("/v1/goals/:goalId", (request, reply) => patchGoal(request, reply, state));
 }
 
 function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -95,6 +106,34 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
   });
 }
 
+function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const found = goalWithProjectId(state, goalIdFrom(request.params));
+  if (found === undefined) {
+    return reply.code(404).send(problem(404, "Goal not found"));
+  }
+  if (membershipForProject(request, state, found.projectId) === undefined) {
+    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+
+  const parsed = goalPatchSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid goal update"));
+  }
+
+  if (
+    parsed.data.status !== undefined &&
+    !canTransition(found.goal.status, parsed.data.status)
+  ) {
+    return reply.code(422).send(
+      problem(422, "Illegal status transition", {
+        allowed_status_transitions: allowedStatusTransitions
+      })
+    );
+  }
+
+  return reply.send({ goal: found.goal });
+}
+
 function listGoals(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
@@ -142,8 +181,4 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
-}
-
-function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
 }

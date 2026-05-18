@@ -1,8 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
+import {
+  createActor,
+  createGoal,
+  createProject,
+  patchGoal,
+  type Actor
+} from "../helpers/uc-fixtures.js";
 
-type Actor = { id: string; name: string; project_id: string };
-type ActorResponse = { actor: Actor };
 type Goal = {
   actor_id: string;
   archived_at: null;
@@ -29,7 +34,6 @@ type ProblemResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
-type ProjectResponse = { project: { id: string } };
 
 let server: TestServer;
 
@@ -43,10 +47,10 @@ afterAll(async () => {
 
 describe("UC-007 - Manage the actor-goal list", () => {
   test("MAIN: create goal and list it grouped by actor", async () => {
-    const setup = await createProject("Goal Project", "goal-project", "stub-goal-owner");
-    const actor = await createActor(setup, "Customer");
+    const setup = await createProject(server, "Goal Project", "goal-project", "stub-goal-owner");
+    const actor = await createActor(server, setup, "Customer");
 
-    const created = await createGoal(setup, {
+    const created = await createGoal(server, setup, {
       actor_id: actor.id,
       description: "Places an order",
       level: "USER_GOAL",
@@ -87,9 +91,14 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("3a: missing actor returns actor selection guidance", async () => {
-    const setup = await createProject("Missing Goal Actor", "missing-goal-actor", "stub-goal-missing-actor");
+    const setup = await createProject(
+      server,
+      "Missing Goal Actor",
+      "missing-goal-actor",
+      "stub-goal-missing-actor"
+    );
 
-    const response = await createGoal(setup, {
+    const response = await createGoal(server, setup, {
       actor_id: "missing-actor-id",
       description: "Reviews checkout exceptions",
       level: "USER_GOAL",
@@ -111,10 +120,10 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("5a: whitespace description is rejected as not a verb phrase", async () => {
-    const setup = await createProject("Blank Goal", "blank-goal", "stub-goal-blank");
-    const actor = await createActor(setup, "Clerk");
+    const setup = await createProject(server, "Blank Goal", "blank-goal", "stub-goal-blank");
+    const actor = await createActor(server, setup, "Clerk");
 
-    const response = await createGoal(setup, {
+    const response = await createGoal(server, setup, {
       actor_id: actor.id,
       description: "   ",
       level: "USER_GOAL",
@@ -128,9 +137,14 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("5b: illegal status transition leaves goal unchanged", async () => {
-    const setup = await createProject("Illegal Goal Status", "illegal-goal-status", "stub-goal-illegal-status");
-    const actor = await createActor(setup, "Buyer");
-    const created = await createGoal(setup, {
+    const setup = await createProject(
+      server,
+      "Illegal Goal Status",
+      "illegal-goal-status",
+      "stub-goal-illegal-status"
+    );
+    const actor = await createActor(server, setup, "Buyer");
+    const created = await createGoal(server, setup, {
       actor_id: actor.id,
       description: "Tracks an order",
       level: "USER_GOAL",
@@ -138,7 +152,7 @@ describe("UC-007 - Manage the actor-goal list", () => {
     });
     const goal = ((await created.json()) as GoalResponse).goal;
 
-    const response = await patchGoal(setup, goal.id, { status: "PROMOTED" });
+    const response = await patchGoal(server, setup, goal.id, { status: "PROMOTED" });
 
     expect(response.status).toBe(422);
     const body = (await response.json()) as ProblemResponse;
@@ -157,72 +171,3 @@ describe("UC-007 - Manage the actor-goal list", () => {
     expect(listBody.actors[0]?.goals[0]?.status).toBe("IDENTIFIED");
   });
 });
-
-async function createGoal(
-  setup: { cookie: string; projectId: string },
-  body: { actor_id: string; description: string; level: string; priority: string }
-) {
-  return server.fetch(`/v1/projects/${setup.projectId}/goals`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify(body)
-  });
-}
-
-async function createActor(setup: { cookie: string; projectId: string }, name: string) {
-  const response = await server.fetch(`/v1/projects/${setup.projectId}/actors`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({
-      aliases: [],
-      description: "",
-      is_human: true,
-      name,
-      type: "PRIMARY"
-    })
-  });
-  const body = (await response.json()) as ActorResponse;
-  return body.actor;
-}
-
-async function patchGoal(
-  setup: { cookie: string },
-  goalId: string,
-  body: { status: string }
-) {
-  return server.fetch(`/v1/goals/${goalId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify(body)
-  });
-}
-
-async function createProject(name: string, slug: string, code: string) {
-  const signedUp = await signup(name, slug, code);
-  const response = await server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
-    body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
-  });
-  const body = (await response.json()) as ProjectResponse;
-  return { ...signedUp, projectId: body.project.id };
-}
-
-async function signup(name: string, slug: string, code: string) {
-  const start = await server.fetch("/v1/auth/github/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ workspace: { name, slug } })
-  });
-  const startBody = (await start.json()) as { state: string };
-  const params = new URLSearchParams({ code, state: startBody.state });
-  const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
-    headers: { Cookie: start.headers.get("set-cookie") ?? "" }
-  });
-  const body = (await callback.json()) as { user: { id: string }; workspace: { id: string } };
-  return {
-    cookie: callback.headers.get("set-cookie") ?? "",
-    userId: body.user.id,
-    workspaceId: body.workspace.id
-  };
-}

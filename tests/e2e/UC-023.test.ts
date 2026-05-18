@@ -12,6 +12,7 @@ import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 
 type WhoResponse = {
+  archived?: boolean;
   locks: Array<{
     expires_at: string;
     held_by_session_id: null | string;
@@ -126,6 +127,38 @@ describe("UC-023 - See who is working on a use case", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec usecase search CHK-999",
       reason: "Search for the intended use case key."
+    });
+  });
+
+  test("2b: archived use case still reports active work with restore guidance", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Archived Who", "archived-who", "stub-archived-who");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Finish archived work",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "Archived flow still has active work."
+    }, session.id);
+    const archived = await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
+      method: "POST"
+    });
+    expect(archived.status).toBe(200);
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/who`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as WhoResponse;
+    expect(body.archived).toBe(true);
+    expect(body.sessions).toContainEqual(expect.objectContaining({ id: session.id }));
+    expect(body.locks).toHaveLength(1);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the archived use case before coordinating active work."
     });
   });
 });

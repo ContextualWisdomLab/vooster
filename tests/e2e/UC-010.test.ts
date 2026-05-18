@@ -144,4 +144,33 @@ describe("UC-010 - Define stakeholder interests", () => {
     });
     expect(transition.status).toBe(422);
   });
+
+  test("*a: unknown stakeholder returns candidates and preserves revisions", async () => {
+    const setup = await createProject(server, "Unknown Stakeholder", "unknown-stakeholder", "stub-unknown-stakeholder");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+
+    const missing = await addInterest(server, usecase.id, setup.cookie, {
+      interest: "Launch risk is protected.",
+      stakeholder: "Product"
+    });
+
+    expect(missing.status).toBe(422);
+    const problem = (await missing.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/stakeholder.*not.*resolve/i);
+    expect(problem.candidate_stakeholders).toEqual(["Product Manager"]);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec stakeholder create",
+      reason: "Create the stakeholder before adding an interest."
+    });
+
+    const valid = await addInterest(server, usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    const body = (await valid.json()) as InterestResponse;
+    expect(body.revision.version_number).toBe(2);
+    expect(body.stakeholder_interests).toHaveLength(1);
+  });
 });

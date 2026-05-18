@@ -18,6 +18,12 @@ type HistoryResponse = {
   truncated: boolean;
   usecase: { id: string; key: string };
 };
+type HistoryProblem = {
+  history?: unknown;
+  project_key?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => {
@@ -60,6 +66,25 @@ describe("UC-024 - View use case revision history", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: "vspec diff",
       reason: "Compare two revisions before reverting."
+    });
+  });
+
+  test("2a: missing use case returns project-scoped list guidance", async () => {
+    const { setup } =
+      await createUseCaseWithMainStep(server, "History Missing", "history-missing", "stub-history-missing");
+
+    const response = await server.fetch(`/v1/usecases/CHK-999/revisions?project_id=${setup.projectId}`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as HistoryProblem;
+    expect(problem.title).toMatch(/use case not found/i);
+    expect(problem.project_key).toBe("CHK");
+    expect(problem.history).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase list --project CHK",
+      reason: "Find a use case in the current project."
     });
   });
 });

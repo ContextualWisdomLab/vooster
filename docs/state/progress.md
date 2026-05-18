@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T18:06:53Z_
+_Last updated: 2026-05-18T18:21:33Z_
 
 ## Overall
 
-- Commits: 188
-- Last commit: 946961c green: UC-016 rollback failed session write
-- Use cases complete: 13 / 35
+- Commits: 200
+- Last commit: c3ceb11 green: UC-017 deny non-member listing
+- Use cases complete: 14 / 35
 
 ## By Use Case
 
@@ -28,7 +28,7 @@ _Last updated: 2026-05-18T18:06:53Z_
 | UC-014 | Search and filter use cases | ○ NOT STARTED | 0/0 |
 | UC-015 | Archive or restore a use case | ○ NOT STARTED | 0/0 |
 | UC-016 | Start a work session | ✓ DONE | 7/7 |
-| UC-017 | Monitor active sessions | ○ NOT STARTED | 0/0 |
+| UC-017 | Monitor active sessions | ✓ DONE | 5/5 |
 | UC-018 | Complete a work session | ○ NOT STARTED | 0/0 |
 | UC-019 | Create a branch | ○ NOT STARTED | 0/0 |
 | UC-020 | Merge a branch | ○ NOT STARTED | 0/0 |

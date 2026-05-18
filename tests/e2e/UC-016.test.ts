@@ -181,4 +181,19 @@ describe("UC-016 - Start a work session", () => {
       reason: "Identify the session holding the semantic lock."
     });
   });
+
+  test("2a: unrecognized agent type is stored as OTHER with a warning", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(server, "Unknown Agent", "unknown-agent", "stub-unknown-agent");
+    const response = await startWorkSession(server, setup, {
+      agent_type: "NEURAL_WEAVER",
+      intent: "Work from an unknown agent",
+      pins: [usecase.key]
+    });
+    const body = (await response.json()) as SessionStartResponse;
+
+    expect(response.status).toBe(201);
+    expect(body.session.agent_type).toBe("OTHER");
+    expect(body.session.agent_identifier).toBe("NEURAL_WEAVER");
+    expect(body.warnings).toContainEqual({ type: "UNKNOWN_AGENT_TYPE", message: "Stored unrecognized agent_type NEURAL_WEAVER as OTHER." });
+  });
 });

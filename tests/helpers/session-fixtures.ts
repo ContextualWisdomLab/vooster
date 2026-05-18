@@ -26,6 +26,7 @@ export type SessionStartResponse = {
     session_id: string;
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings?: Array<{ message: string; type: string }>;
 };
 
 export type SessionProblemResponse = {

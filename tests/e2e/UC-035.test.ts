@@ -105,10 +105,39 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       usecase.current_revision_id
     ]);
   });
+
+  test("7a: commit with unknown preview id is rejected", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Missing Preview", "missing-preview", "stub-missing-preview");
+
+    const response = await commitChange(setup.cookie, {
+      confirmed: true,
+      preview_id: "preview-missing"
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as ChangeProblem;
+    expect(problem.title).toMatch(/still-valid preview/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec change propose",
+      reason: "Generate a preview before committing a spec change."
+    });
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
 });
 
 function proposeChange(cookie: string, body: Record<string, unknown>) {
   return server.fetch("/v1/changes/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+}
+
+function commitChange(cookie: string, body: Record<string, unknown>) {
+  return server.fetch("/v1/changes/commit", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify(body)

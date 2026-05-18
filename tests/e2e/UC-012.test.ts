@@ -144,4 +144,42 @@ describe("UC-012 - Add an extension flow", () => {
     const body = (await valid.json()) as ScenarioResponse;
     expect(body.revision.version_number).toBe(5);
   });
+
+  test("4a: duplicate extension point returns existing condition and next letter", async () => {
+    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+      server,
+      "Duplicate Extension",
+      "duplicate-extension",
+      "stub-duplicate-extension"
+    );
+    await addStep(server, mainScenario.scenario.id, setup.cookie, {
+      action: "Places an order.",
+      actor: "Customer"
+    });
+    await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Payment is declined.",
+      extension_point: "1a",
+      outcome: "FAILURE"
+    });
+
+    const duplicate = await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Inventory is unavailable.",
+      extension_point: "1a",
+      outcome: "FAILURE"
+    });
+
+    expect(duplicate.status).toBe(409);
+    const problem = (await duplicate.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/extension point.*already taken/i);
+    expect(problem.existing_condition).toBe("Payment is declined.");
+    expect(problem.suggested_extension_point).toBe("1b");
+
+    const next = await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Inventory is unavailable.",
+      extension_point: "1b",
+      outcome: "FAILURE"
+    });
+    const body = (await next.json()) as ScenarioResponse;
+    expect(body.revision.version_number).toBe(6);
+  });
 });

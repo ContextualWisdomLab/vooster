@@ -45,9 +45,11 @@ export type StepResponse = {
 };
 export type ProblemResponse = {
   existing_scenario_id?: string;
+  existing_condition?: string;
   known_actors?: string[];
   example_extension_points?: string[];
   parent_step_number?: number;
+  suggested_extension_point?: string;
   suggested_action?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;

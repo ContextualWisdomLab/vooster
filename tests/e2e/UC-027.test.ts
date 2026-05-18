@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 
 type ImpactResponse = {
   cached: boolean;
@@ -131,6 +132,37 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec doctor bad/usecase.md",
       reason: "Validate the proposed-change file format."
+    });
+  });
+
+  test("6a: active sessions are listed and force BREAKING severity", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Impact Sessions", "impact-sessions", "stub-impact-sessions");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Implement refund flow",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+
+    const response = await server.fetch("/v1/changes/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: usecase.current_revision_id,
+        entity_id: usecase.id,
+        entity_type: "USECASE"
+      })
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as ImpactResponse;
+    expect(body.impact.severity).toBe("BREAKING");
+    expect(body.impact.affected_sessions).toContainEqual({
+      agent_type: "CODEX",
+      id: session.id,
+      owner: setup.userId,
+      pinned_revision: usecase.current_revision_id
     });
   });
 });

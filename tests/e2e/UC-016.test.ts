@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { createStepLock } from "../helpers/step-fixtures.js";
 
 type SessionStartResponse = {
   session: {
@@ -22,6 +23,7 @@ type SessionStartResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type SessionProblemResponse = {
+  holding_session?: string;
   offending_key?: string;
   session_count?: number;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -127,6 +129,46 @@ describe("UC-016 - Start a work session", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec usecase restore ${usecase.key}`,
       reason: "Restore the archived use case before pinning it."
+    });
+  });
+
+  test("3b: hard-locked pin is rejected with holding session guidance", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Hard Locked Session Pin",
+      "hard-locked-session-pin",
+      "stub-hard-locked-session-pin"
+    );
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: "2026-06-01T00:00:00.000Z",
+      holder: "agent-session-locked",
+      mode: "HARD",
+      reason: "Another session is already changing this use case."
+    });
+
+    const response = await server.fetch("/v1/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: setup.cookie,
+        "X-Vspec-Agent": "codex-cli"
+      },
+      body: JSON.stringify({
+        agent_type: "CODEX",
+        intent: "Work on locked flow",
+        pins: [usecase.key],
+        project_id: setup.projectId
+      })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as SessionProblemResponse;
+    expect(problem.title).toMatch(/pinned use case is hard-locked/i);
+    expect(problem.offending_key).toBe(usecase.key);
+    expect(problem.holding_session).toBe("agent-session-locked");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the session holding the hard lock."
     });
   });
 });

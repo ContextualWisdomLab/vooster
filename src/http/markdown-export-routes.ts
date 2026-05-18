@@ -6,6 +6,11 @@ import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./s
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
+const exportSchema = z.object({
+  existing_file_content: z.string().optional(),
+  force: z.boolean().default(false),
+  output_path: z.string().optional()
+});
 
 export function registerMarkdownExportRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/usecases/:id/export/markdown", (request, reply) =>
@@ -15,6 +20,10 @@ export function registerMarkdownExportRoutes(app: FastifyInstance, state: Signup
 
 function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const usecaseId = paramsSchema.parse(request.params).id;
+  const parsed = exportSchema.safeParse(request.body ?? {});
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid markdown export request"));
+  }
   const found = useCaseWithProjectId(state, usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
@@ -26,7 +35,11 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
   }
-  return reply.type("text/markdown").send(renderMarkdown(state, found.projectId, found.usecase));
+  const markdown = renderMarkdown(state, found.projectId, found.usecase);
+  if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
+    return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
+  }
+  return reply.type("text/markdown").send(markdown);
 }
 
 function renderMarkdown(state: SignupState, projectId: string, usecase: StoredUseCase) {
@@ -60,6 +73,27 @@ function markdownPrerequisiteProblem(state: SignupState, usecase: StoredUseCase)
       }
     ]
   );
+}
+
+function existingOutputProblem(existing: string, rendered: string) {
+  return problem(
+    409,
+    "Markdown output file already exists",
+    { diff: titleDiff(existing, rendered) },
+    [
+      {
+        command: "vspec export markdown --force",
+        reason: "Overwrite the existing markdown file after reviewing the diff."
+      }
+    ]
+  );
+}
+
+function titleDiff(existing: string, rendered: string) {
+  return [
+    `-${existing.split("\n").find((line) => line.startsWith("# ")) ?? ""}`,
+    `+${rendered.split("\n").find((line) => line.startsWith("# ")) ?? ""}`
+  ].join("\n");
 }
 
 function frontmatter(state: SignupState, projectId: string, usecase: StoredUseCase) {

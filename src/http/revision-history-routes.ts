@@ -30,7 +30,7 @@ function listHistory(request: FastifyRequest, reply: FastifyReply, state: Signup
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+    return reply.code(403).send(historyAccessProblem());
   }
 
   const allRows = revisionsFor(state, found.usecase)
@@ -56,6 +56,24 @@ function missingHistoryProblem(projectKey: string) {
       {
         command: `vspec usecase list --project ${projectKey}`,
         reason: "Find a use case in the current project."
+      }
+    ]
+  );
+}
+
+function historyAccessProblem() {
+  return problem(
+    403,
+    "Not authorized to view revision history",
+    {},
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate with an account that has project access."
+      },
+      {
+        command: "vspec member set-role",
+        reason: "Ask a workspace owner for read access."
       }
     ]
   );

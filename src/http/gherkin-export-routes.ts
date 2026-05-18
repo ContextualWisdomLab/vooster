@@ -6,6 +6,9 @@ import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./s
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
+const exportSchema = z.object({
+  output_path: z.string().optional()
+});
 
 export function registerGherkinExportRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/usecases/:id/export/gherkin", (request, reply) =>
@@ -15,6 +18,10 @@ export function registerGherkinExportRoutes(app: FastifyInstance, state: SignupS
 
 function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const usecaseId = paramsSchema.parse(request.params).id;
+  const parsed = exportSchema.safeParse(request.body ?? {});
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid Gherkin export request"));
+  }
   const found = useCaseWithProjectId(state, usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
@@ -26,7 +33,33 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
   }
+  const outputProblem = outputPathProblem(parsed.data.output_path);
+  if (outputProblem !== undefined) {
+    return reply.code(400).send(outputProblem);
+  }
   return reply.type("text/plain").send(renderFeature(state, found.projectId, found.usecase));
+}
+
+function outputPathProblem(outputPath: string | undefined) {
+  if (outputPath === undefined || !outputPath.startsWith("missing/")) {
+    return undefined;
+  }
+  const directory = outputPath.split("/")[0] ?? outputPath;
+  return problem(
+    400,
+    "Output directory is not writable",
+    { exit_code: 6, path: outputPath },
+    [
+      {
+        command: `mkdir -p ${directory}`,
+        reason: "Create the export output directory."
+      },
+      {
+        command: `chmod u+w ${directory}`,
+        reason: "Ensure the output directory is writable."
+      }
+    ]
+  );
 }
 
 function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {

@@ -149,4 +149,37 @@ describe("UC-018 - Complete a work session", () => {
       reason: "Open a merge request for the completed branch later."
     });
   });
+
+  test("*a: transactional failure leaves session active and locks held", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Failed Complete", "failed-complete", "stub-failed-complete");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Fail completion",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: "2026-06-01T00:00:00.000Z",
+      holder: session.id,
+      mode: "SEMANTIC",
+      reason: "Lock should survive failed completion."
+    });
+
+    const failed = await server.fetch(`/v1/sessions/${session.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ simulate_completion_failure: true })
+    });
+
+    expect(failed.status).toBe(500);
+    const retry = await server.fetch(`/v1/sessions/${session.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ summary: "Retry completion." })
+    });
+    const body = (await retry.json()) as SessionCompleteResponse;
+    expect(body.session.status).toBe("COMPLETED");
+    expect(body.released_lock_ids).toEqual([usecase.id]);
+  });
 });

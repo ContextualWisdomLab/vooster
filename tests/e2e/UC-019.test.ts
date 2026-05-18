@@ -24,6 +24,7 @@ type BranchCreateResponse = {
   warnings?: Array<{ merge_request_id: string; type: string }>;
 };
 type BranchProblemResponse = {
+  exit_code?: number;
   suggested_name?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
@@ -170,5 +171,32 @@ describe("UC-019 - Create a branch", () => {
       merge_request_id: mergeRequest.id,
       type: "IN_FLIGHT_MERGE_REQUEST"
     });
+  });
+
+  test("*a: snapshot failure leaves no branch behind", async () => {
+    const setup = await createProject(server, "Branch Snapshot Failure", "branch-snapshot-failure", "stub-branch-snapshot-failure");
+    await createActor(server, setup, "Customer");
+    await createUseCase(server, setup, "Customer", "Reviews a refund");
+
+    const failed = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/retry-snapshot", simulate_snapshot_failure: true })
+    });
+
+    expect(failed.status).toBe(500);
+    const problem = (await failed.json()) as BranchProblemResponse;
+    expect(problem.exit_code).toBe(5);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec branch create feature/retry-snapshot --retry",
+      reason: "Retry after the failed branch snapshot."
+    });
+
+    const retry = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/retry-snapshot" })
+    });
+    expect(retry.status).toBe(201);
   });
 });

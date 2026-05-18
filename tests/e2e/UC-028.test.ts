@@ -18,6 +18,11 @@ type CommentResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type CommentListResponse = { comments: CommentPayload[] };
+type CommentProblem = {
+  code?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -64,6 +69,23 @@ describe("UC-028 - Comment on a use case", () => {
 
     const deleted = await deleteComment(addBody.comment.id, setup.cookie);
     expect(deleted.status).toBe(200);
+    expect((await listComments(usecase.id, setup.cookie)).comments).toEqual([]);
+  });
+
+  test("3a: whitespace-only body is rejected without inserting a comment", async () => {
+    const setup = await createProject(server, "Comment Empty", "comment-empty", "stub-comment-empty");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews empty comments");
+
+    const response = await addComment(usecase.id, setup.cookie, "   ");
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as CommentProblem;
+    expect(problem.code).toBe("empty_body");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec comment add --body \"<text>\"",
+      reason: "Provide a non-empty markdown body."
+    });
     expect((await listComments(usecase.id, setup.cookie)).comments).toEqual([]);
   });
 });

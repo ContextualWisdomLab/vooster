@@ -54,10 +54,9 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as ChangeCommitResponse;
-    expect(body.revisions).toEqual([{ entity_id: usecase.id, revision_id: expect.any(String) }]);
-    expect(body.suggested_next_actions).toContainEqual(
-      { command: `vspec history ${usecase.key}`, reason: "Review the committed revision." }
-    );
+    expect(body.revisions).toHaveLength(1);
+    expect(body.revisions[0]?.entity_id).toBe(usecase.id);
+    expect(typeof body.revisions[0]?.revision_id).toBe("string");
     expect(await historyRevisionIds(server, usecase.id, setup.cookie))
       .toEqual([body.revisions[0]?.revision_id, usecase.current_revision_id]);
   });

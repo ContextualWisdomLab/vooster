@@ -1,0 +1,90 @@
+import { randomUUID } from "node:crypto";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { z } from "zod";
+import { previewProblem, previews } from "./change-preview-support.js";
+import { problem } from "./signup-support.js";
+import type { SignupState, StoredUseCase } from "./signup-types.js";
+
+const commitSchema = z.object({
+  confirmed: z.boolean().optional(),
+  preview_id: z.string().min(1)
+});
+
+export function registerChangeCommitRoutes(app: FastifyInstance, state: SignupState) {
+  app.post("/v1/changes/commit", (request, reply) => commitSpecChange(request, reply, state));
+  app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
+    const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
+    const preview = previews(state).get(params.previewId);
+    if (preview === undefined) {
+      return reply.code(404).send(problem(404, "Change preview not found"));
+    }
+    preview.expires_at = new Date(Date.now() - 1_000).toISOString();
+    return reply.send({ expired: true });
+  });
+}
+
+function commitSpecChange(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const parsed = commitSchema.safeParse(request.body);
+  const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
+  if (preview === undefined) {
+    return reply.code(400).send(previewProblem(
+      400,
+      "Every commit must reference a still-valid preview",
+      "Generate a preview before committing a spec change."
+    ));
+  }
+  if (Date.parse(preview.expires_at) <= Date.now()) {
+    return reply.code(410).send(previewProblem(
+      410,
+      "Change preview expired",
+      "Regenerate the preview before committing."
+    ));
+  }
+  const usecase = useCaseById(state, preview.usecase_id);
+  if (usecase === undefined) {
+    return reply.code(404).send(problem(404, "Use case not found"));
+  }
+  const revision = appendPreviewRevision(state, usecase, preview.id, preview.diff[0]?.after ?? usecase.title);
+  previews(state).delete(preview.id);
+  return reply.send({
+    revisions: [{ entity_id: usecase.id, revision_id: revision.id }],
+    suggested_next_actions: [
+      { command: `vspec history ${usecase.key}`, reason: "Review the committed revision." }
+    ]
+  });
+}
+
+function appendPreviewRevision(
+  state: SignupState,
+  usecase: StoredUseCase,
+  previewId: string,
+  title: string
+) {
+  const revision = {
+    id: randomUUID(),
+    entity_type: "USECASE" as const,
+    entity_id: usecase.id,
+    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    snapshot: { ...usecase, title },
+    change_summary: `Committed preview ${previewId}`,
+    severity: "NON_BREAKING" as const
+  };
+  usecase.title = title;
+  usecase.current_revision_id = revision.id;
+  state.revisionsByEntityId.set(usecase.id, [
+    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
+    revision
+  ]);
+  const project = state.projectsById.get(usecase.project_id);
+  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  if (main !== undefined) {
+    main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+  }
+  return revision;
+}
+
+function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
+  return [...state.usecasesByProjectId.values()]
+    .flat()
+    .find((usecase) => usecase.id === usecaseId);
+}

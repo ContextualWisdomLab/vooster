@@ -36,3 +36,12 @@ write. This guides your TDD cycles within an iteration._
 - **3b**: key already exists in the workspace -> 422 listing the existing project and suggesting `vspec project show <KEY>`.
 - **6a**: branch insertion fails after project insert -> 500 with request id and no orphan project or branch.
 - ***a**: workspace is archived before commit -> failure response and no project/branch.
+
+### UC-005
+
+- **MAIN**: authenticated project member posts valid actor data -> 201 with actor, aliases, revision version 1, and recommendation for stakeholders/goals.
+- **3a**: non-archived actor name already exists in project -> 422 referencing existing actor id and suggesting edit/add-alias.
+- **3b**: archived actor name already exists -> 409 suggesting actor restore or a different name.
+- **4a**: invalid actor type -> 400 listing PRIMARY, SUPPORTING, and OFFSTAGE.
+- **1a**: name `System` collides with canonical System actor -> 422 pointing to `vspec actor show System`.
+- ***a**: read-only access -> 403 with contact-owner guidance and no actor/revision.

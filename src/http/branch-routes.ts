@@ -7,7 +7,8 @@ import type { SignupState, StoredMembership, StoredProject, StoredSpecBranch } f
 
 const branchCreateSchema = z.object({
   from: z.string().default("main"),
-  name: z.string().min(1)
+  name: z.string().min(1),
+  simulate_snapshot_failure: z.boolean().default(false)
 });
 
 export function registerBranchRoutes(app: FastifyInstance, state: SignupState) {
@@ -61,6 +62,16 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
   const baseBranch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
   if (project === undefined || baseBranch === undefined) {
     return reply.code(404).send(problem(404, "Project branch not found"));
+  }
+  if (parsed.data.simulate_snapshot_failure) {
+    return reply.code(500).send(
+      problem(500, "Branch snapshot failed", { exit_code: 5 }, [
+        {
+          command: `vspec branch create ${parsed.data.name} --retry`,
+          reason: "Retry after the failed branch snapshot."
+        }
+      ])
+    );
   }
   const snapshot = mainHeadSnapshot(state, project);
   const branch: StoredSpecBranch = {

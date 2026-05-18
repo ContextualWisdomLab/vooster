@@ -7,7 +7,6 @@ import {
   type SessionStartResponse
 } from "../helpers/session-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
-
 type BranchCreateResponse = {
   branch: {
     base_branch_id: string;
@@ -29,9 +28,7 @@ type BranchProblemResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
-
 let server: TestServer;
-
 beforeAll(async () => {
   server = await startServer();
 });

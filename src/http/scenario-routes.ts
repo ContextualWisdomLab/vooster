@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { activeActorNamed } from "./goal-support.js";
+import { createExtensionScenario } from "./scenario-extension-support.js";
 import {
+  appendUseCaseRevision,
   duplicateMainSuccessProblem,
   mainSuccessScenario,
   passiveActionProblem,
+  scenarioWithUseCase,
   stepCreateResponse,
   unknownStepActorProblem,
   usesPassiveVoice
@@ -16,13 +19,15 @@ import type {
   SignupState,
   StoredMembership,
   StoredScenario,
-  StoredStep,
-  StoredUseCase
+  StoredStep
 } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 const scenarioRequestSchema = z.object({
-  type: z.enum(["MAIN_SUCCESS"])
+  condition: z.string().optional(),
+  extension_point: z.string().optional(),
+  outcome: z.enum(["FAILURE", "PARTIAL", "SUCCESS"]).optional(),
+  type: z.enum(["EXTENSION", "MAIN_SUCCESS"])
 });
 const stepRequestSchema = z.object({
   action: z.string(),
@@ -54,6 +59,12 @@ function createScenario(
   const parsed = scenarioRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid scenario request"));
+  }
+  if (parsed.data.type === "EXTENSION") {
+    return createExtensionScenario(reply, state, found, {
+      ...parsed.data,
+      type: "EXTENSION"
+    });
   }
   const existing = mainSuccessScenario(state, found.usecase.id);
   if (existing !== undefined) {
@@ -131,42 +142,6 @@ function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupStat
   );
 
   return reply.code(201).send(stepCreateResponse(step, revision, scenarioSteps));
-}
-
-function appendUseCaseRevision(
-  state: SignupState,
-  usecase: StoredUseCase,
-  changeSummary: string
-) {
-  const revision = {
-    id: randomUUID(),
-    entity_type: "USECASE" as const,
-    entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
-    snapshot: { ...usecase },
-    change_summary: changeSummary,
-    severity: "NON_BREAKING" as const
-  };
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
-  return revision;
-}
-
-function scenarioWithUseCase(
-  state: SignupState,
-  scenarioId: string
-): { projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined {
-  for (const [usecaseId, scenarios] of state.scenariosByUseCaseId) {
-    const scenario = scenarios.find((candidate) => candidate.id === scenarioId);
-    const found = scenario === undefined ? undefined : useCaseWithProjectId(state, usecaseId);
-    if (scenario !== undefined && found !== undefined) {
-      return { projectId: found.projectId, scenario, usecase: found.usecase };
-    }
-  }
-
-  return undefined;
 }
 
 function membershipForProject(

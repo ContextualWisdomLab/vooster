@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
@@ -5,6 +6,7 @@ import type {
   StoredStep,
   StoredUseCase
 } from "./signup-types.js";
+import { useCaseWithProjectId } from "./usecase-support.js";
 
 type UseCaseRevisionResponse = {
   change_summary: string;
@@ -23,6 +25,57 @@ export function mainSuccessScenario(
   return (state.scenariosByUseCaseId.get(usecaseId) ?? []).find(
     (scenario) => scenario.type === "MAIN_SUCCESS"
   );
+}
+
+export function extensionPointParentStep(extensionPoint: string): number | null {
+  const match = /^(?<step>\d+)[a-z]$/.exec(extensionPoint);
+  return match?.groups?.step === undefined ? null : Number.parseInt(match.groups.step, 10);
+}
+
+export function mainScenarioHasStep(
+  state: SignupState,
+  mainScenario: StoredScenario,
+  stepNumber: number
+): boolean {
+  return (state.stepsByScenarioId.get(mainScenario.id) ?? []).some(
+    (step) => step.step_number === stepNumber
+  );
+}
+
+export function scenarioWithUseCase(
+  state: SignupState,
+  scenarioId: string
+): { projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined {
+  for (const [usecaseId, scenarios] of state.scenariosByUseCaseId) {
+    const scenario = scenarios.find((candidate) => candidate.id === scenarioId);
+    const found = scenario === undefined ? undefined : useCaseWithProjectId(state, usecaseId);
+    if (scenario !== undefined && found !== undefined) {
+      return { projectId: found.projectId, scenario, usecase: found.usecase };
+    }
+  }
+
+  return undefined;
+}
+
+export function appendUseCaseRevision(
+  state: SignupState,
+  usecase: StoredUseCase,
+  changeSummary: string
+) {
+  const revision = {
+    id: randomUUID(),
+    entity_type: "USECASE" as const,
+    entity_id: usecase.id,
+    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    snapshot: { ...usecase },
+    change_summary: changeSummary,
+    severity: "NON_BREAKING" as const
+  };
+  state.revisionsByEntityId.set(usecase.id, [
+    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
+    revision
+  ]);
+  return revision;
 }
 
 export function duplicateMainSuccessProblem(existing: StoredScenario) {

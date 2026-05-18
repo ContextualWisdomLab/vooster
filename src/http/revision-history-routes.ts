@@ -40,7 +40,7 @@ function listHistory(request: FastifyRequest, reply: FastifyReply, state: Signup
   return reply.send({
     limit: parsed.data.limit,
     revisions,
-    suggested_next_actions: nextActions(found.usecase, revisions),
+    suggested_next_actions: nextActions(found.usecase, revisions, allRows.length - revisions.length),
     suppressed_count: allRows.length - revisions.length,
     truncated: allRows.length > revisions.length,
     usecase: { id: found.usecase.id, key: found.usecase.key }
@@ -99,7 +99,11 @@ function revisionRow(revision: StoredRevision, userId: string) {
   };
 }
 
-function nextActions(usecase: StoredUseCase, revisions: Array<ReturnType<typeof revisionRow>>) {
+function nextActions(
+  usecase: StoredUseCase,
+  revisions: Array<ReturnType<typeof revisionRow>>,
+  suppressedCount: number
+) {
   const latestRevision = revisions[0]?.revision ?? usecase.current_revision_id;
   return [
     {
@@ -109,6 +113,14 @@ function nextActions(usecase: StoredUseCase, revisions: Array<ReturnType<typeof 
     {
       command: "vspec diff",
       reason: "Compare two revisions before reverting."
-    }
+    },
+    ...(
+      suppressedCount === 0
+        ? []
+        : [{
+            command: `vspec history ${usecase.key} --limit ${String(revisions.length + suppressedCount)}`,
+            reason: "Rerun with a larger limit to include suppressed rows."
+          }]
+    )
   ];
 }

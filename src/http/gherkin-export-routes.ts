@@ -22,7 +22,34 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export Gherkin"));
   }
+  const prerequisiteProblem = gherkinPrerequisiteProblem(state, found.usecase);
+  if (prerequisiteProblem !== undefined) {
+    return reply.code(422).send(prerequisiteProblem);
+  }
   return reply.type("text/plain").send(renderFeature(state, found.projectId, found.usecase));
+}
+
+function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
+  const main = (state.scenariosByUseCaseId.get(usecase.id) ?? [])
+    .find((scenario) => scenario.type === "MAIN_SUCCESS");
+  if (main !== undefined && scenarioSteps(state, main.id).length > 0) {
+    return undefined;
+  }
+  return problem(
+    422,
+    "Cannot export incomplete use case",
+    { missing_required_field: main === undefined ? "main_success" : "main_success.steps" },
+    [
+      {
+        command: `vspec doctor ${usecase.key}`,
+        reason: "Inspect missing Gherkin export prerequisites."
+      },
+      {
+        command: `vspec scenario add ${usecase.key} --type main-success`,
+        reason: "Create the required main success scenario before export."
+      }
+    ]
+  );
 }
 
 function renderFeature(state: SignupState, projectId: string, usecase: StoredUseCase) {

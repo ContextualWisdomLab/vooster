@@ -97,4 +97,26 @@ describe("UC-022 - Lock a use case", () => {
       reason: "Reacquire the lock from scratch."
     });
   });
+
+  test("1b: lock renewal by another session is forbidden", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Foreign Renew", "foreign-renew", "stub-foreign-renew");
+    const created = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "Owner is editing."
+    }, "session-owner");
+    const lock = ((await created.json()) as LockCreateResponse).lock;
+
+    const response = await renewLock(server, setup, lock.id, { ttl_minutes: 30 }, "session-other");
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as LockProblemResponse;
+    expect(problem.title).toMatch(/does not own/i);
+    expect(problem.lock_id).toBe(lock.id);
+    expect(problem.holding_session).toBe("session-owner");
+    expect(problem.expires_at).toBe(lock.expires_at);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the lock owner."
+    });
+  });
 });

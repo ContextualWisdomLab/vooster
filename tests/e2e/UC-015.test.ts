@@ -30,10 +30,8 @@ describe("UC-015 - Archive or restore a use case", () => {
     expect(Date.parse(body.usecase.archived_at)).not.toBeNaN();
     expect(body.affected_sessions_count).toBe(0);
     expect(body.active_locks_count).toBe(0);
-    expect(body.revision).toMatchObject({
-      change_summary: `Archived use case ${usecase.key}`,
-      id: expect.any(String)
-    });
+    expect(body.revision.change_summary).toBe(`Archived use case ${usecase.key}`);
+    expect(typeof body.revision.id).toBe("string");
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec usecase restore ${usecase.key}`,
       reason: "Restore the use case if it returns to scope."

@@ -30,6 +30,20 @@ type InterestResponse = {
     stakeholder: Stakeholder;
   }>;
 };
+type RemoveInterestResponse = {
+  removed_stakeholder_interest_id: string;
+  revision: {
+    change_summary: string;
+    entity_id: string;
+    entity_type: string;
+    severity: string;
+    version_number: number;
+  };
+  stakeholder_interests: Array<{
+    interest: StakeholderInterest;
+    stakeholder: Stakeholder;
+  }>;
+};
 type ProblemResponse = {
   existing_interest?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -108,6 +122,35 @@ describe("UC-010 - Define stakeholder interests", () => {
       command: "vspec usecase set --field stakeholder-interest",
       reason: "Edit the existing stakeholder interest."
     });
+  });
+
+  test("4a: remove stakeholder interest appends breaking revision", async () => {
+    const setup = await createProject(server, "Remove Interest", "remove-interest", "stub-remove-interest");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+    const added = await addInterest(usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    const interest = ((await added.json()) as InterestResponse).stakeholder_interest;
+
+    const removed = await server.fetch(
+      `/v1/usecases/${usecase.id}/stakeholder-interests/${interest.id}`,
+      { method: "DELETE", headers: { Cookie: setup.cookie } }
+    );
+
+    expect(removed.status).toBe(200);
+    const body = (await removed.json()) as RemoveInterestResponse;
+    expect(body.removed_stakeholder_interest_id).toBe(interest.id);
+    expect(body.revision).toMatchObject({
+      change_summary: `Removed stakeholder interest ${interest.id}`,
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      severity: "BREAKING",
+      version_number: 3
+    });
+    expect(body.stakeholder_interests).toEqual([]);
   });
 });
 

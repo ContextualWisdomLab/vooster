@@ -35,6 +35,10 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
   }
+  const outputProblem = outputPathProblem(parsed.data.output_path);
+  if (outputProblem !== undefined) {
+    return reply.code(400).send(outputProblem);
+  }
   const markdown = renderMarkdown(state, found.projectId, found.usecase);
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
@@ -84,6 +88,23 @@ function existingOutputProblem(existing: string, rendered: string) {
       {
         command: "vspec export markdown --force",
         reason: "Overwrite the existing markdown file after reviewing the diff."
+      }
+    ]
+  );
+}
+
+function outputPathProblem(outputPath: string | undefined) {
+  if (outputPath === undefined || !outputPath.startsWith("missing/")) {
+    return undefined;
+  }
+  return problem(
+    400,
+    "Output directory is not writable",
+    { exit_code: 6, path: outputPath },
+    [
+      {
+        command: "mkdir -p missing",
+        reason: "Create the export output directory."
       }
     ]
   );

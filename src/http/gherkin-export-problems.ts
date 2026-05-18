@@ -1,0 +1,109 @@
+import { problem } from "./signup-support.js";
+import type { SignupState, StoredUseCase } from "./signup-types.js";
+
+export function existingOutputProblem(
+  usecase: StoredUseCase,
+  outputPath: string | undefined,
+  existingContent: string,
+  proposedContent: string
+) {
+  return problem(
+    409,
+    "Output file already exists",
+    {
+      diff_summary: {
+        existing_lines: lineCount(existingContent),
+        path: outputPath ?? `${usecase.key}.feature`,
+        proposed_lines: lineCount(proposedContent)
+      }
+    },
+    [
+      {
+        command: `vspec export gherkin ${usecase.key} --force`,
+        reason: "Overwrite the existing feature file intentionally."
+      },
+      {
+        command: `vspec export gherkin ${usecase.key} --output <path>`,
+        reason: "Choose a different output path."
+      }
+    ]
+  );
+}
+
+export function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
+  const main = (state.scenariosByUseCaseId.get(usecase.id) ?? [])
+    .find((scenario) => scenario.type === "MAIN_SUCCESS");
+  const stepCount = main === undefined
+    ? 0
+    : (state.stepsByScenarioId.get(main.id) ?? []).length;
+  if (main !== undefined && stepCount > 0) {
+    return undefined;
+  }
+  return problem(
+    422,
+    "Cannot export incomplete use case",
+    { missing_required_field: main === undefined ? "main_success" : "main_success.steps" },
+    [
+      {
+        command: `vspec doctor ${usecase.key}`,
+        reason: "Inspect missing Gherkin export prerequisites."
+      },
+      {
+        command: `vspec scenario add ${usecase.key} --type main-success`,
+        reason: "Create the required main success scenario before export."
+      }
+    ]
+  );
+}
+
+export function missingRevisionProblem(
+  state: SignupState,
+  usecase: StoredUseCase,
+  revisionId: string | undefined
+) {
+  if (revisionId === undefined) {
+    return undefined;
+  }
+  const exists = (state.revisionsByEntityId.get(usecase.id) ?? [])
+    .some((revision) => revision.id === revisionId);
+  if (exists) {
+    return undefined;
+  }
+  return problem(
+    404,
+    "Revision not found",
+    { revision_id: revisionId },
+    [
+      {
+        command: `vspec history ${usecase.key}`,
+        reason: "Find an exportable revision for this use case."
+      }
+    ]
+  );
+}
+
+export function outputPathProblem(outputPath: string | undefined) {
+  if (outputPath === undefined || !outputPath.startsWith("missing/")) {
+    return undefined;
+  }
+  const directory = outputPath.split("/")[0] ?? outputPath;
+  return problem(
+    400,
+    "Output directory is not writable",
+    { exit_code: 6, path: outputPath },
+    [
+      {
+        command: `mkdir -p ${directory}`,
+        reason: "Create the export output directory."
+      },
+      {
+        command: `chmod u+w ${directory}`,
+        reason: "Ensure the output directory is writable."
+      }
+    ]
+  );
+}
+
+function lineCount(content: string) {
+  return content.trimEnd().split("\n").length;
+}

@@ -1,5 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  existingOutputProblem,
+  gherkinPrerequisiteProblem,
+  missingRevisionProblem,
+  outputPathProblem
+} from "./gherkin-export-problems.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
@@ -9,7 +15,8 @@ const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
   existing_file_content: z.string().optional(),
   force: z.boolean().default(false),
-  output_path: z.string().optional()
+  output_path: z.string().optional(),
+  revision_id: z.string().optional()
 });
 
 export function registerGherkinExportRoutes(app: FastifyInstance, state: SignupState) {
@@ -31,6 +38,10 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export Gherkin"));
   }
+  const revisionProblem = missingRevisionProblem(state, found.usecase, parsed.data.revision_id);
+  if (revisionProblem !== undefined) {
+    return reply.code(404).send(revisionProblem);
+  }
   const prerequisiteProblem = gherkinPrerequisiteProblem(state, found.usecase);
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
@@ -49,84 +60,6 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
     ));
   }
   return reply.type("text/plain").send(feature);
-}
-
-function outputPathProblem(outputPath: string | undefined) {
-  if (outputPath === undefined || !outputPath.startsWith("missing/")) {
-    return undefined;
-  }
-  const directory = outputPath.split("/")[0] ?? outputPath;
-  return problem(
-    400,
-    "Output directory is not writable",
-    { exit_code: 6, path: outputPath },
-    [
-      {
-        command: `mkdir -p ${directory}`,
-        reason: "Create the export output directory."
-      },
-      {
-        command: `chmod u+w ${directory}`,
-        reason: "Ensure the output directory is writable."
-      }
-    ]
-  );
-}
-
-function existingOutputProblem(
-  usecase: StoredUseCase,
-  outputPath: string | undefined,
-  existingContent: string,
-  proposedContent: string
-) {
-  return problem(
-    409,
-    "Output file already exists",
-    {
-      diff_summary: {
-        existing_lines: lineCount(existingContent),
-        path: outputPath ?? `${usecase.key}.feature`,
-        proposed_lines: lineCount(proposedContent)
-      }
-    },
-    [
-      {
-        command: `vspec export gherkin ${usecase.key} --force`,
-        reason: "Overwrite the existing feature file intentionally."
-      },
-      {
-        command: `vspec export gherkin ${usecase.key} --output <path>`,
-        reason: "Choose a different output path."
-      }
-    ]
-  );
-}
-
-function lineCount(content: string) {
-  return content.trimEnd().split("\n").length;
-}
-
-function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
-  const main = (state.scenariosByUseCaseId.get(usecase.id) ?? [])
-    .find((scenario) => scenario.type === "MAIN_SUCCESS");
-  if (main !== undefined && scenarioSteps(state, main.id).length > 0) {
-    return undefined;
-  }
-  return problem(
-    422,
-    "Cannot export incomplete use case",
-    { missing_required_field: main === undefined ? "main_success" : "main_success.steps" },
-    [
-      {
-        command: `vspec doctor ${usecase.key}`,
-        reason: "Inspect missing Gherkin export prerequisites."
-      },
-      {
-        command: `vspec scenario add ${usecase.key} --type main-success`,
-        reason: "Create the required main success scenario before export."
-      }
-    ]
-  );
 }
 
 function renderFeature(state: SignupState, projectId: string, usecase: StoredUseCase) {

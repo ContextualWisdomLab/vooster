@@ -9,6 +9,7 @@ const completeSchema = z.object({
   no_merge: z.boolean().default(false),
   simulate_conflicts: z.boolean().default(false),
   simulate_completion_failure: z.boolean().default(false),
+  simulate_failed_lock_release: z.string().optional(),
   summary: z.string().optional()
 });
 type MergeRequestResponse = {
@@ -64,7 +65,7 @@ function completeSession(
     );
   }
 
-  const releasedLockIds = releaseSessionLocks(state, session.id);
+  const lockRelease = releaseSessionLocks(state, session.id, parsed.data.simulate_failed_lock_release);
   session.status = "COMPLETED";
   session.ended_at = new Date().toISOString();
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
@@ -74,7 +75,8 @@ function completeSession(
 
   return reply.send({
     session,
-    released_lock_ids: releasedLockIds,
+    released_lock_ids: lockRelease.releasedLockIds,
+    ...(lockRelease.warnings.length === 0 ? {} : { warnings: lockRelease.warnings }),
     ...(mergeRequest === undefined ? {} : { merge_request: mergeRequest }),
     session_file: { path: ".vspec/session.json", cleared: true },
     suggested_next_actions: nextActions(mergeRequest, noMergeBranch)
@@ -99,15 +101,29 @@ function canCompleteSession(
   );
 }
 
-function releaseSessionLocks(state: SignupState, sessionId: string): string[] {
-  const released: string[] = [];
+function releaseSessionLocks(
+  state: SignupState,
+  sessionId: string,
+  failedLockId: string | undefined
+) {
+  const releasedLockIds: string[] = [];
+  const warnings: Array<{ lock_id: string; message: string; type: string }> = [];
   for (const [usecaseId, lock] of state.stepLocksByUseCaseId) {
     if (lock.holder === sessionId) {
+      if (usecaseId === failedLockId) {
+        state.stepLocksByUseCaseId.delete(usecaseId);
+        warnings.push({
+          lock_id: usecaseId,
+          type: "LOCK_RELEASE_FAILED",
+          message: "Lock was already released before completion."
+        });
+        continue;
+      }
       state.stepLocksByUseCaseId.delete(usecaseId);
-      released.push(usecaseId);
+      releasedLockIds.push(usecaseId);
     }
   }
-  return released;
+  return { releasedLockIds, warnings };
 }
 
 function openMergeRequest(

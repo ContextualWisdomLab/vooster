@@ -45,29 +45,18 @@ afterAll(async () => {
 
 describe("UC-001 - Sign up for a workspace", () => {
   test("MAIN: creates a user, workspace, owner membership, and session", async () => {
-    const startResponse = await server.fetch("/v1/auth/github/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspace: { name: "Acme Product", slug: "acme-product" }
-      })
-    });
-
-    expect(startResponse.status).toBe(200);
-    const startBody = (await startResponse.json()) as StartSignupResponse;
-    expect(startBody.authorization_url).toContain("github.com/login/oauth/authorize");
-    expect(startBody.state.length).toBeGreaterThan(0);
-
-    const stateCookie = startResponse.headers.get("set-cookie");
-    expect(stateCookie).toContain("vspec_oauth_state=");
+    const started = await startSignup("Acme Product", "acme-product");
+    expect(started.authorizationUrl).toContain("github.com/login/oauth/authorize");
+    expect(started.state.length).toBeGreaterThan(0);
+    expect(started.cookie).toContain("vspec_oauth_state=");
 
     const params = new URLSearchParams({
       code: "stub-new-user",
-      state: startBody.state
+      state: started.state
     });
     const callbackResponse = await server.fetch(
       `/v1/auth/github/callback?${params.toString()}`,
-      { headers: { Cookie: stateCookie ?? "" } }
+      { headers: { Cookie: started.cookie } }
     );
 
     expect(callbackResponse.status).toBe(201);
@@ -93,23 +82,15 @@ describe("UC-001 - Sign up for a workspace", () => {
   });
 
   test("2a: denied GitHub authorization clears signup state", async () => {
-    const startResponse = await server.fetch("/v1/auth/github/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspace: { name: "Denied Workspace", slug: "denied-workspace" }
-      })
-    });
-    const startBody = (await startResponse.json()) as StartSignupResponse;
-    const stateCookie = startResponse.headers.get("set-cookie");
+    const started = await startSignup("Denied Workspace", "denied-workspace");
 
     const deniedParams = new URLSearchParams({
       error: "access_denied",
-      state: startBody.state
+      state: started.state
     });
     const deniedResponse = await server.fetch(
       `/v1/auth/github/callback?${deniedParams.toString()}`,
-      { headers: { Cookie: stateCookie ?? "" } }
+      { headers: { Cookie: started.cookie } }
     );
 
     expect(deniedResponse.status).toBe(400);
@@ -125,11 +106,11 @@ describe("UC-001 - Sign up for a workspace", () => {
 
     const retryParams = new URLSearchParams({
       code: "stub-denied-user",
-      state: startBody.state
+      state: started.state
     });
     const retryResponse = await server.fetch(
       `/v1/auth/github/callback?${retryParams.toString()}`,
-      { headers: { Cookie: stateCookie ?? "" } }
+      { headers: { Cookie: started.cookie } }
     );
 
     expect(retryResponse.status).toBe(400);
@@ -137,23 +118,15 @@ describe("UC-001 - Sign up for a workspace", () => {
   });
 
   test("4a: unverified GitHub email aborts signup", async () => {
-    const startResponse = await server.fetch("/v1/auth/github/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspace: { name: "Unverified Email", slug: "unverified-email" }
-      })
-    });
-    const startBody = (await startResponse.json()) as StartSignupResponse;
-    const stateCookie = startResponse.headers.get("set-cookie");
+    const started = await startSignup("Unverified Email", "unverified-email");
 
     const params = new URLSearchParams({
       code: "stub-unverified-email",
-      state: startBody.state
+      state: started.state
     });
     const callbackResponse = await server.fetch(
       `/v1/auth/github/callback?${params.toString()}`,
-      { headers: { Cookie: stateCookie ?? "" } }
+      { headers: { Cookie: started.cookie } }
     );
 
     expect(callbackResponse.status).toBe(422);
@@ -202,7 +175,11 @@ async function startSignup(name: string, slug: string) {
   });
   const body = (await response.json()) as StartSignupResponse;
 
-  return { state: body.state, cookie: response.headers.get("set-cookie") ?? "" };
+  return {
+    authorizationUrl: body.authorization_url,
+    state: body.state,
+    cookie: response.headers.get("set-cookie") ?? ""
+  };
 }
 
 async function completeSignup(code: string, state: string, cookieHeader: string) {

@@ -19,3 +19,11 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: GitHub profile has no verified primary email -> 422, instructs the user to verify GitHub email, and leaves no user row.
 - **6a**: requested workspace slug already exists -> 422, returns a suggested alternative slug, and rolls back user/workspace/membership creation.
 - ***a**: GitHub token/profile/email fetch fails -> 502 with retry guidance and no partial state.
+
+### UC-002
+
+- **MAIN**: existing signed-up GitHub user completes login -> 200, sets a fresh session cookie, updates `last_login_at`, and returns memberships/workspaces.
+- **4a**: GitHub identity has no existing vspec user -> 404, suggests signup via `vspec login`, and does not create a user or session.
+- **3a**: callback contains `error=access_denied` during login -> 401, clears OAuth state cookie, and returns retry guidance.
+- **6a**: existing user has zero workspace memberships -> 200 with `workspaces: []` and recommended next command `vspec workspace create`.
+- ***a**: GitHub API is unreachable during login -> 502 with retry guidance and no session cookie.

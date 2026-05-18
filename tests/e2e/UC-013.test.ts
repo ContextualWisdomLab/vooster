@@ -24,12 +24,7 @@ afterAll(async () => {
 describe("UC-013 - Edit a use case step", () => {
   test("MAIN: edit step action and append breaking revision", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(
-        server,
-        "Edit Step",
-        "edit-step",
-        "stub-edit-step"
-      );
+      await createUseCaseWithMainStep(server, "Edit Step", "edit-step", "stub-edit-step");
 
     const response = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Reviews the order.",
@@ -56,12 +51,7 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("2a: stale base revision returns current revision and leaves step unchanged", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(
-        server,
-        "Stale Step",
-        "stale-step",
-        "stub-stale-step"
-      );
+      await createUseCaseWithMainStep(server, "Stale Step", "stale-step", "stub-stale-step");
 
     const stale = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Reviews the order.",
@@ -133,12 +123,7 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("5a: semantic lock allows notes but blocks semantic edits", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(
-        server,
-        "Semantic Lock",
-        "semantic-lock",
-        "stub-semantic-lock"
-      );
+      await createUseCaseWithMainStep(server, "Semantic Lock", "semantic-lock", "stub-semantic-lock");
     const expiresAt = "2026-06-01T00:00:00.000Z";
     const locked = await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: expiresAt,
@@ -170,12 +155,7 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("6a: active sessions pinning the use case are affected", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(
-        server,
-        "Pinned Session",
-        "pinned-session",
-        "stub-pinned-session"
-      );
+      await createUseCaseWithMainStep(server, "Pinned Session", "pinned-session", "stub-pinned-session");
     const session = await createPinnedSession(server, usecase.id, setup.cookie, {
       id: "agent-session-2",
       pinned_revision_id: mainStepRevision.id

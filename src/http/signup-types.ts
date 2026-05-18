@@ -21,6 +21,7 @@ export type SignupState = {
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
   revisionsByEntityId: Map<string, StoredRevision[]>;
+  stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
   usersByGithubId: Map<string, StoredUser>;
   workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
@@ -90,8 +91,17 @@ export type StoredActor = {
 
 export type StoredRevision = {
   id: string;
-  entity_type: "ACTOR";
+  entity_type: "ACTOR" | "STAKEHOLDER";
   entity_id: string;
   version_number: number;
-  snapshot: StoredActor;
+  snapshot: StoredActor | StoredStakeholder;
+};
+
+export type StoredStakeholder = {
+  id: string;
+  project_id: string;
+  name: string;
+  type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
+  description: string;
+  archived_at: null | string;
 };

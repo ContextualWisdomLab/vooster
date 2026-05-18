@@ -4,6 +4,7 @@ import {
 } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
+  createPinnedSession,
   patchStep,
   type StepPatchResponse,
   type StepProblemResponse
@@ -168,5 +169,27 @@ describe("UC-013 - Edit a use case step", () => {
     expect(problem.lock_holder).toBe("agent-session-1");
     expect(problem.lock_reason).toBe("Agent is editing implementation.");
     expect(problem.expires_at).toBe(expiresAt);
+  });
+
+  test("6a: active sessions pinning the use case are affected", async () => {
+    const { mainStep, mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(
+        server,
+        "Pinned Session",
+        "pinned-session",
+        "stub-pinned-session"
+      );
+    const session = await createPinnedSession(server, usecase.id, setup.cookie, {
+      id: "agent-session-2",
+      pinned_revision_id: mainStepRevision.id
+    });
+    expect(session.status).toBe(201);
+
+    const edited = await patchStep(server, mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: mainStepRevision.id
+    });
+    const body = (await edited.json()) as StepPatchResponse;
+    expect(body.affected_sessions).toEqual(["agent-session-2"]);
   });
 });

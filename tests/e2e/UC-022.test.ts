@@ -7,6 +7,12 @@ import {
 } from "../helpers/lock-fixtures.js";
 import { projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import {
+  completeWorkSession,
+  startWorkSession,
+  type SessionCompleteResponse,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -118,5 +124,34 @@ describe("UC-022 - Lock a use case", () => {
       command: `vspec who ${usecase.key}`,
       reason: "Identify the lock owner."
     });
+  });
+
+  test("5a: completing a session releases its auto-release locks", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Release Lock", "release-lock", "stub-release-lock");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Edit locked use case",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const created = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "Session owns this edit."
+    }, session.id);
+    const lock = ((await created.json()) as LockCreateResponse).lock;
+
+    const completed = await completeWorkSession(server, session.id, setup.cookie, {
+      no_merge: true,
+      summary: "Done with locked edit."
+    });
+
+    expect(completed.status).toBe(200);
+    const body = (await completed.json()) as SessionCompleteResponse;
+    expect(body.released_lock_ids).toEqual([lock.id]);
+    const reacquired = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "HARD",
+      reason: "Next session can lock now."
+    }, "session-after-complete");
+    expect(reacquired.status).toBe(201);
   });
 });

@@ -12,6 +12,27 @@ export type Goal = {
   project_id: string;
   status: string;
 };
+export type Stakeholder = {
+  archived_at: null;
+  description: string;
+  id: string;
+  name: string;
+  project_id: string;
+  type: string;
+};
+export type UseCase = {
+  current_revision_id: string;
+  format: string;
+  id: string;
+  key: string;
+  level: string;
+  primary_actor_id: string;
+  priority: string;
+  project_id: string;
+  scope: string;
+  status: string;
+  title: string;
+};
 export type GoalResponse = {
   goal: Goal;
   recommended_next_command?: string;
@@ -37,6 +58,8 @@ export type ProjectSetup = {
 
 type ActorResponse = { actor: Actor };
 type ProjectResponse = { project: { id: string } };
+type StakeholderResponse = { stakeholder: Stakeholder };
+type UseCaseResponse = { usecase: UseCase };
 
 export async function createProject(
   server: TestServer,
@@ -100,6 +123,34 @@ export async function createGoalForActor(
     priority
   });
   return ((await response.json()) as GoalResponse).goal;
+}
+
+export async function createStakeholder(
+  server: TestServer,
+  setup: ProjectSetup,
+  name: string,
+  type = "INTERNAL"
+): Promise<Stakeholder> {
+  const response = await server.fetch(`/v1/projects/${setup.projectId}/stakeholders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ description: "", name, type })
+  });
+  return ((await response.json()) as StakeholderResponse).stakeholder;
+}
+
+export async function createUseCase(
+  server: TestServer,
+  setup: ProjectSetup,
+  primaryActor: string,
+  title: string
+): Promise<UseCase> {
+  const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify({ primary_actor: primaryActor, title })
+  });
+  return ((await response.json()) as UseCaseResponse).usecase;
 }
 
 export async function patchGoal(

@@ -79,3 +79,11 @@ write. This guides your TDD cycles within an iteration._
 - **3b**: unknown primary actor -> 422 with actor list/create guidance and no use case.
 - **5c**: simulated key collision -> retries allocation and succeeds with the next available key, or 409 after repeated failures.
 - ***a**: unauthorized requester -> 403 with login/member role guidance and no use case/revision.
+
+### UC-010
+
+- **MAIN**: add a stakeholder interest to an existing use case -> creates the interest, appends a NON_BREAKING use case revision, returns updated stakeholder list and next missing role hint.
+- **3a**: duplicate stakeholder interest -> 409 with existing interest text and edit guidance.
+- **4a**: remove an existing stakeholder interest -> deletes it and appends a BREAKING use case revision.
+- **5a**: removing the last interest -> succeeds with zero-interest warning and blocks later status transition out of DRAFT.
+- ***a**: stakeholder name does not resolve -> failure with candidate names and stakeholder-create guidance.

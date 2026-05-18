@@ -147,6 +147,27 @@ describe("UC-003 - Invite a member", () => {
       reason: "Correct the address and send a new invitation."
     });
   });
+
+  test("6a: expired token is rejected and creates no membership", async () => {
+    const owner = await signup(server, "Invite Expired", "invite-expired", "stub-expired-owner");
+    const email = "stub-expired-invitee@users.noreply.github.com";
+    const invited = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR", {
+      simulate_expired: true
+    });
+    const inviteBody = (await invited.json()) as InvitationResponse;
+
+    const expired = await acceptInvitation(inviteBody.invitation.token, "stub-expired-invitee");
+
+    expect(expired.status).toBe(410);
+    const problem = (await expired.json()) as ProblemResponse;
+    expect(problem.code).toBe("invitation_expired");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member invite",
+      reason: "Ask a workspace owner for a fresh invitation."
+    });
+    const freshInvite = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+    expect(freshInvite.status).toBe(201);
+  });
 });
 
 function inviteMember(

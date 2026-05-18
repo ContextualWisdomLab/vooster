@@ -76,4 +76,30 @@ Scenario: 1a Payment is declined.
       reason: "Create the required main success scenario before export."
     });
   });
+
+  test("6a: missing output directory returns local config guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Gherkin Output", "gherkin-output", "stub-gherkin-output");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ output_path: "missing/CHK-001.feature" })
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as {
+      exit_code: number;
+      path: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/output directory is not writable/i);
+    expect(problem.exit_code).toBe(6);
+    expect(problem.path).toBe("missing/CHK-001.feature");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "mkdir -p missing",
+      reason: "Create the export output directory."
+    });
+  });
 });

@@ -27,6 +27,7 @@ type PromoteResponse = {
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: UseCase;
+  warnings?: Array<{ field: string; message: string }>;
 };
 type ProblemResponse = {
   existing_usecase_key?: string;
@@ -129,6 +130,29 @@ describe("UC-008 - Promote a goal to a use case", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec goal edit ${goal.id} --status in-design`,
       reason: "Reopen the goal before promotion."
+    });
+  });
+
+  test("4a: weak title still promotes with edit warning", async () => {
+    const setup = await createProject(server, "Weak Title", "weak-title", "stub-weak-title");
+    const actor = await createActor(server, setup, "Customer");
+    const goal = await createGoalForActor(server, setup, actor, "Order status");
+
+    const response = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as PromoteResponse;
+    expect(body.usecase.title).toBe("Order status");
+    expect(body.warnings).toContainEqual({
+      field: "title",
+      message: "Title may not be a verb phrase."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec usecase set ${body.usecase.key} --field title`,
+      reason: "Revise the title into a verb phrase."
     });
   });
 });

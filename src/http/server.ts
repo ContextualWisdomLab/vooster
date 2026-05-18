@@ -5,6 +5,7 @@ import { registerActorRoutes } from "./actor-routes.js";
 import { registerBranchRoutes } from "./branch-routes.js";
 import { registerBranchTestRoutes } from "./branch-test-routes.js";
 import { registerChangeCommitRoutes } from "./change-commit-routes.js";
+import { registerCommentRoutes } from "./comment-routes.js";
 import { registerGherkinExportRoutes } from "./gherkin-export-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
@@ -50,6 +51,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerGoalRoutes(app, state);
   registerGoalPromotionRoutes(app, state);
   registerImpactRoutes(app, state);
+  registerCommentRoutes(app, state);
   registerChangeCommitRoutes(app, state);
   registerStakeholderRoutes(app, state);
   registerStakeholderInterestRoutes(app, state);

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { addStep, createUseCaseWithMainStep, type StepResponse } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
+import { createUseCase } from "../helpers/uc-fixtures.js";
 
 type AgentUseCaseResponse = {
   context: {
@@ -117,6 +118,35 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     expect(body.warnings).toContainEqual({
       type: "REVISION_OVERRIDDEN_BY_SESSION",
       message: "Requested revision was ignored because the active session pins this use case."
+    });
+  });
+
+  test("4a: session without pin warns and suggests pinning", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Agent Unpinned", "agent-unpinned", "stub-agent-unpinned");
+    const other = await createUseCase(server, setup, "Customer", "Tracks an order");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Read unpinned spec",
+      pins: [other.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}?format=agent&session=${session.id}`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as AgentUseCaseResponse;
+    expect(body.context.session_id).toBe(session.id);
+    expect(body.warnings).toContainEqual({
+      type: "UNPINNED_SESSION_READ",
+      message: "Session does not pin this use case; concurrent edits may change future reads."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec session pin ${usecase.key}`,
+      reason: "Pin this use case before relying on it for edits."
     });
   });
 });

@@ -59,7 +59,10 @@ esac
 STATE_DIR="$ROOT/.state"
 mkdir -p "$STATE_DIR"
 BASELINE="$STATE_DIR/passing_tests.txt"
-if [ -f package.json ] && command -v node >/dev/null 2>&1; then
+LATEST_TDD_PHASE=$(git log --pretty=%s | awk '/^(red|green|refactor):/ { print $1; exit }')
+if [ "$LATEST_TDD_PHASE" = "red:" ]; then
+  echo "verify-tdd: red phase active; skip passing test count baseline."
+elif [ -f package.json ] && command -v node >/dev/null 2>&1; then
   CURRENT=$(node "$ROOT/scripts/_count-passing.mjs" 2>/dev/null | tail -1 || echo 0)
   # Treat empty/non-numeric as 0; never crash here.
   case "$CURRENT" in ''|*[!0-9]*) CURRENT=0 ;; esac

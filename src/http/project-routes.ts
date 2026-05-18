@@ -5,9 +5,11 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredMembership, StoredProject } from "./signup-types.js";
 
+const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
+
 const projectRequestSchema = z.object({
   name: z.string().min(1),
-  key: z.string().regex(/^[A-Z][A-Z0-9]{1,7}$/),
+  key: z.string(),
   visibility: z.enum(["PRIVATE", "INTERNAL"]).default("PRIVATE")
 });
 
@@ -39,6 +41,15 @@ function createProject(
   const parsed = projectRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid project request"));
+  }
+
+  if (!keyPattern.test(parsed.data.key)) {
+    return reply.code(400).send(
+      problem(400, "Invalid project key", {
+        key_pattern: "^[A-Z][A-Z0-9]{1,7}$",
+        example_keys: ["PAY", "PAY2", "OPS2026"]
+      })
+    );
   }
 
   const project = newProject(workspaceId, parsed.data);

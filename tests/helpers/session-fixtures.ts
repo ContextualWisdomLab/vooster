@@ -1,6 +1,14 @@
 import type { TestServer } from "./server.js";
 
 export type SessionStartResponse = {
+  branch?: {
+    base_branch_id: string;
+    id: string;
+    name: string;
+    owner_id: string;
+    owner_type: string;
+    project_id: string;
+  };
   session: {
     agent_identifier: string;
     agent_type: string;
@@ -31,7 +39,13 @@ export type SessionProblemResponse = {
 export function startWorkSession(
   server: TestServer,
   setup: { cookie: string; projectId: string },
-  body: { agent_type: string; auto_branch?: boolean; intent: string; pins: string[] },
+  body: {
+    agent_type: string;
+    auto_branch?: boolean;
+    branch_name?: string;
+    intent: string;
+    pins: string[];
+  },
   agent = "codex-cli"
 ) {
   return server.fetch("/v1/sessions", {

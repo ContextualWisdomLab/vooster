@@ -7,6 +7,7 @@ import {
   type SessionStartResponse
 } from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
+import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
 
@@ -121,5 +122,47 @@ describe("UC-016 - Start a work session", () => {
       command: `vspec who ${usecase.key}`,
       reason: "Identify the session holding the hard lock."
     });
+  });
+
+  test("4a: auto-branch collision gets a suffixed branch name", async () => {
+    const setup = await createProject(
+      server,
+      "Session Branch",
+      "session-branch",
+      "stub-session-branch"
+    );
+    await createActor(server, setup, "Customer");
+    const firstUseCase = await createUseCase(server, setup, "Customer", "Places an order");
+    const secondUseCase = await createUseCase(server, setup, "Customer", "Reviews an order");
+
+    const first = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/session-work",
+      intent: "Work on the first branch",
+      pins: [firstUseCase.key]
+    });
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as SessionStartResponse;
+    expect(firstBody.branch?.name).toBe("agent/session-work");
+
+    const second = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/session-work",
+      intent: "Work on the colliding branch",
+      pins: [secondUseCase.key]
+    });
+
+    expect(second.status).toBe(201);
+    const secondBody = (await second.json()) as SessionStartResponse;
+    expect(secondBody.branch).toMatchObject({
+      owner_id: secondBody.session.id,
+      owner_type: "AGENT",
+      project_id: setup.projectId
+    });
+    expect(secondBody.branch?.name).toMatch(/^agent\/session-work-[0-9a-f]{6}$/u);
+    expect(secondBody.branch?.name).not.toBe(firstBody.branch?.name);
+    expect(secondBody.session.branch_id).toBe(secondBody.branch?.id);
   });
 });

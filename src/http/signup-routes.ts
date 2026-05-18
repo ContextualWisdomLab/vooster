@@ -7,8 +7,8 @@ import {
   clearOAuthState,
   cookie,
   establishSession,
-  GithubNetworkError,
-  githubProfile,
+  fetchGithubProfile,
+  githubUnavailable,
   problem,
   readCookie,
   signupEntities,
@@ -129,38 +129,10 @@ function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
   return "flow" in data ? { flow: "login" } : { flow: "signup", workspace: data.workspace };
 }
 
-function fetchGithubProfile(
-  options: ServerOptions,
-  code: string
-): GithubProfile | undefined {
-  try {
-    return githubProfile(options, code);
-  } catch (error) {
-    if (error instanceof GithubNetworkError) {
-      return undefined;
-    }
-
-    throw error;
-  }
-}
-
-function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"]) {
-  const action =
-    flow === "login"
-      ? "Retry login after GitHub is reachable."
-      : "Retry signup after GitHub is reachable.";
-
-  return reply.code(502).send(
-    problem(502, "GitHub is unavailable", {}, [
-      { command: "vspec login", reason: action }
-    ])
-  );
-}
-
 function completeVerifiedSignup(
   reply: FastifyReply,
   state: SignupState,
-  profile: ReturnType<typeof githubProfile>,
+  profile: GithubProfile,
   pending: PendingSignup
 ) {
   if (state.workspaceSlugs.has(pending.slug)) {

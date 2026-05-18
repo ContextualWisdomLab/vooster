@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
 import type {
   GithubProfile,
+  PendingOAuth,
   PendingSignup,
   ServerOptions,
   StoredMembership,
@@ -96,6 +97,34 @@ export function githubProfile(options: ServerOptions, code: string): GithubProfi
     name: "Stub GitHub User",
     avatarUrl: "https://github.com/identicons/stub.png"
   };
+}
+
+export function fetchGithubProfile(
+  options: ServerOptions,
+  code: string
+): GithubProfile | undefined {
+  try {
+    return githubProfile(options, code);
+  } catch (error) {
+    if (error instanceof GithubNetworkError) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+export function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"]) {
+  const action =
+    flow === "login"
+      ? "Retry login after GitHub is reachable."
+      : "Retry signup after GitHub is reachable.";
+
+  return reply.code(502).send(
+    problem(502, "GitHub is unavailable", {}, [
+      { command: "vspec login", reason: action }
+    ])
+  );
 }
 
 export function readCookie(header: string | undefined, name: string): string | undefined {

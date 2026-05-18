@@ -31,8 +31,11 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step update"));
   }
-  if (parsed.data.base_revision !== currentRevisionId(state, found.usecase)) {
-    return reply.code(409).send(problem(409, "Base revision is stale"));
+  const currentRevision = currentRevisionId(state, found.usecase);
+  if (parsed.data.base_revision !== currentRevision) {
+    return reply
+      .code(409)
+      .send(staleBaseRevisionProblem(found.usecase, parsed.data.base_revision, currentRevision));
   }
 
   const updated = { ...found.step, action: parsed.data.action ?? found.step.action };
@@ -75,6 +78,30 @@ function stepWithUseCase(
 function currentRevisionId(state: SignupState, usecase: StoredUseCase): string {
   const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
   return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
+}
+
+function staleBaseRevisionProblem(
+  usecase: StoredUseCase,
+  baseRevision: string,
+  currentRevision: string
+) {
+  return problem(
+    409,
+    "Base revision is stale",
+    {
+      current_revision_id: currentRevision,
+      revision_diff: {
+        base_revision: baseRevision,
+        current_revision: currentRevision
+      }
+    },
+    [
+      {
+        command: `vspec usecase show ${usecase.key}`,
+        reason: "Inspect the current use case before retrying the step edit."
+      }
+    ]
+  );
 }
 
 function membershipForProject(

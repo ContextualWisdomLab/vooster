@@ -166,3 +166,12 @@ write. This guides your TDD cycles within an iteration._
 - **3b**: resolution list does not cover every conflict -> 422 listing uncovered conflict keys, full-resolution guidance, and MR unchanged.
 - **5a**: a HARD lock is acquired on a touched entity after MR open -> 409 with holding session and `vspec who <KEY>` guidance, MR stays OPEN, and main unchanged.
 - ***a**: simulated resolution write failure -> exit code 5 with retry guidance, MR stays OPEN, source branch ACTIVE, and main unchanged.
+
+### UC-022
+
+- **MAIN**: authenticated project member locks an existing use case with type/reason/TTL and session header -> returns a finite lock row with holder user/session, auto-release flag, and renew/unlock next actions.
+- **3a**: another session holds an active equal-or-higher competing lock -> `SEMANTIC`/`HARD` requests return 409 with holder user/session, expiry, `vspec who <KEY>` guidance, and no new lock.
+- **1a**: renewing an expired lock -> returns 409 with reacquire guidance and does not extend the expired row.
+- **1b**: renewing a lock owned by another user/session -> returns 403 and leaves the existing lock unchanged.
+- **5a**: completing a session that owns an auto-release lock -> deletes that lock in the same completion response.
+- ***a**: an expired lock exists on the target -> a fresh lock acquisition treats it as absent and succeeds.

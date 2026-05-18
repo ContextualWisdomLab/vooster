@@ -39,7 +39,20 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
 
   const actor = activeActorWithId(state, projectId, parsed.data.actor_id);
   if (actor === undefined) {
-    return reply.code(422).send(problem(422, "Actor is not available"));
+    return reply.code(422).send(
+      problem(
+        422,
+        "Actor is not available",
+        { actor_id: parsed.data.actor_id },
+        [
+          { command: "vspec actor list", reason: "Find a valid actor for this project." },
+          {
+            command: "vspec actor create",
+            reason: "Create the actor before assigning goals."
+          }
+        ]
+      )
+    );
   }
 
   const goal: StoredGoal = {

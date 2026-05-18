@@ -160,4 +160,35 @@ describe("UC-011 - Write the main success scenario", () => {
     expect(validBody.step.step_number).toBe(1);
     expect(validBody.scenario_steps).toHaveLength(1);
   });
+
+  test("6a: tenth main step persists with split-use-case warning", async () => {
+    const { scenario, setup } = await createScenarioReadyUseCase(
+      server,
+      "Long Scenario",
+      "long-scenario",
+      "stub-long-scenario"
+    );
+
+    for (let index = 1; index <= 9; index += 1) {
+      const response = await addStep(server, scenario.scenario.id, setup.cookie, {
+        action: `Places order item ${String(index)}.`,
+        actor: "Customer"
+      });
+      expect(response.status).toBe(201);
+    }
+
+    const tenth = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "Reviews final confirmation.",
+      actor: "Customer"
+    });
+
+    expect(tenth.status).toBe(201);
+    const body = (await tenth.json()) as StepResponse;
+    expect(body.step.step_number).toBe(10);
+    expect(body.scenario_steps).toHaveLength(10);
+    expect(body.warnings).toContainEqual({
+      type: "SCENARIO_OVER_NINE_STEPS",
+      message: "Scenarios over nine steps usually indicate the use case should be split."
+    });
+  });
 });

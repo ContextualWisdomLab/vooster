@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { lockUseCase, type LockCreateResponse } from "../helpers/lock-fixtures.js";
+import {
+  lockUseCase,
+  type LockCreateResponse,
+  type LockProblemResponse
+} from "../helpers/lock-fixtures.js";
 import { projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
@@ -43,6 +47,31 @@ describe("UC-022 - Lock a use case", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec unlock ${usecase.key}`,
       reason: "Release the lock when the edit is complete."
+    });
+  });
+
+  test("3a: competing semantic lock is rejected with holder guidance", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Competing Lock", "competing-lock", "stub-competing-lock");
+    const first = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "First session edits the flow."
+    }, "session-lock-a");
+    const firstBody = (await first.json()) as LockCreateResponse;
+
+    const response = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "Second session edits the flow."
+    }, "session-lock-b");
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as LockProblemResponse;
+    expect(problem.title).toMatch(/competing lock/i);
+    expect(problem.holding_session).toBe("session-lock-a");
+    expect(problem.held_by_user_id).toBe(setup.userId);
+    expect(problem.expires_at).toBe(firstBody.lock.expires_at);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Inspect the session holding the lock."
     });
   });
 });

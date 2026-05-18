@@ -17,6 +17,14 @@ export type LockCreateResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
+export type LockProblemResponse = {
+  expires_at?: string;
+  held_by_user_id?: string;
+  holding_session?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
+
 export function lockUseCase(
   server: TestServer,
   setup: ProjectSetup,

@@ -26,7 +26,7 @@ function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: Sig
   }
   const parsed = searchQuerySchema.safeParse(request.query);
   if (!parsed.success) {
-    return reply.code(400).send(problem(400, "Invalid use case search filters", {
+    return reply.code(400).send(problem(400, "Unknown use case filter value", {
       valid_levels: ["SUMMARY", "USER_GOAL", "SUBFUNCTION"],
       valid_statuses: ["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]
     }));

@@ -20,11 +20,13 @@ type MergeResolveResponse = {
 type MergeResolveProblem = {
   conflicts?: unknown[];
   current_revision?: string;
+  exit_code?: number;
   field?: string;
   holding_session?: string;
   main_head_revision_ids?: Record<string, string>;
   merge_request?: { status: string };
   offending_entity_id?: string;
+  source_branch?: { status: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
   uncovered_conflicts?: unknown[];
@@ -41,13 +43,7 @@ afterAll(async () => {
 
 describe("UC-021 - Resolve a merge conflict", () => {
   test("MAIN: resolve structural conflict with source value", async () => {
-    const { branch, merge, setup, usecase } = await openStructuralConflict(
-      server,
-      "Resolve Merge",
-      "resolve-merge",
-      "stub-resolve-merge",
-      "feature/resolve-refund"
-    );
+    const { branch, merge, setup, usecase } = await openStructuralConflict(server, "Resolve Merge", "resolve-merge", "stub-resolve-merge", "feature/resolve-refund");
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id ?? "missing-current-revision",
@@ -73,13 +69,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("2a: stale base revision returns current merge conflicts", async () => {
-    const { merge, setup, usecase } = await openStructuralConflict(
-      server,
-      "Stale Resolve",
-      "stale-resolve",
-      "stub-stale-resolve",
-      "feature/stale-resolve"
-    );
+    const { merge, setup, usecase } = await openStructuralConflict(server, "Stale Resolve", "stale-resolve", "stub-stale-resolve", "feature/stale-resolve");
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: "stale-merge-revision",
@@ -98,13 +88,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3a: manual resolution requires a value", async () => {
-    const { merge, setup, usecase } = await openStructuralConflict(
-      server,
-      "Manual Resolve",
-      "manual-resolve",
-      "stub-manual-resolve",
-      "feature/manual-resolve"
-    );
+    const { merge, setup, usecase } = await openStructuralConflict(server, "Manual Resolve", "manual-resolve", "stub-manual-resolve", "feature/manual-resolve");
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id,
@@ -123,13 +107,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3b: every conflict must have a resolution", async () => {
-    const { merge, setup } = await openStructuralConflict(
-      server,
-      "Partial Resolve",
-      "partial-resolve",
-      "stub-partial-resolve",
-      "feature/partial-resolve"
-    );
+    const { merge, setup } = await openStructuralConflict(server, "Partial Resolve", "partial-resolve", "stub-partial-resolve", "feature/partial-resolve");
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id,
@@ -147,13 +125,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("5a: late hard lock blocks conflict resolution", async () => {
-    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(
-      server,
-      "Locked Resolve",
-      "locked-resolve",
-      "stub-locked-resolve",
-      "feature/locked-resolve"
-    );
+    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(server, "Locked Resolve", "locked-resolve", "stub-locked-resolve", "feature/locked-resolve");
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
       holder: "late-lock-holder",
@@ -175,6 +147,27 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the hard lock."
+    });
+  });
+
+  test("*a: write failure leaves merge request open and main unchanged", async () => {
+    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(server, "Failed Resolve", "failed-resolve", "stub-failed-resolve", "feature/failed-resolve");
+
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: merge.current_revision_id,
+      resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }],
+      simulate_write_failure: true
+    });
+
+    expect(response.status).toBe(500);
+    const problem = (await response.json()) as MergeResolveProblem;
+    expect(problem.exit_code).toBe(5);
+    expect(problem.merge_request).toMatchObject({ status: "OPEN" });
+    expect(problem.source_branch).toMatchObject({ status: "ACTIVE" });
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(mainRevision.revision_id);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec merge resolve ${merge.id} --retry`,
+      reason: "Retry after the failed conflict resolution."
     });
   });
 });

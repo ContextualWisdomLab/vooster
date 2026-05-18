@@ -7,6 +7,7 @@ import {
   existingInterestForStakeholder,
   interestsWithStakeholders,
   missingRoleHint,
+  unresolvedStakeholderProblem,
   usecaseIdFrom
 } from "./stakeholder-interest-support.js";
 import { problem } from "./signup-support.js";
@@ -59,7 +60,9 @@ function addStakeholderInterest(
     parsed.data.stakeholder
   );
   if (stakeholder === undefined) {
-    return reply.code(422).send(problem(422, "Stakeholder is not available"));
+    return reply.code(422).send(
+      unresolvedStakeholderProblem(state, found.projectId, parsed.data.stakeholder)
+    );
   }
   const existing = existingInterestForStakeholder(state, found.usecase.id, stakeholder.id);
   if (existing !== undefined) {

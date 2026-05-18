@@ -10,6 +10,7 @@ const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
 const projectRequestSchema = z.object({
   name: z.string().min(1),
   key: z.string(),
+  simulate_branch_insert_failure: z.boolean().optional(),
   visibility: z.enum(["PRIVATE", "INTERNAL"]).default("PRIVATE")
 });
 
@@ -76,6 +77,14 @@ function createProject(
   }
 
   const project = newProject(workspaceId, parsed.data);
+  if (parsed.data.simulate_branch_insert_failure === true) {
+    return reply.code(500).send(
+      problem(500, "Project creation failed", {
+        request_id: randomUUID()
+      })
+    );
+  }
+
   const branch = {
     id: randomUUID(),
     project_id: project.id,

@@ -133,4 +133,28 @@ Scenario: 1a Payment is declined.
       reason: "Overwrite the existing feature file intentionally."
     });
   });
+
+  test("2a: stale requested revision returns history guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Gherkin Revision", "gherkin-revision", "stub-gherkin-revision");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ revision_id: "missing-revision" })
+    });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as {
+      revision_id: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/revision not found/i);
+    expect(problem.revision_id).toBe("missing-revision");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key}`,
+      reason: "Find an exportable revision for this use case."
+    });
+  });
 });

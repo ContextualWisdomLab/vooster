@@ -10,8 +10,10 @@ const actorRequestSchema = z.object({
   description: z.string().default(""),
   is_human: z.boolean(),
   name: z.string().min(1),
-  type: z.enum(["PRIMARY", "SUPPORTING", "OFFSTAGE"])
+  type: z.string()
 });
+
+const actorTypes = ["PRIMARY", "SUPPORTING", "OFFSTAGE"] as const;
 
 export function registerActorRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
@@ -32,6 +34,14 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   const parsed = actorRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid actor request"));
+  }
+
+  if (!isActorType(parsed.data.type)) {
+    return reply.code(400).send(
+      problem(400, "Invalid actor type", {
+        valid_types: [...actorTypes]
+      })
+    );
   }
 
   const archived = archivedActorNamed(state, projectId, parsed.data.name);
@@ -96,6 +106,10 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     revision,
     recommended_next_command: "vspec stakeholder create"
   });
+}
+
+function isActorType(type: string): type is StoredActor["type"] {
+  return actorTypes.includes(type as StoredActor["type"]);
 }
 
 function archiveActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {

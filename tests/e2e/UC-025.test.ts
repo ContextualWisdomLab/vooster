@@ -21,6 +21,13 @@ type DiffResponse = {
   to_revision: string;
   usecase: { id: string; key: string };
 };
+type DiffProblem = {
+  diff?: unknown;
+  missing_revision?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+  usecase?: { id: string; key: string };
+};
 
 let server: TestServer;
 beforeAll(async () => {
@@ -73,6 +80,27 @@ describe("UC-025 - Compare two revisions of a use case", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: "vspec merge open",
       reason: "Open a merge request when the diff is acceptable."
+    });
+  });
+
+  test("2a: missing revision returns history guidance", async () => {
+    const { mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(server, "Diff Missing", "diff-missing", "stub-diff-missing");
+
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/diff?from=rev-missing&to=${mainStepRevision.id}&format=json`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as DiffProblem;
+    expect(problem.title).toMatch(/revision not found/i);
+    expect(problem.missing_revision).toBe("rev-missing");
+    expect(problem.usecase).toEqual({ id: usecase.id, key: usecase.key });
+    expect(problem.diff).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key}`,
+      reason: "Find valid revision IDs for this use case."
     });
   });
 });

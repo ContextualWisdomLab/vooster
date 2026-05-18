@@ -5,6 +5,13 @@ const guideQuerySchema = z.object({
   cli_version: z.string().default("1.0.0"),
   format: z.enum(["json", "markdown"]).default("markdown")
 });
+const guideBodySchema = z.object({
+  cached_guides: z.array(z.object({
+    cli_version: z.string(),
+    content: z.string()
+  })).default([]),
+  simulate_network_failure: z.boolean().default(false)
+});
 
 export function registerAiGuideRoutes(app: FastifyInstance) {
   app.post("/v1/ai-guide", (request, reply) => aiGuide(request, reply));
@@ -13,6 +20,11 @@ export function registerAiGuideRoutes(app: FastifyInstance) {
 function aiGuide(request: FastifyRequest, reply: FastifyReply) {
   const parsed = guideQuerySchema.safeParse(request.query);
   const query = parsed.success ? parsed.data : { cli_version: "1.0.0", format: "markdown" };
+  const body = guideBodySchema.parse(request.body ?? {});
+  const cachedGuide = body.cached_guides[0];
+  if (body.simulate_network_failure && cachedGuide !== undefined) {
+    return reply.send(staleGuide(cachedGuide));
+  }
   if (query.format === "json") {
     return reply.send(jsonGuide(query.cli_version));
   }
@@ -21,6 +33,21 @@ function aiGuide(request: FastifyRequest, reply: FastifyReply) {
     content: guideMarkdown(),
     suggested_next_actions: suggestedNextActions()
   });
+}
+
+function staleGuide(cached: { cli_version: string; content: string }) {
+  return {
+    cache: { cli_version: cached.cli_version, status: "STALE_FALLBACK" },
+    content: `WARNING: this guide may be out of date relative to the installed CLI.\n\n${cached.content}`,
+    suggested_next_actions: [
+      ...suggestedNextActions(),
+      { command: "vspec ai-guide", reason: "Retry once connectivity returns." }
+    ],
+    warnings: [{
+      type: "STALE_AI_GUIDE",
+      message: `Using cached guide ${cached.cli_version} because the current guide could not be fetched.`
+    }]
+  };
 }
 
 function jsonGuide(cliVersion: string) {

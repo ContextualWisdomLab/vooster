@@ -7,6 +7,7 @@ import type { SignupState, StoredWorkSession } from "./signup-types.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
+  simulate_completion_failure: z.boolean().default(false),
   summary: z.string().optional()
 });
 
@@ -44,6 +45,16 @@ function completeSession(
             reason: "Inspect the current session state before retrying."
           }
         ]
+      )
+    );
+  }
+  if (parsed.data.simulate_completion_failure) {
+    return reply.code(500).send(
+      problem(
+        500,
+        "Session completion failed",
+        { exit_code: 5 },
+        [{ command: "vspec session complete --retry", reason: "Retry the failed completion." }]
       )
     );
   }

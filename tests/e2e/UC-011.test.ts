@@ -1,20 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { addInterest } from "../helpers/interest-fixtures.js";
 import {
   addStep,
   createMainScenario,
   createScenarioReadyUseCase,
+  expectMainScenarioCreated,
   type ProblemResponse,
-  type ScenarioResponse,
   type StepResponse
 } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import {
-  createActor,
-  createProject,
-  createStakeholder,
-  createUseCase
-} from "../helpers/uc-fixtures.js";
+import { createActor } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
 
@@ -28,34 +22,10 @@ afterAll(async () => {
 
 describe("UC-011 - Write the main success scenario", () => {
   test("MAIN: create main success scenario and append contiguous steps", async () => {
-    const setup = await createProject(server, "Main Scenario", "main-scenario", "stub-main-scenario");
-    const customer = await createActor(server, setup, "Customer");
+    const { actor: customer, scenario: scenarioBody, setup, usecase } =
+      await createScenarioReadyUseCase(server, "Main Scenario", "main-scenario", "stub-main-scenario");
     const clerk = await createActor(server, setup, "Fulfillment Clerk");
-    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
-    await createStakeholder(server, setup, "Product Manager");
-    await addInterest(server, usecase.id, setup.cookie, {
-      interest: "Checkout revenue is protected.",
-      stakeholder: "Product Manager"
-    });
-
-    const createdScenario = await createMainScenario(server, usecase.id, setup.cookie);
-
-    expect(createdScenario.status).toBe(201);
-    const scenarioBody = (await createdScenario.json()) as ScenarioResponse;
-    expect(scenarioBody.scenario).toMatchObject({
-      order_index: 0,
-      outcome: "SUCCESS",
-      type: "MAIN_SUCCESS",
-      usecase_id: usecase.id
-    });
-    expect(scenarioBody.revision).toMatchObject({
-      change_summary: `Created main success scenario ${scenarioBody.scenario.id}`,
-      entity_id: usecase.id,
-      entity_type: "USECASE",
-      severity: "NON_BREAKING",
-      version_number: 3
-    });
-    expect(scenarioBody.steps).toEqual([]);
+    expectMainScenarioCreated(scenarioBody, usecase.id);
 
     const firstStep = await addStep(server, scenarioBody.scenario.id, setup.cookie, {
       action: "Places an order.",

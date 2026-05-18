@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { addInterest } from "./interest-fixtures.js";
 import type { TestServer } from "./server.js";
 import {
@@ -88,4 +89,21 @@ export async function createScenarioReadyUseCase(
   const response = await createMainScenario(server, usecase.id, setup.cookie);
   const scenario = (await response.json()) as ScenarioResponse;
   return { actor, scenario, setup, usecase };
+}
+
+export function expectMainScenarioCreated(body: ScenarioResponse, usecaseId: string) {
+  expect(body.scenario).toMatchObject({
+    order_index: 0,
+    outcome: "SUCCESS",
+    type: "MAIN_SUCCESS",
+    usecase_id: usecaseId
+  });
+  expect(body.revision).toMatchObject({
+    change_summary: `Created main success scenario ${body.scenario.id}`,
+    entity_id: usecaseId,
+    entity_type: "USECASE",
+    severity: "NON_BREAKING",
+    version_number: 3
+  });
+  expect(body.steps).toEqual([]);
 }

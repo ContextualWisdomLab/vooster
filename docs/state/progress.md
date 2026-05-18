@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T22:00:59Z_
+_Last updated: 2026-05-18T22:17:40Z_
 
 ## Overall
 
-- Commits: 390
-- Last commit: 84a5a13 green: UC-033 fail cold offline ai guide
-- Use cases complete: 27 / 35
+- Commits: 404
+- Last commit: 4556af9 green: UC-034 hide archived agent spec
+- Use cases complete: 28 / 35
 
 ## By Use Case
 
@@ -45,5 +45,5 @@ _Last updated: 2026-05-18T22:00:59Z_
 | UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
 | UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 |
-| UC-034 | Fetch a structured spec (AI agent) | ○ NOT STARTED | 0/0 |
+| UC-034 | Fetch a structured spec (AI agent) | ✓ DONE | 6/6 |
 | UC-035 | Propose a spec change (AI agent) | ○ NOT STARTED | 0/0 |

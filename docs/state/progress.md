@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T20:35:00Z_
+_Last updated: 2026-05-18T20:52:59Z_
 
 ## Overall
 
-- Commits: 317
-- Last commit: af38452 green: UC-025 deny non-member diff
-- Use cases complete: 22 / 35
+- Commits: 331
+- Last commit: 1757a12 green: UC-026 rollback failed revert write
+- Use cases complete: 23 / 35
 
 ## By Use Case
 
@@ -37,7 +37,7 @@ _Last updated: 2026-05-18T20:35:00Z_
 | UC-023 | See who is working on a use case | ✓ DONE | 6/6 |
 | UC-024 | View a use case revision history | ✓ DONE | 5/5 |
 | UC-025 | Compare two revisions of a use case | ✓ DONE | 5/5 |
-| UC-026 | Revert a use case to a previous revision | ○ NOT STARTED | 0/0 |
+| UC-026 | Revert a use case to a previous revision | ✓ DONE | 6/6 |
 | UC-027 | Analyze the impact of a proposed change | ○ NOT STARTED | 0/0 |
 | UC-028 | Comment on a use case | ○ NOT STARTED | 0/0 |
 | UC-029 | Sync local files with the server | ○ NOT STARTED | 0/0 |

@@ -12,7 +12,8 @@ import type {
 
 const stepPatchSchema = z.object({
   action: z.string().optional(),
-  base_revision: z.string().min(1)
+  base_revision: z.string().min(1),
+  force: z.boolean().default(false)
 });
 
 export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
@@ -36,6 +37,16 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply
       .code(409)
       .send(staleBaseRevisionProblem(found.usecase, parsed.data.base_revision, currentRevision));
+  }
+  if (parsed.data.action !== undefined && parsed.data.action.trim().length === 0) {
+    return reply.code(400).send(problem(400, "Step action is required"));
+  }
+  if (
+    parsed.data.action !== undefined &&
+    !parsed.data.force &&
+    usesPassiveVoice(parsed.data.action)
+  ) {
+    return reply.code(422).send(passiveStepEditProblem(parsed.data.action));
   }
 
   const updated = { ...found.step, action: parsed.data.action ?? found.step.action };
@@ -102,6 +113,37 @@ function staleBaseRevisionProblem(
       }
     ]
   );
+}
+
+function passiveStepEditProblem(action: string) {
+  return problem(
+    422,
+    "Step action uses passive voice",
+    { suggested_action: activeRewrite(action) },
+    [
+      {
+        command: "vspec step edit --force",
+        reason: "Persist this wording after reviewing the passive voice warning."
+      }
+    ]
+  );
+}
+
+function usesPassiveVoice(action: string): boolean {
+  return /^.+?\s+is\s+\w+ed\.?$/i.test(action.trim());
+}
+
+function activeRewrite(action: string): string {
+  const match = /^(?<object>.+?)\s+is\s+(?<verb>\w+)\.?$/i.exec(action.trim());
+  if (match?.groups?.object === undefined || match.groups.verb === undefined) {
+    return "Rewrite the step in active voice.";
+  }
+
+  return `${capitalized(match.groups.verb)} the ${match.groups.object.toLowerCase()}.`;
+}
+
+function capitalized(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function membershipForProject(

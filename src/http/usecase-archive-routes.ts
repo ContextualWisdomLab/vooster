@@ -33,10 +33,12 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
     revision
   ]);
   advanceMainHead(state, found.usecase, revision.id);
+  const affectedSessions = affectedSessionsFor(state, found.usecase.id);
 
   return reply.send({
     active_locks_count: activeLockCount(state, found.usecase.id),
-    affected_sessions_count: affectedSessionCount(state, found.usecase.id),
+    affected_sessions: affectedSessions,
+    affected_sessions_count: affectedSessions.length,
     revision: { change_summary: revision.change_summary, id: revision.id },
     suggested_next_actions: [
       {
@@ -90,9 +92,13 @@ function activeLockCount(state: SignupState, usecaseId: string) {
   return lock !== undefined && Date.parse(lock.expires_at) > Date.now() ? 1 : 0;
 }
 
-function affectedSessionCount(state: SignupState, usecaseId: string) {
+function affectedSessionsFor(state: SignupState, usecaseId: string) {
   return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
-    .filter((session) => session.status === "ACTIVE").length;
+    .filter((session) => session.status === "ACTIVE")
+    .map((session) => ({
+      id: session.id,
+      pinned_revision: session.pinned_revisions?.[usecaseId] ?? session.pinned_revision_id ?? ""
+    }));
 }
 
 function usecaseIdFrom(params: unknown): string {

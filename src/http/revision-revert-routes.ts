@@ -47,6 +47,11 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (current === undefined) {
     return reply.code(404).send(problem(404, "Revision not found"));
   }
+  if (!parsed.data.force && current.severity === "BREAKING") {
+    return reply
+      .code(409)
+      .send(breakingRevertProblem(found.usecase, target.id, current, state));
+  }
 
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
   Object.assign(found.usecase, target.snapshot, { current_revision_id: revision.id });
@@ -130,6 +135,36 @@ function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
       }
     ]
   );
+}
+
+function breakingRevertProblem(
+  usecase: StoredUseCase,
+  targetRevision: string,
+  current: StoredRevision,
+  state: SignupState
+) {
+  return problem(
+    409,
+    "Revert would reintroduce breaking changes",
+    {
+      affected_sessions: activeSessionIds(state, usecase.id),
+      breaking_changes: [
+        { path: "usecase.title", revision: current.id, severity: "BREAKING" }
+      ]
+    },
+    [
+      {
+        command: `vspec revert ${usecase.key} --to ${targetRevision} --force --summary "<reason>"`,
+        reason: "Rerun with force only if the breaking impact is acceptable."
+      }
+    ]
+  );
+}
+
+function activeSessionIds(state: SignupState, usecaseId: string) {
+  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+    .filter((session) => session.status === "ACTIVE")
+    .map((session) => session.id);
 }
 
 function nextActions(key: string) {

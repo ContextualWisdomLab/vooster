@@ -1,55 +1,31 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { lockUseCase, type LockCreateResponse } from "../helpers/lock-fixtures.js";
-import {
-  advanceMain,
-  projectUseCase,
-  type BranchRevisionResponse
-} from "../helpers/merge-fixtures.js";
+import { advanceMain, projectUseCase, type BranchRevisionResponse } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 
 type RevertResponse = {
-  impact: {
-    affected_branches: string[];
-    affected_sessions: string[];
-    severity: string;
-  };
+  impact: { affected_branches: string[]; affected_sessions: string[]; severity: string };
   revision: {
-    change_summary: string;
-    entity_id: string;
-    entity_type: string;
-    id: string;
-    parent_revision_id: string;
-    snapshot: { title: string };
-    version_number: number;
+    change_summary: string; entity_id: string; entity_type: string; id: string;
+    parent_revision_id: string; snapshot: { title: string }; version_number: number;
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: { current_revision_id: string; id: string; title: string };
 };
 type RevertProblem = {
-  affected_sessions?: string[];
+  affected_sessions?: string[]; expires_at?: string; expected_entity_id?: string;
   breaking_changes?: Array<{ path: string; revision: string; severity: string }>;
-  expires_at?: string;
-  expected_entity_id?: string;
-  held_by_user_id?: string;
-  holding_session?: string;
-  missing_revision?: string;
-  reason?: string;
+  held_by_user_id?: string; holding_session?: string; missing_revision?: string; reason?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
-type HistoryResponse = {
-  revisions: Array<{ revision: string }>;
-};
+type HistoryResponse = { revisions: Array<{ revision: string }> };
 
 let server: TestServer;
-beforeAll(async () => {
-  server = await startServer();
-});
+beforeAll(async () => { server = await startServer(); });
 
-afterAll(async () => {
-  await server.stop();
-});
+afterAll(async () => { await server.stop(); });
 
 describe("UC-026 - Revert a use case to a previous revision", () => {
   test("MAIN: append a forward revision restoring the target snapshot", async () => {
@@ -58,7 +34,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     const targetRevision = usecase.current_revision_id;
     const advanced = await server.fetch(`/__test/usecases/${usecase.id}/revisions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      headers: jsonHeaders(setup.cookie),
       body: JSON.stringify({
         severity: "NON_BREAKING",
         title: "Reviews a refund quickly"
@@ -66,10 +42,9 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     });
     const currentHead = ((await advanced.json()) as BranchRevisionResponse).revision_id;
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ revision_id: targetRevision, summary: "Restore refund wording" })
+    const response = await revert(usecase.id, setup.cookie, {
+      revision_id: targetRevision,
+      summary: "Restore refund wording"
     });
 
     expect(response.status).toBe(201);
@@ -108,11 +83,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Revert Missing", "revert-missing", "stub-revert-missing");
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ revision_id: "rev-missing" })
-    });
+    const response = await revert(usecase.id, setup.cookie, { revision_id: "rev-missing" });
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as RevertProblem;
@@ -124,13 +95,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       reason: "Find valid revision IDs for this use case."
     });
 
-    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
-      headers: { Cookie: setup.cookie }
-    });
-    const body = (await history.json()) as HistoryResponse;
-    expect(body.revisions.map((revision) => revision.revision)).toEqual([
-      usecase.current_revision_id
-    ]);
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([usecase.current_revision_id]);
   });
 
   test("4a: breaking revert without force returns impact and writes nothing", async () => {
@@ -145,11 +110,7 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     });
     const session = ((await sessionResponse.json()) as SessionStartResponse).session;
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ revision_id: targetRevision })
-    });
+    const response = await revert(usecase.id, setup.cookie, { revision_id: targetRevision });
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as RevertProblem;
@@ -165,13 +126,8 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       reason: "Rerun with force only if the breaking impact is acceptable."
     });
 
-    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
-      headers: { Cookie: setup.cookie }
-    });
-    const body = (await history.json()) as HistoryResponse;
-    expect(body.revisions.map((revision) => revision.revision)).toEqual([
-      currentHead.revision_id,
-      targetRevision
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+      currentHead.revision_id, targetRevision
     ]);
   });
 
@@ -187,10 +143,8 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     );
     const lock = ((await locked.json()) as LockCreateResponse).lock;
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ revision_id: usecase.current_revision_id })
+    const response = await revert(usecase.id, setup.cookie, {
+      revision_id: usecase.current_revision_id
     });
 
     expect(response.status).toBe(409);
@@ -205,12 +159,26 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
       reason: "Find the lock holder before retrying the revert."
     });
 
-    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
-      headers: { Cookie: setup.cookie }
-    });
-    const body = (await history.json()) as HistoryResponse;
-    expect(body.revisions.map((revision) => revision.revision)).toEqual([
-      usecase.current_revision_id
-    ]);
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([usecase.current_revision_id]);
   });
 });
+
+function jsonHeaders(cookie: string) {
+  return { "Content-Type": "application/json", Cookie: cookie };
+}
+
+function revert(usecaseId: string, cookie: string, body: Record<string, unknown>) {
+  return server.fetch(`/v1/usecases/${usecaseId}/revert`, {
+    method: "POST",
+    headers: jsonHeaders(cookie),
+    body: JSON.stringify(body)
+  });
+}
+
+async function historyRevisionIds(usecaseId: string, cookie: string) {
+  const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
+    headers: { Cookie: cookie }
+  });
+  const body = (await history.json()) as HistoryResponse;
+  return body.revisions.map((revision) => revision.revision);
+}

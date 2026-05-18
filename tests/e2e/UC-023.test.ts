@@ -35,6 +35,14 @@ type WhoResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: { id: string; key: string };
 };
+type WhoProblem = {
+  key_format?: string;
+  locks?: unknown;
+  merge_requests?: unknown;
+  sessions?: unknown;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => {
@@ -98,6 +106,26 @@ describe("UC-023 - See who is working on a use case", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the open merge request touching this use case."
+    });
+  });
+
+  test("2a: missing use case returns search guidance", async () => {
+    const { setup } = await projectUseCase(server, "Missing Who", "missing-who", "stub-missing-who");
+
+    const response = await server.fetch("/v1/usecases/CHK-999/who", {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as WhoProblem;
+    expect(problem.title).toMatch(/use case not found/i);
+    expect(problem.key_format).toBe("KEY-NNN");
+    expect(problem.sessions).toBeUndefined();
+    expect(problem.locks).toBeUndefined();
+    expect(problem.merge_requests).toBeUndefined();
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec usecase search CHK-999",
+      reason: "Search for the intended use case key."
     });
   });
 });

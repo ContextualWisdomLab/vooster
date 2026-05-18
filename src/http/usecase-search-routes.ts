@@ -51,7 +51,7 @@ function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: Sig
   const sorted = filteredUseCases(state, projectId, parsed.data, cursor)
     .sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);
-  const emptyActions = items.length === 0 ? {
+  const emptyActions = items.length === 0 && cursor === null ? {
     suggested_next_actions: [
       {
         command: "vspec usecase list --status=DRAFT,IN_REVIEW",

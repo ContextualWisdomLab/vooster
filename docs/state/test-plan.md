@@ -103,3 +103,12 @@ write. This guides your TDD cycles within an iteration._
 - **3b**: parent step number is out of range -> 422 with `vspec usecase show <KEY-NNN>` guidance and no scenario/revision.
 - **4a**: extension point already exists -> 409 with existing condition and next free extension letter.
 - **5a**: outcome omitted -> defaults to FAILURE and returns a warning to confirm or edit the outcome.
+
+### UC-013
+
+- **MAIN**: patch a step action with the current base revision -> updates the step, appends a BREAKING use case revision, and returns no affected sessions.
+- **2a**: stale `base_revision` -> 409 with current revision id, structured diff, and `vspec usecase show <KEY-NNN>` guidance without changing the step.
+- **3a**: empty action -> 400 with no write; passive action -> 422 with active rewrite guidance; force -> writes with BREAKING severity.
+- **5a**: semantic lock by another holder -> notes-only edit succeeds as COSMETIC; action/actor change returns 409 with holder/reason/expires.
+- **6a**: active sessions pinning this use case -> edit succeeds and returns affected session ids in the impact payload.
+- ***a**: hard lock -> all edits return 409 with unlock/contact-holder guidance and no write.

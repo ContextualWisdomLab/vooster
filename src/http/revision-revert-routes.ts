@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 const revertBodySchema = z.object({
@@ -30,6 +30,10 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to revert use case"));
+  }
+  const lock = state.stepLocksByUseCaseId.get(found.usecase.id);
+  if (lock?.mode === "HARD") {
+    return reply.code(409).send(hardLockProblem(found.usecase, lock));
   }
 
   const revisions = state.revisionsByEntityId.get(found.usecase.id) ?? [];
@@ -104,6 +108,25 @@ function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
       {
         command: `vspec history ${usecase.key}`,
         reason: "Find valid revision IDs for this use case."
+      }
+    ]
+  );
+}
+
+function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
+  return problem(
+    409,
+    "Use case is HARD locked",
+    {
+      expires_at: lock.expires_at,
+      held_by_user_id: lock.held_by_user_id,
+      holding_session: lock.held_by_session_id,
+      reason: lock.reason
+    },
+    [
+      {
+        command: `vspec who ${usecase.key}`,
+        reason: "Find the lock holder before retrying the revert."
       }
     ]
   );

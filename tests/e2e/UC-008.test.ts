@@ -30,6 +30,7 @@ type PromoteResponse = {
   warnings?: Array<{ field: string; message: string }>;
 };
 type ProblemResponse = {
+  exit_code?: number;
   existing_usecase_key?: string;
   suggested_next_actions?: Array<{ command: string; reason: string }>;
   title: string;
@@ -154,5 +155,34 @@ describe("UC-008 - Promote a goal to a use case", () => {
       command: `vspec usecase set ${body.usecase.key} --field title`,
       reason: "Revise the title into a verb phrase."
     });
+  });
+
+  test("*a: creation failure leaves goal promotable", async () => {
+    const setup = await createProject(server, "Failed Promote", "failed-promote", "stub-failed-promote");
+    const actor = await createActor(server, setup, "Customer");
+    const goal = await createGoalForActor(server, setup, actor, "Reviews a return");
+    const failed = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ simulate_usecase_insert_failure: true })
+    });
+
+    expect(failed.status).toBe(500);
+    const problem = (await failed.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/promotion failed/i);
+    expect(problem.exit_code).toBe(5);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec goal promote ${goal.id}`,
+      reason: "Retry after the server recovers."
+    });
+
+    const retry = await server.fetch(`/v1/goals/${goal.id}/promote`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+    const body = (await retry.json()) as PromoteResponse;
+    expect(retry.status).toBe(201);
+    expect(body.usecase.key).toBe("CHK-001");
+    expect(body.goal.status).toBe("PROMOTED");
   });
 });

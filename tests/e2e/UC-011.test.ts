@@ -39,6 +39,11 @@ type StepResponse = {
   scenario_steps: ScenarioStep[];
   step: ScenarioStep;
 };
+type ProblemResponse = {
+  existing_scenario_id?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 
@@ -116,6 +121,44 @@ describe("UC-011 - Write the main success scenario", () => {
     expect(secondStepBody.scenario_steps.map((step) => step.action)).toEqual([
       "Places an order.",
       "Reviews the order."
+    ]);
+  });
+
+  test("2a: duplicate main success scenario returns edit guidance", async () => {
+    const setup = await createProject(server, "Duplicate Scenario", "duplicate-scenario", "stub-duplicate-scenario");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+    await addInterest(server, usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    const first = await server.fetch(`/v1/usecases/${usecase.id}/scenarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ type: "MAIN_SUCCESS" })
+    });
+    const firstBody = (await first.json()) as ScenarioResponse;
+
+    const duplicate = await server.fetch(`/v1/usecases/${usecase.id}/scenarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ type: "MAIN_SUCCESS" })
+    });
+
+    expect(duplicate.status).toBe(409);
+    const problem = (await duplicate.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/main_success scenario already exists/i);
+    expect(problem.existing_scenario_id).toBe(firstBody.scenario.id);
+    expect(problem.suggested_next_actions).toEqual([
+      {
+        command: "vspec step add",
+        reason: "Extend the existing main success scenario."
+      },
+      {
+        command: "vspec scenario edit",
+        reason: "Modify the existing main success scenario."
+      }
     ]);
   });
 });

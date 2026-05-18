@@ -21,6 +21,7 @@ type UseCaseResponse = {
   usecase: UseCase;
 };
 type ProblemResponse = {
+  actor_name?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   suggested_titles?: string[];
   title: string;
@@ -109,5 +110,28 @@ describe("UC-009 - Author a use case from scratch", () => {
       })
     });
     expect(forced.status).toBe(201);
+  });
+
+  test("3b: unknown primary actor returns actor guidance", async () => {
+    const setup = await createProject(server, "Unknown Actor", "unknown-actor", "stub-unknown-actor");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "Places an order" })
+    });
+
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/primary actor.*not available/i);
+    expect(body.actor_name).toBe("Customer");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor list",
+      reason: "Find a valid actor for this project."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor create --name Customer",
+      reason: "Create the actor before authoring the use case."
+    });
   });
 });

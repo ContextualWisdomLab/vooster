@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T16:23:09Z_
+_Last updated: 2026-05-18T16:34:40Z_
 
 ## Overall
 
-- Commits: 100
-- Last commit: cf16b81 green: UC-008 rollback failed promotion
-- Use cases complete: 7 / 35
+- Commits: 111
+- Last commit: f1668ee green: UC-009 guide unauthorized requester
+- Use cases complete: 8 / 35
 
 ## By Use Case
 
@@ -20,7 +20,7 @@ _Last updated: 2026-05-18T16:23:09Z_
 | UC-006 | Define a stakeholder | ✓ DONE | 5/5 |
 | UC-007 | Manage the actor-goal list | ✓ DONE | 7/7 |
 | UC-008 | Promote a goal to a use case | ✓ DONE | 5/5 |
-| UC-009 | Author a use case from scratch | ○ NOT STARTED | 0/0 |
+| UC-009 | Author a use case from scratch | ✓ DONE | 5/5 |
 | UC-010 | Define stakeholder interests | ○ NOT STARTED | 0/0 |
 | UC-011 | Write the main success scenario | ○ NOT STARTED | 0/0 |
 | UC-012 | Add an extension flow | ○ NOT STARTED | 0/0 |

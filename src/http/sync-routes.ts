@@ -3,6 +3,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
+import {
+  parseFileErrors,
+  parseFilesProblem,
+  titleFrom,
+  usecaseMarkdown,
+  usecasePath
+} from "./sync-markdown.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 
 const pullSchema = z.object({
@@ -104,30 +111,6 @@ function pushFile(
   return { current_revision: revision.id, path: file.path, status: "OK" };
 }
 
-function parseFileErrors(file: PushFile) {
-  if (!file.content.startsWith("---\n")) {
-    return [{ line: 1, message: "Missing frontmatter", path: file.path }];
-  }
-  if (file.content.split("\n").findIndex((line, index) => index > 0 && line === "---") < 1) {
-    return [{ line: 1, message: "Unclosed frontmatter", path: file.path }];
-  }
-  return [];
-}
-
-function parseFilesProblem(
-  offendingFiles: Array<{ line: number; message: string; path: string }>
-) {
-  return problem(
-    400,
-    "Sync file parse failed",
-    { offending_files: offendingFiles },
-    offendingFiles.map((file) => ({
-      command: `vspec doctor ${file.path}`,
-      reason: "Validate the local file before pushing."
-    }))
-  );
-}
-
 function syncRevision(
   state: SignupState,
   usecase: StoredUseCase,
@@ -152,19 +135,6 @@ function projectIdFrom(params: unknown) {
 function activeUseCases(state: SignupState, projectId: string) {
   return (state.usecasesByProjectId.get(projectId) ?? [])
     .filter((usecase) => usecase.archived_at === null);
-}
-
-function usecasePath(usecase: StoredUseCase) {
-  return `specs/${usecase.key}.md`;
-}
-
-function usecaseMarkdown(usecase: StoredUseCase) {
-  return `---\nvspec_format: 1\ntype: usecase\nid: ${usecase.id}\nkey: ${usecase.key}\ntitle: ${usecase.title}\nlevel: ${usecase.level}\nformat: ${usecase.format}\nstatus: ${usecase.status}\npriority: ${usecase.priority}\nscope: ${usecase.scope}\nrevision: ${usecase.current_revision_id}\n---\n\n# ${usecase.title}\n`;
-}
-
-function titleFrom(content: string) {
-  const title = content.split("\n").find((line) => line.startsWith("# "));
-  return title?.slice(2).trim() ?? "Untitled use case";
 }
 
 function advanceMainHead(

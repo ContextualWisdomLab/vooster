@@ -5,7 +5,7 @@ import { startWorkSession, type SessionStartResponse } from "../helpers/session-
 import { createStepLock } from "../helpers/step-fixtures.js";
 
 type SessionCompleteResponse = {
-  merge_request: {
+  merge_request?: {
     conflicts: unknown[];
     id: string;
     impact: {
@@ -115,6 +115,34 @@ describe("UC-018 - Complete a work session", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec session show ${session.id}`,
       reason: "Inspect the current session state before retrying."
+    });
+  });
+
+  test("6b: no_merge completes session without opening merge request", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "No Merge Session", "no-merge-session", "stub-no-merge-session");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/no-merge-session",
+      intent: "Complete without merge",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+
+    const response = await server.fetch(`/v1/sessions/${session.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ no_merge: true, summary: "No merge yet." })
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SessionCompleteResponse;
+    expect(body.session.status).toBe("COMPLETED");
+    expect(body.merge_request).toBeUndefined();
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec merge open agent/no-merge-session",
+      reason: "Open a merge request for the completed branch later."
     });
   });
 });

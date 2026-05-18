@@ -100,6 +100,27 @@ describe("UC-005 - Define an actor", () => {
       reason: "Attach the submitted name as an alias."
     });
   });
+
+  test("3b: duplicate archived actor name suggests restore or rename", async () => {
+    const setup = await createProject("Archived Actor", "archived-actor", "stub-actor-archived");
+    const created = await createActor(setup, { name: "Customer", type: "PRIMARY" });
+    const createdBody = (await created.json()) as ActorResponse;
+    await server.fetch(
+      `/__test/projects/${setup.projectId}/actors/${createdBody.actor.id}/archive`,
+      { method: "POST" }
+    );
+
+    const duplicate = await createActor(setup, { name: "Customer", type: "SUPPORTING" });
+
+    expect(duplicate.status).toBe(409);
+    const body = (await duplicate.json()) as ProblemResponse;
+    expect(body.title).toMatch(/archived actor/i);
+    expect(body.existing_actor_id).toBe(createdBody.actor.id);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor restore",
+      reason: "Restore the archived actor."
+    });
+  });
 });
 
 async function createActor(

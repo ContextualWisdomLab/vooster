@@ -34,7 +34,18 @@ export function registerUseCaseRoutes(app: FastifyInstance, state: SignupState) 
 function createUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+    return reply.code(403).send(
+      problem(403, "Not authorized to create use cases in this project", {}, [
+        {
+          command: "vspec login",
+          reason: "Authenticate with an account that has project access."
+        },
+        {
+          command: "vspec member set-role",
+          reason: "Ask a workspace owner for editor access."
+        }
+      ])
+    );
   }
   const parsed = useCaseRequestSchema.safeParse(request.body);
   if (!parsed.success) {

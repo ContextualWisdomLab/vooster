@@ -38,9 +38,23 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   const touched = touchedEntityIds(source, targetHeads);
   const hardLock = hardLockConflict(state, touched);
   const conflicts = mergeConflicts(state, source, targetHeads, touched);
-  const strategy = conflicts.length === 0 && isFastForward(source, targetHeads, touched)
-    ? "FAST_FORWARD"
-    : "SQUASH";
+  const canFastForward = isFastForward(source, targetHeads, touched);
+  if (parsed.data.strategy === "FAST_FORWARD" && !canFastForward) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Fast-forward rejected because main has advanced",
+        { main_head_revision_ids: targetHeads, source_branch: source },
+        [
+          {
+            command: `vspec merge open ${source.name} --strategy squash`,
+            reason: "Retry with the safe squash strategy."
+          }
+        ]
+      )
+    );
+  }
+  const strategy = conflicts.length === 0 && canFastForward ? "FAST_FORWARD" : "SQUASH";
   const mergeRequest = mergeRequestFor(request, source, target.id, touched, state, strategy, conflicts);
   state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
   if (hardLock !== undefined) {

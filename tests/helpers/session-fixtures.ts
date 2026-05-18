@@ -66,3 +66,20 @@ export function startWorkSession(
     })
   });
 }
+
+export function completeWorkSession(
+  server: TestServer,
+  sessionId: string,
+  cookie: string,
+  body: {
+    no_merge?: boolean;
+    simulate_completion_failure?: boolean;
+    summary?: string;
+  }
+) {
+  return server.fetch(`/v1/sessions/${sessionId}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  });
+}

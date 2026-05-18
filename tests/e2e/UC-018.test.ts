@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
+import {
+  completeWorkSession,
+  startWorkSession,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
 
 type SessionCompleteResponse = {
@@ -58,10 +62,8 @@ describe("UC-018 - Complete a work session", () => {
       reason: "Session owns semantic edits."
     });
 
-    const response = await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ summary: "Finished implementation." })
+    const response = await completeWorkSession(server, session.id, setup.cookie, {
+      summary: "Finished implementation."
     });
 
     expect(response.status).toBe(200);
@@ -100,16 +102,10 @@ describe("UC-018 - Complete a work session", () => {
       pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
-    await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ summary: "First completion." })
-    });
+    await completeWorkSession(server, session.id, setup.cookie, { summary: "First completion." });
 
-    const second = await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ summary: "Second completion." })
+    const second = await completeWorkSession(server, session.id, setup.cookie, {
+      summary: "Second completion."
     });
 
     expect(second.status).toBe(409);
@@ -134,10 +130,9 @@ describe("UC-018 - Complete a work session", () => {
     });
     const session = ((await started.json()) as SessionStartResponse).session;
 
-    const response = await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ no_merge: true, summary: "No merge yet." })
+    const response = await completeWorkSession(server, session.id, setup.cookie, {
+      no_merge: true,
+      summary: "No merge yet."
     });
 
     expect(response.status).toBe(200);
@@ -166,17 +161,13 @@ describe("UC-018 - Complete a work session", () => {
       reason: "Lock should survive failed completion."
     });
 
-    const failed = await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ simulate_completion_failure: true })
+    const failed = await completeWorkSession(server, session.id, setup.cookie, {
+      simulate_completion_failure: true
     });
 
     expect(failed.status).toBe(500);
-    const retry = await server.fetch(`/v1/sessions/${session.id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ summary: "Retry completion." })
+    const retry = await completeWorkSession(server, session.id, setup.cookie, {
+      summary: "Retry completion."
     });
     const body = (await retry.json()) as SessionCompleteResponse;
     expect(body.session.status).toBe("COMPLETED");

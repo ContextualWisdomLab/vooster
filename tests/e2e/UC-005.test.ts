@@ -135,6 +135,19 @@ describe("UC-005 - Define an actor", () => {
     expect(body.title).toMatch(/invalid actor type/i);
     expect(body.valid_types).toEqual(["PRIMARY", "SUPPORTING", "OFFSTAGE"]);
   });
+
+  test("1a: System actor name is reserved", async () => {
+    const setup = await createProject("System Actor", "system-actor", "stub-actor-system");
+    const response = await createActor(setup, { name: "System", type: "SUPPORTING" });
+
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/system.*reserved/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor show System",
+      reason: "Inspect the canonical system actor."
+    });
+  });
 });
 
 async function createActor(

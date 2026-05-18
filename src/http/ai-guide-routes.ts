@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { problem } from "./signup-support.js";
 
 const guideQuerySchema = z.object({
   cli_version: z.string().default("1.0.0"),
@@ -25,6 +26,9 @@ function aiGuide(request: FastifyRequest, reply: FastifyReply) {
   if (body.simulate_network_failure && cachedGuide !== undefined) {
     return reply.send(staleGuide(cachedGuide));
   }
+  if (body.simulate_network_failure) {
+    return reply.code(503).send(coldOfflineProblem());
+  }
   if (query.format === "json") {
     return reply.send(jsonGuide(query.cli_version));
   }
@@ -45,6 +49,23 @@ function refreshedCache(cliVersion: string, cachedVersion: string | undefined) {
     };
   }
   return { cli_version: cliVersion, status: "REFRESHED" };
+}
+
+function coldOfflineProblem() {
+  return problem(
+    503,
+    "AI guide unavailable",
+    {
+      bootstrap: "Read https://vspec.dev/ai-guide and retry vspec ai-guide once online.",
+      exit_code: 5
+    },
+    [
+      {
+        command: "vspec ai-guide",
+        reason: "Retry once network access returns."
+      }
+    ]
+  );
 }
 
 function staleGuide(cached: { cli_version: string; content: string }) {

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { createTestLock, semanticLockProblem } from "./step-lock-support.js";
 import { appendUseCaseRevision, scenarioWithUseCase } from "./scenario-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -13,11 +14,15 @@ import type {
 const stepPatchSchema = z.object({
   action: z.string().optional(),
   base_revision: z.string().min(1),
-  force: z.boolean().default(false)
+  force: z.boolean().default(false),
+  notes: z.string().optional()
 });
 
 export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
   app.patch("/v1/steps/:stepId", (request, reply) => patchStep(request, reply, state));
+  app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
+    createTestLock(request, reply, state)
+  );
 }
 
 function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -48,8 +53,16 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   ) {
     return reply.code(422).send(passiveStepEditProblem(parsed.data.action));
   }
+  const lock = state.stepLocksByUseCaseId.get(found.usecase.id);
+  if (lock?.mode === "SEMANTIC" && parsed.data.action !== undefined) {
+    return reply.code(409).send(semanticLockProblem(lock));
+  }
 
-  const updated = { ...found.step, action: parsed.data.action ?? found.step.action };
+  const updated = {
+    ...found.step,
+    action: parsed.data.action ?? found.step.action,
+    notes: parsed.data.notes ?? found.step.notes
+  };
   state.stepsByScenarioId.set(
     found.step.scenario_id,
     found.steps.map((step) => (step.id === updated.id ? updated : step))
@@ -58,7 +71,9 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     state,
     found.usecase,
     `Edited step ${updated.id}`,
-    "BREAKING"
+    parsed.data.action === undefined && parsed.data.notes !== undefined
+      ? "COSMETIC"
+      : "BREAKING"
   );
 
   return reply.send({ affected_sessions: [], revision, step: updated });

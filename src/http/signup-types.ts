@@ -22,6 +22,7 @@ export type SignupState = {
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
   scenariosByUseCaseId: Map<string, StoredScenario[]>;
+  stepLocksByUseCaseId: Map<string, StoredLock>;
   stakeholderInterestsByUseCaseId: Map<string, StoredStakeholderInterest[]>;
   stepsByScenarioId: Map<string, StoredStep[]>;
   revisionsByEntityId: Map<string, StoredRevision[]>;
@@ -101,7 +102,7 @@ export type StoredRevision = {
   version_number: number;
   snapshot: StoredActor | StoredGoal | StoredStakeholder | StoredUseCase;
   change_summary?: string;
-  severity?: "BREAKING" | "NON_BREAKING";
+  severity?: "BREAKING" | "COSMETIC" | "NON_BREAKING";
 };
 
 export type StoredGoal = {
@@ -153,6 +154,14 @@ export type StoredStep = {
   is_system_step: boolean;
   notes: null | string;
   order_index: number;
+};
+
+export type StoredLock = {
+  expires_at: string;
+  holder: string;
+  mode: "HARD" | "SEMANTIC";
+  reason: string;
+  usecase_id: string;
 };
 
 export type StoredUseCase = {

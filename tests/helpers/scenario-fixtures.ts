@@ -22,6 +22,7 @@ export type ScenarioStep = {
   action: string;
   actor_id: string;
   id: string;
+  notes: null | string;
   scenario_id: string;
   step_number: number;
 };

@@ -43,6 +43,7 @@ function initialState(options: ServerOptions): SignupState {
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
     scenariosByUseCaseId: new Map(),
+    stepLocksByUseCaseId: new Map(),
     stakeholderInterestsByUseCaseId: new Map(),
     stepsByScenarioId: new Map(),
     stakeholdersByProjectId: new Map(),

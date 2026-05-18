@@ -13,7 +13,7 @@ type UseCaseRevisionResponse = {
   entity_id: string;
   entity_type: "USECASE";
   id: string;
-  severity: "BREAKING" | "NON_BREAKING";
+  severity: "BREAKING" | "COSMETIC" | "NON_BREAKING";
   snapshot: StoredUseCase;
   version_number: number;
 };
@@ -61,7 +61,7 @@ export function appendUseCaseRevision(
   state: SignupState,
   usecase: StoredUseCase,
   changeSummary: string,
-  severity: "BREAKING" | "NON_BREAKING" = "NON_BREAKING"
+  severity: "BREAKING" | "COSMETIC" | "NON_BREAKING" = "NON_BREAKING"
 ) {
   const revision = {
     id: randomUUID(),

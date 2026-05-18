@@ -43,3 +43,21 @@ export function semanticLockProblem(lock: StoredLock) {
     ]
   );
 }
+
+export function hardLockProblem(lock: StoredLock) {
+  return problem(
+    409,
+    "Use case has a hard lock",
+    {
+      expires_at: lock.expires_at,
+      lock_holder: lock.holder,
+      lock_reason: lock.reason
+    },
+    [
+      {
+        command: "vspec unlock",
+        reason: "Unlock the use case or contact the lock holder before editing."
+      }
+    ]
+  );
+}

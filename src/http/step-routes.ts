@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { createTestLock, semanticLockProblem } from "./step-lock-support.js";
+import { createTestLock, hardLockProblem, semanticLockProblem } from "./step-lock-support.js";
 import {
   affectedSessionIds,
   createTestWorkSession
@@ -61,6 +61,9 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(422).send(passiveStepEditProblem(parsed.data.action));
   }
   const lock = state.stepLocksByUseCaseId.get(found.usecase.id);
+  if (lock?.mode === "HARD") {
+    return reply.code(409).send(hardLockProblem(lock));
+  }
   if (lock?.mode === "SEMANTIC" && parsed.data.action !== undefined) {
     return reply.code(409).send(semanticLockProblem(lock));
   }

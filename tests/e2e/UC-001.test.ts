@@ -27,6 +27,11 @@ type SignupCallbackResponse = {
   recommended_next_command: string;
 };
 
+type ProblemResponse = {
+  title: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
+
 let server: TestServer;
 
 beforeAll(async () => {
@@ -84,5 +89,49 @@ describe("UC-001 - Sign up for a workspace", () => {
     expect(callbackBody.workspace.owner_id).toBe(callbackBody.user.id);
     expect(callbackBody.membership.user_id).toBe(callbackBody.user.id);
     expect(callbackBody.membership.workspace_id).toBe(callbackBody.workspace.id);
+  });
+
+  test("2a: denied GitHub authorization clears signup state", async () => {
+    const startResponse = await server.fetch("/v1/auth/github/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspace: { name: "Denied Workspace", slug: "denied-workspace" }
+      })
+    });
+    const startBody = (await startResponse.json()) as StartSignupResponse;
+    const stateCookie = startResponse.headers.get("set-cookie");
+
+    const deniedParams = new URLSearchParams({
+      error: "access_denied",
+      state: startBody.state
+    });
+    const deniedResponse = await server.fetch(
+      `/v1/auth/github/callback?${deniedParams.toString()}`,
+      { headers: { Cookie: stateCookie ?? "" } }
+    );
+
+    expect(deniedResponse.status).toBe(400);
+    expect(deniedResponse.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(deniedResponse.headers.get("set-cookie")).toContain("Max-Age=0");
+
+    const deniedBody = (await deniedResponse.json()) as ProblemResponse;
+    expect(deniedBody.title).toMatch(/authorization denied/i);
+    expect(deniedBody.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Restart signup."
+    });
+
+    const retryParams = new URLSearchParams({
+      code: "stub-denied-user",
+      state: startBody.state
+    });
+    const retryResponse = await server.fetch(
+      `/v1/auth/github/callback?${retryParams.toString()}`,
+      { headers: { Cookie: stateCookie ?? "" } }
+    );
+
+    expect(retryResponse.status).toBe(400);
+    expect(retryResponse.headers.get("set-cookie")).not.toContain("vspec_session=");
   });
 });

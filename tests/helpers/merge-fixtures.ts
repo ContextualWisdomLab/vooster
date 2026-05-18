@@ -49,6 +49,23 @@ export async function projectUseCase(server: TestServer, name: string, slug: str
   return { setup, usecase };
 }
 
+export async function openStructuralConflict(
+  server: TestServer,
+  name: string,
+  slug: string,
+  code: string,
+  branchName: string
+) {
+  const { setup, usecase } = await projectUseCase(server, name, slug, code);
+  const branch = await createBranch(server, setup, branchName);
+  await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+  const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+  const opened = await openMerge(server, setup, branch.id);
+  expect(opened.status).toBe(201);
+  const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+  return { branch, mainRevision, merge, setup, usecase };
+}
+
 export async function createBranch(server: TestServer, setup: ProjectSetup, name: string) {
   const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
     method: "POST",
@@ -139,5 +156,18 @@ export function openMerge(
       strategy,
       target: "main"
     })
+  });
+}
+
+export function resolveMerge(
+  server: TestServer,
+  setup: ProjectSetup,
+  mergeId: string,
+  body: Record<string, unknown>
+) {
+  return server.fetch(`/v1/merges/${mergeId}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+    body: JSON.stringify(body)
   });
 }

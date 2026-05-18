@@ -1,11 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
-  advanceBranch,
-  advanceMain,
-  createBranch,
-  openMerge,
-  projectUseCase,
-  type MergeOpenResponse
+  openStructuralConflict,
+  resolveMerge
 } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
@@ -45,20 +41,17 @@ afterAll(async () => {
 
 describe("UC-021 - Resolve a merge conflict", () => {
   test("MAIN: resolve structural conflict with source value", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Resolve Merge", "resolve-merge", "stub-resolve-merge");
-    const branch = await createBranch(server, setup, "feature/resolve-refund");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
-    const opened = await openMerge(server, setup, branch.id);
-    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    const { branch, merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Resolve Merge",
+      "resolve-merge",
+      "stub-resolve-merge",
+      "feature/resolve-refund"
+    );
 
-    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: merge.current_revision_id ?? "missing-current-revision",
-        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
-      })
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: merge.current_revision_id ?? "missing-current-revision",
+      resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
     });
 
     expect(response.status).toBe(200);
@@ -80,20 +73,17 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("2a: stale base revision returns current merge conflicts", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Stale Resolve", "stale-resolve", "stub-stale-resolve");
-    const branch = await createBranch(server, setup, "feature/stale-resolve");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
-    const opened = await openMerge(server, setup, branch.id);
-    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    const { merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Stale Resolve",
+      "stale-resolve",
+      "stub-stale-resolve",
+      "feature/stale-resolve"
+    );
 
-    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: "stale-merge-revision",
-        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
-      })
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: "stale-merge-revision",
+      resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
     });
 
     expect(response.status).toBe(409);
@@ -108,20 +98,17 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3a: manual resolution requires a value", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Manual Resolve", "manual-resolve", "stub-manual-resolve");
-    const branch = await createBranch(server, setup, "feature/manual-resolve");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
-    const opened = await openMerge(server, setup, branch.id);
-    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    const { merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Manual Resolve",
+      "manual-resolve",
+      "stub-manual-resolve",
+      "feature/manual-resolve"
+    );
 
-    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: merge.current_revision_id,
-        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "MANUAL" }]
-      })
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: merge.current_revision_id,
+      resolutions: [{ entity_id: usecase.id, field: "title", strategy: "MANUAL" }]
     });
 
     expect(response.status).toBe(400);
@@ -136,20 +123,17 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3b: every conflict must have a resolution", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Partial Resolve", "partial-resolve", "stub-partial-resolve");
-    const branch = await createBranch(server, setup, "feature/partial-resolve");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
-    const opened = await openMerge(server, setup, branch.id);
-    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    const { merge, setup } = await openStructuralConflict(
+      server,
+      "Partial Resolve",
+      "partial-resolve",
+      "stub-partial-resolve",
+      "feature/partial-resolve"
+    );
 
-    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: merge.current_revision_id,
-        resolutions: [{ entity_id: "other-usecase", field: "title", strategy: "THEIRS" }]
-      })
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: merge.current_revision_id,
+      resolutions: [{ entity_id: "other-usecase", field: "title", strategy: "THEIRS" }]
     });
 
     expect(response.status).toBe(422);
@@ -163,12 +147,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("5a: late hard lock blocks conflict resolution", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Locked Resolve", "locked-resolve", "stub-locked-resolve");
-    const branch = await createBranch(server, setup, "feature/locked-resolve");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
-    const opened = await openMerge(server, setup, branch.id);
-    const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
+    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Locked Resolve",
+      "locked-resolve",
+      "stub-locked-resolve",
+      "feature/locked-resolve"
+    );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
       holder: "late-lock-holder",
@@ -176,13 +161,9 @@ describe("UC-021 - Resolve a merge conflict", () => {
       reason: "Lock acquired after MR opened."
     });
 
-    const response = await server.fetch(`/v1/merges/${merge.id}/resolve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        base_revision: merge.current_revision_id,
-        resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
-      })
+    const response = await resolveMerge(server, setup, merge.id, {
+      base_revision: merge.current_revision_id,
+      resolutions: [{ entity_id: usecase.id, field: "title", strategy: "THEIRS" }]
     });
 
     expect(response.status).toBe(409);

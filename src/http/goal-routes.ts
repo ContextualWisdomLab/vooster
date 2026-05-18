@@ -5,6 +5,7 @@ import {
   allowedStatusTransitions,
   canTransition,
   goalIdFrom,
+  goalRevision,
   goalWithProjectId,
   projectIdFrom
 } from "./goal-support.js";
@@ -16,7 +17,6 @@ import type {
   StoredGoal,
   StoredMembership
 } from "./signup-types.js";
-
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -26,7 +26,6 @@ const goalRequestSchema = z.object({
 const goalPatchSchema = z.object({
   status: z.enum(["IDENTIFIED", "IN_DESIGN", "PROMOTED", "REJECTED"]).optional()
 });
-
 export function registerGoalRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
     createGoal(request, reply, state)
@@ -85,13 +84,7 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
     priority: parsed.data.priority,
     archived_at: null
   };
-  const revision = {
-    id: randomUUID(),
-    entity_type: "GOAL" as const,
-    entity_id: goal.id,
-    version_number: 1,
-    snapshot: goal
-  };
+  const revision = goalRevision(goal, 1);
 
   state.goalsByProjectId.set(projectId, [
     ...(state.goalsByProjectId.get(projectId) ?? []),
@@ -131,7 +124,30 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     );
   }
 
-  return reply.send({ goal: found.goal });
+  if (found.goal.status === "PROMOTED" && parsed.data.status === "REJECTED") {
+    return reply.code(422).send(
+      problem(422, "Use case must be archived before rejecting this goal", {}, [
+        {
+          command: "vspec usecase archive",
+          reason: "Deprecate the linked use case before rejecting the goal."
+        }
+      ])
+    );
+  }
+
+  if (parsed.data.status !== undefined) {
+    found.goal.status = parsed.data.status;
+  }
+  const revision = goalRevision(
+    found.goal,
+    (state.revisionsByEntityId.get(found.goal.id) ?? []).length + 1
+  );
+  state.revisionsByEntityId.set(found.goal.id, [
+    ...(state.revisionsByEntityId.get(found.goal.id) ?? []),
+    revision
+  ]);
+
+  return reply.send({ goal: found.goal, revision });
 }
 
 function listGoals(request: FastifyRequest, reply: FastifyReply, state: SignupState) {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { SignupState, StoredGoal } from "./signup-types.js";
 
@@ -31,6 +32,16 @@ export function goalWithProjectId(
   }
 
   return undefined;
+}
+
+export function goalRevision(goal: StoredGoal, versionNumber: number) {
+  return {
+    id: randomUUID(),
+    entity_type: "GOAL" as const,
+    entity_id: goal.id,
+    version_number: versionNumber,
+    snapshot: { ...goal }
+  };
 }
 
 export function projectIdFrom(params: unknown): string {

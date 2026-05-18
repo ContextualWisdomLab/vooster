@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   lockUseCase,
+  renewLock,
   type LockCreateResponse,
   type LockProblemResponse
 } from "../helpers/lock-fixtures.js";
@@ -72,6 +73,28 @@ describe("UC-022 - Lock a use case", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the lock."
+    });
+  });
+
+  test("1a: expired lock renewal is rejected with reacquire guidance", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Expired Lock", "expired-lock", "stub-expired-lock");
+    const created = await lockUseCase(server, setup, usecase.id, {
+      lock_type: "SEMANTIC",
+      reason: "Short edit.",
+      ttl_minutes: 0.000001
+    });
+    const lock = ((await created.json()) as LockCreateResponse).lock;
+
+    const response = await renewLock(server, setup, lock.id, { ttl_minutes: 30 });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as LockProblemResponse;
+    expect(problem.title).toMatch(/expired lock/i);
+    expect(problem.lock_id).toBe(lock.id);
+    expect(problem.expires_at).toBe(lock.expires_at);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec lock ${usecase.key} --type semantic`,
+      reason: "Reacquire the lock from scratch."
     });
   });
 });

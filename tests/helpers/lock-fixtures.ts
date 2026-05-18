@@ -21,6 +21,7 @@ export type LockProblemResponse = {
   expires_at?: string;
   held_by_user_id?: string;
   holding_session?: string;
+  lock_id?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -44,5 +45,23 @@ export function lockUseCase(
       target_id: targetId,
       target_type: "USECASE"
     })
+  });
+}
+
+export function renewLock(
+  server: TestServer,
+  setup: ProjectSetup,
+  lockId: string,
+  body: { ttl_minutes?: number },
+  sessionId = "session-main-lock"
+) {
+  return server.fetch(`/v1/locks/${lockId}/renew`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: setup.cookie,
+      "X-Vspec-Session": sessionId
+    },
+    body: JSON.stringify(body)
   });
 }

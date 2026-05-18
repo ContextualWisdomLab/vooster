@@ -143,6 +143,23 @@ describe("UC-004 - Create a project", () => {
     });
     expect(retry.status).toBe(201);
   });
+
+  test("*a: archived workspace aborts project creation", async () => {
+    const signedUp = await signup("Archived", "archived", "stub-archived");
+    await server.fetch(`/__test/workspaces/${signedUp.workspaceId}/archive`, {
+      method: "POST"
+    });
+
+    const response = await createProject(signedUp, {
+      name: "Archive Attempt",
+      key: "ARC",
+      visibility: "PRIVATE"
+    });
+
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/workspace.*archived/i);
+  });
 });
 
 async function signup(name: string, slug: string, code: string) {

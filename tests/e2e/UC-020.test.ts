@@ -87,4 +87,56 @@ describe("UC-020 - Merge a branch", () => {
       reason: "Review the completed merge request."
     });
   });
+
+  test("4a: structural conflict leaves merge request open", async () => {
+    const setup = await createProject(server, "Structural Merge", "structural-merge", "stub-structural-merge");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+    const createdBranch = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/structural-conflict" })
+    });
+    const branch = ((await createdBranch.json()) as BranchCreateResponse).branch;
+    await server.fetch(`/__test/branches/${branch.id}/usecases/${usecase.id}/revisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund quickly" })
+    });
+    const mainAdvanced = await server.fetch(`/__test/usecases/${usecase.id}/revisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund manually" })
+    });
+    expect(mainAdvanced.status).toBe(200);
+    const mainRevision = (await mainAdvanced.json()) as BranchRevisionResponse;
+
+    const response = await server.fetch("/v1/merges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ source_branch_id: branch.id, target: "main" })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as MergeOpenResponse;
+    expect(body.merge_request).toMatchObject({
+      source_branch_id: branch.id,
+      status: "OPEN",
+      strategy: "SQUASH"
+    });
+    expect(body.merge_request.conflicts).toContainEqual({
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      field: "title",
+      mine_value: "Reviews a refund quickly",
+      theirs_value: "Reviews a refund manually",
+      type: "STRUCTURAL"
+    });
+    expect(body.main_head_revision_ids[usecase.id]).toBe(mainRevision.revision_id);
+    expect(body.source_branch).toMatchObject({ id: branch.id, status: "ACTIVE" });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec merge resolve ${body.merge_request.id}`,
+      reason: "Resolve conflicts before this branch can merge."
+    });
+  });
 });

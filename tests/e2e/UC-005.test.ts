@@ -28,6 +28,7 @@ type ActorResponse = {
 type ProblemResponse = {
   title: string;
   existing_actor_id?: string;
+  valid_types?: string[];
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -120,6 +121,19 @@ describe("UC-005 - Define an actor", () => {
       command: "vspec actor restore",
       reason: "Restore the archived actor."
     });
+  });
+
+  test("4a: invalid actor type lists valid enum values", async () => {
+    const setup = await createProject("Invalid Type", "invalid-type", "stub-actor-type");
+    const response = await createActor(setup, {
+      name: "Gateway",
+      type: "SYSTEM"
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/invalid actor type/i);
+    expect(body.valid_types).toEqual(["PRIMARY", "SUPPORTING", "OFFSTAGE"]);
   });
 });
 

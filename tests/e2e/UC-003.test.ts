@@ -22,6 +22,7 @@ type AcceptanceResponse = {
   user: { email: string; id: string };
 };
 type ProblemResponse = {
+  code?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -88,6 +89,24 @@ describe("UC-003 - Invite a member", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec member invite --role editor",
       reason: "Invite the teammate as an editor or ask a workspace owner."
+    });
+  });
+
+  test("3a: email for an active member is rejected with set-role guidance", async () => {
+    const owner = await signup(server, "Invite Existing", "invite-existing", "stub-existing-owner");
+    const memberEmail = "stub-existing-member@users.noreply.github.com";
+    const invited = await inviteMember(owner.workspaceId, owner.cookie, memberEmail, "EDITOR");
+    const inviteBody = (await invited.json()) as InvitationResponse;
+    await acceptInvitation(inviteBody.invitation.token, "stub-existing-member");
+
+    const response = await inviteMember(owner.workspaceId, owner.cookie, memberEmail, "OWNER");
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as ProblemResponse;
+    expect(problem.code).toBe("already_member");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Change the existing member role instead of inviting again."
     });
   });
 });

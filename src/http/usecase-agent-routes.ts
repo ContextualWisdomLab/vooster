@@ -32,7 +32,8 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });
   }
-  const pinned = pinnedRevision(state, found.usecase.id, query.session);
+  const session = activeSession(state, query.session);
+  const pinned = session?.pinned_revisions?.[found.usecase.id];
   const revision = pinned ?? resolveRevision(state, found.usecase, query.revision);
   if (revision === undefined) {
     return reply.code(404).send(
@@ -49,6 +50,11 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
         type: "REVISION_OVERRIDDEN_BY_SESSION",
         message: "Requested revision was ignored because the active session pins this use case."
       }]
+    : session !== undefined && pinned === undefined
+      ? [{
+          type: "UNPINNED_SESSION_READ",
+          message: "Session does not pin this use case; concurrent edits may change future reads."
+        }]
     : [];
   return reply.send(agentEnvelope(
     request,
@@ -56,7 +62,7 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
     found.projectId,
     found.usecase,
     revision,
-    pinned === undefined ? null : query.session ?? null,
+    session?.id ?? null,
     warnings
   ));
 }
@@ -81,18 +87,30 @@ function agentEnvelope(
     },
     data: agentData(state, projectId, usecase),
     format_version: 1,
-    suggested_next_actions: [
-      {
-        command: `vspec change propose ${usecase.key}`,
-        reason: "Propose a reviewed spec change after reading the pinned snapshot."
-      },
-      {
-        command: `vspec export gherkin ${usecase.key}`,
-        reason: "Generate executable acceptance-test scaffolding."
-      }
-    ],
+    suggested_next_actions: suggestedActions(usecase, warnings),
     warnings
   };
+}
+
+function suggestedActions(usecase: StoredUseCase, warnings: Array<{ type: string }>) {
+  return [
+    {
+      command: `vspec change propose ${usecase.key}`,
+      reason: "Propose a reviewed spec change after reading the pinned snapshot."
+    },
+    {
+      command: `vspec export gherkin ${usecase.key}`,
+      reason: "Generate executable acceptance-test scaffolding."
+    },
+    ...(
+      warnings.some((warning) => warning.type === "UNPINNED_SESSION_READ")
+        ? [{
+            command: `vspec session pin ${usecase.key}`,
+            reason: "Pin this use case before relying on it for edits."
+          }]
+        : []
+    )
+  ];
 }
 
 function resolveRevision(
@@ -108,16 +126,12 @@ function resolveRevision(
   return exists ? requestedRevision : undefined;
 }
 
-function pinnedRevision(
-  state: SignupState,
-  usecaseId: string,
-  sessionId: string | undefined
-) {
+function activeSession(state: SignupState, sessionId: string | undefined) {
   if (sessionId === undefined) {
     return undefined;
   }
   const session = state.workSessionsById.get(sessionId);
-  return session?.status === "ACTIVE" ? session.pinned_revisions?.[usecaseId] : undefined;
+  return session?.status === "ACTIVE" ? session : undefined;
 }
 
 function agentData(state: SignupState, projectId: string, usecase: StoredUseCase) {

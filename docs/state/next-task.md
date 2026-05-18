@@ -1,11 +1,11 @@
 # Next Task
 
-_Auto-generated 2026-05-18T22:43:17Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-18T22:54:24Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Start UC-014.
-  - Read: docs/usecases/UC-014-search-usecases.md
+TASK: Start UC-015.
+  - Read: docs/usecases/UC-015-archive-usecase.md
   - Plan tests in docs/state/test-plan.md (one per main + one per extension)
-  - Create tests/e2e/UC-014.test.ts with the first failing test (RED phase)
-  - Commit: "red: UC-014 <first scenario name>"
+  - Create tests/e2e/UC-015.test.ts with the first failing test (RED phase)
+  - Commit: "red: UC-015 <first scenario name>"
 ```

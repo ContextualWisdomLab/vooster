@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T23:29:40Z_
+_Last updated: 2026-05-18T23:47:11Z_
 
 ## Overall
 
-- Commits: 466
-- Last commit: 25e2de8 test: UC-028 cover idempotent resolve
-- Use cases complete: 32 / 35
+- Commits: 485
+- Last commit: c2ea85d green: UC-003 reject invite email mismatch
+- Use cases complete: 33 / 35
 
 ## By Use Case
 
@@ -14,7 +14,7 @@ _Last updated: 2026-05-18T23:29:40Z_
 | --- | --- | --- | --- |
 | UC-001 | Sign up for a workspace | ✓ DONE | 5/5 |
 | UC-002 | Log in | ✓ DONE | 5/5 |
-| UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
+| UC-003 | Invite a member | ✓ DONE | 7/7 |
 | UC-004 | Create a project | ✓ DONE | 6/6 |
 | UC-005 | Define an actor | ✓ DONE | 6/6 |
 | UC-006 | Define a stakeholder | ✓ DONE | 5/5 |

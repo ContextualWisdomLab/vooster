@@ -169,4 +169,29 @@ describe("UC-013 - Edit a use case step", () => {
     const body = (await edited.json()) as StepPatchResponse;
     expect(body.affected_sessions).toEqual(["agent-session-2"]);
   });
+
+  test("*a: hard lock blocks all step edits", async () => {
+    const { mainStep, mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(server, "Hard Lock", "hard-lock", "stub-hard-lock");
+    const expiresAt = "2026-06-01T00:00:00.000Z";
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: expiresAt,
+      holder: "release-manager",
+      mode: "HARD",
+      reason: "Release freeze."
+    });
+
+    const response = await patchStep(server, mainStep.id, setup.cookie, {
+      base_revision: mainStepRevision.id,
+      notes: "Clarifies the checkout wording."
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as StepProblemResponse;
+    expect(problem.title).toMatch(/hard lock/i);
+    expect(problem.lock_holder).toBe("release-manager");
+    expect(problem.lock_reason).toBe("Release freeze.");
+    expect(problem.expires_at).toBe(expiresAt);
+    expect(problem.suggested_next_actions).toContainEqual({ command: "vspec unlock", reason: "Unlock the use case or contact the lock holder before editing." });
+  });
 });

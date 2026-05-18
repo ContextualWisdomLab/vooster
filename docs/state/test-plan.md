@@ -45,3 +45,11 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: invalid actor type -> 400 listing PRIMARY, SUPPORTING, and OFFSTAGE.
 - **1a**: name `System` collides with canonical System actor -> 422 pointing to `vspec actor show System`.
 - ***a**: read-only access -> 403 with contact-owner guidance and no actor/revision.
+
+### UC-006
+
+- **MAIN**: authenticated project member posts valid stakeholder data -> 201 with stakeholder, revision version 1, and recommendation to add stakeholder interests.
+- **3a**: non-archived stakeholder name already exists in project -> 422 referencing existing stakeholder id and suggesting edit.
+- **4a**: invalid stakeholder type -> 400 listing INTERNAL, EXTERNAL, and REGULATORY.
+- **1a**: request attempts to attach a stakeholder to a step -> 400 explaining actors do and stakeholders care, suggesting actor creation.
+- ***a**: project is archived before insert -> failure response and no stakeholder/revision.

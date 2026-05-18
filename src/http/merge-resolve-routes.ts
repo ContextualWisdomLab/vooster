@@ -2,8 +2,13 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
+import { hardLockConflict } from "./merge-conflict-support.js";
 import {
+  hardLockResolutionProblem,
+  missingManualValueProblem,
   manualResolutionMissingValue,
+  staleBaseProblem,
+  uncoveredConflictsProblem,
   uncoveredConflicts
 } from "./merge-resolve-validation.js";
 import { problem } from "./signup-support.js";
@@ -47,57 +52,21 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
     return reply.code(409).send(problem(409, "Merge request has no open conflicts"));
   }
   if (parsed.data.base_revision !== merge.current_revision_id) {
-    return reply.code(409).send(
-      problem(
-        409,
-        "Merge request base revision is stale",
-        {
-          conflicts: merge.conflicts,
-          current_revision: merge.current_revision_id
-        },
-        [
-          {
-            command: `vspec merge show ${merge.id}`,
-            reason: "Reload the current conflict list before resolving."
-          }
-        ]
-      )
-    );
+    return reply.code(409).send(staleBaseProblem(merge));
   }
   const missingManualValue = manualResolutionMissingValue(parsed.data.resolutions);
   if (missingManualValue !== undefined) {
-    return reply.code(400).send(
-      problem(
-        400,
-        "Manual resolution requires a value",
-        {
-          field: missingManualValue.field,
-          offending_entity_id: missingManualValue.entity_id
-        },
-        [
-          {
-            command: `vspec merge show ${merge.id}`,
-            reason: "Review the original conflict before resolving manually."
-          }
-        ]
-      )
-    );
+    return reply.code(400).send(missingManualValueProblem(merge, missingManualValue));
   }
   const uncovered = uncoveredConflicts(merge.conflicts, parsed.data.resolutions);
   if (uncovered.length > 0) {
-    return reply.code(422).send(
-      problem(
-        422,
-        "Resolution list must cover every conflict",
-        { uncovered_conflicts: uncovered },
-        [
-          {
-            command: `vspec merge resolve ${merge.id} --all`,
-            reason: "Submit one resolution for each outstanding conflict."
-          }
-        ]
-      )
-    );
+    return reply.code(422).send(uncoveredConflictsProblem(merge, uncovered));
+  }
+  const hardLock = hardLockConflict(state, merge.conflicts.map((conflict) => String(conflict.entity_id)));
+  if (hardLock !== undefined) {
+    return reply
+      .code(409)
+      .send(hardLockResolutionProblem(state, merge, target.head_revision_ids ?? {}, hardLock));
   }
   const newRevisions = resolvedRevisions(state, merge.conflicts, parsed.data.resolutions);
   for (const revision of newRevisions) {

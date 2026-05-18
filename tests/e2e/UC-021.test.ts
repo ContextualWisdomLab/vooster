@@ -9,7 +9,6 @@ import {
 } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
-
 type MergeResolveResponse = {
   main_head_revision_ids: Record<string, string>;
   merge_request: {
@@ -167,7 +166,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
     const { setup, usecase } = await projectUseCase(server, "Locked Resolve", "locked-resolve", "stub-locked-resolve");
     const branch = await createBranch(server, setup, "feature/locked-resolve");
     await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
     const opened = await openMerge(server, setup, branch.id);
     const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
     await createStepLock(server, usecase.id, setup.cookie, {
@@ -191,7 +190,7 @@ describe("UC-021 - Resolve a merge conflict", () => {
     expect(problem.title).toMatch(/hard lock/i);
     expect(problem.holding_session).toBe("late-lock-holder");
     expect(problem.merge_request).toMatchObject({ status: "OPEN" });
-    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(usecase.current_revision_id);
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(mainRevision.revision_id);
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the hard lock."

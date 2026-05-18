@@ -1,3 +1,8 @@
+import { useCaseKey } from "./merge-conflict-support.js";
+import { problem } from "./signup-support.js";
+import type { SignupState, StoredLock } from "./signup-types.js";
+import type { StoredMergeRequest } from "./merge-request-types.js";
+
 type MergeResolution = {
   entity_id: string;
   field?: string;
@@ -17,5 +22,73 @@ export function uncoveredConflicts(
 ) {
   return conflicts.filter((conflict) =>
     !resolutions.some((resolution) => resolution.entity_id === String(conflict.entity_id))
+  );
+}
+
+export function staleBaseProblem(merge: StoredMergeRequest) {
+  return problem(
+    409,
+    "Merge request base revision is stale",
+    { conflicts: merge.conflicts, current_revision: merge.current_revision_id },
+    [
+      {
+        command: `vspec merge show ${merge.id}`,
+        reason: "Reload the current conflict list before resolving."
+      }
+    ]
+  );
+}
+
+export function missingManualValueProblem(merge: StoredMergeRequest, resolution: MergeResolution) {
+  return problem(
+    400,
+    "Manual resolution requires a value",
+    { field: resolution.field, offending_entity_id: resolution.entity_id },
+    [
+      {
+        command: `vspec merge show ${merge.id}`,
+        reason: "Review the original conflict before resolving manually."
+      }
+    ]
+  );
+}
+
+export function uncoveredConflictsProblem(
+  merge: StoredMergeRequest,
+  uncovered: Array<Record<string, unknown>>
+) {
+  return problem(
+    422,
+    "Resolution list must cover every conflict",
+    { uncovered_conflicts: uncovered },
+    [
+      {
+        command: `vspec merge resolve ${merge.id} --all`,
+        reason: "Submit one resolution for each outstanding conflict."
+      }
+    ]
+  );
+}
+
+export function hardLockResolutionProblem(
+  state: SignupState,
+  merge: StoredMergeRequest,
+  mainHeadRevisionIds: Record<string, string>,
+  lock: StoredLock
+) {
+  return problem(
+    409,
+    "Target entity has a hard lock",
+    {
+      holding_session: lock.holder,
+      main_head_revision_ids: mainHeadRevisionIds,
+      merge_request: merge
+    },
+    [
+      {
+        command: `vspec who ${useCaseKey(state, lock.usecase_id)}`,
+        reason: "Inspect the session holding the hard lock."
+      }
+    ]
   );
 }

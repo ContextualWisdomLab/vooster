@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { createStepLock } from "../helpers/step-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 type BranchCreateResponse = {
@@ -27,6 +28,12 @@ type MergeOpenResponse = {
   };
   source_branch: { id: string; status: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
+};
+type MergeProblemResponse = {
+  holding_session?: string;
+  merge_request?: { status: string };
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
 };
 
 let server: TestServer;
@@ -137,6 +144,45 @@ describe("UC-020 - Merge a branch", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec merge resolve ${body.merge_request.id}`,
       reason: "Resolve conflicts before this branch can merge."
+    });
+  });
+
+  test("4b: hard lock blocks merge and keeps merge request open", async () => {
+    const setup = await createProject(server, "Locked Merge", "locked-merge", "stub-locked-merge");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+    const createdBranch = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ name: "feature/locked-merge" })
+    });
+    const branch = ((await createdBranch.json()) as BranchCreateResponse).branch;
+    await server.fetch(`/__test/branches/${branch.id}/usecases/${usecase.id}/revisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ severity: "BREAKING", title: "Reviews a refund with audit" })
+    });
+    await createStepLock(server, usecase.id, setup.cookie, {
+      expires_at: "2026-06-01T00:00:00.000Z",
+      holder: "session-lock-holder",
+      mode: "HARD",
+      reason: "Another session owns the target."
+    });
+
+    const response = await server.fetch("/v1/merges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ source_branch_id: branch.id, target: "main" })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as MergeProblemResponse;
+    expect(problem.title).toMatch(/hard lock/i);
+    expect(problem.holding_session).toBe("session-lock-holder");
+    expect(problem.merge_request).toMatchObject({ status: "OPEN" });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Inspect the session holding the hard lock."
     });
   });
 });

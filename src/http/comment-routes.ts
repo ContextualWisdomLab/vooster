@@ -47,8 +47,8 @@ function addComment(request: FastifyRequest, reply: FastifyReply, state: SignupS
     return;
   }
   const parsed = bodySchema.safeParse(request.body);
-  if (!parsed.success) {
-    return reply.code(422).send(problem(422, "empty_body"));
+  if (!parsed.success || parsed.data.body.trim() === "") {
+    return reply.code(422).send(emptyBodyProblem());
   }
   const now = new Date().toISOString();
   const comment: StoredComment = {
@@ -82,8 +82,8 @@ function patchComment(request: FastifyRequest, reply: FastifyReply, state: Signu
     return;
   }
   const parsed = patchSchema.safeParse(request.body);
-  if (!parsed.success) {
-    return reply.code(422).send(problem(422, "empty_body"));
+  if (!parsed.success || parsed.data.body?.trim() === "") {
+    return reply.code(422).send(emptyBodyProblem());
   }
   if (parsed.data.body !== undefined) {
     found.comment.body = parsed.data.body;
@@ -150,6 +150,20 @@ function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
       }
     ]
   };
+}
+
+function emptyBodyProblem() {
+  return problem(
+    422,
+    "empty_body",
+    { code: "empty_body" },
+    [
+      {
+        command: "vspec comment add --body \"<text>\"",
+        reason: "Provide a non-empty markdown body."
+      }
+    ]
+  );
 }
 
 function comments(state: SignupState) {

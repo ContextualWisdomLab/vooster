@@ -45,7 +45,7 @@ function listSessions(request: FastifyRequest, reply: FastifyReply, state: Signu
     summary: {
       total_conflicts: sessions.reduce((total, session) => total + session.conflict_markers.length, 0)
     },
-    suggested_next_actions: zombieActions(sessions)
+    suggested_next_actions: nextActions(sessions)
   });
 }
 
@@ -152,6 +152,12 @@ function zombieActions(sessions: Array<{ id: string; markers: string[] }>) {
       command: `vspec session abandon ${session.id}`,
       reason: "Review and explicitly abandon the stale active session."
     }));
+}
+
+function nextActions(sessions: Array<{ id: string; markers: string[] }>) {
+  return sessions.length === 0
+    ? [{ command: "vspec session start --intent \"...\"", reason: "Start a session when work begins." }]
+    : zombieActions(sessions);
 }
 
 function sessionIdFrom(params: unknown): string {

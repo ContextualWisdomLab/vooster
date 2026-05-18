@@ -101,7 +101,43 @@ describe("UC-031 - Export a use case to markdown", () => {
       reason: "Create the export output directory."
     });
   });
+
+  test("5a: extensions with shared parent are sorted before any-step extensions", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Markdown Sort", "markdown-sort", "stub-markdown-sort");
+    await addExtensionStep(usecase.id, setup.cookie, "1b", "Address is incomplete.", "Adds an address.");
+    await addExtensionStep(usecase.id, setup.cookie, "*a", "Network is unavailable.", "Retries later.");
+    await addExtensionStep(usecase.id, setup.cookie, "1a", "Payment is declined.", "Uses a backup card.");
+
+    const response = await exportMarkdown(usecase.id, setup.cookie);
+    const markdown = await response.text();
+    const oneA = markdown.indexOf("### 1a. Payment is declined.");
+    const oneB = markdown.indexOf("### 1b. Address is incomplete.");
+    const starA = markdown.indexOf("### *a. Network is unavailable.");
+
+    expect(response.headers.get("x-vspec-round-trip-self-check")).toBe("passed");
+    expect(oneA).toBeGreaterThan(-1);
+    expect(oneA).toBeLessThan(oneB);
+    expect(oneB).toBeLessThan(starA);
+  });
 });
+
+async function addExtensionStep(
+  usecaseId: string,
+  cookie: string,
+  extension_point: string,
+  condition: string,
+  action: string
+) {
+  const response = await createExtensionScenario(
+    server,
+    usecaseId,
+    cookie,
+    { condition, extension_point, outcome: "FAILURE" }
+  );
+  const extension = (await response.json()) as ScenarioResponse;
+  await addStep(server, extension.scenario.id, cookie, { action, actor: "Customer" });
+}
 
 function exportMarkdown(usecaseId: string, cookie: string, body: Record<string, unknown> = {}) {
   return server.fetch(`/v1/usecases/${usecaseId}/export/markdown`, {

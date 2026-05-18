@@ -87,8 +87,17 @@ function completeSignup(
   }
 
   if ("error" in parsed.data) {
+    const pending = pendingOAuthFor(request, state, parsed.data.state);
     state.pendingOAuth.delete(parsed.data.state);
     clearOAuthState(reply);
+    if (pending?.flow === "login") {
+      return reply.code(401).send(
+        problem(401, "GitHub authorization denied", {}, [
+          { command: "vspec login", reason: "Retry login." }
+        ])
+      );
+    }
+
     return reply.code(400).send(problem(400, "GitHub authorization denied"));
   }
 

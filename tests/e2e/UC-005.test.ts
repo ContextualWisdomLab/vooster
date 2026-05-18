@@ -148,6 +148,24 @@ describe("UC-005 - Define an actor", () => {
       reason: "Inspect the canonical system actor."
     });
   });
+
+  test("*a: read-only requester cannot define an actor", async () => {
+    const setup = await createProject("Read Only", "read-only", "stub-actor-readonly");
+    await server.fetch(
+      `/__test/workspaces/${setup.workspaceId}/members/${setup.userId}/read-only`,
+      { method: "POST" }
+    );
+
+    const response = await createActor(setup, { name: "Customer", type: "PRIMARY" });
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/contact the workspace owner/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec workspace owner contact",
+      reason: "Request edit access."
+    });
+  });
 });
 
 async function createActor(
@@ -189,10 +207,11 @@ async function signup(name: string, slug: string, code: string) {
   const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
     headers: { Cookie: start.headers.get("set-cookie") ?? "" }
   });
-  const body = (await callback.json()) as { workspace: { id: string } };
+  const body = (await callback.json()) as { user: { id: string }; workspace: { id: string } };
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
+    userId: body.user.id,
     workspaceId: body.workspace.id
   };
 }

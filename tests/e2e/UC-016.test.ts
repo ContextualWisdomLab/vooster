@@ -21,12 +21,8 @@ afterAll(async () => {
 
 describe("UC-016 - Start a work session", () => {
   test("MAIN: start session with pinned current use case revision", async () => {
-    const { mainStepRevision, setup, usecase } = await createUseCaseWithMainStep(
-      server,
-      "Start Session",
-      "start-session",
-      "stub-start-session"
-    );
+    const { mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(server, "Start Session", "start-session", "stub-start-session");
 
     const response = await startWorkSession(server, setup, {
       agent_type: "CODEX",
@@ -66,10 +62,7 @@ describe("UC-016 - Start a work session", () => {
 
   test("3a: archived pin is rejected without creating a session", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server,
-      "Archived Session Pin",
-      "archived-session-pin",
-      "stub-archived-session-pin"
+      server, "Archived Session Pin", "archived-session-pin", "stub-archived-session-pin"
     );
     const archived = await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
       method: "POST"
@@ -95,10 +88,7 @@ describe("UC-016 - Start a work session", () => {
 
   test("3b: hard-locked pin is rejected with holding session guidance", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server,
-      "Hard Locked Session Pin",
-      "hard-locked-session-pin",
-      "stub-hard-locked-session-pin"
+      server, "Hard Locked Session Pin", "hard-locked-session-pin", "stub-hard-locked-session-pin"
     );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
@@ -163,10 +153,7 @@ describe("UC-016 - Start a work session", () => {
 
   test("4b: auto-branch semantic lock conflict rolls back session creation", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server,
-      "Semantic Branch Conflict",
-      "semantic-branch-conflict",
-      "stub-semantic-branch-conflict"
+      server, "Semantic Branch Conflict", "semantic-branch-conflict", "stub-semantic-branch-conflict"
     );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",

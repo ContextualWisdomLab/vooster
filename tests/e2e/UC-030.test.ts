@@ -157,4 +157,29 @@ Scenario: 1a Payment is declined.
       reason: "Find an exportable revision for this use case."
     });
   });
+
+  test("*a: archived use case returns restore guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Gherkin Archived", "gherkin-archived", "stub-gherkin-archived");
+    await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as {
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/use case is archived/i);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the use case before exporting Gherkin."
+    });
+  });
 });

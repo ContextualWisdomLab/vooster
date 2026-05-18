@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T19:55:33Z_
+_Last updated: 2026-05-18T20:10:06Z_
 
 ## Overall
 
-- Commits: 278
-- Last commit: ddf5b26 green: UC-022 ignore expired locks on acquire
-- Use cases complete: 19 / 35
+- Commits: 293
+- Last commit: c4c5798 green: UC-023 deny non-member who lookup
+- Use cases complete: 20 / 35
 
 ## By Use Case
 
@@ -34,7 +34,7 @@ _Last updated: 2026-05-18T19:55:33Z_
 | UC-020 | Merge a branch | ✓ DONE | 6/6 |
 | UC-021 | Resolve a merge conflict | ✓ DONE | 6/6 |
 | UC-022 | Lock a use case | ✓ DONE | 6/6 |
-| UC-023 | See who is working on a use case | ○ NOT STARTED | 0/0 |
+| UC-023 | See who is working on a use case | ✓ DONE | 6/6 |
 | UC-024 | View a use case revision history | ○ NOT STARTED | 0/0 |
 | UC-025 | Compare two revisions of a use case | ○ NOT STARTED | 0/0 |
 | UC-026 | Revert a use case to a previous revision | ○ NOT STARTED | 0/0 |

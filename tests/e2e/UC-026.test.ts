@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { lockUseCase, type LockCreateResponse } from "../helpers/lock-fixtures.js";
-import { projectUseCase, type BranchRevisionResponse } from "../helpers/merge-fixtures.js";
+import {
+  advanceMain,
+  projectUseCase,
+  type BranchRevisionResponse
+} from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
 
 type RevertResponse = {
   impact: {
@@ -22,6 +27,8 @@ type RevertResponse = {
   usecase: { current_revision_id: string; id: string; title: string };
 };
 type RevertProblem = {
+  affected_sessions?: string[];
+  breaking_changes?: Array<{ path: string; revision: string; severity: string }>;
   expires_at?: string;
   expected_entity_id?: string;
   held_by_user_id?: string;
@@ -123,6 +130,48 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     const body = (await history.json()) as HistoryResponse;
     expect(body.revisions.map((revision) => revision.revision)).toEqual([
       usecase.current_revision_id
+    ]);
+  });
+
+  test("4a: breaking revert without force returns impact and writes nothing", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Revert Breaking", "revert-breaking", "stub-revert-breaking");
+    const targetRevision = usecase.current_revision_id;
+    const currentHead = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const sessionResponse = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Keep refund wording stable",
+      pins: [usecase.key]
+    });
+    const session = ((await sessionResponse.json()) as SessionStartResponse).session;
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ revision_id: targetRevision })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as RevertProblem;
+    expect(problem.title).toMatch(/breaking/i);
+    expect(problem.breaking_changes).toContainEqual({
+      path: "usecase.title",
+      revision: currentHead.revision_id,
+      severity: "BREAKING"
+    });
+    expect(problem.affected_sessions).toEqual([session.id]);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec revert ${usecase.key} --to ${targetRevision} --force --summary "<reason>"`,
+      reason: "Rerun with force only if the breaking impact is acceptable."
+    });
+
+    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    const body = (await history.json()) as HistoryResponse;
+    expect(body.revisions.map((revision) => revision.revision)).toEqual([
+      currentHead.revision_id,
+      targetRevision
     ]);
   });
 

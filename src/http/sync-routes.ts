@@ -26,6 +26,13 @@ const pushSchema = z.object({
 });
 
 type PushFile = z.infer<typeof pushSchema>["files"][number];
+type SyncResult = {
+  conflict_content?: string;
+  current_revision: string;
+  impact?: { entity_id: string; severity: "BREAKING" };
+  path: string;
+  status: "CONFLICT" | "OK" | "SKIPPED";
+};
 
 export function registerSyncRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
@@ -70,21 +77,17 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(400).send(parseFilesProblem(parseErrors));
   }
   const results = parsed.data.files.map((file) => pushFile(state, projectId, file));
+  const hasConflict = results.some((result) => result.status === "CONFLICT");
   return reply.send({
     cache: {
       entries: results.map((result) => ({
         path: result.path,
         revision: result.current_revision,
-        status: "SYNCED"
+        status: result.status === "CONFLICT" ? "UNRESOLVED" : "SYNCED"
       }))
     },
     results,
-    suggested_next_actions: [
-      {
-        command: "vspec pull",
-        reason: "Refresh local files after successful push."
-      }
-    ]
+    suggested_next_actions: hasConflict ? conflictActions() : syncedActions()
   });
 }
 
@@ -92,12 +95,15 @@ function pushFile(
   state: SignupState,
   projectId: string,
   file: PushFile
-) {
+): SyncResult {
   const usecase = activeUseCases(state, projectId).find(
     (candidate) => usecasePath(candidate) === file.path
   );
   if (usecase === undefined) {
     return { current_revision: "", path: file.path, status: "SKIPPED" };
+  }
+  if (file.base_revision !== usecase.current_revision_id) {
+    return staleFileConflict(usecase, file);
   }
   const title = titleFrom(file.content);
   const revision = syncRevision(state, usecase, title);
@@ -109,6 +115,42 @@ function pushFile(
   ]);
   advanceMainHead(state, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
+}
+
+function staleFileConflict(usecase: StoredUseCase, file: PushFile): SyncResult {
+  return {
+    conflict_content: conflictContent(file.content, usecaseMarkdown(usecase), usecase),
+    current_revision: usecase.current_revision_id,
+    impact: { entity_id: usecase.id, severity: "BREAKING" },
+    path: file.path,
+    status: "CONFLICT"
+  };
+}
+
+function conflictContent(local: string, remote: string, usecase: StoredUseCase) {
+  return `<<<<<<< local\n${local}\n=======\n${remote}\n>>>>>>> remote (${usecase.current_revision_id})\n`;
+}
+
+function syncedActions() {
+  return [
+    {
+      command: "vspec pull",
+      reason: "Refresh local files after successful push."
+    }
+  ];
+}
+
+function conflictActions() {
+  return [
+    {
+      command: "vspec diff",
+      reason: "Inspect the server and local changes before resolving the conflict."
+    },
+    {
+      command: "vspec push",
+      reason: "Push again after removing conflict markers."
+    }
+  ];
 }
 
 function syncRevision(

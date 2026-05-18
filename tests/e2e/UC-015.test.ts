@@ -19,6 +19,7 @@ type RestoreResponse = {
 type HistoryResponse = { revisions: Array<{ change_summary?: string; version_number: number }> };
 type ArchiveProblem = {
   archived_at?: string;
+  destructive_delete?: boolean;
   expires_at?: string;
   holding_session?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
@@ -142,10 +143,29 @@ describe("UC-015 - Archive or restore a use case", () => {
     const list = await listUseCases(setup.projectId, setup.cookie);
     expect(list.items.map((item) => item.key)).toEqual([usecase.key]);
   });
+
+  test("*b: hard delete request is rejected without archiving", async () => {
+    const setup = await createProject(server, "Hard Delete", "hard-delete", "stub-hard-delete");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Reviews hard delete request");
+
+    const response = await archiveUseCase(usecase.id, setup.cookie, "?hard=true");
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as ArchiveProblem;
+    expect(problem.title).toMatch(/destructive deletion is post-MVP/i);
+    expect(problem.destructive_delete).toBe(true);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase archive ${usecase.key}`,
+      reason: "Archive is the supported reversible removal path."
+    });
+    const list = await listUseCases(setup.projectId, setup.cookie);
+    expect(list.items.map((item) => item.key)).toEqual([usecase.key]);
+  });
 });
 
-function archiveUseCase(usecaseId: string, cookie: string) {
-  return server.fetch(`/v1/usecases/${usecaseId}`, {
+function archiveUseCase(usecaseId: string, cookie: string, query = "") {
+  return server.fetch(`/v1/usecases/${usecaseId}${query}`, {
     method: "DELETE",
     headers: { Cookie: cookie }
   });

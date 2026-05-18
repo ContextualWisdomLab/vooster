@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { projectUseCase } from "../helpers/merge-fixtures.js";
+import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
 type ChangePreviewResponse = {
@@ -19,6 +19,12 @@ type ChangePreviewResponse = {
   warnings: unknown[];
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
+type ChangeProblem = {
+  current_revision?: string;
+  impact?: { affected_sessions: unknown[]; severity: string };
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -62,6 +68,40 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     });
     expect(body.warnings).toEqual([]);
     expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("4a: stale base revision returns current revision and no preview", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Stale Preview", "stale-preview", "stub-stale-preview");
+    const current = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+
+    const response = await proposeChange(setup.cookie, {
+      base_revision: usecase.current_revision_id,
+      patch: {
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        fields: { title: "Reviews a refund with audit trail" }
+      },
+      usecase_key: usecase.key
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as ChangeProblem;
+    expect(problem.title).toMatch(/stale base revision/i);
+    expect(problem.current_revision).toBe(current.revision_id);
+    expect(problem.impact).toMatchObject({ affected_sessions: [], severity: "BREAKING" });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase show ${usecase.key} --format=agent`,
+      reason: "Re-read the current use case before proposing again."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec change propose ${usecase.key}`,
+      reason: "Propose the change again against the fresh base revision."
+    });
+    expect(await historyRevisionIds(usecase.id, setup.cookie)).toEqual([
+      current.revision_id,
       usecase.current_revision_id
     ]);
   });

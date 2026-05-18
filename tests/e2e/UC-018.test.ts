@@ -4,34 +4,11 @@ import { startServer, type TestServer } from "../helpers/server.js";
 import {
   completeWorkSession,
   startWorkSession,
+  type SessionCompleteProblem,
+  type SessionCompleteResponse,
   type SessionStartResponse
 } from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
-
-type SessionCompleteResponse = {
-  merge_request?: {
-    conflicts: unknown[];
-    id: string;
-    impact: {
-      affected_branches: string[];
-      affected_sessions: string[];
-      severity_by_entity: Record<string, string>;
-    };
-    source_branch_id: string;
-    status: string;
-    strategy: string;
-    target_branch_id: string;
-  };
-  released_lock_ids: string[];
-  session: { branch_id: string; ended_at: string; id: string; status: string };
-  session_file: { cleared: boolean; path: string };
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-};
-type SessionCompleteProblem = {
-  current_status?: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 

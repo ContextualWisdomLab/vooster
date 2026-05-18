@@ -40,6 +40,33 @@ export type SessionProblemResponse = {
   title: string;
 };
 
+export type SessionCompleteResponse = {
+  merge_request?: {
+    conflicts: unknown[];
+    id: string;
+    impact: {
+      affected_branches: string[];
+      affected_sessions: string[];
+      severity_by_entity: Record<string, string>;
+    };
+    source_branch_id: string;
+    status: string;
+    strategy: string;
+    target_branch_id: string;
+  };
+  released_lock_ids: string[];
+  session: { branch_id: string; ended_at: string; id: string; status: string };
+  session_file: { cleared: boolean; path: string };
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings?: Array<{ lock_id: string; message: string; type: string }>;
+};
+
+export type SessionCompleteProblem = {
+  current_status?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
+
 export function startWorkSession(
   server: TestServer,
   setup: { cookie: string; projectId: string },

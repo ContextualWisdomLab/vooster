@@ -71,3 +71,11 @@ write. This guides your TDD cycles within an iteration._
 - **2b**: promote a rejected goal -> failure with `vspec goal edit <id> --status in-design` guidance and no use case.
 - **4a**: promoted title fails the verb-phrase heuristic -> still creates the use case with a title-edit warning.
 - ***a**: simulated server error during use-case creation -> aborts without mutating goal or leaving a use case/revision.
+
+### UC-009
+
+- **MAIN**: authenticated member creates a use case from title and primary actor name -> 201 with defaults, sequential key, current revision, and authoring next actions.
+- **2a**: non-verb title without force -> failure with rewrite suggestions and `--force`; with force -> creates the use case.
+- **3b**: unknown primary actor -> 422 with actor list/create guidance and no use case.
+- **5c**: simulated key collision -> retries allocation and succeeds with the next available key, or 409 after repeated failures.
+- ***a**: unauthorized requester -> 403 with login/member role guidance and no use case/revision.

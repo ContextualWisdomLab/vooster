@@ -1,0 +1,77 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { startServer, type TestServer } from "../helpers/server.js";
+import { createActor, createProject } from "../helpers/uc-fixtures.js";
+
+type UseCase = {
+  current_revision_id: string;
+  format: string;
+  id: string;
+  key: string;
+  level: string;
+  primary_actor_id: string;
+  priority: string;
+  project_id: string;
+  scope: string;
+  status: string;
+  title: string;
+};
+type UseCaseResponse = {
+  revision: { entity_id: string; entity_type: string; id: string; version_number: number };
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  usecase: UseCase;
+};
+
+let server: TestServer;
+
+beforeAll(async () => {
+  server = await startServer();
+});
+
+afterAll(async () => {
+  await server.stop();
+});
+
+describe("UC-009 - Author a use case from scratch", () => {
+  test("MAIN: create a draft use case with defaults and first revision", async () => {
+    const setup = await createProject(server, "Author UseCase", "author-usecase", "stub-author-usecase");
+    const actor = await createActor(server, setup, "Customer");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "Places an order" })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as UseCaseResponse;
+    expect(body.usecase).toMatchObject({
+      format: "BRIEF",
+      key: "CHK-001",
+      level: "USER_GOAL",
+      primary_actor_id: actor.id,
+      priority: "P2",
+      project_id: setup.projectId,
+      scope: "chk",
+      status: "DRAFT",
+      title: "Places an order"
+    });
+    expect(body.usecase.current_revision_id).toBe(body.revision.id);
+    expect(body.revision).toMatchObject({
+      entity_id: body.usecase.id,
+      entity_type: "USECASE",
+      version_number: 1
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec usecase show ${body.usecase.key}`,
+      reason: "Open the new use case."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec usecase add-stakeholder",
+      reason: "Attach stakeholders and interests."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec scenario add",
+      reason: "Write the main success scenario."
+    });
+  });
+});

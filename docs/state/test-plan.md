@@ -148,3 +148,12 @@ write. This guides your TDD cycles within an iteration._
 - **5a**: branch name collides in project -> 422 with a de-collided suggested name, no branch.
 - **4a**: main has open merge requests targeting it -> still creates branch and returns warnings listing in-flight merge request ids.
 - ***a**: simulated snapshot transaction failure -> no branch row persists and response includes exit code 5 with retry guidance.
+
+### UC-020
+
+- **MAIN**: authenticated project member opens a merge for an ACTIVE branch whose head differs from unchanged main -> creates an auditable MR, computes FAST_FORWARD impact, advances main head revisions, marks MR/source branch MERGED, and suggests `vspec merge show <id>`.
+- **4a**: source and main changed the same use case field differently -> returns an OPEN MR with structural conflict descriptors, leaves main unchanged, and suggests `vspec merge resolve <id>`.
+- **4b**: target use case is HARD-locked by another session -> returns 409 with holding session and `vspec who <KEY>` guidance, keeps the MR OPEN, and leaves main unchanged.
+- **4c**: source and main both added different extensions at the same extension point -> returns an OPEN MR with semantic conflict descriptors and leaves main unchanged.
+- **5a**: caller forces `FAST_FORWARD` after main advanced from the branch base -> 422 suggesting `vspec merge open <branch> --strategy squash`, aborts before write, and leaves main unchanged.
+- ***a**: simulated write-phase failure -> returns exit code 5 with retry guidance, leaves MR OPEN, source branch ACTIVE, and main head revisions unchanged.

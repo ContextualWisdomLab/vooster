@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T15:27:23Z_
+_Last updated: 2026-05-18T15:39:41Z_
 
 ## Overall
 
-- Commits: 47
-- Last commit: 46b07fb refactor: UC-004 keep e2e file compact
-- Use cases complete: 3 / 35
+- Commits: 61
+- Last commit: 80ef31d refactor: UC-005 split actor test hooks
+- Use cases complete: 4 / 35
 
 ## By Use Case
 
@@ -16,7 +16,7 @@ _Last updated: 2026-05-18T15:27:23Z_
 | UC-002 | Log in | ✓ DONE | 5/5 |
 | UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
 | UC-004 | Create a project | ✓ DONE | 6/6 |
-| UC-005 | Define an actor | ○ NOT STARTED | 0/0 |
+| UC-005 | Define an actor | ✓ DONE | 6/6 |
 | UC-006 | Define a stakeholder | ○ NOT STARTED | 0/0 |
 | UC-007 | Manage the actor-goal list | ○ NOT STARTED | 0/0 |
 | UC-008 | Promote a goal to a use case | ○ NOT STARTED | 0/0 |

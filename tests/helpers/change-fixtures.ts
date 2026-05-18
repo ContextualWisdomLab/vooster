@@ -19,6 +19,7 @@ export type ChangePreviewResponse = {
 };
 export type ChangeProblem = {
   current_revision?: string;
+  holding_session?: string;
   impact?: { affected_sessions: unknown[]; severity: string };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;

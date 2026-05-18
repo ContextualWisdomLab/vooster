@@ -8,6 +8,7 @@ import {
   type ChangePreviewResponse,
   type ChangeProblem
 } from "../helpers/change-fixtures.js";
+import { lockUseCase } from "../helpers/lock-fixtures.js";
 import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
@@ -165,6 +166,29 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
     );
     expect(body.suggested_next_actions).toContainEqual(
       { command: `vspec who ${usecase.key}`, reason: "Coordinate with active sessions before committing." }
+    );
+  });
+
+  test("2a: hard lock held by another session blocks propose", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Hard Locked", "hard-locked", "stub-hard-locked");
+    await lockUseCase(server, setup, usecase.id, {
+      lock_type: "HARD",
+      reason: "Another session is rewriting this use case."
+    }, "session-hard-lock-holder");
+
+    const response = await proposeChange(server, setup.cookie,
+      titlePatch(usecase, "Reviews a refund while locked"));
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as ChangeProblem;
+    expect(problem.title).toMatch(/hard lock/i);
+    expect(problem.holding_session).toBe("session-hard-lock-holder");
+    expect(problem.suggested_next_actions).toContainEqual(
+      { command: `vspec who ${usecase.key}`, reason: "Inspect the session holding the lock." }
+    );
+    expect(problem.suggested_next_actions).toContainEqual(
+      { command: `vspec unlock ${usecase.key}`, reason: "Owners can release the lock when appropriate." }
     );
   });
 });

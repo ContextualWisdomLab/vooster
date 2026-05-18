@@ -47,7 +47,8 @@ function compareRevisions(
   const from = revisionById(revisions, parsed.data.from);
   const to = revisionById(revisions, parsed.data.to);
   if (from === undefined || to === undefined) {
-    return reply.code(404).send(problem(404, "Revision not found"));
+    const missingRevision = from === undefined ? parsed.data.from : parsed.data.to;
+    return reply.code(404).send(missingRevisionProblem(found.usecase, missingRevision));
   }
 
   const changes = revisionsBetween(revisions, from, to).map(diffChange);
@@ -107,6 +108,23 @@ function summarize(changes: DiffChange[]) {
     cosmetic: changes.filter((change) => change.severity === "COSMETIC").length,
     non_breaking: changes.filter((change) => change.severity === "NON_BREAKING").length
   };
+}
+
+function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
+  return problem(
+    404,
+    "Revision not found",
+    {
+      missing_revision: revisionId,
+      usecase: { id: usecase.id, key: usecase.key }
+    },
+    [
+      {
+        command: `vspec history ${usecase.key}`,
+        reason: "Find valid revision IDs for this use case."
+      }
+    ]
+  );
 }
 
 function nextActions(usecase: StoredUseCase, fromRevision: string) {

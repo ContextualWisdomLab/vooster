@@ -7,9 +7,14 @@ import type { SignupState, StoredWorkSession } from "./signup-types.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
+  simulate_conflicts: z.boolean().default(false),
   simulate_completion_failure: z.boolean().default(false),
   summary: z.string().optional()
 });
+type MergeRequestResponse = {
+  conflicts: Array<{ entity_id: string; type: string }>;
+  id: string;
+};
 
 export function registerSessionCompleteRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
@@ -64,7 +69,7 @@ function completeSession(
   session.ended_at = new Date().toISOString();
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
-    : openMergeRequest(state, session);
+    : openMergeRequest(state, session, parsed.data.simulate_conflicts);
   const noMergeBranch = parsed.data.no_merge ? branchName(state, session) : undefined;
 
   return reply.send({
@@ -105,8 +110,15 @@ function releaseSessionLocks(state: SignupState, sessionId: string): string[] {
   return released;
 }
 
-function openMergeRequest(state: SignupState, session: StoredWorkSession) {
+function openMergeRequest(
+  state: SignupState,
+  session: StoredWorkSession,
+  withConflicts: boolean
+) {
   const project = state.projectsById.get(session.project_id ?? "");
+  const conflicts = withConflicts
+    ? Object.keys(session.pinned_revisions ?? {}).map((entityId) => ({ entity_id: entityId, type: "SEMANTIC" }))
+    : [];
   return {
     id: randomUUID(),
     source_branch_id: session.branch_id,
@@ -120,16 +132,19 @@ function openMergeRequest(state: SignupState, session: StoredWorkSession) {
         Object.keys(session.pinned_revisions ?? {}).map((entityId) => [entityId, "NON_BREAKING"])
       )
     },
-    conflicts: []
+    conflicts
   };
 }
 
-function nextActions(mergeRequest: { id: string } | undefined, branch?: string) {
+function nextActions(mergeRequest: MergeRequestResponse | undefined, branch?: string) {
   if (mergeRequest !== undefined) {
+    const hasConflicts = mergeRequest.conflicts.length > 0;
     return [
         {
-          command: `vspec merge show ${mergeRequest.id}`,
-          reason: "Review the merge request opened for this completed session."
+          command: hasConflicts ? `vspec merge resolve ${mergeRequest.id}` : `vspec merge show ${mergeRequest.id}`,
+          reason: hasConflicts
+            ? "Resolve conflicts before the merge request can be approved."
+            : "Review the merge request opened for this completed session."
         }
       ];
   }

@@ -193,6 +193,9 @@ describe("UC-018 - Complete a work session", () => {
     const body = (await response.json()) as SessionCompleteResponse;
     expect(body.merge_request?.status).toBe("OPEN");
     expect(body.merge_request?.conflicts).toEqual([{ entity_id: usecase.id, type: "SEMANTIC" }]);
-    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge resolve ${body.merge_request?.id}`, reason: "Resolve conflicts before the merge request can be approved." });
+    if (body.merge_request === undefined) {
+      throw new Error("expected merge request");
+    }
+    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge resolve ${body.merge_request.id}`, reason: "Resolve conflicts before the merge request can be approved." });
   });
 });

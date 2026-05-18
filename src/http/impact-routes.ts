@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { previewSpecChange } from "./change-preview-routes.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
@@ -25,7 +26,8 @@ const previewSchema = z.object({
 });
 
 export function registerImpactRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/changes/preview", (request, reply) => previewImpact(request, reply, state));
+  app.post("/v1/changes/preview", (request, reply) =>
+    previewSpecChange(request, reply, state) ?? previewImpact(request, reply, state));
 }
 
 function previewImpact(request: FastifyRequest, reply: FastifyReply, state: SignupState) {

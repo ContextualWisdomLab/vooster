@@ -10,6 +10,10 @@ import type {
   StoredUseCase
 } from "./signup-types.js";
 
+const promoteRequestSchema = z.object({
+  simulate_usecase_insert_failure: z.boolean().optional()
+});
+
 export function registerGoalPromotionRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
     promoteGoal(request, reply, state)
@@ -23,6 +27,10 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  const parsed = promoteRequestSchema.safeParse(request.body ?? {});
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
   const project = state.projectsById.get(found.projectId);
@@ -43,6 +51,16 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
         {
           command: `vspec goal edit ${found.goal.id} --status in-design`,
           reason: "Reopen the goal before promotion."
+        }
+      ])
+    );
+  }
+  if (parsed.data.simulate_usecase_insert_failure === true) {
+    return reply.code(500).send(
+      problem(500, "Promotion failed", { exit_code: 5 }, [
+        {
+          command: `vspec goal promote ${found.goal.id}`,
+          reason: "Retry after the server recovers."
         }
       ])
     );

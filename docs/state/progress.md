@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T18:21:33Z_
+_Last updated: 2026-05-18T18:42:39Z_
 
 ## Overall
 
-- Commits: 200
-- Last commit: c3ceb11 green: UC-017 deny non-member listing
-- Use cases complete: 14 / 35
+- Commits: 217
+- Last commit: 99ebfbc green: UC-018 warn on failed lock release
+- Use cases complete: 15 / 35
 
 ## By Use Case
 
@@ -29,7 +29,7 @@ _Last updated: 2026-05-18T18:21:33Z_
 | UC-015 | Archive or restore a use case | ○ NOT STARTED | 0/0 |
 | UC-016 | Start a work session | ✓ DONE | 7/7 |
 | UC-017 | Monitor active sessions | ✓ DONE | 5/5 |
-| UC-018 | Complete a work session | ○ NOT STARTED | 0/0 |
+| UC-018 | Complete a work session | ✓ DONE | 6/6 |
 | UC-019 | Create a branch | ○ NOT STARTED | 0/0 |
 | UC-020 | Merge a branch | ○ NOT STARTED | 0/0 |
 | UC-021 | Resolve a merge conflict | ○ NOT STARTED | 0/0 |

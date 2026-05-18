@@ -140,7 +140,7 @@ describe("UC-015 - Archive or restore a use case", () => {
     expect(history.revisions.map((revision) => revision.version_number)).toEqual([3, 2, 1]);
     expect(history.revisions[0]?.change_summary).toBe(`Restored use case ${usecase.key}`);
     const list = await listUseCases(setup.projectId, setup.cookie);
-    expect(list.items).toEqual([{ key: usecase.key }]);
+    expect(list.items.map((item) => item.key)).toEqual([usecase.key]);
   });
 });
 

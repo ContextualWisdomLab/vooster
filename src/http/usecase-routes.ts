@@ -4,6 +4,7 @@ import { z } from "zod";
 import { activeActorNamed, projectIdFrom } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
+import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
 import {
   nextUseCaseKey,
   useCaseNextActions,
@@ -26,6 +27,7 @@ const useCaseRequestSchema = z.object({
   title: z.string().min(1)
 });
 const useCasePatchSchema = z.object({
+  archived_at: z.null().optional(),
   status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional()
 });
 
@@ -142,6 +144,9 @@ function patchUseCase(request: FastifyRequest, reply: FastifyReply, state: Signu
   const parsed = useCasePatchSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid use case update"));
+  }
+  if (parsed.data.archived_at === null) {
+    return restoreArchivedUseCase(reply, state, found);
   }
   if (
     parsed.data.status !== undefined &&

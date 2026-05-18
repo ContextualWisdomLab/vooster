@@ -63,6 +63,28 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
   });
 }
 
+export function restoreArchivedUseCase(
+  reply: FastifyReply,
+  state: SignupState,
+  found: { projectId: string; usecase: StoredUseCase }
+) {
+  if (found.usecase.archived_at === null) {
+    return reply.code(409).send(problem(409, "Use case is not archived"));
+  }
+  found.usecase.archived_at = null;
+  const revision = restoreRevision(state, found.usecase);
+  found.usecase.current_revision_id = revision.id;
+  state.revisionsByEntityId.set(found.usecase.id, [
+    ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
+    revision
+  ]);
+  advanceMainHead(state, found.usecase, revision.id);
+  return reply.send({
+    revision: { change_summary: revision.change_summary, id: revision.id },
+    usecase: { archived_at: null, id: found.usecase.id, key: found.usecase.key }
+  });
+}
+
 function archiveRevision(state: SignupState, usecase: StoredUseCase): StoredRevision {
   return {
     id: randomUUID(),
@@ -71,6 +93,17 @@ function archiveRevision(state: SignupState, usecase: StoredUseCase): StoredRevi
     version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
     snapshot: { ...usecase },
     change_summary: `Archived use case ${usecase.key}`
+  };
+}
+
+function restoreRevision(state: SignupState, usecase: StoredUseCase): StoredRevision {
+  return {
+    id: randomUUID(),
+    entity_type: "USECASE",
+    entity_id: usecase.id,
+    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    snapshot: { ...usecase },
+    change_summary: `Restored use case ${usecase.key}`
   };
 }
 

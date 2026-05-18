@@ -54,13 +54,14 @@ function completeSession(
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
     : openMergeRequest(state, session);
+  const noMergeBranch = parsed.data.no_merge ? branchName(state, session) : undefined;
 
   return reply.send({
     session,
     released_lock_ids: releasedLockIds,
     ...(mergeRequest === undefined ? {} : { merge_request: mergeRequest }),
     session_file: { path: ".vspec/session.json", cleared: true },
-    suggested_next_actions: nextActions(mergeRequest)
+    suggested_next_actions: nextActions(mergeRequest, noMergeBranch)
   });
 }
 
@@ -112,15 +113,24 @@ function openMergeRequest(state: SignupState, session: StoredWorkSession) {
   };
 }
 
-function nextActions(mergeRequest: { id: string } | undefined) {
-  return mergeRequest === undefined
-    ? []
-    : [
+function nextActions(mergeRequest: { id: string } | undefined, branch?: string) {
+  if (mergeRequest !== undefined) {
+    return [
         {
           command: `vspec merge show ${mergeRequest.id}`,
           reason: "Review the merge request opened for this completed session."
         }
       ];
+  }
+  return branch === undefined
+    ? []
+    : [{ command: `vspec merge open ${branch}`, reason: "Open a merge request for the completed branch later." }];
+}
+
+function branchName(state: SignupState, session: StoredWorkSession): string | undefined {
+  return session.branch_id === null || session.branch_id === undefined
+    ? undefined
+    : state.branchesById.get(session.branch_id)?.name;
 }
 
 function sessionIdFrom(params: unknown): string {

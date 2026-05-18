@@ -73,16 +73,20 @@ describe("UC-018 - Complete a work session", () => {
     });
     expect(Date.parse(body.session.ended_at)).not.toBeNaN();
     expect(body.released_lock_ids).toEqual([usecase.id]);
-    expect(body.merge_request).toMatchObject({
+    const mergeRequest = body.merge_request;
+    expect(mergeRequest).toMatchObject({
       conflicts: [],
       source_branch_id: session.branch_id,
       status: "OPEN",
       strategy: "FAST_FORWARD"
     });
-    expect(body.merge_request.impact.severity_by_entity).toEqual({ [usecase.id]: "NON_BREAKING" });
+    expect(mergeRequest?.impact.severity_by_entity).toEqual({ [usecase.id]: "NON_BREAKING" });
     expect(body.session_file).toEqual({ path: ".vspec/session.json", cleared: true });
+    if (mergeRequest === undefined) {
+      throw new Error("expected merge request");
+    }
     expect(body.suggested_next_actions).toContainEqual({
-      command: `vspec merge show ${body.merge_request.id}`,
+      command: `vspec merge show ${mergeRequest.id}`,
       reason: "Review the merge request opened for this completed session."
     });
   });

@@ -22,6 +22,7 @@ function initialState(options: ServerOptions): SignupState {
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),
     projectsById: new Map(),
+    readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
     usersByGithubId: new Map(),

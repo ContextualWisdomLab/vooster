@@ -22,6 +22,9 @@ export function registerActorRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
     archiveActor(request, reply, state)
   );
+  app.post("/__test/workspaces/:workspaceId/members/:userId/read-only", (request, reply) =>
+    markReadOnly(request, reply, state)
+  );
 }
 
 function createActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -29,6 +32,9 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   const membership = membershipForProject(request, state, projectId);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  if (isReadOnly(state, membership)) {
+    return readOnly(reply);
   }
 
   const parsed = actorRequestSchema.safeParse(request.body);
@@ -119,6 +125,22 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   });
 }
 
+function markReadOnly(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const params = z
+    .object({ userId: z.string().min(1), workspaceId: z.string().min(1) })
+    .parse(request.params);
+  state.readOnlyMemberships.add(membershipKey(params.userId, params.workspaceId));
+  return reply.send({ read_only: true });
+}
+
+function readOnly(reply: FastifyReply) {
+  return reply.code(403).send(
+    problem(403, "Contact the workspace owner for edit access", {}, [
+      { command: "vspec workspace owner contact", reason: "Request edit access." }
+    ])
+  );
+}
+
 function isActorType(type: string): type is StoredActor["type"] {
   return actorTypes.includes(type as StoredActor["type"]);
 }
@@ -171,6 +193,16 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
+}
+
+function isReadOnly(state: SignupState, membership: StoredMembership): boolean {
+  return state.readOnlyMemberships.has(
+    membershipKey(membership.user_id, membership.workspace_id)
+  );
+}
+
+function membershipKey(userId: string, workspaceId: string): string {
+  return `${userId}:${workspaceId}`;
 }
 
 function projectIdFrom(params: unknown): string {

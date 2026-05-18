@@ -107,4 +107,22 @@ describe("UC-017 - Monitor active sessions", () => {
       reason: "Review and explicitly abandon the stale active session."
     });
   });
+
+  test("3a: empty session list includes start guidance", async () => {
+    const { setup } =
+      await createUseCaseWithMainStep(server, "Empty Sessions", "empty-sessions", "stub-empty-sessions");
+
+    const response = await server.fetch(`/v1/sessions?workspace_id=${setup.workspaceId}`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SessionListResponse;
+    expect(body.total).toBe(0);
+    expect(body.sessions).toEqual([]);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec session start --intent \"...\"",
+      reason: "Start a session when work begins."
+    });
+  });
 });

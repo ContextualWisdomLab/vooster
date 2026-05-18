@@ -165,6 +165,26 @@ describe("UC-001 - Sign up for a workspace", () => {
     expect(body.title).toMatch(/workspace slug.*taken/i);
     expect(body.suggested_alternative_slug).toBe("duplicate-slug-2");
   });
+
+  test("*a: GitHub network failure aborts signup with retry guidance", async () => {
+    const started = await startSignup("Network Failure", "network-failure");
+    const callbackResponse = await completeSignup(
+      "stub-github-network-failure",
+      started.state,
+      started.cookie
+    );
+
+    expect(callbackResponse.status).toBe(502);
+    expect(callbackResponse.headers.get("set-cookie")).toContain("vspec_oauth_state=;");
+    expect(callbackResponse.headers.get("set-cookie")).not.toContain("vspec_session=");
+
+    const body = (await callbackResponse.json()) as ProblemResponse;
+    expect(body.title).toMatch(/github.*unavailable/i);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Retry signup after GitHub is reachable."
+    });
+  });
 });
 
 async function startSignup(name: string, slug: string) {

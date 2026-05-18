@@ -17,6 +17,9 @@ export function registerActorRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
     createActor(request, reply, state)
   );
+  app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
+    archiveActor(request, reply, state)
+  );
 }
 
 function createActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -29,6 +32,21 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   const parsed = actorRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid actor request"));
+  }
+
+  const archived = archivedActorNamed(state, projectId, parsed.data.name);
+  if (archived !== undefined) {
+    return reply.code(409).send(
+      problem(
+        409,
+        "Name is held by an archived actor",
+        { existing_actor_id: archived.id },
+        [
+          { command: "vspec actor restore", reason: "Restore the archived actor." },
+          { command: "vspec actor create", reason: "Choose a different name." }
+        ]
+      )
+    );
   }
 
   const existing = activeActorNamed(state, projectId, parsed.data.name);
@@ -80,6 +98,20 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
   });
 }
 
+function archiveActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const params = z
+    .object({ actorId: z.string().min(1), projectId: z.string().min(1) })
+    .parse(request.params);
+  const actor = (state.actorsByProjectId.get(params.projectId) ?? []).find(
+    (candidate) => candidate.id === params.actorId
+  );
+  if (actor !== undefined) {
+    actor.archived_at = new Date().toISOString();
+  }
+
+  return reply.send({ archived: actor !== undefined });
+}
+
 function activeActorNamed(
   state: SignupState,
   projectId: string,
@@ -87,6 +119,16 @@ function activeActorNamed(
 ): StoredActor | undefined {
   return (state.actorsByProjectId.get(projectId) ?? []).find(
     (actor) => actor.name === name && actor.archived_at === null
+  );
+}
+
+function archivedActorNamed(
+  state: SignupState,
+  projectId: string,
+  name: string
+): StoredActor | undefined {
+  return (state.actorsByProjectId.get(projectId) ?? []).find(
+    (actor) => actor.name === name && actor.archived_at !== null
   );
 }
 

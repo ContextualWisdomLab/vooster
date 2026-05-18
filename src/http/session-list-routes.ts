@@ -48,7 +48,7 @@ function sessionSnapshot(
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (!hasWorkspaceMembership(state, userId, parsed.data.workspace_id)) {
     reply.code(403).send(
-      problem(403, "Workspace access is required", {}, [
+      problem(403, "Workspace membership required", {}, [
         { command: "vspec workspace list", reason: "Choose a workspace you can access." }
       ])
     );

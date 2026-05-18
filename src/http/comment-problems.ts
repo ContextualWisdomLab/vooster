@@ -26,3 +26,12 @@ export function notOwnerProblem() {
     [{ command: "vspec comment list", reason: "Find a comment you authored." }]
   );
 }
+
+export function commentWriteFailedProblem() {
+  return problem(
+    500,
+    "Comment write failed",
+    { code: "comment_write_failed" },
+    [{ command: "vspec comment add --retry", reason: "Retry after storage is available." }]
+  );
+}

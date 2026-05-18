@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { emptyBodyProblem, missingUseCaseProblem, notOwnerProblem } from "./comment-problems.js";
+import {
+  commentWriteFailedProblem,
+  emptyBodyProblem,
+  missingUseCaseProblem,
+  notOwnerProblem
+} from "./comment-problems.js";
 import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -21,7 +26,10 @@ type StoredComment = {
 };
 
 const commentsByState = new WeakMap<SignupState, Map<string, StoredComment>>();
-const bodySchema = z.object({ body: z.string().min(1) });
+const bodySchema = z.object({
+  body: z.string().min(1),
+  simulate_write_failure: z.boolean().optional()
+});
 const patchSchema = z.object({
   body: z.string().min(1).optional(),
   resolved: z.literal(true).optional()
@@ -50,6 +58,9 @@ function addComment(request: FastifyRequest, reply: FastifyReply, state: SignupS
   const parsed = bodySchema.safeParse(request.body);
   if (!parsed.success || parsed.data.body.trim() === "") {
     return reply.code(422).send(emptyBodyProblem());
+  }
+  if (parsed.data.simulate_write_failure === true) {
+    return reply.code(500).send(commentWriteFailedProblem());
   }
   const now = new Date().toISOString();
   const comment: StoredComment = {

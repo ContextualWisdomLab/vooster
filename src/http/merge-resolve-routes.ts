@@ -2,13 +2,12 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
+import {
+  manualResolutionMissingValue,
+  uncoveredConflicts
+} from "./merge-resolve-validation.js";
 import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredRevision,
-  StoredSpecBranch,
-  StoredUseCase
-} from "./signup-types.js";
+import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
 
 const resolutionSchema = z.object({
   entity_id: z.string().min(1),
@@ -84,7 +83,22 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
       )
     );
   }
-
+  const uncovered = uncoveredConflicts(merge.conflicts, parsed.data.resolutions);
+  if (uncovered.length > 0) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Resolution list must cover every conflict",
+        { uncovered_conflicts: uncovered },
+        [
+          {
+            command: `vspec merge resolve ${merge.id} --all`,
+            reason: "Submit one resolution for each outstanding conflict."
+          }
+        ]
+      )
+    );
+  }
   const newRevisions = resolvedRevisions(state, merge.conflicts, parsed.data.resolutions);
   for (const revision of newRevisions) {
     appendRevision(state, revision);
@@ -98,7 +112,6 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
   merge.resolved_at = new Date().toISOString();
   source.status = "MERGED";
   source.merged_at = merge.resolved_at;
-
   return reply.send({
     main_head_revision_ids: target.head_revision_ids,
     merge_request: merge,
@@ -106,12 +119,6 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
     source_branch: source,
     suggested_next_actions: nextActions(state, newRevisions)
   });
-}
-
-function manualResolutionMissingValue(resolutions: Array<z.infer<typeof resolutionSchema>>) {
-  return resolutions.find(
-    (resolution) => resolution.strategy === "MANUAL" && resolution.value === undefined
-  );
 }
 
 function resolvedRevisions(

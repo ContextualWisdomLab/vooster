@@ -161,4 +161,22 @@ describe("UC-023 - See who is working on a use case", () => {
       reason: "Restore the archived use case before coordinating active work."
     });
   });
+
+  test("4a: empty who result suggests starting a session", async () => {
+    const { setup, usecase } = await projectUseCase(server, "Empty Who", "empty-who", "stub-empty-who");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/who`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as WhoResponse;
+    expect(body.sessions).toEqual([]);
+    expect(body.locks).toEqual([]);
+    expect(body.merge_requests).toEqual([]);
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec session start --intent "..." --pin ${usecase.key}`,
+      reason: "Start a session on this use case."
+    });
+  });
 });

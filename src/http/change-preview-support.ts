@@ -1,4 +1,4 @@
-import type { SignupState } from "./signup-types.js";
+import type { SignupState, StoredLock, StoredUseCase } from "./signup-types.js";
 import { problem } from "./signup-support.js";
 
 export type ChangePreview = {
@@ -26,4 +26,19 @@ export function previews(state: SignupState) {
 
 export function previewProblem(status: number, title: string, reason: string) {
   return problem(status, title, {}, [{ command: "vspec change propose", reason }]);
+}
+
+export function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
+  return problem(
+    409,
+    "Use case has a HARD lock",
+    { holding_session: lock.held_by_session_id ?? lock.holder },
+    [
+      { command: `vspec who ${usecase.key}`, reason: "Inspect the session holding the lock." },
+      {
+        command: `vspec unlock ${usecase.key}`,
+        reason: "Owners can release the lock when appropriate."
+      }
+    ]
+  );
 }

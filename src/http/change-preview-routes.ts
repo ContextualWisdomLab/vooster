@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
-import { previewProblem, previews, type ChangePreview } from "./change-preview-support.js";
+import { hardLockProblem, previewProblem, previews, type ChangePreview } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 
@@ -58,6 +58,10 @@ export function previewSpecChange(
   const patch = parsed.data.patch;
   if (patch.entity_id !== usecase.id) {
     return reply.code(400).send(problem(400, "Patch targets a different use case"));
+  }
+  const hardLock = blockingHardLock(state, usecase);
+  if (hardLock !== undefined) {
+    return reply.code(409).send(hardLockProblem(usecase, hardLock));
   }
   if (parsed.data.base_revision !== usecase.current_revision_id) {
     return reply.code(409).send(staleBaseProblem(state, usecase));
@@ -186,4 +190,9 @@ function affectedActiveSessions(state: SignupState, usecase: StoredUseCase) {
       owner: session.user_id,
       pinned_usecase_keys: [usecase.key]
     }));
+}
+
+function blockingHardLock(state: SignupState, usecase: StoredUseCase) {
+  const lock = state.stepLocksByUseCaseId.get(usecase.id);
+  return lock?.mode === "HARD" && Date.parse(lock.expires_at) > Date.now() ? lock : undefined;
 }

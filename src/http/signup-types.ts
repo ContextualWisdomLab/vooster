@@ -84,7 +84,7 @@ export type StoredActor = {
   description: string;
   is_human: boolean;
   aliases: string[];
-  archived_at: null;
+  archived_at: null | string;
 };
 
 export type StoredRevision = {

@@ -31,6 +31,24 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     return reply.code(400).send(problem(400, "Invalid actor request"));
   }
 
+  const existing = activeActorNamed(state, projectId, parsed.data.name);
+  if (existing !== undefined) {
+    return reply.code(422).send(
+      problem(
+        422,
+        "Actor name already exists",
+        { existing_actor_id: existing.id },
+        [
+          { command: "vspec actor edit", reason: "Amend the existing actor." },
+          {
+            command: `vspec actor edit --add-alias ${parsed.data.name}`,
+            reason: "Attach the submitted name as an alias."
+          }
+        ]
+      )
+    );
+  }
+
   const actor: StoredActor = {
     id: randomUUID(),
     project_id: projectId,
@@ -60,6 +78,16 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     revision,
     recommended_next_command: "vspec stakeholder create"
   });
+}
+
+function activeActorNamed(
+  state: SignupState,
+  projectId: string,
+  name: string
+): StoredActor | undefined {
+  return (state.actorsByProjectId.get(projectId) ?? []).find(
+    (actor) => actor.name === name && actor.archived_at === null
+  );
 }
 
 function membershipForProject(

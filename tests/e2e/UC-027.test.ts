@@ -17,6 +17,7 @@ type ImpactResponse = {
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 type ImpactProblem = {
+  parser_error?: string;
   path?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
@@ -104,6 +105,32 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec impact ${usecase.key}`,
       reason: "Rerun without a proposed-change file to analyze the current head."
+    });
+  });
+
+  test("3b: malformed proposed-change content returns doctor guidance", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Impact Parse", "impact-parse", "stub-impact-parse");
+
+    const response = await server.fetch("/v1/changes/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        base_revision: usecase.current_revision_id,
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        proposed_change_content: "# Missing frontmatter",
+        proposed_change_path: "bad/usecase.md"
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const problem = (await response.json()) as ImpactProblem;
+    expect(problem.title).toMatch(/proposed change parse failed/i);
+    expect(problem.parser_error).toBe("Missing frontmatter");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec doctor bad/usecase.md",
+      reason: "Validate the proposed-change file format."
     });
   });
 });

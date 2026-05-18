@@ -184,3 +184,11 @@ write. This guides your TDD cycles within an iteration._
 - **4a**: no sessions, locks, or open MRs touch the use case -> returns empty lists and session-start guidance for that key.
 - **3a**: an active session in the bundle has stale heartbeat -> marks that session `ZOMBIE` and suggests `vspec session abandon <id>`.
 - ***a**: caller lacks workspace membership -> 403 without revealing whether the use case exists.
+
+### UC-024
+
+- **MAIN**: authenticated member lists use case revision history -> returns newest-first revision rows with revision id, entity type/id, author, timestamp, change summary, and history follow-up actions.
+- **2a**: use case id/key is not found in the current project -> 404 with searched project key and `vspec usecase list` guidance.
+- **2b**: caller lacks workspace access -> 403 with login/member-role guidance and no history disclosure.
+- **5a**: history count exceeds `limit` -> returns only the requested rows, `truncated: true`, suppressed row count, and larger-limit/cursor guidance.
+- ***a**: simulated server error while reading history -> returns exit code 5 and retry guidance without mutating revisions.

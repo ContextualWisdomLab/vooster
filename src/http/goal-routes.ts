@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  activeActorWithId,
   allowedStatusTransitions,
   canTransition,
   goalCreateResponse,
@@ -9,13 +10,13 @@ import {
   goalRevision,
   goalWithProjectId,
   nearDuplicateGoal,
-  projectIdFrom
+  projectIdFrom,
+  projectWorkspaceArchived
 } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
-  StoredActor,
   StoredGoal,
   StoredMembership
 } from "./signup-types.js";
@@ -55,6 +56,9 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
         description_rule: "Use a non-empty verb phrase."
       })
     );
+  }
+  if (projectWorkspaceArchived(state, projectId)) {
+    return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
   const actor = activeActorWithId(state, projectId, parsed.data.actor_id);
@@ -105,6 +109,9 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  if (projectWorkspaceArchived(state, found.projectId)) {
+    return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
   const parsed = goalPatchSchema.safeParse(request.body);
@@ -170,16 +177,6 @@ function listGoals(request: FastifyRequest, reply: FastifyReply, state: SignupSt
       goals: goals.filter((goal) => goal.actor_id === actor.id)
     }))
   });
-}
-
-function activeActorWithId(
-  state: SignupState,
-  projectId: string,
-  actorId: string
-): StoredActor | undefined {
-  return (state.actorsByProjectId.get(projectId) ?? []).find(
-    (actor) => actor.id === actorId && actor.archived_at === null
-  );
 }
 
 function membershipForProject(

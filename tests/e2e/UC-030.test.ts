@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   addStep,
   createExtensionScenario,
+  createScenarioReadyUseCase,
   createUseCaseWithMainStep,
   type ScenarioResponse
 } from "../helpers/scenario-fixtures.js";
@@ -47,5 +48,32 @@ Scenario: 1a Payment is declined.
   When Customer Uses a backup card.
   Then outcome is FAILURE
 `);
+  });
+
+  test("3a: incomplete main success scenario returns doctor guidance", async () => {
+    const { setup, usecase } =
+      await createScenarioReadyUseCase(server, "Gherkin Empty", "gherkin-empty", "stub-gherkin-empty");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
+      method: "POST",
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as {
+      missing_required_field: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/cannot export incomplete use case/i);
+    expect(problem.missing_required_field).toBe("main_success.steps");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec doctor ${usecase.key}`,
+      reason: "Inspect missing Gherkin export prerequisites."
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec scenario add ${usecase.key} --type main-success`,
+      reason: "Create the required main success scenario before export."
+    });
   });
 });

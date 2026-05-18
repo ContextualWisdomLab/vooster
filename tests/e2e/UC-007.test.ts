@@ -22,6 +22,11 @@ type GoalResponse = {
 type GoalListResponse = {
   actors: Array<{ actor: Actor; goals: Goal[] }>;
 };
+type ProblemResponse = {
+  actor_id?: string;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+  title: string;
+};
 type ProjectResponse = { project: { id: string } };
 
 let server: TestServer;
@@ -77,6 +82,30 @@ describe("UC-007 - Manage the actor-goal list", () => {
         goals: [body.goal]
       }
     ]);
+  });
+
+  test("3a: missing actor returns actor selection guidance", async () => {
+    const setup = await createProject("Missing Goal Actor", "missing-goal-actor", "stub-goal-missing-actor");
+
+    const response = await createGoal(setup, {
+      actor_id: "missing-actor-id",
+      description: "Reviews checkout exceptions",
+      level: "USER_GOAL",
+      priority: "P2"
+    });
+
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/actor.*not available/i);
+    expect(body.actor_id).toBe("missing-actor-id");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor list",
+      reason: "Find a valid actor for this project."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec actor create",
+      reason: "Create the actor before assigning goals."
+    });
   });
 });
 

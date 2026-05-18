@@ -124,7 +124,6 @@ describe("UC-007 - Manage the actor-goal list", () => {
       priority: "P1"
     });
     const goal = ((await created.json()) as GoalResponse).goal;
-
     const response = await patchGoal(server, setup, goal.id, { status: "PROMOTED" });
 
     expect(response.status).toBe(422);
@@ -171,5 +170,31 @@ describe("UC-007 - Manage the actor-goal list", () => {
     });
     const listBody = (await (await listGoals(server, setup, actor.id)).json()) as GoalListResponse;
     expect(listBody.actors[0]?.goals[0]?.status).toBe("PROMOTED");
+  });
+
+  test("6b: near-duplicate goal is created with comparison warning", async () => {
+    const setup = await createProject(server, "Duplicate Goal", "duplicate-goal", "stub-goal-duplicate");
+    const actor = await createActor(server, setup, "Shopper");
+    const first = await createGoal(server, setup, {
+      actor_id: actor.id,
+      description: "Places an order",
+      level: "USER_GOAL",
+      priority: "P1"
+    });
+    const firstGoal = ((await first.json()) as GoalResponse).goal;
+    const duplicate = await createGoal(server, setup, {
+      actor_id: actor.id,
+      description: "Place an order",
+      level: "USER_GOAL",
+      priority: "P1"
+    });
+    expect(duplicate.status).toBe(201);
+    const body = (await duplicate.json()) as GoalResponse;
+    expect(body.goal.id).not.toBe(firstGoal.id);
+    expect(body.warnings).toContainEqual({
+      type: "NEAR_DUPLICATE_GOAL",
+      candidate_goal_id: firstGoal.id,
+      command: `vspec goal show ${firstGoal.id}`
+    });
   });
 });

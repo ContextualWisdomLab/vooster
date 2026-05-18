@@ -16,6 +16,7 @@ export type GoalResponse = {
   goal: Goal;
   recommended_next_command?: string;
   revision: { entity_id: string; entity_type: string; version_number: number };
+  warnings?: Array<{ candidate_goal_id: string; command: string; type: string }>;
 };
 export type GoalListResponse = {
   actors: Array<{ actor: Actor; goals: Goal[] }>;

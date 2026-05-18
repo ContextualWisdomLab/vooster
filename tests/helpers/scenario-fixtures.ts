@@ -46,9 +46,11 @@ export type StepResponse = {
 export type ProblemResponse = {
   existing_scenario_id?: string;
   known_actors?: string[];
+  example_extension_points?: string[];
   suggested_action?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
+  valid_extension_point_forms?: string[];
 };
 
 export async function createMainScenario(

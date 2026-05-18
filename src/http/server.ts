@@ -9,6 +9,7 @@ import { registerLockRoutes } from "./lock-routes.js";
 import { registerMergeRoutes } from "./merge-routes.js";
 import { registerMergeResolveRoutes } from "./merge-resolve-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
+import { registerRevisionHistoryRoutes } from "./revision-history-routes.js";
 import { registerScenarioRoutes } from "./scenario-routes.js";
 import { registerSessionCompleteRoutes } from "./session-complete-routes.js";
 import { registerSessionListRoutes } from "./session-list-routes.js";
@@ -40,6 +41,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerStakeholderInterestRoutes(app, state);
   registerUseCaseRoutes(app, state);
   registerUseCaseTestRoutes(app, state);
+  registerRevisionHistoryRoutes(app, state);
   registerWhoRoutes(app, state);
   registerScenarioRoutes(app, state);
   registerSessionCompleteRoutes(app, state);

@@ -80,7 +80,22 @@ export function createExtensionScenario(
     `Created extension scenario ${scenario.id}`
   );
 
-  return reply.code(201).send({ scenario, revision, steps: [] });
+  return reply.code(201).send({
+    scenario,
+    revision,
+    steps: [],
+    ...(data.outcome === undefined
+      ? {
+          warnings: [
+            {
+              type: "DEFAULT_EXTENSION_OUTCOME",
+              message:
+                "Outcome defaulted to FAILURE; confirm it or edit the scenario outcome."
+            }
+          ]
+        }
+      : {})
+  });
 }
 
 function validExtensionPoint(extensionPoint: string): boolean {

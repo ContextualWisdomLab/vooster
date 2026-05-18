@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T19:01:13Z_
+_Last updated: 2026-05-18T19:19:22Z_
 
 ## Overall
 
-- Commits: 232
-- Last commit: 7992bd9 refactor: UC-019 share membership access checks
-- Use cases complete: 16 / 35
+- Commits: 248
+- Last commit: ade3707 green: UC-020 keep merge open on write failure
+- Use cases complete: 17 / 35
 
 ## By Use Case
 
@@ -31,7 +31,7 @@ _Last updated: 2026-05-18T19:01:13Z_
 | UC-017 | Monitor active sessions | ✓ DONE | 5/5 |
 | UC-018 | Complete a work session | ✓ DONE | 6/6 |
 | UC-019 | Create a branch | ✓ DONE | 6/6 |
-| UC-020 | Merge a branch | ○ NOT STARTED | 0/0 |
+| UC-020 | Merge a branch | ✓ DONE | 6/6 |
 | UC-021 | Resolve a merge conflict | ○ NOT STARTED | 0/0 |
 | UC-022 | Lock a use case | ○ NOT STARTED | 0/0 |
 | UC-023 | See who is working on a use case | ○ NOT STARTED | 0/0 |

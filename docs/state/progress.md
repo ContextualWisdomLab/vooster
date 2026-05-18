@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T17:44:10Z_
+_Last updated: 2026-05-18T18:06:53Z_
 
 ## Overall
 
-- Commits: 169
-- Last commit: a3386f8 green: UC-013 honor hard lock
-- Use cases complete: 12 / 35
+- Commits: 188
+- Last commit: 946961c green: UC-016 rollback failed session write
+- Use cases complete: 13 / 35
 
 ## By Use Case
 
@@ -27,7 +27,7 @@ _Last updated: 2026-05-18T17:44:10Z_
 | UC-013 | Edit a use case step | ✓ DONE | 6/6 |
 | UC-014 | Search and filter use cases | ○ NOT STARTED | 0/0 |
 | UC-015 | Archive or restore a use case | ○ NOT STARTED | 0/0 |
-| UC-016 | Start a work session | ○ NOT STARTED | 0/0 |
+| UC-016 | Start a work session | ✓ DONE | 7/7 |
 | UC-017 | Monitor active sessions | ○ NOT STARTED | 0/0 |
 | UC-018 | Complete a work session | ○ NOT STARTED | 0/0 |
 | UC-019 | Create a branch | ○ NOT STARTED | 0/0 |

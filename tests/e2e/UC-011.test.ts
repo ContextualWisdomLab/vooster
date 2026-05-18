@@ -119,4 +119,54 @@ describe("UC-011 - Write the main success scenario", () => {
       }
     ]);
   });
+
+  test("3b: empty and passive step actions require correction or force", async () => {
+    const setup = await createProject(server, "Step Action", "step-action", "stub-step-action");
+    await createActor(server, setup, "Customer");
+    const usecase = await createUseCase(server, setup, "Customer", "Places an order");
+    await createStakeholder(server, setup, "Product Manager");
+    await addInterest(server, usecase.id, setup.cookie, {
+      interest: "Checkout revenue is protected.",
+      stakeholder: "Product Manager"
+    });
+    const scenario = (await (await createMainScenario(
+      server,
+      usecase.id,
+      setup.cookie
+    )).json()) as ScenarioResponse;
+
+    const empty = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "",
+      actor: "Customer"
+    });
+    expect(empty.status).toBe(400);
+    expect(((await empty.json()) as ProblemResponse).title).toMatch(/step action is required/i);
+
+    const passive = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "Order is submitted.",
+      actor: "Customer"
+    });
+    expect(passive.status).toBe(422);
+    const passiveProblem = (await passive.json()) as ProblemResponse;
+    expect(passiveProblem.title).toMatch(/passive voice/i);
+    expect(passiveProblem.suggested_action).toBe("Submits the order.");
+    expect(passiveProblem.suggested_next_actions).toContainEqual({
+      command: "vspec step add --force",
+      reason: "Persist this wording after reviewing the passive voice warning."
+    });
+
+    const forced = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "Order is submitted.",
+      actor: "Customer",
+      force: true
+    });
+    expect(forced.status).toBe(201);
+    const forcedBody = (await forced.json()) as StepResponse;
+    expect(forcedBody.step).toMatchObject({
+      action: "Order is submitted.",
+      step_number: 1
+    });
+    expect(forcedBody.revision.version_number).toBe(4);
+    expect(forcedBody.scenario_steps).toHaveLength(1);
+  });
 });

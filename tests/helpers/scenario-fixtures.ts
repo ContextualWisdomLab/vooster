@@ -33,6 +33,7 @@ export type StepResponse = {
 };
 export type ProblemResponse = {
   existing_scenario_id?: string;
+  suggested_action?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };

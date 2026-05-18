@@ -45,15 +45,24 @@ function startSession(
   }
 
   const pinned = resolvePins(state, parsed.data.project_id, parsed.data.pins);
-  if (pinned === undefined) {
+  if (pinned.status === "ARCHIVED") {
+    return reply.code(422).send(archivedPinProblem(pinned.key));
+  }
+  if (pinned.status !== "OK") {
     return reply.code(422).send(problem(422, "Pinned use case not found"));
   }
-  const session = workSession(
-    parsed.data,
-    pinned,
-    userId ?? "",
-    agentIdentifier(request, parsed.data.agent_type)
-  );
+  return createPinnedSession(request, reply, state, parsed.data, pinned, userId ?? "");
+}
+
+function createPinnedSession(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  data: z.infer<typeof sessionStartSchema>,
+  pinned: PinnedUseCases,
+  userId: string
+) {
+  const session = workSession(data, pinned, userId, agentIdentifier(request, data.agent_type));
   state.workSessionsById.set(session.id, session);
   for (const usecase of pinned.usecases) {
     const sessions = state.workSessionsByUseCaseId.get(usecase.id) ?? [];
@@ -64,33 +73,38 @@ function startSession(
 }
 
 type PinnedUseCases = {
+  status: "OK";
   keys: string[];
   revisions: Record<string, string>;
   usecases: StoredUseCase[];
 };
+type PinResolution = PinnedUseCases | { key: string; status: "ARCHIVED" | "MISSING" };
 
 function resolvePins(
   state: SignupState,
   projectId: string,
   keys: string[]
-): PinnedUseCases | undefined {
+): PinResolution {
   const usecases = state.usecasesByProjectId.get(projectId) ?? [];
-  const resolved = keys.map((key) =>
-    usecases.find((usecase) => usecase.key === key && usecase.archived_at === null)
-  );
-  if (resolved.some((usecase) => usecase === undefined)) {
-    return undefined;
+  const resolved: StoredUseCase[] = [];
+  for (const key of keys) {
+    const usecase = usecases.find((candidate) => candidate.key === key);
+    if (usecase === undefined) {
+      return { key, status: "MISSING" };
+    }
+    if (usecase.archived_at !== null) {
+      return { key, status: "ARCHIVED" };
+    }
+    resolved.push(usecase);
   }
-  const pinnedUseCases = resolved.filter(
-    (usecase): usecase is StoredUseCase => usecase !== undefined
-  );
 
   return {
+    status: "OK",
     keys,
     revisions: Object.fromEntries(
-      pinnedUseCases.map((usecase) => [usecase.id, latestRevisionId(state, usecase)])
+      resolved.map((usecase) => [usecase.id, latestRevisionId(state, usecase)])
     ),
-    usecases: pinnedUseCases
+    usecases: resolved
   };
 }
 
@@ -135,6 +149,20 @@ function sessionStartResponse(session: StoredWorkSession, keys: string[]) {
   };
 }
 
+function archivedPinProblem(key: string) {
+  return problem(
+    422,
+    "Pinned use case is archived",
+    { offending_key: key, session_count: 0 },
+    [
+      {
+        command: `vspec usecase restore ${key}`,
+        reason: "Restore the archived use case before pinning it."
+      }
+    ]
+  );
+}
+
 function membershipForProject(
   state: SignupState,
   userId: string | undefined,
@@ -150,10 +178,7 @@ function membershipForProject(
   );
 }
 
-function latestRevisionId(state: SignupState, usecase: StoredUseCase | undefined): string {
-  if (usecase === undefined) {
-    return "";
-  }
+function latestRevisionId(state: SignupState, usecase: StoredUseCase): string {
   const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
   return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
 }

@@ -10,6 +10,7 @@ import { registerSignupRoutes } from "./signup-routes.js";
 import { registerStakeholderRoutes } from "./stakeholder-routes.js";
 import { registerStakeholderInterestRoutes } from "./stakeholder-interest-routes.js";
 import { registerStepRoutes } from "./step-routes.js";
+import { registerUseCaseTestRoutes } from "./usecase-test-routes.js";
 import { registerUseCaseRoutes } from "./usecase-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
 
@@ -25,6 +26,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerStakeholderRoutes(app, state);
   registerStakeholderInterestRoutes(app, state);
   registerUseCaseRoutes(app, state);
+  registerUseCaseTestRoutes(app, state);
   registerScenarioRoutes(app, state);
   registerSessionRoutes(app, state);
   registerStepRoutes(app, state);

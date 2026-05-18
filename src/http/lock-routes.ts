@@ -13,9 +13,13 @@ const lockSchema = z.object({
   target_type: z.literal("USECASE"),
   ttl_minutes: z.number().positive().default(30)
 });
+const renewSchema = z.object({
+  ttl_minutes: z.number().positive().default(30)
+});
 
 export function registerLockRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/locks", (request, reply) => createLock(request, reply, state));
+  app.post("/v1/locks/:lockId/renew", (request, reply) => renewLock(request, reply, state));
 }
 
 function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
@@ -52,6 +56,52 @@ function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupS
       }
     ]
   });
+}
+
+function renewLock(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
+  const parsed = renewSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid lock renewal request"));
+  }
+  const lock = lockById(state, params.lockId);
+  if (lock === undefined) {
+    return reply.code(404).send(problem(404, "Lock not found"));
+  }
+  const usecase = useCaseById(state, lock.usecase_id);
+  if (usecase === undefined) {
+    return reply.code(404).send(problem(404, "Use case not found"));
+  }
+  if (membershipForProject(request, state, usecase.project_id) === undefined) {
+    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+  }
+  if (Date.parse(lock.expires_at) <= Date.now()) {
+    return reply.code(409).send(expiredLockProblem(lock, usecase));
+  }
+
+  lock.expires_at = new Date(Date.now() + parsed.data.ttl_minutes * 60_000).toISOString();
+  return reply.send({ lock });
+}
+
+function lockById(state: SignupState, lockId: string): StoredLock | undefined {
+  return [...state.stepLocksByUseCaseId.values()].find((lock) => lock.id === lockId);
+}
+
+function expiredLockProblem(lock: StoredLock, usecase: StoredUseCase) {
+  return problem(
+    409,
+    "Expired lock cannot be renewed",
+    {
+      expires_at: lock.expires_at,
+      lock_id: lock.id
+    },
+    [
+      {
+        command: `vspec lock ${usecase.key} --type ${lock.mode.toLowerCase()}`,
+        reason: "Reacquire the lock from scratch."
+      }
+    ]
+  );
 }
 
 function blockingLock(

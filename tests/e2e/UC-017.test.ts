@@ -125,4 +125,25 @@ describe("UC-017 - Monitor active sessions", () => {
       reason: "Start a session when work begins."
     });
   });
+
+  test("*a: watch streams the session snapshot as server-sent events", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Watch Sessions", "watch-sessions", "stub-watch-sessions");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      intent: "Watch active work",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+
+    const response = await server.fetch(`/v1/sessions/watch?workspace_id=${setup.workspaceId}`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    const body = await response.text();
+    expect(body).toContain("event: snapshot");
+    expect(body).toContain(`"id":"${session.id}"`);
+  });
 });

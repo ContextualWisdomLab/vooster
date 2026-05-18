@@ -7,6 +7,8 @@ import { useCaseWithProjectId } from "./usecase-support.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
+  existing_file_content: z.string().optional(),
+  force: z.boolean().default(false),
   output_path: z.string().optional()
 });
 
@@ -37,7 +39,16 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  return reply.type("text/plain").send(renderFeature(state, found.projectId, found.usecase));
+  const feature = renderFeature(state, found.projectId, found.usecase);
+  if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
+    return reply.code(409).send(existingOutputProblem(
+      found.usecase,
+      parsed.data.output_path,
+      parsed.data.existing_file_content,
+      feature
+    ));
+  }
+  return reply.type("text/plain").send(feature);
 }
 
 function outputPathProblem(outputPath: string | undefined) {
@@ -60,6 +71,39 @@ function outputPathProblem(outputPath: string | undefined) {
       }
     ]
   );
+}
+
+function existingOutputProblem(
+  usecase: StoredUseCase,
+  outputPath: string | undefined,
+  existingContent: string,
+  proposedContent: string
+) {
+  return problem(
+    409,
+    "Output file already exists",
+    {
+      diff_summary: {
+        existing_lines: lineCount(existingContent),
+        path: outputPath ?? `${usecase.key}.feature`,
+        proposed_lines: lineCount(proposedContent)
+      }
+    },
+    [
+      {
+        command: `vspec export gherkin ${usecase.key} --force`,
+        reason: "Overwrite the existing feature file intentionally."
+      },
+      {
+        command: `vspec export gherkin ${usecase.key} --output <path>`,
+        reason: "Choose a different output path."
+      }
+    ]
+  );
+}
+
+function lineCount(content: string) {
+  return content.trimEnd().split("\n").length;
 }
 
 function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {

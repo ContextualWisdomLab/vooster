@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T15:39:41Z_
+_Last updated: 2026-05-18T15:51:48Z_
 
 ## Overall
 
-- Commits: 61
-- Last commit: 80ef31d refactor: UC-005 split actor test hooks
-- Use cases complete: 4 / 35
+- Commits: 72
+- Last commit: 2441981 green: UC-006 reject archived stakeholder project
+- Use cases complete: 5 / 35
 
 ## By Use Case
 
@@ -17,7 +17,7 @@ _Last updated: 2026-05-18T15:39:41Z_
 | UC-003 | Invite a member | ○ NOT STARTED | 0/0 |
 | UC-004 | Create a project | ✓ DONE | 6/6 |
 | UC-005 | Define an actor | ✓ DONE | 6/6 |
-| UC-006 | Define a stakeholder | ○ NOT STARTED | 0/0 |
+| UC-006 | Define a stakeholder | ✓ DONE | 5/5 |
 | UC-007 | Manage the actor-goal list | ○ NOT STARTED | 0/0 |
 | UC-008 | Promote a goal to a use case | ○ NOT STARTED | 0/0 |
 | UC-009 | Author a use case from scratch | ○ NOT STARTED | 0/0 |

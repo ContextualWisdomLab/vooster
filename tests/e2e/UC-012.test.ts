@@ -108,4 +108,40 @@ describe("UC-012 - Add an extension flow", () => {
     const body = (await valid.json()) as ScenarioResponse;
     expect(body.revision.version_number).toBe(5);
   });
+
+  test("3b: missing parent step reports out-of-range step", async () => {
+    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+      server,
+      "Missing Parent Step",
+      "missing-parent-step",
+      "stub-missing-parent-step"
+    );
+    await addStep(server, mainScenario.scenario.id, setup.cookie, {
+      action: "Places an order.",
+      actor: "Customer"
+    });
+
+    const missing = await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Inventory is unavailable.",
+      extension_point: "3a",
+      outcome: "FAILURE"
+    });
+
+    expect(missing.status).toBe(422);
+    const problem = (await missing.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/parent step.*out of range/i);
+    expect(problem.parent_step_number).toBe(3);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase show ${usecase.key}`,
+      reason: "Inspect the current main scenario step numbering."
+    });
+
+    const valid = await createExtensionScenario(server, usecase.id, setup.cookie, {
+      condition: "Payment is declined.",
+      extension_point: "1a",
+      outcome: "FAILURE"
+    });
+    const body = (await valid.json()) as ScenarioResponse;
+    expect(body.revision.version_number).toBe(5);
+  });
 });

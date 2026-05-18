@@ -3,6 +3,7 @@ import { startServer, type TestServer } from "../helpers/server.js";
 import {
   createActor,
   createGoal,
+  createGoalForActor,
   createProject,
   listGoals,
   patchGoal,
@@ -117,13 +118,7 @@ describe("UC-007 - Manage the actor-goal list", () => {
       "stub-goal-illegal-status"
     );
     const actor = await createActor(server, setup, "Buyer");
-    const created = await createGoal(server, setup, {
-      actor_id: actor.id,
-      description: "Tracks an order",
-      level: "USER_GOAL",
-      priority: "P1"
-    });
-    const goal = ((await created.json()) as GoalResponse).goal;
+    const goal = await createGoalForActor(server, setup, actor, "Tracks an order");
     const response = await patchGoal(server, setup, goal.id, { status: "PROMOTED" });
 
     expect(response.status).toBe(422);
@@ -143,13 +138,7 @@ describe("UC-007 - Manage the actor-goal list", () => {
   test("6a: rejecting a promoted goal requires archiving the use case first", async () => {
     const setup = await createProject(server, "Promoted Goal", "promoted-goal", "stub-goal-promoted");
     const actor = await createActor(server, setup, "Subscriber");
-    const created = await createGoal(server, setup, {
-      actor_id: actor.id,
-      description: "Renews a subscription",
-      level: "USER_GOAL",
-      priority: "P0"
-    });
-    const goal = ((await created.json()) as GoalResponse).goal;
+    const goal = await createGoalForActor(server, setup, actor, "Renews a subscription", "P0");
     const inDesign = await patchGoal(server, setup, goal.id, { status: "IN_DESIGN" });
     expect(inDesign.status).toBe(200);
     const inDesignBody = (await inDesign.json()) as GoalResponse;
@@ -175,13 +164,7 @@ describe("UC-007 - Manage the actor-goal list", () => {
   test("6b: near-duplicate goal is created with comparison warning", async () => {
     const setup = await createProject(server, "Duplicate Goal", "duplicate-goal", "stub-goal-duplicate");
     const actor = await createActor(server, setup, "Shopper");
-    const first = await createGoal(server, setup, {
-      actor_id: actor.id,
-      description: "Places an order",
-      level: "USER_GOAL",
-      priority: "P1"
-    });
-    const firstGoal = ((await first.json()) as GoalResponse).goal;
+    const firstGoal = await createGoalForActor(server, setup, actor, "Places an order");
     const duplicate = await createGoal(server, setup, {
       actor_id: actor.id,
       description: "Place an order",

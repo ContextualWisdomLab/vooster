@@ -86,6 +86,22 @@ export async function createGoal(
   });
 }
 
+export async function createGoalForActor(
+  server: TestServer,
+  setup: ProjectSetup,
+  actor: Actor,
+  description: string,
+  priority = "P1"
+): Promise<Goal> {
+  const response = await createGoal(server, setup, {
+    actor_id: actor.id,
+    description,
+    level: "USER_GOAL",
+    priority
+  });
+  return ((await response.json()) as GoalResponse).goal;
+}
+
 export async function patchGoal(
   server: TestServer,
   setup: { cookie: string },

@@ -109,6 +109,23 @@ describe("UC-003 - Invite a member", () => {
       reason: "Change the existing member role instead of inviting again."
     });
   });
+
+  test("3b: duplicate pending invite returns existing token with resend guidance", async () => {
+    const owner = await signup(server, "Invite Duplicate", "invite-duplicate", "stub-duplicate-owner");
+    const email = "stub-duplicate-invitee@users.noreply.github.com";
+    const first = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+    const firstBody = (await first.json()) as InvitationResponse;
+
+    const second = await inviteMember(owner.workspaceId, owner.cookie, email, "EDITOR");
+
+    expect(second.status).toBe(200);
+    const secondBody = (await second.json()) as InvitationResponse;
+    expect(secondBody.invitation.token).toBe(firstBody.invitation.token);
+    expect(secondBody.suggested_next_actions).toContainEqual({
+      command: "vspec member invite --resend",
+      reason: "Resend the existing invitation email."
+    });
+  });
 });
 
 function inviteMember(

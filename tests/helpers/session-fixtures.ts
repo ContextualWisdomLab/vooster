@@ -73,6 +73,7 @@ export function completeWorkSession(
   cookie: string,
   body: {
     no_merge?: boolean;
+    simulate_conflicts?: boolean;
     simulate_completion_failure?: boolean;
     summary?: string;
   }

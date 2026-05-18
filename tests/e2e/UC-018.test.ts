@@ -173,4 +173,26 @@ describe("UC-018 - Complete a work session", () => {
     expect(body.session.status).toBe("COMPLETED");
     expect(body.released_lock_ids).toEqual([usecase.id]);
   });
+
+  test("6a: conflicted branch opens merge request with resolve guidance", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(server, "Conflict Complete", "conflict-complete", "stub-conflict-complete");
+    const started = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/conflict-complete",
+      intent: "Complete with conflicts",
+      pins: [usecase.key]
+    });
+    const session = ((await started.json()) as SessionStartResponse).session;
+    const response = await completeWorkSession(server, session.id, setup.cookie, {
+      simulate_conflicts: true,
+      summary: "Conflicts discovered."
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SessionCompleteResponse;
+    expect(body.merge_request?.status).toBe("OPEN");
+    expect(body.merge_request?.conflicts).toEqual([{ entity_id: usecase.id, type: "SEMANTIC" }]);
+    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge resolve ${body.merge_request?.id}`, reason: "Resolve conflicts before the merge request can be approved." });
+  });
 });

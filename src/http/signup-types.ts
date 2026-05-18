@@ -9,7 +9,6 @@ export type PendingSignup = {
 export type PendingOAuth =
   | { flow: "login" }
   | { flow: "signup"; workspace: PendingSignup };
-
 export type SignupState = {
   actorsByProjectId: Map<string, StoredActor[]>;
   branchesById: Map<string, StoredSpecBranch>;
@@ -34,7 +33,6 @@ export type SignupState = {
   workspacesById: Map<string, StoredWorkspace>;
   workspaceSlugs: Set<string>;
 };
-
 export type GithubProfile = {
   githubId: string;
   email: string;
@@ -77,14 +75,16 @@ export type StoredProject = {
 };
 
 export type StoredSpecBranch = {
+  base_revision_ids?: Record<string, string>;
   id: string;
   project_id: string;
   name: string;
   owner_type: "AGENT" | "HUMAN";
   owner_id: string;
   base_branch_id: null | string;
+  head_revision_ids?: Record<string, string>;
+  status?: "ABANDONED" | "ACTIVE" | "MERGED";
 };
-
 export type StoredActor = {
   id: string;
   project_id: string;

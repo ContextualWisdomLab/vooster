@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
+import { registerBranchRoutes } from "./branch-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
@@ -21,6 +22,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const state = initialState(options);
   registerSignupRoutes(app, options, state);
   registerProjectRoutes(app, state);
+  registerBranchRoutes(app, state);
   registerActorRoutes(app, state);
   registerActorTestRoutes(app, state);
   registerGoalRoutes(app, state);

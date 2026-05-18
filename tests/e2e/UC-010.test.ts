@@ -1,55 +1,17 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import {
+  addInterest,
+  type InterestResponse,
+  type ProblemResponse,
+  type RemoveInterestResponse
+} from "../helpers/interest-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
   createActor,
   createProject,
   createStakeholder,
-  createUseCase,
-  type Stakeholder
+  createUseCase
 } from "../helpers/uc-fixtures.js";
-
-type StakeholderInterest = {
-  id: string;
-  interest: string;
-  protection_mechanism: string;
-  stakeholder_id: string;
-  usecase_id: string;
-};
-type InterestResponse = {
-  next_missing_role_hint: string;
-  revision: {
-    change_summary: string;
-    entity_id: string;
-    entity_type: string;
-    severity: string;
-    version_number: number;
-  };
-  stakeholder_interest: StakeholderInterest;
-  stakeholder_interests: Array<{
-    interest: StakeholderInterest;
-    stakeholder: Stakeholder;
-  }>;
-};
-type RemoveInterestResponse = {
-  removed_stakeholder_interest_id: string;
-  revision: {
-    change_summary: string;
-    entity_id: string;
-    entity_type: string;
-    severity: string;
-    version_number: number;
-  };
-  stakeholder_interests: Array<{
-    interest: StakeholderInterest;
-    stakeholder: Stakeholder;
-  }>;
-  warnings?: Array<{ message: string; type: string }>;
-};
-type ProblemResponse = {
-  existing_interest?: string;
-  suggested_next_actions: Array<{ command: string; reason: string }>;
-  title: string;
-};
 
 let server: TestServer;
 
@@ -104,13 +66,13 @@ describe("UC-010 - Define stakeholder interests", () => {
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
-    const first = await addInterest(usecase.id, setup.cookie, {
+    const first = await addInterest(server, usecase.id, setup.cookie, {
       interest: "Checkout revenue is protected.",
       stakeholder: "Product Manager"
     });
     expect(first.status).toBe(201);
 
-    const duplicate = await addInterest(usecase.id, setup.cookie, {
+    const duplicate = await addInterest(server, usecase.id, setup.cookie, {
       interest: "Checkout revenue remains protected.",
       stakeholder: "Product Manager"
     });
@@ -130,7 +92,7 @@ describe("UC-010 - Define stakeholder interests", () => {
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
-    const added = await addInterest(usecase.id, setup.cookie, {
+    const added = await addInterest(server, usecase.id, setup.cookie, {
       interest: "Checkout revenue is protected.",
       stakeholder: "Product Manager"
     });
@@ -159,7 +121,7 @@ describe("UC-010 - Define stakeholder interests", () => {
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
-    const added = await addInterest(usecase.id, setup.cookie, {
+    const added = await addInterest(server, usecase.id, setup.cookie, {
       interest: "Checkout revenue is protected.",
       stakeholder: "Product Manager"
     });
@@ -183,15 +145,3 @@ describe("UC-010 - Define stakeholder interests", () => {
     expect(transition.status).toBe(422);
   });
 });
-
-async function addInterest(
-  usecaseId: string,
-  cookie: string,
-  body: { interest: string; protection_mechanism?: string; stakeholder: string }
-) {
-  return server.fetch(`/v1/usecases/${usecaseId}/stakeholder-interests`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify({ protection_mechanism: "", ...body })
-  });
-}

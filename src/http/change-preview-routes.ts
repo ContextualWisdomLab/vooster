@@ -40,6 +40,15 @@ const commitSchema = z.object({
 
 export function registerChangeCommitRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/changes/commit", (request, reply) => commitSpecChange(request, reply, state));
+  app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
+    const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
+    const preview = previews(state).get(params.previewId);
+    if (preview === undefined) {
+      return reply.code(404).send(problem(404, "Change preview not found"));
+    }
+    preview.expires_at = new Date(Date.now() - 1_000).toISOString();
+    return reply.send({ expired: true });
+  });
 }
 
 export function previewSpecChange(
@@ -88,14 +97,22 @@ export function previewSpecChange(
   });
 }
 
-function commitSpecChange(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  state: SignupState
-) {
+function commitSpecChange(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
   const parsed = commitSchema.safeParse(request.body);
-  if (!parsed.success || !previews(state).has(parsed.data.preview_id)) {
-    return reply.code(400).send(missingPreviewProblem());
+  const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
+  if (preview === undefined) {
+    return reply.code(400).send(previewProblem(
+      400,
+      "Every commit must reference a still-valid preview",
+      "Generate a preview before committing a spec change."
+    ));
+  }
+  if (Date.parse(preview.expires_at) <= Date.now()) {
+    return reply.code(410).send(previewProblem(
+      410,
+      "Change preview expired",
+      "Regenerate the preview before committing."
+    ));
   }
   return reply.code(501).send(problem(501, "Change commit is not implemented"));
 }
@@ -176,16 +193,6 @@ function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
   );
 }
 
-function missingPreviewProblem() {
-  return problem(
-    400,
-    "Every commit must reference a still-valid preview",
-    {},
-    [
-      {
-        command: "vspec change propose",
-        reason: "Generate a preview before committing a spec change."
-      }
-    ]
-  );
+function previewProblem(status: number, title: string, reason: string) {
+  return problem(status, title, {}, [{ command: "vspec change propose", reason }]);
 }

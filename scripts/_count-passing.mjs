@@ -25,7 +25,6 @@ try {
   passed = Number(json.numPassedTests ?? 0);
 } catch {
   // Treat parse failure as zero passing — caller must decide.
-  passed = 0;
   exit = exit || 2;
 } finally {
   rmSync(dir, { recursive: true, force: true });

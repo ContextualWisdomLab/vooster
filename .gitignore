@@ -12,11 +12,15 @@ build/
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
 
 # Test artifacts
 coverage/
 .vitest/
 *.lcov
+.nyc_output/
+.stryker-tmp/
 
 # Local agent state (kept ignored to avoid leaking between agent runs)
 .state/
@@ -33,6 +37,11 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Secrets
+*.pem
+*.key
+*.p12
 
 # Prisma
 prisma/migrations/*/migration_lock.toml

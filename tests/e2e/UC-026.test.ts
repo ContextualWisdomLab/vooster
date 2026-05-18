@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { lockUseCase, type LockCreateResponse } from "../helpers/lock-fixtures.js";
 import { projectUseCase, type BranchRevisionResponse } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
@@ -21,8 +22,12 @@ type RevertResponse = {
   usecase: { current_revision_id: string; id: string; title: string };
 };
 type RevertProblem = {
+  expires_at?: string;
   expected_entity_id?: string;
+  held_by_user_id?: string;
+  holding_session?: string;
   missing_revision?: string;
+  reason?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
@@ -110,6 +115,45 @@ describe("UC-026 - Revert a use case to a previous revision", () => {
     expect(problem.suggested_next_actions).toContainEqual({
       command: `vspec history ${usecase.key}`,
       reason: "Find valid revision IDs for this use case."
+    });
+
+    const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {
+      headers: { Cookie: setup.cookie }
+    });
+    const body = (await history.json()) as HistoryResponse;
+    expect(body.revisions.map((revision) => revision.revision)).toEqual([
+      usecase.current_revision_id
+    ]);
+  });
+
+  test("3a: hard lock held by another session blocks revert", async () => {
+    const { setup, usecase } =
+      await projectUseCase(server, "Revert Locked", "revert-locked", "stub-revert-locked");
+    const locked = await lockUseCase(
+      server,
+      setup,
+      usecase.id,
+      { lock_type: "HARD", reason: "Stabilize refund wording", ttl_minutes: 45 },
+      "session-revert-holder"
+    );
+    const lock = ((await locked.json()) as LockCreateResponse).lock;
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ revision_id: usecase.current_revision_id })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as RevertProblem;
+    expect(problem.title).toMatch(/hard locked/i);
+    expect(problem.holding_session).toBe("session-revert-holder");
+    expect(problem.held_by_user_id).toBe(setup.userId);
+    expect(problem.reason).toBe("Stabilize refund wording");
+    expect(problem.expires_at).toBe(lock.expires_at);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Find the lock holder before retrying the revert."
     });
 
     const history = await server.fetch(`/v1/usecases/${usecase.id}/revisions`, {

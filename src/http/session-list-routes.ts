@@ -14,23 +14,45 @@ const heartbeatSchema = z.object({ last_activity_at: z.iso.datetime() });
 
 export function registerSessionListRoutes(app: FastifyInstance, state: SignupState) {
   app.get("/v1/sessions", (request, reply) => listSessions(request, reply, state));
+  app.get("/v1/sessions/watch", (request, reply) => watchSessions(request, reply, state));
   app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
     ageSessionHeartbeat(request, reply, state)
   );
 }
 
 function listSessions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const snapshot = sessionSnapshot(request, reply, state);
+  return snapshot === undefined ? undefined : reply.send(snapshot);
+}
+
+function watchSessions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const snapshot = sessionSnapshot(request, reply, state);
+  if (snapshot === undefined) {
+    return undefined;
+  }
+  return reply
+    .header("content-type", "text/event-stream")
+    .send(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`);
+}
+
+function sessionSnapshot(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
   const parsed = sessionListSchema.safeParse(request.query);
   if (!parsed.success) {
-    return reply.code(400).send(problem(400, "Invalid session list request"));
+    reply.code(400).send(problem(400, "Invalid session list request"));
+    return undefined;
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (!hasWorkspaceMembership(state, userId, parsed.data.workspace_id)) {
-    return reply.code(403).send(
+    reply.code(403).send(
       problem(403, "Workspace access is required", {}, [
         { command: "vspec workspace list", reason: "Choose a workspace you can access." }
       ])
     );
+    return undefined;
   }
 
   const projects = projectsForWorkspace(state, parsed.data.workspace_id);
@@ -39,14 +61,14 @@ function listSessions(request: FastifyRequest, reply: FastifyReply, state: Signu
     .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""))
     .map((session) => sessionRow(state, session));
 
-  return reply.send({
+  return {
     total: sessions.length,
     sessions,
     summary: {
       total_conflicts: sessions.reduce((total, session) => total + session.conflict_markers.length, 0)
     },
     suggested_next_actions: nextActions(sessions)
-  });
+  };
 }
 
 function ageSessionHeartbeat(

@@ -64,4 +64,27 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     });
     expect(body.warnings).toEqual([]);
   });
+
+  test("3a: missing requested revision returns history guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Agent Missing Revision", "agent-missing-revision", "stub-agent-missing-revision");
+
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}?format=agent&revision=missing-revision`,
+      { headers: { Cookie: setup.cookie } }
+    );
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as {
+      revision: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/revision not found/i);
+    expect(problem.revision).toBe("missing-revision");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key}`,
+      reason: "Find a valid revision for this use case."
+    });
+  });
 });

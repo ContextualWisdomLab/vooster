@@ -65,21 +65,15 @@ function startSession(
   if (pinned.status !== "OK") {
     return reply.code(422).send(problem(422, "Pinned use case not found"));
   }
-  const semanticConflict = dataSemanticConflict(state, pinned, parsed.data.auto_branch);
+  const semanticConflict = parsed.data.auto_branch
+    ? semanticLockConflict(state, pinned)
+    : undefined;
   if (semanticConflict !== undefined) {
     return reply
       .code(409)
       .send(semanticLockProblem(semanticConflict.key, semanticConflict.holder));
   }
   return createPinnedSession(request, reply, state, parsed.data, pinned, userId ?? "");
-}
-
-function dataSemanticConflict(
-  state: SignupState,
-  pinned: PinnedUseCases,
-  autoBranch: boolean
-) {
-  return autoBranch ? semanticLockConflict(state, pinned) : undefined;
 }
 
 function createPinnedSession(
@@ -104,7 +98,9 @@ function createPinnedSession(
     state.workSessionsByUseCaseId.set(usecase.id, [...sessions, session]);
   }
 
-  return reply.code(201).send(sessionStartResponse(session, pinned.keys, branch));
+  return reply
+    .code(201)
+    .send(sessionStartResponse(session, pinned.keys, data.agent_type, branch));
 }
 
 function workSession(
@@ -131,11 +127,13 @@ function workSession(
 function sessionStartResponse(
   session: StoredWorkSession,
   keys: string[],
+  rawAgentType: string,
   branch?: StoredSpecBranch
 ) {
   return {
     session,
     ...(branch === undefined ? {} : { branch }),
+    ...unknownAgentWarning(rawAgentType),
     session_file: {
       path: ".vspec/session.json",
       session_id: session.id
@@ -151,6 +149,19 @@ function sessionStartResponse(
       }
     ]
   };
+}
+
+function unknownAgentWarning(rawAgentType: string) {
+  return knownAgentTypes.has(rawAgentType as StoredAgentType)
+    ? {}
+    : {
+        warnings: [
+          {
+            type: "UNKNOWN_AGENT_TYPE",
+            message: `Stored unrecognized agent_type ${rawAgentType} as OTHER.`
+          }
+        ]
+      };
 }
 
 function membershipForProject(

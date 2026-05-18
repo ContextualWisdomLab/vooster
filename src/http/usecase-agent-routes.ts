@@ -1,0 +1,100 @@
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { membershipForProject } from "./membership-support.js";
+import { problem } from "./signup-support.js";
+import type { SignupState, StoredUseCase } from "./signup-types.js";
+import { useCaseWithProjectId } from "./usecase-support.js";
+
+const paramsSchema = z.object({ usecaseId: z.string().min(1) });
+const querySchema = z.object({ format: z.enum(["agent", "human", "json"]).default("human") });
+
+export function registerUseCaseAgentRoutes(app: FastifyInstance, state: SignupState) {
+  app.get("/v1/usecases/:usecaseId", (request, reply) =>
+    showUseCase(request, reply, state)
+  );
+}
+
+function showUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+  const usecaseId = paramsSchema.parse(request.params).usecaseId;
+  const query = querySchema.parse(request.query);
+  const found = useCaseWithProjectId(state, usecaseId);
+  if (found === undefined) {
+    return reply.code(404).send(problem(404, "Use case not found"));
+  }
+  if (membershipForProject(request, state, found.projectId) === undefined) {
+    return reply.code(401).send(problem(401, "Authentication required"));
+  }
+  if (query.format !== "agent") {
+    return reply.send({ usecase: found.usecase });
+  }
+  return reply.send(agentEnvelope(request, state, found.projectId, found.usecase));
+}
+
+function agentEnvelope(
+  request: FastifyRequest,
+  state: SignupState,
+  projectId: string,
+  usecase: StoredUseCase
+) {
+  const project = state.projectsById.get(projectId);
+  return {
+    context: {
+      branch: "main",
+      project_key: project?.key ?? "",
+      request_id: requestId(request),
+      revision: usecase.current_revision_id,
+      session_id: null
+    },
+    data: agentData(state, projectId, usecase),
+    format_version: 1,
+    suggested_next_actions: [
+      {
+        command: `vspec change propose ${usecase.key}`,
+        reason: "Propose a reviewed spec change after reading the pinned snapshot."
+      },
+      {
+        command: `vspec export gherkin ${usecase.key}`,
+        reason: "Generate executable acceptance-test scaffolding."
+      }
+    ],
+    warnings: []
+  };
+}
+
+function agentData(state: SignupState, projectId: string, usecase: StoredUseCase) {
+  return {
+    primary_actor: { name: actorName(state, projectId, usecase.primary_actor_id) },
+    scenarios: (state.scenariosByUseCaseId.get(usecase.id) ?? []).map((scenario) => ({
+      id: scenario.id,
+      steps: (state.stepsByScenarioId.get(scenario.id) ?? []).map((step) => ({
+        action: step.action,
+        actor: actorName(state, projectId, step.actor_id),
+        step_number: step.step_number
+      })),
+      type: scenario.type
+    })),
+    stakeholder_interests: (state.stakeholderInterestsByUseCaseId.get(usecase.id) ?? [])
+      .map((interest) => ({
+        interest: interest.interest,
+        stakeholder: stakeholderName(state, projectId, interest.stakeholder_id)
+      })),
+    title: usecase.title,
+    usecase: { id: usecase.id, key: usecase.key }
+  };
+}
+
+function actorName(state: SignupState, projectId: string, actorId: string) {
+  return (state.actorsByProjectId.get(projectId) ?? [])
+    .find((actor) => actor.id === actorId)?.name ?? "System";
+}
+
+function stakeholderName(state: SignupState, projectId: string, stakeholderId: string) {
+  return (state.stakeholdersByProjectId.get(projectId) ?? [])
+    .find((stakeholder) => stakeholder.id === stakeholderId)?.name ?? "";
+}
+
+function requestId(request: FastifyRequest) {
+  const header = request.headers["x-vspec-request-id"];
+  return typeof header === "string" ? header : randomUUID();
+}

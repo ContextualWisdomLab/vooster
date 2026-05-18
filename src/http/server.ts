@@ -25,6 +25,7 @@ import { registerStakeholderInterestRoutes } from "./stakeholder-interest-routes
 import { registerStepRoutes } from "./step-routes.js";
 import { registerSyncRoutes } from "./sync-routes.js";
 import { registerUseCaseTestRoutes } from "./usecase-test-routes.js";
+import { registerUseCaseAgentRoutes } from "./usecase-agent-routes.js";
 import { registerUseCaseRoutes } from "./usecase-routes.js";
 import { registerWhoRoutes } from "./who-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
@@ -48,6 +49,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerImpactRoutes(app, state);
   registerStakeholderRoutes(app, state);
   registerStakeholderInterestRoutes(app, state);
+  registerUseCaseAgentRoutes(app, state);
   registerUseCaseRoutes(app, state);
   registerUseCaseTestRoutes(app, state);
   registerRevisionDiffRoutes(app, state);

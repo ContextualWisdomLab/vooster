@@ -2,7 +2,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type {
+  SignupState,
+  StoredRevision,
+  StoredSpecBranch,
+  StoredUseCase
+} from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 
 type DiffChange = {
@@ -11,6 +16,7 @@ type DiffChange = {
   path: string;
   revision: string;
   severity: "BREAKING" | "COSMETIC" | "NON_BREAKING";
+  source_branch?: string;
 };
 
 const diffQuerySchema = z.object({
@@ -51,9 +57,18 @@ function compareRevisions(
     return reply.code(404).send(missingRevisionProblem(found.usecase, missingRevision));
   }
 
-  const changes = revisionsBetween(revisions, from, to).map(diffChange);
+  const fromBranch = branchForRevision(state, found.projectId, from.id);
+  const toBranch = branchForRevision(state, found.projectId, to.id);
+  const crossBranch = fromBranch !== undefined &&
+    toBranch !== undefined &&
+    fromBranch.id !== toBranch.id;
+  const changes = revisionsBetween(revisions, from, to)
+    .map((revision) =>
+      diffChange(revision, branchForRevision(state, found.projectId, revision.id)?.name)
+    );
   return reply.send({
     changes,
+    ...(crossBranch ? crossBranchWarning(fromBranch, toBranch) : {}),
     format: parsed.data.format,
     from_revision: from.id,
     suggested_next_actions: nextActions(found.usecase, from.id),
@@ -79,7 +94,7 @@ function revisionsBetween(
   );
 }
 
-function diffChange(revision: StoredRevision): DiffChange {
+function diffChange(revision: StoredRevision, sourceBranch?: string): DiffChange {
   const addedStep = /^Added step (?<stepNumber>\d+) to main success scenario$/.exec(
     revision.change_summary ?? ""
   );
@@ -89,16 +104,43 @@ function diffChange(revision: StoredRevision): DiffChange {
       entity_type: "STEP",
       path: `main_success.steps[${addedStep.groups.stepNumber}]`,
       revision: revision.id,
-      severity: revision.severity ?? "NON_BREAKING"
+      severity: revision.severity ?? "NON_BREAKING",
+      ...(sourceBranch === undefined ? {} : { source_branch: sourceBranch })
     };
   }
 
   return {
     change_type: "CHANGE",
     entity_type: "USECASE",
-    path: "usecase",
+    path: "usecase.title",
     revision: revision.id,
-    severity: revision.severity ?? "NON_BREAKING"
+    severity: revision.severity ?? "NON_BREAKING",
+    ...(sourceBranch === undefined ? {} : { source_branch: sourceBranch })
+  };
+}
+
+function branchForRevision(
+  state: SignupState,
+  projectId: string,
+  revisionId: string
+): StoredSpecBranch | undefined {
+  return [...state.branchesById.values()].find(
+    (branch) =>
+      branch.project_id === projectId &&
+      Object.values(branch.head_revision_ids ?? {}).includes(revisionId)
+  );
+}
+
+function crossBranchWarning(fromBranch: StoredSpecBranch, toBranch: StoredSpecBranch) {
+  return {
+    cross_branch: true,
+    warnings: [
+      {
+        from_branch: fromBranch.name,
+        to_branch: toBranch.name,
+        type: "CROSS_BRANCH_DIFF"
+      }
+    ]
   };
 }
 

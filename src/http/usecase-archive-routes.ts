@@ -20,6 +20,9 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
+  if (hardDeleteRequested(request.query)) {
+    return reply.code(400).send(hardDeleteProblem(found.usecase));
+  }
   if (found.usecase.archived_at !== null) {
     return reply.code(409).send(alreadyArchivedProblem(found.usecase));
   }
@@ -107,6 +110,20 @@ function restoreRevision(state: SignupState, usecase: StoredUseCase): StoredRevi
   };
 }
 
+function hardDeleteProblem(usecase: StoredUseCase) {
+  return problem(
+    400,
+    "Destructive deletion is post-MVP",
+    { destructive_delete: true },
+    [
+      {
+        command: `vspec usecase archive ${usecase.key}`,
+        reason: "Archive is the supported reversible removal path."
+      }
+    ]
+  );
+}
+
 function alreadyArchivedProblem(usecase: StoredUseCase) {
   return problem(
     409,
@@ -119,6 +136,14 @@ function alreadyArchivedProblem(usecase: StoredUseCase) {
       }
     ]
   );
+}
+
+function hardDeleteRequested(query: unknown): boolean {
+  const parsed = z.object({
+    hard: z.literal("true").optional(),
+    purge: z.literal("true").optional()
+  }).safeParse(query);
+  return parsed.success && (parsed.data.hard === "true" || parsed.data.purge === "true");
 }
 
 function advanceMainHead(state: SignupState, usecase: StoredUseCase, revisionId: string) {

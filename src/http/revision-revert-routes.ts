@@ -35,7 +35,9 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   const revisions = state.revisionsByEntityId.get(found.usecase.id) ?? [];
   const target = revisions.find((revision) => revision.id === parsed.data.revision_id);
   if (target === undefined) {
-    return reply.code(404).send(problem(404, "Revision not found"));
+    return reply
+      .code(404)
+      .send(missingRevisionProblem(found.usecase, parsed.data.revision_id));
   }
   const current = revisions.at(-1);
   if (current === undefined) {
@@ -88,6 +90,23 @@ function advanceMainHead(
   if (branch !== undefined) {
     branch.head_revision_ids = { ...(branch.head_revision_ids ?? {}), [usecaseId]: revisionId };
   }
+}
+
+function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
+  return problem(
+    404,
+    "Revision not found",
+    {
+      expected_entity_id: usecase.id,
+      missing_revision: revisionId
+    },
+    [
+      {
+        command: `vspec history ${usecase.key}`,
+        reason: "Find valid revision IDs for this use case."
+      }
+    ]
+  );
 }
 
 function nextActions(key: string) {

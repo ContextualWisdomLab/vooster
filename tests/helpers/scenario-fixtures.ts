@@ -9,9 +9,12 @@ import {
 } from "./uc-fixtures.js";
 
 export type Scenario = {
+  condition: null | string;
+  extension_point: null | string;
   id: string;
   order_index: number;
   outcome: string;
+  parent_step_number: null | number;
   type: string;
   usecase_id: string;
 };
@@ -57,6 +60,19 @@ export async function createMainScenario(
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify({ type: "MAIN_SUCCESS" })
+  });
+}
+
+export async function createExtensionScenario(
+  server: TestServer,
+  usecaseId: string,
+  cookie: string,
+  body: { condition: string; extension_point: string; outcome?: string }
+) {
+  return server.fetch(`/v1/usecases/${usecaseId}/scenarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({ type: "EXTENSION", ...body })
   });
 }
 

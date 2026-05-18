@@ -14,6 +14,7 @@ export type PendingOAuth =
 export type SignupState = {
   actorsByProjectId: Map<string, StoredActor[]>;
   branchesById: Map<string, StoredSpecBranch>;
+  goalsByProjectId: Map<string, StoredGoal[]>;
   membershipsByUserId: Map<string, StoredMembership[]>;
   pendingOAuth: Map<string, PendingOAuth>;
   projectKeysByWorkspaceId: Map<string, Map<string, string>>;
@@ -91,10 +92,22 @@ export type StoredActor = {
 
 export type StoredRevision = {
   id: string;
-  entity_type: "ACTOR" | "STAKEHOLDER";
+  entity_type: "ACTOR" | "GOAL" | "STAKEHOLDER";
   entity_id: string;
   version_number: number;
-  snapshot: StoredActor | StoredStakeholder;
+  snapshot: StoredActor | StoredGoal | StoredStakeholder;
+};
+
+export type StoredGoal = {
+  id: string;
+  project_id: string;
+  actor_id: string;
+  description: string;
+  level: "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";
+  status: "IDENTIFIED" | "IN_DESIGN" | "PROMOTED" | "REJECTED";
+  linked_usecase_id: null | string;
+  priority: "P0" | "P1" | "P2" | "P3";
+  archived_at: null | string;
 };
 
 export type StoredStakeholder = {

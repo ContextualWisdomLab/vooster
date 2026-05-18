@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
+import { registerGoalRoutes } from "./goal-routes.js";
 import { registerProjectRoutes } from "./project-routes.js";
 import { registerSignupRoutes } from "./signup-routes.js";
 import { registerStakeholderRoutes } from "./stakeholder-routes.js";
@@ -13,6 +14,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerProjectRoutes(app, state);
   registerActorRoutes(app, state);
   registerActorTestRoutes(app, state);
+  registerGoalRoutes(app, state);
   registerStakeholderRoutes(app, state);
 
   return app;
@@ -22,6 +24,7 @@ function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
     actorsByProjectId: new Map(),
     branchesById: new Map(),
+    goalsByProjectId: new Map(),
     membershipsByUserId: new Map(),
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),

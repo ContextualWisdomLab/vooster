@@ -113,6 +113,21 @@ export async function createScenarioReadyUseCase(
   return { actor, scenario, setup, usecase };
 }
 
+export async function createUseCaseWithMainStep(
+  server: TestServer,
+  name: string,
+  slug: string,
+  code: string
+) {
+  const ready = await createScenarioReadyUseCase(server, name, slug, code);
+  const response = await addStep(server, ready.scenario.scenario.id, ready.setup.cookie, {
+    action: "Places an order.",
+    actor: "Customer"
+  });
+  const body = (await response.json()) as StepResponse;
+  return { ...ready, mainStep: body.step };
+}
+
 export function expectMainScenarioCreated(body: ScenarioResponse, usecaseId: string) {
   expect(body.scenario).toMatchObject({
     order_index: 0,

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   addStep,
   createExtensionScenario,
-  createScenarioReadyUseCase,
+  createUseCaseWithMainStep,
   type ProblemResponse,
   type ScenarioResponse,
   type StepResponse
@@ -21,16 +21,12 @@ afterAll(async () => {
 
 describe("UC-012 - Add an extension flow", () => {
   test("MAIN: add extension scenario and append extension substep", async () => {
-    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+    const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Extension Flow",
       "extension-flow",
       "stub-extension-flow"
     );
-    await addStep(server, mainScenario.scenario.id, setup.cookie, {
-      action: "Places an order.",
-      actor: "Customer"
-    });
 
     const createdExtension = await createExtensionScenario(
       server,
@@ -77,16 +73,12 @@ describe("UC-012 - Add an extension flow", () => {
   });
 
   test("2a: invalid extension point syntax returns valid forms", async () => {
-    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+    const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Invalid Extension Point",
       "invalid-extension-point",
       "stub-invalid-extension-point"
     );
-    await addStep(server, mainScenario.scenario.id, setup.cookie, {
-      action: "Places an order.",
-      actor: "Customer"
-    });
 
     const invalid = await createExtensionScenario(server, usecase.id, setup.cookie, {
       condition: "Payment is declined.",
@@ -110,16 +102,12 @@ describe("UC-012 - Add an extension flow", () => {
   });
 
   test("3b: missing parent step reports out-of-range step", async () => {
-    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+    const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Missing Parent Step",
       "missing-parent-step",
       "stub-missing-parent-step"
     );
-    await addStep(server, mainScenario.scenario.id, setup.cookie, {
-      action: "Places an order.",
-      actor: "Customer"
-    });
 
     const missing = await createExtensionScenario(server, usecase.id, setup.cookie, {
       condition: "Inventory is unavailable.",
@@ -146,16 +134,12 @@ describe("UC-012 - Add an extension flow", () => {
   });
 
   test("4a: duplicate extension point returns existing condition and next letter", async () => {
-    const { scenario: mainScenario, setup, usecase } = await createScenarioReadyUseCase(
+    const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Duplicate Extension",
       "duplicate-extension",
       "stub-duplicate-extension"
     );
-    await addStep(server, mainScenario.scenario.id, setup.cookie, {
-      action: "Places an order.",
-      actor: "Customer"
-    });
     await createExtensionScenario(server, usecase.id, setup.cookie, {
       condition: "Payment is declined.",
       extension_point: "1a",

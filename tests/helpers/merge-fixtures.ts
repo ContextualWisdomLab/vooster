@@ -16,6 +16,7 @@ export type MergeOpenResponse = {
   main_head_revision_ids: Record<string, string>;
   merge_request: {
     conflicts: unknown[];
+    current_revision_id?: string;
     id: string;
     impact: {
       affected_branches: string[];

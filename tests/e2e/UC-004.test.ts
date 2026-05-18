@@ -30,6 +30,8 @@ type ProjectResponse = {
 
 type ProblemResponse = {
   title: string;
+  key_pattern?: string;
+  example_keys?: string[];
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
@@ -109,6 +111,32 @@ describe("UC-004 - Create a project", () => {
       command: "vspec workspace invitations request",
       reason: "Ask a workspace owner for access."
     });
+  });
+
+  test("3a: invalid project key returns pattern and examples", async () => {
+    const signedUp = await signup("Invalid Key", "invalid-key", "stub-invalid-key");
+
+    const response = await server.fetch(
+      `/v1/workspaces/${signedUp.workspaceId}/projects`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: signedUp.cookie
+        },
+        body: JSON.stringify({
+          name: "Invalid Project",
+          key: "pay",
+          visibility: "PRIVATE"
+        })
+      }
+    );
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ProblemResponse;
+    expect(body.title).toMatch(/invalid project key/i);
+    expect(body.key_pattern).toBe("^[A-Z][A-Z0-9]{1,7}$");
+    expect(body.example_keys).toEqual(["PAY", "PAY2", "OPS2026"]);
   });
 });
 

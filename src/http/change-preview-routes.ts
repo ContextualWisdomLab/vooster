@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
@@ -33,6 +33,14 @@ const proposalSchema = z.object({
   }),
   usecase_key: z.string().min(1)
 });
+const commitSchema = z.object({
+  confirmed: z.boolean().optional(),
+  preview_id: z.string().min(1)
+});
+
+export function registerChangeCommitRoutes(app: FastifyInstance, state: SignupState) {
+  app.post("/v1/changes/commit", (request, reply) => commitSpecChange(request, reply, state));
+}
 
 export function previewSpecChange(
   request: FastifyRequest,
@@ -78,6 +86,18 @@ export function previewSpecChange(
     ],
     warnings: []
   });
+}
+
+function commitSpecChange(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
+  const parsed = commitSchema.safeParse(request.body);
+  if (!parsed.success || !previews(state).has(parsed.data.preview_id)) {
+    return reply.code(400).send(missingPreviewProblem());
+  }
+  return reply.code(501).send(problem(501, "Change commit is not implemented"));
 }
 
 function changePreview(usecase: StoredUseCase, baseRevision: string, title: string): ChangePreview {
@@ -151,6 +171,20 @@ function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
       {
         command: `vspec change propose ${usecase.key}`,
         reason: "Propose the change again against the fresh base revision."
+      }
+    ]
+  );
+}
+
+function missingPreviewProblem() {
+  return problem(
+    400,
+    "Every commit must reference a still-valid preview",
+    {},
+    [
+      {
+        command: "vspec change propose",
+        reason: "Generate a preview before committing a spec change."
       }
     ]
   );

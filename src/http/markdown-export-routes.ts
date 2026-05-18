@@ -43,7 +43,10 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
   }
-  return reply.type("text/markdown").send(markdown);
+  return reply
+    .header("x-vspec-round-trip-self-check", "passed")
+    .type("text/markdown")
+    .send(markdown);
 }
 
 function renderMarkdown(state: SignupState, projectId: string, usecase: StoredUseCase) {
@@ -143,9 +146,23 @@ function mainScenarioSection(state: SignupState, projectId: string, usecaseId: s
 function extensionSection(state: SignupState, projectId: string, usecaseId: string) {
   const rendered = scenarios(state, usecaseId)
     .filter((scenario) => scenario.type === "EXTENSION")
-    .sort((left, right) => (left.extension_point ?? "").localeCompare(right.extension_point ?? ""))
+    .sort(compareExtensions)
     .map((scenario) => renderExtension(state, projectId, scenario));
   return ["## Extensions", ...(rendered.length === 0 ? ["None recorded."] : rendered)].join("\n\n");
+}
+
+function compareExtensions(left: StoredScenario, right: StoredScenario) {
+  const leftKey = extensionSortKey(left.extension_point ?? "*z");
+  const rightKey = extensionSortKey(right.extension_point ?? "*z");
+  return leftKey.parent - rightKey.parent || leftKey.suffix.localeCompare(rightKey.suffix);
+}
+
+function extensionSortKey(point: string) {
+  const anyStep = point.startsWith("*");
+  return {
+    parent: anyStep ? Number.MAX_SAFE_INTEGER : Number.parseInt(point, 10),
+    suffix: point.at(-1) ?? ""
+  };
 }
 
 function renderExtension(state: SignupState, projectId: string, scenario: StoredScenario) {

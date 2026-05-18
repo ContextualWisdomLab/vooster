@@ -29,6 +29,7 @@ export type SignupState = {
   stakeholdersByProjectId: Map<string, StoredStakeholder[]>;
   usecasesByProjectId: Map<string, StoredUseCase[]>;
   usersByGithubId: Map<string, StoredUser>;
+  workSessionsByUseCaseId: Map<string, StoredWorkSession[]>;
   workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
   workspaceSlugs: Set<string>;
@@ -161,6 +162,13 @@ export type StoredLock = {
   holder: string;
   mode: "HARD" | "SEMANTIC";
   reason: string;
+  usecase_id: string;
+};
+
+export type StoredWorkSession = {
+  id: string;
+  pinned_revision_id: string;
+  status: "ACTIVE";
   usecase_id: string;
 };
 

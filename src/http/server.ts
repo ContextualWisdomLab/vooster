@@ -49,6 +49,7 @@ function initialState(options: ServerOptions): SignupState {
     stakeholdersByProjectId: new Map(),
     usecasesByProjectId: new Map(),
     usersByGithubId: new Map(),
+    workSessionsByUseCaseId: new Map(),
     workspaceArchivedAt: new Map(),
     workspacesById: new Map(),
     workspaceSlugs: new Set()

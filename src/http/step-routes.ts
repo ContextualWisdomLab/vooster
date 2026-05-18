@@ -1,6 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { createTestLock, semanticLockProblem } from "./step-lock-support.js";
+import {
+  affectedSessionIds,
+  createTestWorkSession
+} from "./step-session-support.js";
 import { appendUseCaseRevision, scenarioWithUseCase } from "./scenario-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -22,6 +26,9 @@ export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
   app.patch("/v1/steps/:stepId", (request, reply) => patchStep(request, reply, state));
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
     createTestLock(request, reply, state)
+  );
+  app.post("/__test/usecases/:usecaseId/work-sessions", (request, reply) =>
+    createTestWorkSession(request, reply, state)
   );
 }
 
@@ -76,7 +83,11 @@ function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupSt
       : "BREAKING"
   );
 
-  return reply.send({ affected_sessions: [], revision, step: updated });
+  return reply.send({
+    affected_sessions: affectedSessionIds(state, found.usecase.id),
+    revision,
+    step: updated
+  });
 }
 
 function stepWithUseCase(

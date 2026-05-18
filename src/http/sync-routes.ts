@@ -10,6 +10,12 @@ import {
   usecaseMarkdown,
   usecasePath
 } from "./sync-markdown.js";
+import {
+  cacheEntries,
+  staleFileConflict,
+  suggestedSyncActions,
+  type SyncResult
+} from "./sync-result-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 
 const pullSchema = z.object({
@@ -26,13 +32,6 @@ const pushSchema = z.object({
 });
 
 type PushFile = z.infer<typeof pushSchema>["files"][number];
-type SyncResult = {
-  conflict_content?: string;
-  current_revision: string;
-  impact?: { entity_id: string; severity: "BREAKING" };
-  path: string;
-  status: "CONFLICT" | "OK" | "SKIPPED";
-};
 
 export function registerSyncRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
@@ -77,17 +76,10 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(400).send(parseFilesProblem(parseErrors));
   }
   const results = parsed.data.files.map((file) => pushFile(state, projectId, file));
-  const hasConflict = results.some((result) => result.status === "CONFLICT");
   return reply.send({
-    cache: {
-      entries: results.map((result) => ({
-        path: result.path,
-        revision: result.current_revision,
-        status: result.status === "CONFLICT" ? "UNRESOLVED" : "SYNCED"
-      }))
-    },
+    cache: { entries: cacheEntries(results) },
     results,
-    suggested_next_actions: hasConflict ? conflictActions() : syncedActions()
+    suggested_next_actions: suggestedSyncActions(results)
   });
 }
 
@@ -115,42 +107,6 @@ function pushFile(
   ]);
   advanceMainHead(state, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
-}
-
-function staleFileConflict(usecase: StoredUseCase, file: PushFile): SyncResult {
-  return {
-    conflict_content: conflictContent(file.content, usecaseMarkdown(usecase), usecase),
-    current_revision: usecase.current_revision_id,
-    impact: { entity_id: usecase.id, severity: "BREAKING" },
-    path: file.path,
-    status: "CONFLICT"
-  };
-}
-
-function conflictContent(local: string, remote: string, usecase: StoredUseCase) {
-  return `<<<<<<< local\n${local}\n=======\n${remote}\n>>>>>>> remote (${usecase.current_revision_id})\n`;
-}
-
-function syncedActions() {
-  return [
-    {
-      command: "vspec pull",
-      reason: "Refresh local files after successful push."
-    }
-  ];
-}
-
-function conflictActions() {
-  return [
-    {
-      command: "vspec diff",
-      reason: "Inspect the server and local changes before resolving the conflict."
-    },
-    {
-      command: "vspec push",
-      reason: "Push again after removing conflict markers."
-    }
-  ];
 }
 
 function syncRevision(

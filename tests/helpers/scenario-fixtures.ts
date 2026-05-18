@@ -29,6 +29,7 @@ export type RevisionResponse = {
   change_summary: string;
   entity_id: string;
   entity_type: string;
+  id: string;
   severity: string;
   version_number: number;
 };
@@ -126,7 +127,7 @@ export async function createUseCaseWithMainStep(
     actor: "Customer"
   });
   const body = (await response.json()) as StepResponse;
-  return { ...ready, mainStep: body.step };
+  return { ...ready, mainStep: body.step, mainStepRevision: body.revision };
 }
 
 export function expectMainScenarioCreated(body: ScenarioResponse, usecaseId: string) {

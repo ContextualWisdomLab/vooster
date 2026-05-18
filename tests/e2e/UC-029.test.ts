@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
+import { historyRevisions, syncPull, syncPush } from "../helpers/sync-fixtures.js";
 
 type PullResponse = {
   cursor: string;
@@ -17,51 +18,22 @@ type PushResponse = {
   }>;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
-type HistoryResponse = { revisions: Array<{ revision: string; version_number: number }> };
 type SyncProblem = {
   offending_files: Array<{ line: number; message: string; path: string }>;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
-type SyncSetup = { cookie: string; projectId: string };
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
 afterAll(async () => { await server.stop(); });
-
-function syncPull(setup: SyncSetup) {
-  return server.fetch(`/v1/projects/${setup.projectId}/sync/pull`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ branch: "main" })
-  });
-}
-
-function syncPush(
-  setup: SyncSetup,
-  file: { base_revision: string; content: string | undefined; path: string }
-) {
-  return server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ branch: "main", files: [file] })
-  });
-}
-
-async function historyRevisions(cookie: string, usecaseId: string) {
-  const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
-    headers: { Cookie: cookie }
-  });
-  return ((await history.json()) as HistoryResponse)
-    .revisions.map((revision) => revision.revision);
-}
 
 describe("UC-029 - Sync local files with the server", () => {
   test("MAIN: pull canonical markdown and push a changed use case file", async () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Main", "sync-main", "stub-sync-main");
 
-    const pulled = await syncPull(setup);
+    const pulled = await syncPull(server, setup);
 
     expect(pulled.status).toBe(200);
     const pull = (await pulled.json()) as PullResponse;
@@ -78,7 +50,7 @@ describe("UC-029 - Sync local files with the server", () => {
       "# Reviews a refund",
       "# Reviews a refund quickly"
     );
-    const pushed = await syncPush(setup, {
+    const pushed = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: editedContent,
       path: `specs/${usecase.key}.md`
@@ -102,7 +74,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Refresh local files after successful push."
     });
 
-    await expect(historyRevisions(setup.cookie, usecase.id)).resolves.toEqual([
+    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
       newRevision,
       usecase.current_revision_id
     ]);
@@ -112,7 +84,7 @@ describe("UC-029 - Sync local files with the server", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Parse", "sync-parse", "stub-sync-parse");
 
-    const pushed = await syncPush(setup, {
+    const pushed = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: "# Missing frontmatter",
       path: `specs/${usecase.key}.md`
@@ -131,7 +103,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Validate the local file before pushing."
     });
 
-    await expect(historyRevisions(setup.cookie, usecase.id)).resolves.toEqual([
+    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
       usecase.current_revision_id
     ]);
   });
@@ -140,12 +112,12 @@ describe("UC-029 - Sync local files with the server", () => {
     const { setup, usecase } =
       await projectUseCase(server, "Sync Conflict", "sync-conflict", "stub-sync-conflict");
 
-    const pulled = await syncPull(setup);
+    const pulled = await syncPull(server, setup);
     const pull = (await pulled.json()) as PullResponse;
     const path = `specs/${usecase.key}.md`;
     const originalContent = pull.files[0]?.content ?? "";
 
-    const serverPush = await syncPush(setup, {
+    const serverPush = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: originalContent.replace("# Reviews a refund", "# Reviews a refund on server"),
       path
@@ -153,7 +125,7 @@ describe("UC-029 - Sync local files with the server", () => {
     const serverRevision = ((await serverPush.json()) as PushResponse)
       .results[0]?.current_revision ?? "";
 
-    const stalePush = await syncPush(setup, {
+    const stalePush = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: originalContent.replace("# Reviews a refund", "# Reviews a refund locally"),
       path
@@ -184,7 +156,7 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Push again after removing conflict markers."
     });
 
-    await expect(historyRevisions(setup.cookie, usecase.id)).resolves.toEqual([
+    await expect(historyRevisions(server, setup.cookie, usecase.id)).resolves.toEqual([
       serverRevision,
       usecase.current_revision_id
     ]);

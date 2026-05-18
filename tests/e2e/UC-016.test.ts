@@ -170,4 +170,22 @@ describe("UC-016 - Start a work session", () => {
     expect(body.session.agent_identifier).toBe("NEURAL_WEAVER");
     expect(body.warnings).toContainEqual({ type: "UNKNOWN_AGENT_TYPE", message: "Stored unrecognized agent_type NEURAL_WEAVER as OTHER." });
   });
+
+  test("*a: transactional write failure leaves no session or branch", async () => {
+    const { setup, usecase } = await createUseCaseWithMainStep(server, "Failed Session", "failed-session", "stub-failed-session");
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/failed-session",
+      intent: "Trigger a session write failure",
+      pins: [usecase.key],
+      simulate_write_failure: true
+    });
+    expect(response.status).toBe(500);
+    const problem = (await response.json()) as SessionProblemResponse;
+    expect(problem.title).toMatch(/session creation failed/i);
+    expect(problem.created_branch).toBe(false);
+    expect(problem.created_session).toBe(false);
+    expect(problem.suggested_next_actions).toContainEqual({ command: "vspec session start --retry", reason: "Retry after the failed transaction." });
+  });
 });

@@ -49,6 +49,7 @@ export function startWorkSession(
     branch_name?: string;
     intent: string;
     pins: string[];
+    simulate_write_failure?: boolean;
   },
   agent = "codex-cli"
 ) {

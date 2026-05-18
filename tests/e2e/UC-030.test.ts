@@ -102,4 +102,35 @@ Scenario: 1a Payment is declined.
       reason: "Create the export output directory."
     });
   });
+
+  test("6b: existing output file requires force and returns diff summary", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Gherkin Exists", "gherkin-exists", "stub-gherkin-exists");
+
+    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        existing_file_content: "Feature: Old checkout behavior\n",
+        output_path: "tests/CHK-001.feature"
+      })
+    });
+
+    expect(response.status).toBe(409);
+    const problem = (await response.json()) as {
+      diff_summary: { existing_lines: number; path: string; proposed_lines: number };
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+      title: string;
+    };
+    expect(problem.title).toMatch(/output file already exists/i);
+    expect(problem.diff_summary).toEqual({
+      existing_lines: 1,
+      path: "tests/CHK-001.feature",
+      proposed_lines: 7
+    });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec export gherkin ${usecase.key} --force`,
+      reason: "Overwrite the existing feature file intentionally."
+    });
+  });
 });

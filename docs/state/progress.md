@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T19:19:22Z_
+_Last updated: 2026-05-18T19:39:39Z_
 
 ## Overall
 
-- Commits: 248
-- Last commit: ade3707 green: UC-020 keep merge open on write failure
-- Use cases complete: 17 / 35
+- Commits: 263
+- Last commit: 486d328 green: UC-021 keep merge open on resolution failure
+- Use cases complete: 18 / 35
 
 ## By Use Case
 
@@ -32,7 +32,7 @@ _Last updated: 2026-05-18T19:19:22Z_
 | UC-018 | Complete a work session | ✓ DONE | 6/6 |
 | UC-019 | Create a branch | ✓ DONE | 6/6 |
 | UC-020 | Merge a branch | ✓ DONE | 6/6 |
-| UC-021 | Resolve a merge conflict | ○ NOT STARTED | 0/0 |
+| UC-021 | Resolve a merge conflict | ✓ DONE | 6/6 |
 | UC-022 | Lock a use case | ○ NOT STARTED | 0/0 |
 | UC-023 | See who is working on a use case | ○ NOT STARTED | 0/0 |
 | UC-024 | View a use case revision history | ○ NOT STARTED | 0/0 |

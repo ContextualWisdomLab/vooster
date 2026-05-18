@@ -3,6 +3,7 @@ import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
 import { registerBranchRoutes } from "./branch-routes.js";
 import { registerBranchTestRoutes } from "./branch-test-routes.js";
+import { registerGherkinExportRoutes } from "./gherkin-export-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
 import { registerImpactRoutes } from "./impact-routes.js";
@@ -39,6 +40,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerMergeResolveRoutes(app, state);
   registerActorRoutes(app, state);
   registerActorTestRoutes(app, state);
+  registerGherkinExportRoutes(app, state);
   registerGoalRoutes(app, state);
   registerGoalPromotionRoutes(app, state);
   registerImpactRoutes(app, state);

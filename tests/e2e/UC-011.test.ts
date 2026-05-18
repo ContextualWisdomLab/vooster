@@ -159,4 +159,35 @@ describe("UC-011 - Write the main success scenario", () => {
     expect(forcedBody.revision.version_number).toBe(4);
     expect(forcedBody.scenario_steps).toHaveLength(1);
   });
+
+  test("5a: unknown actor returns known actors and leaves numbering unchanged", async () => {
+    const { scenario, setup } = await createScenarioReadyUseCase(
+      server,
+      "Unknown Step Actor",
+      "unknown-step-actor",
+      "stub-unknown-step-actor"
+    );
+
+    const unknown = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "Reviews the order.",
+      actor: "Support Agent"
+    });
+
+    expect(unknown.status).toBe(422);
+    const problem = (await unknown.json()) as ProblemResponse;
+    expect(problem.title).toMatch(/actor.*not registered/i);
+    expect(problem.known_actors).toEqual(["Customer"]);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec actor create",
+      reason: "Create the actor before adding this step."
+    });
+
+    const valid = await addStep(server, scenario.scenario.id, setup.cookie, {
+      action: "Places an order.",
+      actor: "Customer"
+    });
+    const validBody = (await valid.json()) as StepResponse;
+    expect(validBody.step.step_number).toBe(1);
+    expect(validBody.scenario_steps).toHaveLength(1);
+  });
 });

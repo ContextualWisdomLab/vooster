@@ -31,14 +31,14 @@ case "$PREFIX" in
     # `green(scope): ...` as documented by goal 1.
     UC_ID=$(echo "$LAST_MSG" | grep -oE 'UC-[0-9]+' | head -1)
     SCOPE=$(echo "$LAST_MSG" | sed -n 's/^green(\([^)]*\)): .*/\1/p')
-    if [ -n "$UC_ID" ]; then
-      if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red: $UC_ID"; then
-        echo "✗ verify-tdd: green: $UC_ID has no preceding red: $UC_ID within last 5 commits."
-        exit 1
-      fi
-    elif [ -n "$SCOPE" ]; then
+    if [ -n "$SCOPE" ]; then
       if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red\\($SCOPE\\):"; then
         echo "✗ verify-tdd: green($SCOPE) has no preceding red($SCOPE) within last 5 commits."
+        exit 1
+      fi
+    elif [ -n "$UC_ID" ]; then
+      if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red: $UC_ID"; then
+        echo "✗ verify-tdd: green: $UC_ID has no preceding red: $UC_ID within last 5 commits."
         exit 1
       fi
     else

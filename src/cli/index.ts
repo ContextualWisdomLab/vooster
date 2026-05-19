@@ -58,6 +58,7 @@ export class VspecCommand extends Command {
     reason: Flags.string(),
     role: Flags.string(),
     root: Flags.string(),
+    scopes: Flags.string(),
     session: Flags.string(),
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
@@ -86,6 +87,18 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {
       await this.inviteMember(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "api-key" && this.argv[1] === "create") {
+      await this.createApiKey(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "api-key" && this.argv[1] === "list") {
+      await this.listApiKeys(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "api-key" && this.argv[1] === "revoke") {
+      await this.revokeApiKey(parsed.flags);
       return;
     }
     if (parsed.args.command === "project" && this.argv[1] === "create") {
@@ -299,6 +312,73 @@ export class VspecCommand extends Command {
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
+  }
+
+  private async createApiKey(flags: ParsedFlags): Promise<void> {
+    const apiKeyFlags = apiKeyCreateFlagsFrom(flags);
+    const response = await postJson(
+      `${apiKeyFlags.apiUrl}/v1/api-keys`,
+      {
+        name: apiKeyFlags.name,
+        scopes: apiKeyFlags.scopes,
+        workspace_id: apiKeyFlags.workspaceId
+      },
+      {
+        Cookie: apiKeyFlags.sessionCookie
+      }
+    );
+    const body = response.body as ApiKeyCreateResponse;
+
+    this.printApiKey(body.api_key);
+    this.log(`Token ${body.plaintext_token}`);
+    this.log("Only shown once");
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async listApiKeys(flags: ParsedFlags): Promise<void> {
+    const apiKeyFlags = apiKeyWorkspaceFlagsFrom(flags);
+    const url = new URL("/v1/api-keys", apiKeyFlags.apiUrl);
+    url.searchParams.set("workspace_id", apiKeyFlags.workspaceId);
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: apiKeyFlags.sessionCookie
+      }
+    });
+    const body = response.body as ApiKeyListResponse;
+
+    this.log(`ApiKeys ${String(body.api_keys.length)}`);
+    for (const apiKey of body.api_keys) {
+      this.printApiKey(apiKey);
+    }
+  }
+
+  private async revokeApiKey(flags: ParsedFlags): Promise<void> {
+    const apiKeyFlags = apiKeyRevokeFlagsFrom(flags, this.argv[2]);
+    const response = await deleteJson(
+      `${apiKeyFlags.apiUrl}/v1/api-keys/${apiKeyFlags.apiKeyId}`,
+      {
+        Cookie: apiKeyFlags.sessionCookie
+      }
+    );
+    const body = response.body as ApiKeyRevokeResponse;
+
+    this.printApiKey(body.api_key);
+    this.log(`Revoked ${body.api_key.revoked_at ?? "null"}`);
+    if (body.idempotent === true) {
+      this.log("Idempotent true");
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private printApiKey(apiKey: ApiKey): void {
+    this.log(`ApiKey ${apiKey.id}`);
+    this.log(`Name ${apiKey.name}`);
+    this.log(`Scopes ${apiKey.scopes.join(", ")}`);
+    this.log(`Revoked ${apiKey.revoked_at ?? "false"}`);
   }
 
   private async createProject(flags: ParsedFlags): Promise<void> {
@@ -1208,6 +1288,23 @@ type ProjectFlags = {
   workspaceId: string;
 };
 
+type ApiKeyWorkspaceFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  workspaceId: string;
+};
+
+type ApiKeyCreateFlags = ApiKeyWorkspaceFlags & {
+  name: string;
+  scopes: string[];
+};
+
+type ApiKeyRevokeFlags = {
+  apiKeyId: string;
+  apiUrl: string;
+  sessionCookie: string;
+};
+
 type BranchCreateFlags = {
   apiUrl: string;
   from: string;
@@ -1486,6 +1583,7 @@ type ParsedFlags = {
   revision?: string;
   role?: string;
   root?: string;
+  scopes?: string;
   session?: string;
   "session-cookie"?: string;
   stakeholder?: string;
@@ -1547,6 +1645,33 @@ type ProjectResponse = {
     name: string;
   };
   recommended_next_command: string;
+};
+
+type ApiKey = {
+  id: string;
+  name: string;
+  revoked_at: null | string;
+  scopes: string[];
+};
+
+type ApiKeyCreateResponse = {
+  api_key: ApiKey;
+  plaintext_token: string;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
+type ApiKeyListResponse = {
+  api_keys: ApiKey[];
+};
+
+type ApiKeyRevokeResponse = {
+  api_key: ApiKey;
+  idempotent?: boolean;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
 };
 
 type BranchCreateResponse = {
@@ -2084,6 +2209,36 @@ function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
     sessionCookie: requiredFlag(flags, "session-cookie"),
     visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
     workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function apiKeyWorkspaceFlagsFrom(flags: ParsedFlags): ApiKeyWorkspaceFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function apiKeyCreateFlagsFrom(flags: ParsedFlags): ApiKeyCreateFlags {
+  return {
+    ...apiKeyWorkspaceFlagsFrom(flags),
+    name: requiredFlag(flags, "name"),
+    scopes: requiredFlag(flags, "scopes")
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter((scope) => scope.length > 0)
+  };
+}
+
+function apiKeyRevokeFlagsFrom(
+  flags: ParsedFlags,
+  apiKeyId: string | undefined
+): ApiKeyRevokeFlags {
+  return {
+    apiKeyId: requiredArgument(apiKeyId, "api-key-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
   };
 }
 

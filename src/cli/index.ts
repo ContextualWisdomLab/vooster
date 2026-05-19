@@ -26,6 +26,7 @@ export class VspecCommand extends Command {
     cursor: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
+    from: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
     intent: Flags.string(),
@@ -71,6 +72,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "project" && this.argv[1] === "create") {
       await this.createProject(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "branch" && this.argv[1] === "create") {
+      await this.createBranch(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -224,6 +229,34 @@ export class VspecCommand extends Command {
     this.log(`Project ${body.project.name} ${body.project.key}`);
     this.log(`Branch ${body.default_branch.name}`);
     this.log(body.recommended_next_command);
+  }
+
+  private async createBranch(flags: ParsedFlags): Promise<void> {
+    const branchFlags = branchCreateFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${branchFlags.apiUrl}/v1/projects/${branchFlags.projectId}/branches`,
+      {
+        from: branchFlags.from,
+        name: branchFlags.name
+      },
+      {
+        Cookie: branchFlags.sessionCookie
+      }
+    );
+    const body = response.body as BranchCreateResponse;
+
+    this.log(`Branch ${body.branch.id}`);
+    this.log(`Name ${body.branch.name}`);
+    this.log(`Status ${body.branch.status}`);
+    this.log(`Owner ${body.branch.owner_type}`);
+    this.log(`Base revisions ${String(Object.keys(body.branch.base_revision_ids).length)}`);
+    this.log(`Head revisions ${String(Object.keys(body.branch.head_revision_ids).length)}`);
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.type} ${warning.merge_request_id}`);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
   }
 
   private async createActor(flags: ParsedFlags): Promise<void> {
@@ -636,6 +669,14 @@ type ProjectFlags = {
   workspaceId: string;
 };
 
+type BranchCreateFlags = {
+  apiUrl: string;
+  from: string;
+  name: string;
+  projectId: string;
+  sessionCookie: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -781,6 +822,7 @@ type ParsedFlags = {
   cursor?: string;
   description?: string;
   email?: string;
+  from?: string;
   "github-code"?: string;
   intent?: string;
   interest?: string;
@@ -853,6 +895,24 @@ type ProjectResponse = {
     name: string;
   };
   recommended_next_command: string;
+};
+
+type BranchCreateResponse = {
+  branch: {
+    base_revision_ids: Record<string, string>;
+    head_revision_ids: Record<string, string>;
+    id: string;
+    name: string;
+    owner_type: string;
+    status: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  warnings?: Array<{
+    merge_request_id: string;
+    type: string;
+  }>;
 };
 
 type ActorResponse = {
@@ -1133,6 +1193,19 @@ function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
     sessionCookie: requiredFlag(flags, "session-cookie"),
     visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
     workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function branchCreateFlagsFrom(
+  flags: ParsedFlags,
+  name: string | undefined
+): BranchCreateFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    from: flags.from ?? "main",
+    name: requiredArgument(name, "branch-name"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
   };
 }
 

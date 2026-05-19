@@ -26,6 +26,8 @@ export class VspecCommand extends Command {
     cursor: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
+    "entity-id": Flags.string(),
+    field: Flags.string(),
     from: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
@@ -82,6 +84,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "merge" && this.argv[1] === "open") {
       await this.openMerge(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "merge" && this.argv[1] === "resolve") {
+      await this.resolveMerge(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -285,6 +291,38 @@ export class VspecCommand extends Command {
     this.log(`Strategy ${body.merge_request.strategy}`);
     this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
     this.log(`Impacted entities ${String(Object.keys(body.merge_request.impact.severity_by_entity).length)}`);
+    this.log(`Source branch ${body.source_branch.id} ${body.source_branch.status}`);
+    this.log(`Main heads ${String(Object.keys(body.main_head_revision_ids).length)}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async resolveMerge(flags: ParsedFlags): Promise<void> {
+    const mergeFlags = mergeResolveFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${mergeFlags.apiUrl}/v1/merges/${mergeFlags.mergeId}/resolve`,
+      {
+        base_revision: mergeFlags.baseRevision,
+        resolutions: [
+          {
+            entity_id: mergeFlags.entityId,
+            field: mergeFlags.field,
+            strategy: mergeFlags.strategy,
+            ...(mergeFlags.value === undefined ? {} : { value: mergeFlags.value })
+          }
+        ]
+      },
+      {
+        Cookie: mergeFlags.sessionCookie
+      }
+    );
+    const body = response.body as MergeResolveResponse;
+
+    this.log(`Merge request ${body.merge_request.id}`);
+    this.log(`Status ${body.merge_request.status}`);
+    this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
+    this.log(`New revisions ${String(body.new_revisions.length)}`);
     this.log(`Source branch ${body.source_branch.id} ${body.source_branch.status}`);
     this.log(`Main heads ${String(Object.keys(body.main_head_revision_ids).length)}`);
     for (const action of body.suggested_next_actions) {
@@ -718,6 +756,17 @@ type MergeOpenFlags = {
   target: "main";
 };
 
+type MergeResolveFlags = {
+  apiUrl: string;
+  baseRevision: string;
+  entityId: string;
+  field: string;
+  mergeId: string;
+  sessionCookie: string;
+  strategy: "MANUAL" | "MINE" | "THEIRS";
+  value: string | undefined;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -863,6 +912,8 @@ type ParsedFlags = {
   cursor?: string;
   description?: string;
   email?: string;
+  "entity-id"?: string;
+  field?: string;
   from?: string;
   "github-code"?: string;
   intent?: string;
@@ -888,6 +939,7 @@ type ParsedFlags = {
   summary?: string;
   title?: string;
   type?: string;
+  value?: string;
   visibility?: string;
   "workspace-id"?: string;
   "workspace-name"?: string;
@@ -969,6 +1021,23 @@ type MergeOpenResponse = {
     status: string;
     strategy: string;
   };
+  source_branch: {
+    id: string;
+    status: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
+type MergeResolveResponse = {
+  main_head_revision_ids: Record<string, string>;
+  merge_request: {
+    conflicts: unknown[];
+    id: string;
+    status: string;
+  };
+  new_revisions: unknown[];
   source_branch: {
     id: string;
     status: string;
@@ -1285,6 +1354,22 @@ function mergeOpenFlagsFrom(
   };
 }
 
+function mergeResolveFlagsFrom(
+  flags: ParsedFlags,
+  mergeId: string | undefined
+): MergeResolveFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    baseRevision: requiredFlag(flags, "base-revision"),
+    entityId: requiredFlag(flags, "entity-id"),
+    field: requiredFlag(flags, "field"),
+    mergeId: requiredArgument(mergeId, "merge-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    strategy: resolutionStrategy(requiredFlag(flags, "strategy")),
+    value: optionalFlag(flags, "value")
+  };
+}
+
 function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
   return {
     aliases: aliasesFrom(flags.aliases),
@@ -1531,6 +1616,15 @@ function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUAS
   }
 
   throw new Error("Merge strategy must be FAST_FORWARD or SQUASH.");
+}
+
+function resolutionStrategy(rawStrategy: string): "MANUAL" | "MINE" | "THEIRS" {
+  const strategy = rawStrategy.toUpperCase();
+  if (strategy === "MANUAL" || strategy === "MINE" || strategy === "THEIRS") {
+    return strategy;
+  }
+
+  throw new Error("Resolution strategy must be MANUAL, MINE, or THEIRS.");
 }
 
 function mergeTarget(rawTarget: string): "main" {

@@ -248,11 +248,44 @@ history — even after deletion, the data lives on in git history and forks.
 You are not racing. You are building correctly. Each commit is a tiny, verified
 step. The system grows as a series of small, correct moves.
 
+## Designing Gates
+
+Goal files declare conditions ("every entity is persisted", "every UC has
+a test"). The corresponding `goals/<n>-<name>.gates.sh` script is what
+mechanically checks those conditions. Gate scripts obey one rule:
+
+**If the goal text claims universality, the gate must enumerate.**
+
+- Bad: `curl /workspaces/foo` — samples one entity. Allows the
+  implementation to satisfy only one example.
+- Good: `for m in $(grep '^model ' prisma/schema.prisma | awk '{print $2}'); do …` —
+  iterates the source of truth. Every model has to be addressed.
+
+Sources of truth and their iteration commands:
+
+- Entities → `grep '^model ' prisma/schema.prisma | awk '{print $2}'`
+- Use cases → `find docs/usecases -name 'UC-*.md'`
+- Routes → `find src/http -name '*-routes.ts'`
+- Advertised CLI commands → `grep -oE '"vspec [^"]+"' src/http`
+
+If you find yourself typing entity names into a gate, you are recreating
+the narrow-gate cheat — stop and replace them with an enumeration.
+
+`scripts/check-gate-rigor.sh` runs as part of every goal's meta-tranche
+(from goal 2 onward) and flags any goal whose markdown contains
+"every X" while its gate script has no `for` / `while` / `find` / `xargs`
+construct. Do not silence this check by deleting the "every" language —
+either tighten the gate or honestly narrow the goal.
+
+The same principle applies to the goal text itself: don't claim "every X"
+when you mean "at least one X." Universal claims trigger universal gates.
+
 ## Active Goal Lookup
 
 Goals are versioned files under `goals/` (e.g., `goals/0-init.md`,
-`goals/1-runnable.md`). The active goal is whichever goal is currently
-failing its `<n>-<name>.gates.sh`, lowest-numbered first.
+`goals/1-runnable.md`, `goals/2-shippable.md`). The active goal is
+whichever goal is currently failing its `<n>-<name>.gates.sh`,
+lowest-numbered first.
 
 To find it:
 

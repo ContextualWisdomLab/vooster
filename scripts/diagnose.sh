@@ -116,6 +116,57 @@ echo "  In progress: $IN_PROGRESS"
 echo "  Not started: $NOT_STARTED"
 echo ""
 
+echo "=== Goal 2 Coverage (shippability) ==="
+if [ -f prisma/schema.prisma ] && [ -d src/infrastructure ]; then
+  MODELS=$(grep -E '^model ' prisma/schema.prisma | awk '{print $2}')
+  TOTAL_M=0; PERSISTED_M=0
+  for m in $MODELS; do
+    TOTAL_M=$((TOTAL_M+1))
+    lower=$(echo "$m" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')
+    if grep -rq "prisma\.${lower}\." src/infrastructure/ 2>/dev/null; then
+      PERSISTED_M=$((PERSISTED_M+1))
+    fi
+  done
+  echo "  Persistence:    $PERSISTED_M / $TOTAL_M Prisma models wired in src/infrastructure/"
+else
+  echo "  Persistence:    (prisma or src/infrastructure missing)"
+fi
+
+if [ -f src/http/signup-types.ts ]; then
+  ALLOWED='^(pendingOAuth|sessionsByToken|readOnlyMemberships)$'
+  LEFT=$(awk '/^export type SignupState = \{/,/^\};/' src/http/signup-types.ts \
+    | grep -E '^\s+[a-zA-Z]+\s*:\s*(Map|Set)<' \
+    | awk -F: '{gsub(/^[ \t]+/,"",$1); print $1}' \
+    | grep -vcE "$ALLOWED" || true)
+  echo "  SignupState:    $LEFT non-ephemeral in-memory field(s) still to migrate"
+fi
+
+if [ -d src/http ]; then
+  OVER=$(find src/http -name '*-routes.ts' -type f -exec wc -l {} \; 2>/dev/null \
+    | awk '$1>150 {n++} END {print n+0}')
+  echo "  Fat routes:     $OVER file(s) over 150 lines"
+fi
+
+APP_C=$(find src/application -name '*.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
+UNIT_C=$(find tests/unit/application -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+echo "  Application:    $APP_C modules, $UNIT_C unit tests (target ≥ 18 each)"
+
+if grep -rq 'GITHUB_CLIENT_ID' src/ 2>/dev/null; then
+  echo "  Real OAuth:     ✓ GITHUB_CLIENT_ID read in src/"
+else
+  echo "  Real OAuth:     ✗ stub only (GITHUB_CLIENT_ID never read)"
+fi
+
+if [ -f Dockerfile ] && [ -f docker-compose.prod.yml ]; then
+  echo "  Deploy assets:  ✓ Dockerfile + docker-compose.prod.yml present"
+else
+  MISSING_ASSETS=""
+  [ ! -f Dockerfile ] && MISSING_ASSETS="$MISSING_ASSETS Dockerfile"
+  [ ! -f docker-compose.prod.yml ] && MISSING_ASSETS="$MISSING_ASSETS docker-compose.prod.yml"
+  echo "  Deploy assets:  ✗ missing$MISSING_ASSETS"
+fi
+echo ""
+
 echo "=== Blockers ==="
 if [ -s docs/state/blockers.md ]; then
   grep -vE '^(#|$)' docs/state/blockers.md | head -10 | sed 's/^/  /'

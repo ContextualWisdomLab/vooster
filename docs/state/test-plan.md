@@ -355,6 +355,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Project**: owner signs up, creates a project, actor, and goal through public APIs, server restarts, owner logs back in and promotes the persisted goal, and the response still uses the persisted project instead of failing `Project not found`.
 
+### Goal 2 Persistence - Scenario
+
+- **Scenario**: owner creates a project, actor, use case, stakeholder interest, and MAIN_SUCCESS scenario through public APIs; server restarts; owner logs back in and attempts to create a second MAIN_SUCCESS scenario for the same use case; the public API returns the duplicate-main 409 with the persisted scenario id.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

@@ -238,6 +238,60 @@ describe("Goal 2 persistence matrix", () => {
     };
     expect(promotedBody.usecase?.project_id).toBe(project.id);
   }, 90_000);
+
+  test("Scenario survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "scenario.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "scenario-owner");
+    const project = await createProject(first.url, signup, "Scenario Matrix", "SCEN");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a scenario workflow",
+      "Customer"
+    );
+    await createStakeholder(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Operations"
+    );
+    await addStakeholderInterest(
+      first.url,
+      signup.sessionCookie,
+      usecase.id,
+      "Operations"
+    );
+    const scenario = await createMainScenario(
+      first.url,
+      signup.sessionCookie,
+      usecase.id
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "scenario-owner");
+    const duplicate = await createMainScenarioResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      usecase.id
+    );
+
+    await second.stop();
+
+    expect(duplicate.status).toBe(409);
+    const duplicateBody = (await duplicate.json()) as {
+      existing_scenario_id?: unknown;
+      title?: unknown;
+    };
+    expect(duplicateBody.existing_scenario_id).toBe(scenario.id);
+    expect(duplicateBody.title).toEqual(
+      expect.stringMatching(/main_success scenario already exists/i)
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -457,6 +511,103 @@ async function createGoal(
 
   expect(response.status).toBe(201);
   return body.goal;
+}
+
+async function createUseCase(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  title: string,
+  primaryActor: string
+) {
+  const response = await fetch(`${baseUrl}/v1/projects/${projectId}/usecases`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      primary_actor: primaryActor,
+      title
+    })
+  });
+  const body = (await response.json()) as { usecase: { id: string } };
+
+  expect(response.status).toBe(201);
+  return body.usecase;
+}
+
+async function createStakeholder(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  name: string
+) {
+  const response = await fetch(`${baseUrl}/v1/projects/${projectId}/stakeholders`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      description: "Keeps the operation reliable",
+      name,
+      type: "INTERNAL"
+    })
+  });
+
+  expect(response.status).toBe(201);
+}
+
+async function addStakeholderInterest(
+  baseUrl: string,
+  sessionCookie: string,
+  usecaseId: string,
+  stakeholder: string
+) {
+  const response = await fetch(
+    `${baseUrl}/v1/usecases/${usecaseId}/stakeholder-interests`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: sessionCookie
+      },
+      body: JSON.stringify({
+        interest: "Scenario outcome remains auditable",
+        stakeholder
+      })
+    }
+  );
+
+  expect(response.status).toBe(201);
+}
+
+async function createMainScenario(
+  baseUrl: string,
+  sessionCookie: string,
+  usecaseId: string
+) {
+  const response = await createMainScenarioResponse(baseUrl, sessionCookie, usecaseId);
+  const body = (await response.json()) as { scenario: { id: string } };
+
+  expect(response.status).toBe(201);
+  return body.scenario;
+}
+
+function createMainScenarioResponse(
+  baseUrl: string,
+  sessionCookie: string,
+  usecaseId: string
+) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}/scenarios`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ type: "MAIN_SUCCESS" })
+  });
 }
 
 async function createInvitation(

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T11:44:16Z_
+_Last updated: 2026-05-19T11:51:23Z_
 
 ## Overall
 
-- Commits: 616
-- Last commit: 1045e63 green(cli): cover advertised impact help
+- Commits: 619
+- Last commit: e9a084f green(cli): UC-028 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -49,7 +49,7 @@ _Last updated: 2026-05-19T11:44:16Z_
 | UC-025 | Compare two revisions of a use case | ✓ DONE | 5/5 | ✓ |
 | UC-026 | Revert a use case to a previous revision | ✓ DONE | 6/6 | ✓ |
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 | ✓ |
-| UC-028 | Comment on a use case | ✓ DONE | 7/7 | ○ |
+| UC-028 | Comment on a use case | ✓ DONE | 7/7 | ✓ |
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 | ○ |
 | UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 | ○ |
 | UC-031 | Export a use case to markdown | ✓ DONE | 6/6 | ○ |

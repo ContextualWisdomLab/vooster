@@ -70,7 +70,7 @@ START=$(curl -fsS -c "$DB_DIR/jar" -X POST \
   -H 'Content-Type: application/json' \
   -d "{\"workspace\":{\"name\":\"Persist Test\",\"slug\":\"$SLUG\"}}" \
   "http://127.0.0.1:${PORT}/v1/auth/github/start" 2>/dev/null || echo "")
-STATE=$(echo "$START" | sed -n 's/.*"state":"\([^"]\+\)".*/\1/p')
+STATE=$(echo "$START" | sed -n 's/.*"state":"\([^"]*\)".*/\1/p')
 if [ -z "$STATE" ]; then
   echo "✗ check-persistence: signup start did not return state."
   echo "  body: $START"
@@ -104,7 +104,7 @@ START2=$(curl -fsS -c "$DB_DIR/jar2" -X POST \
   -H 'Content-Type: application/json' \
   -d "{\"workspace\":{\"name\":\"Persist Test\",\"slug\":\"$SLUG\"}}" \
   "http://127.0.0.1:${PORT}/v1/auth/github/start" 2>/dev/null || echo "")
-STATE2=$(echo "$START2" | sed -n 's/.*"state":"\([^"]\+\)".*/\1/p')
+STATE2=$(echo "$START2" | sed -n 's/.*"state":"\([^"]*\)".*/\1/p')
 
 if [ -z "$STATE2" ]; then
   echo "✗ check-persistence: signup start after restart did not return state."

@@ -2360,6 +2360,23 @@ async function fetchJson(
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   try {
+    if (argv.includes("--help") || argv.includes("-h")) {
+      await VspecCommand.run(["--help"], {
+        pjson: {
+          name: "vspec",
+          oclif: {
+            commands: {
+              strategy: "single",
+              target: "index.js"
+            }
+          },
+          version: "1.0.0"
+        },
+        root
+      });
+      await flush();
+      return;
+    }
     await VspecCommand.run(argv, {
       pjson: {
         name: "vspec",

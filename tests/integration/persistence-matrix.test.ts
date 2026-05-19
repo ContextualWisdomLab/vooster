@@ -85,6 +85,35 @@ describe("Goal 2 persistence matrix", () => {
       expect.stringMatching(/branch name is already in use/i)
     );
   }, 90_000);
+
+  test("Goal survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "goal.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "goal-owner");
+    const project = await createProject(first.url, signup, "Goal Matrix", "GOAL");
+    const actor = await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const goal = await createGoal(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      actor.id,
+      "Tracks an order"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "goal-owner");
+    const listed = await listGoals(second.url, loggedIn.sessionCookie, project.id, actor.id);
+
+    await second.stop();
+
+    expect(listed.status).toBe(200);
+    const listedBody = (await listed.json()) as {
+      actors?: Array<{ goals?: Array<{ id?: unknown }> }>;
+    };
+    expect(listedBody.actors?.[0]?.goals?.map((entry) => entry.id)).toContain(goal.id);
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -189,7 +218,9 @@ async function createActor(
   name: string
 ) {
   const response = await createActorResponse(baseUrl, sessionCookie, projectId, name);
+  const body = (await response.json()) as { actor: { id: string } };
   expect(response.status).toBe(201);
+  return body.actor;
 }
 
 async function createBranch(
@@ -237,6 +268,43 @@ function createActorResponse(
       name,
       type: "PRIMARY"
     })
+  });
+}
+
+async function createGoal(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  actorId: string,
+  description: string
+) {
+  const response = await fetch(`${baseUrl}/v1/projects/${projectId}/goals`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      actor_id: actorId,
+      description,
+      level: "USER_GOAL",
+      priority: "P1"
+    })
+  });
+  const body = (await response.json()) as { goal: { id: string } };
+
+  expect(response.status).toBe(201);
+  return body.goal;
+}
+
+function listGoals(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  actorId: string
+) {
+  return fetch(`${baseUrl}/v1/projects/${projectId}/goals?actor_id=${actorId}`, {
+    headers: { cookie: sessionCookie }
   });
 }
 

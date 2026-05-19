@@ -11,6 +11,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **SpecBranch**: create signup, project, and feature branch through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert creating the same branch name is rejected as an existing branch.
 
+### Goal 2 Persistence - Goal
+
+- **Goal**: create signup, project, actor, and actor goal through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert listing goals for that actor returns the persisted goal.
+
 ## Example
 
 ### UC-009

@@ -20,6 +20,7 @@ export class VspecCommand extends Command {
     at: Flags.string(),
     "base-revision": Flags.string(),
     condition: Flags.string(),
+    cursor: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
     "github-code": Flags.string(),
@@ -27,15 +28,18 @@ export class VspecCommand extends Command {
     interest: Flags.string(),
     key: Flags.string(),
     level: Flags.string(),
+    limit: Flags.string(),
     name: Flags.string(),
     priority: Flags.string(),
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
     "protection-mechanism": Flags.string(),
     outcome: Flags.string(),
+    q: Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
+    status: Flags.string(),
     title: Flags.string(),
     type: Flags.string(),
     version: Flags.version({ char: "v" }),
@@ -88,6 +92,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "add-stakeholder") {
       await this.addStakeholderInterest(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "usecase" && this.argv[1] === "list") {
+      await this.listUseCases(parsed.flags);
       return;
     }
     if (parsed.args.command === "scenario" && this.argv[1] === "add") {
@@ -361,6 +369,36 @@ export class VspecCommand extends Command {
     }
   }
 
+  private async listUseCases(flags: ParsedFlags): Promise<void> {
+    const listFlags = useCaseListFlagsFrom(flags);
+    const url = new URL(`/v1/projects/${listFlags.projectId}/usecases`, listFlags.apiUrl);
+    setSearchParam(url, "actor_id", listFlags.actorId);
+    setSearchParam(url, "cursor", listFlags.cursor);
+    setSearchParam(url, "level", listFlags.level);
+    setSearchParam(url, "limit", listFlags.limit);
+    setSearchParam(url, "q", listFlags.q);
+    setSearchParam(url, "status", listFlags.status);
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: listFlags.sessionCookie
+      }
+    });
+    const body = response.body as UseCaseListResponse;
+
+    for (const item of body.items) {
+      this.log(`${item.key} ${item.title}`);
+      this.log(`${item.status} ${item.level} ${item.primary_actor}`);
+      if (item.trigger_excerpt !== "") {
+        this.log(item.trigger_excerpt);
+      }
+    }
+    this.log(`Next cursor ${body.next_cursor ?? ""}`);
+    for (const action of body.suggested_next_actions ?? []) {
+      this.log(action.command);
+    }
+  }
+
   private async createScenario(flags: ParsedFlags): Promise<void> {
     const scenarioFlags = scenarioCreateFlagsFrom(flags, this.argv[2]);
     const response = await postJson(
@@ -508,6 +546,18 @@ type UseCaseCreateFlags = {
   title: string;
 };
 
+type UseCaseListFlags = {
+  actorId: string | undefined;
+  apiUrl: string;
+  cursor: string | undefined;
+  level: string | undefined;
+  limit: string | undefined;
+  projectId: string;
+  q: string | undefined;
+  sessionCookie: string;
+  status: string | undefined;
+};
+
 type StakeholderInterestFlags = {
   apiUrl: string;
   interest: string;
@@ -552,21 +602,25 @@ type ParsedFlags = {
   at?: string;
   "base-revision"?: string;
   condition?: string;
+  cursor?: string;
   description?: string;
   email?: string;
   "github-code"?: string;
   interest?: string;
   key?: string;
   level?: string;
+  limit?: string;
   name?: string;
   priority?: string;
   "primary-actor"?: string;
   "project-id"?: string;
   "protection-mechanism"?: string;
   outcome?: string;
+  q?: string;
   role?: string;
   "session-cookie"?: string;
   stakeholder?: string;
+  status?: string;
   title?: string;
   type?: string;
   visibility?: string;
@@ -706,6 +760,21 @@ type UseCaseResponse = {
     status: string;
     title: string;
   };
+};
+
+type UseCaseListResponse = {
+  items: Array<{
+    key: string;
+    level: string;
+    primary_actor: string;
+    status: string;
+    title: string;
+    trigger_excerpt: string;
+  }>;
+  next_cursor: string | null;
+  suggested_next_actions?: Array<{
+    command: string;
+  }>;
 };
 
 type StakeholderInterestResponse = {
@@ -873,6 +942,20 @@ function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
   };
 }
 
+function useCaseListFlagsFrom(flags: ParsedFlags): UseCaseListFlags {
+  return {
+    actorId: optionalFlag(flags, "actor-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    cursor: optionalFlag(flags, "cursor"),
+    level: optionalFlag(flags, "level"),
+    limit: optionalFlag(flags, "limit"),
+    projectId: requiredFlag(flags, "project-id"),
+    q: optionalFlag(flags, "q"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    status: optionalFlag(flags, "status")
+  };
+}
+
 function stakeholderInterestFlagsFrom(
   flags: ParsedFlags,
   usecaseId: string | undefined
@@ -1036,6 +1119,12 @@ function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | un
   }
 
   return value;
+}
+
+function setSearchParam(url: URL, name: string, value: string | undefined): void {
+  if (value !== undefined) {
+    url.searchParams.set(name, value);
+  }
 }
 
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {

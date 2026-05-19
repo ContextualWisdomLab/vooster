@@ -6,5 +6,6 @@ export type ProjectStore = {
     workspaceId: string,
     key: string
   ) => Promise<StoredProject | undefined>;
+  listProjectsForWorkspace: (workspaceId: string) => Promise<StoredProject[]>;
   saveProject: (project: StoredProject) => Promise<void>;
 };

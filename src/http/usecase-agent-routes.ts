@@ -7,6 +7,7 @@ import type { SignupState, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
@@ -19,10 +20,11 @@ export function registerUseCaseAgentRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
-    showUseCase(request, reply, state, actorStore, membershipStore)
+    showUseCase(request, reply, state, actorStore, membershipStore, projectStore)
   );
 }
 
@@ -31,7 +33,8 @@ async function showUseCase(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
@@ -98,7 +101,8 @@ async function showUseCase(
     revision,
     session?.id ?? null,
     warnings,
-    actorStore
+    actorStore,
+    projectStore
   ));
 }
 
@@ -110,9 +114,10 @@ async function agentEnvelope(
   revision: string,
   sessionId: null | string,
   warnings: Array<{ message: string; type: string }>,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  projectStore: ProjectStore
 ) {
-  const project = state.projectsById.get(projectId);
+  const project = await projectStore.findProjectById(projectId);
   return {
     context: {
       branch: "main",

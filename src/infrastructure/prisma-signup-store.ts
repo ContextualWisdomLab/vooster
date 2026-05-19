@@ -185,6 +185,15 @@ class PrismaSignupStore implements SignupStore {
     return mergeRequests.map(storedMergeRequest);
   }
 
+  async listProjectsForWorkspace(workspaceId: string): Promise<StoredProject[]> {
+    const projects = await this.prisma.project.findMany({
+      orderBy: { created_at: "asc" },
+      where: { workspace_id: workspaceId }
+    });
+
+    return projects.map(storedProject);
+  }
+
   async membershipForProject(
     projectId: string,
     userId: string

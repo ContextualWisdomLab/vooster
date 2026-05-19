@@ -126,7 +126,6 @@ async function createProject(
   } else {
     await store.saveProjectWithDefaultBranch(project, branch);
   }
-  state.projectsById.set(project.id, project);
 
   return reply.code(201).send({
     project,

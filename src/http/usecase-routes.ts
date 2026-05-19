@@ -20,6 +20,7 @@ import type { ActorStore } from "../ports/actor-store.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const useCaseRequestSchema = z.object({
   force: z.boolean().default(false),
@@ -41,13 +42,14 @@ export function registerUseCaseRoutes(
   actorStore: ActorStore,
   branchStore: BranchStore,
   goalStore: GoalStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
-    createUseCase(request, reply, state, actorStore, goalStore, membershipStore)
+    createUseCase(request, reply, state, actorStore, goalStore, membershipStore, projectStore)
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
-    patchUseCase(request, reply, state, branchStore, membershipStore)
+    patchUseCase(request, reply, state, branchStore, membershipStore, projectStore)
   );
 }
 
@@ -57,7 +59,8 @@ async function createUseCase(
   state: SignupState,
   actorStore: ActorStore,
   goalStore: GoalStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -74,7 +77,7 @@ async function createUseCase(
       ])
     );
   }
-  if (await createUseCaseFromGoal(request, reply, state, goalStore, projectId)) {
+  if (await createUseCaseFromGoal(request, reply, state, goalStore, projectStore, projectId)) {
     return undefined;
   }
   const parsed = useCaseRequestSchema.safeParse(request.body);
@@ -96,7 +99,7 @@ async function createUseCase(
       )
     );
   }
-  const project = state.projectsById.get(projectId);
+  const project = await projectStore.findProjectById(projectId);
   if (project === undefined) {
     return reply.code(404).send(problem(404, "Project not found"));
   }
@@ -159,7 +162,8 @@ async function patchUseCase(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
@@ -173,7 +177,7 @@ async function patchUseCase(
     return reply.code(400).send(problem(400, "Invalid use case update"));
   }
   if (parsed.data.archived_at === null) {
-    return restoreArchivedUseCase(reply, state, branchStore, found);
+    return restoreArchivedUseCase(reply, state, branchStore, projectStore, found);
   }
   if (
     parsed.data.status !== undefined &&

@@ -7,6 +7,7 @@ import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./s
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
@@ -20,10 +21,11 @@ export function registerRevisionRevertRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
-    revertUseCase(request, reply, state, branchStore, membershipStore)
+    revertUseCase(request, reply, state, branchStore, membershipStore, projectStore)
   );
 }
 
@@ -32,7 +34,8 @@ async function revertUseCase(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = revertBodySchema.safeParse(request.body);
@@ -74,7 +77,7 @@ async function revertUseCase(
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
   Object.assign(found.usecase, target.snapshot, { current_revision_id: revision.id });
   state.revisionsByEntityId.set(found.usecase.id, [...revisions, revision]);
-  await advanceMainHead(state, branchStore, found.projectId, found.usecase.id, revision.id);
+  await advanceMainHead(projectStore, branchStore, found.projectId, found.usecase.id, revision.id);
 
   return reply.code(201).send({
     impact: {
@@ -108,13 +111,13 @@ function revertRevision(
 }
 
 async function advanceMainHead(
-  state: SignupState,
+  projectStore: ProjectStore,
   branchStore: BranchStore,
   projectId: string,
   usecaseId: string,
   revisionId: string
 ) {
-  const project = state.projectsById.get(projectId);
+  const project = await projectStore.findProjectById(projectId);
   const branch = project === undefined
     ? undefined
     : await branchStore.findBranchById(project.default_branch_id);

@@ -1,15 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { SignupState, StoredSpecBranch, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 export async function createAutoBranch(
   state: SignupState,
   branchStore: BranchStore,
+  projectStore: ProjectStore,
   projectId: string,
   requestedName: string,
   session: StoredWorkSession
 ): Promise<StoredSpecBranch | undefined> {
-  const project = state.projectsById.get(projectId);
+  const project = await projectStore.findProjectById(projectId);
   const name = await uniqueBranchName(branchStore, projectId, requestedName);
   if (project === undefined || name === undefined) {
     return undefined;

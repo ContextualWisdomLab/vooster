@@ -8,6 +8,7 @@ import type {
   StoredStakeholder
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const stakeholderRequestSchema = z.object({
   attach_to_step: z.boolean().optional(),
@@ -21,10 +22,11 @@ const stakeholderTypes = ["INTERNAL", "EXTERNAL", "REGULATORY"] as const;
 export function registerStakeholderRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
-    createStakeholder(request, reply, state, membershipStore)
+    createStakeholder(request, reply, state, membershipStore, projectStore)
   );
 }
 
@@ -32,7 +34,8 @@ async function createStakeholder(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -44,7 +47,7 @@ async function createStakeholder(
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
 
-  if (projectWorkspaceArchived(state, projectId)) {
+  if (await projectWorkspaceArchived(state, projectStore, projectId)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -124,8 +127,12 @@ function activeStakeholderNamed(
   );
 }
 
-function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
-  const project = state.projectsById.get(projectId);
+async function projectWorkspaceArchived(
+  state: SignupState,
+  projectStore: ProjectStore,
+  projectId: string
+): Promise<boolean> {
+  const project = await projectStore.findProjectById(projectId);
   return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
 }
 

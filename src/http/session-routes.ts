@@ -21,6 +21,7 @@ import type {
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
   "CLAUDE_CODE",
@@ -44,10 +45,11 @@ export function registerSessionRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, state, branchStore, membershipStore)
+    startSession(request, reply, state, branchStore, membershipStore, projectStore)
   );
 }
 
@@ -56,7 +58,8 @@ async function startSession(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -93,6 +96,7 @@ async function startSession(
     reply,
     state,
     branchStore,
+    projectStore,
     parsed.data,
     pinned,
     userId ?? ""
@@ -104,6 +108,7 @@ async function createPinnedSession(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  projectStore: ProjectStore,
   data: z.infer<typeof sessionStartSchema>,
   pinned: PinnedUseCases,
   userId: string
@@ -113,6 +118,7 @@ async function createPinnedSession(
     ? await createAutoBranch(
         state,
         branchStore,
+        projectStore,
         data.project_id,
         data.branch_name ?? `agent/${session.id}`,
         session

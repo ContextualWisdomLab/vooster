@@ -15,6 +15,7 @@ import type {
 } from "./signup-types.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const promoteRequestSchema = z.object({
   simulate_usecase_insert_failure: z.boolean().optional()
@@ -24,10 +25,11 @@ export function registerGoalPromotionRoutes(
   app: FastifyInstance,
   state: SignupState,
   goalStore: GoalStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
-    promoteGoal(request, reply, state, goalStore, membershipStore)
+    promoteGoal(request, reply, state, goalStore, membershipStore, projectStore)
   );
 }
 
@@ -36,7 +38,8 @@ async function promoteGoal(
   reply: FastifyReply,
   state: SignupState,
   goalStore: GoalStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
@@ -50,7 +53,7 @@ async function promoteGoal(
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
-  return promoteGoalToUseCase(reply, state, goalStore, { goal, projectId: goal.project_id }, {
+  return promoteGoalToUseCase(reply, state, goalStore, projectStore, { goal, projectId: goal.project_id }, {
     simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true
   });
 }
@@ -59,10 +62,11 @@ export async function promoteGoalToUseCase(
   reply: FastifyReply,
   state: SignupState,
   goalStore: GoalStore,
+  projectStore: ProjectStore,
   found: { goal: StoredGoal; projectId: string },
   options: { simulateUseCaseInsertFailure?: boolean } = {}
 ) {
-  const project = state.projectsById.get(found.projectId);
+  const project = await projectStore.findProjectById(found.projectId);
   if (project === undefined) {
     return reply.code(404).send(problem(404, "Project not found"));
   }

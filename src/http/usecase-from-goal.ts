@@ -3,12 +3,14 @@ import { promoteGoalToUseCase } from "./goal-promotion-routes.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
 import type { GoalStore } from "../ports/goal-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 export async function createUseCaseFromGoal(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
   goalStore: GoalStore,
+  projectStore: ProjectStore,
   projectId: string
 ): Promise<boolean> {
   const fromGoalId = fromGoalIdFrom(request.body);
@@ -22,7 +24,7 @@ export async function createUseCaseFromGoal(
     return true;
   }
 
-  await promoteGoalToUseCase(reply, state, goalStore, { goal, projectId });
+  await promoteGoalToUseCase(reply, state, goalStore, projectStore, { goal, projectId });
   return true;
 }
 

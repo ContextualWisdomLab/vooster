@@ -5,6 +5,7 @@ import { previewProblem, previews } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const commitSchema = z.object({
   confirmed: z.boolean().optional(),
@@ -14,10 +15,11 @@ const commitSchema = z.object({
 export function registerChangeCommitRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/changes/commit", (request, reply) =>
-    commitSpecChange(request, reply, state, branchStore)
+    commitSpecChange(request, reply, state, branchStore, projectStore)
   );
   app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
     const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
@@ -34,7 +36,8 @@ async function commitSpecChange(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  projectStore: ProjectStore
 ) {
   const parsed = commitSchema.safeParse(request.body);
   const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
@@ -59,6 +62,7 @@ async function commitSpecChange(
   const revision = await appendPreviewRevision(
     state,
     branchStore,
+    projectStore,
     usecase,
     preview.id,
     preview.diff[0]?.after ?? usecase.title
@@ -75,6 +79,7 @@ async function commitSpecChange(
 async function appendPreviewRevision(
   state: SignupState,
   branchStore: BranchStore,
+  projectStore: ProjectStore,
   usecase: StoredUseCase,
   previewId: string,
   title: string
@@ -94,7 +99,7 @@ async function appendPreviewRevision(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
-  const project = state.projectsById.get(usecase.project_id);
+  const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
     : await branchStore.findBranchById(project.default_branch_id);

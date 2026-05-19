@@ -12,7 +12,6 @@ export type PendingOAuth =
   | { flow: "signup"; workspace: PendingSignup };
 export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
-  projectsById: Map<string, StoredProject>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
   scenariosByUseCaseId: Map<string, StoredScenario[]>;

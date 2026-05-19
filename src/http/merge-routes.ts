@@ -9,6 +9,7 @@ import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-type
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const mergeOpenSchema = z.object({
   simulate_write_failure: z.boolean().default(false),
@@ -22,10 +23,11 @@ export function registerMergeRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/merges", (request, reply) =>
-    openMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore)
+    openMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore, projectStore)
   );
 }
 
@@ -35,14 +37,16 @@ async function openMerge(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  projectStore: ProjectStore
 ) {
   const parsed = mergeOpenSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid merge request"));
   }
   const source = await branchStore.findBranchById(parsed.data.source_branch_id);
-  const project = source === undefined ? undefined : state.projectsById.get(source.project_id);
+  const project =
+    source === undefined ? undefined : await projectStore.findProjectById(source.project_id);
   if (source === undefined || project === undefined) {
     return reply.code(404).send(problem(404, "Source branch not found"));
   }

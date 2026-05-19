@@ -2,14 +2,14 @@ import type { StoredMembership } from "../http/signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 
 export function createMemoryMembershipStore(
-  workspaceIdForProject: (projectId: string) => string | undefined
+  workspaceIdForProject: (projectId: string) => Promise<string | undefined>
 ): MembershipStore {
   const membershipsByUserId = new Map<string, StoredMembership[]>();
 
   return {
-    membershipForProject(projectId, userId) {
-      const workspaceId = workspaceIdForProject(projectId);
-      return Promise.resolve(
+    async membershipForProject(projectId, userId) {
+      const workspaceId = await workspaceIdForProject(projectId);
+      return (
         workspaceId === undefined
           ? undefined
           : (membershipsByUserId.get(userId) ?? []).find(

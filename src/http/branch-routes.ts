@@ -10,7 +10,7 @@ import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-type
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
-import type { SignupStore } from "../ports/signup-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const branchCreateSchema = z.object({
   from: z.string().default("main"),
@@ -22,7 +22,7 @@ export function registerBranchRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  store: SignupStore | undefined,
+  projectStore: ProjectStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore
 ) {
@@ -32,7 +32,7 @@ export function registerBranchRoutes(
       reply,
       state,
       branchStore,
-      store,
+      projectStore,
       membershipStore,
       mergeRequestStore
     )
@@ -44,7 +44,7 @@ async function createBranch(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  store: SignupStore | undefined,
+  projectStore: ProjectStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore
 ) {
@@ -87,7 +87,7 @@ async function createBranch(
     );
   }
 
-  const project = await projectById(state, projectId, store);
+  const project = await projectStore.findProjectById(projectId);
   const baseBranch =
     project === undefined ? undefined : await branchStore.findBranchById(project.default_branch_id);
   if (project === undefined || baseBranch === undefined) {
@@ -191,14 +191,6 @@ async function nextBranchName(
     candidate = `${name}-${String(suffix)}`;
   }
   return candidate;
-}
-
-function projectById(
-  state: SignupState,
-  projectId: string,
-  store: SignupStore | undefined
-) {
-  return store === undefined ? Promise.resolve(state.projectsById.get(projectId)) : store.findProjectById(projectId);
 }
 
 function projectIdFrom(params: unknown): string {

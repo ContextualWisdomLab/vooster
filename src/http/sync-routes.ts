@@ -20,6 +20,7 @@ import {
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const pullSchema = z.object({
   branch: z.string().default("main"),
@@ -42,13 +43,14 @@ export function registerSyncRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
     pullFiles(request, reply, state, membershipStore)
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
-    pushFiles(request, reply, state, branchStore, membershipStore)
+    pushFiles(request, reply, state, branchStore, membershipStore, projectStore)
   );
 }
 
@@ -82,7 +84,8 @@ async function pushFiles(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pushSchema.safeParse(request.body);
@@ -102,7 +105,9 @@ async function pushFiles(
   const results = parsed.data.dry_run
     ? parsed.data.files.map((file) => previewFile(state, projectId, file))
     : await Promise.all(
-        parsed.data.files.map((file) => pushFile(state, branchStore, projectId, file))
+        parsed.data.files.map((file) =>
+          pushFile(state, branchStore, projectStore, projectId, file)
+        )
       );
   return reply.send({
     cache: { entries: parsed.data.dry_run ? [] : cacheEntries(results) },
@@ -134,6 +139,7 @@ function previewFile(
 async function pushFile(
   state: SignupState,
   branchStore: BranchStore,
+  projectStore: ProjectStore,
   projectId: string,
   file: PushFile
 ): Promise<SyncResult> {
@@ -152,7 +158,7 @@ async function pushFile(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
-  await advanceMainHead(state, branchStore, projectId, usecase.id, revision.id);
+  await advanceMainHead(projectStore, branchStore, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
 }
 
@@ -207,13 +213,13 @@ function activeUseCases(state: SignupState, projectId: string) {
 }
 
 async function advanceMainHead(
-  state: SignupState,
+  projectStore: ProjectStore,
   branchStore: BranchStore,
   projectId: string,
   usecaseId: string,
   revisionId: string
 ) {
-  const project = state.projectsById.get(projectId);
+  const project = await projectStore.findProjectById(projectId);
   const branch = project === undefined
     ? undefined
     : await branchStore.findBranchById(project.default_branch_id);

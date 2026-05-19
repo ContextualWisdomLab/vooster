@@ -49,14 +49,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
   const goalStore = options.signupStore ?? createMemoryGoalStore();
+  const projectStore = options.signupStore ?? createMemoryProjectStore();
   const membershipStore =
     options.signupStore ??
-    createMemoryMembershipStore(
-      (projectId) => state.projectsById.get(projectId)?.workspace_id
+    createMemoryMembershipStore(async (projectId) =>
+      (await projectStore.findProjectById(projectId))?.workspace_id
     );
   const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
-  const projectStore =
-    options.signupStore ?? createMemoryProjectStore(state.projectsById);
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -79,14 +78,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
-    options.signupStore,
+    projectStore,
     membershipStore,
     mergeRequestStore
   );
-  registerBranchTestRoutes(app, state, branchStore);
+  registerBranchTestRoutes(app, state, branchStore, projectStore);
   registerLockRoutes(app, state, membershipStore);
   registerMarkdownExportRoutes(app, state, actorStore, membershipStore);
-  registerMergeRoutes(app, state, branchStore, membershipStore, mergeRequestStore);
+  registerMergeRoutes(app, state, branchStore, membershipStore, mergeRequestStore, projectStore);
   registerMergeResolveRoutes(
     app,
     state,
@@ -97,22 +96,22 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerActorRoutes(app, state, actorStore, membershipStore);
   registerActorTestRoutes(app, state, actorStore, membershipStore);
   registerGherkinExportRoutes(app, state, actorStore, membershipStore);
-  registerGoalRoutes(app, state, actorStore, goalStore, membershipStore);
-  registerGoalPromotionRoutes(app, state, goalStore, membershipStore);
+  registerGoalRoutes(app, state, actorStore, goalStore, membershipStore, projectStore);
+  registerGoalPromotionRoutes(app, state, goalStore, membershipStore, projectStore);
   registerImpactRoutes(app, state, membershipStore);
   registerInvitationRoutes(app, options, state, membershipStore);
   registerCommentRoutes(app, state, membershipStore);
-  registerChangeCommitRoutes(app, state, branchStore);
-  registerStakeholderRoutes(app, state, membershipStore);
+  registerChangeCommitRoutes(app, state, branchStore, projectStore);
+  registerStakeholderRoutes(app, state, membershipStore, projectStore);
   registerStakeholderInterestRoutes(app, state, membershipStore);
-  registerUseCaseAgentRoutes(app, state, actorStore, membershipStore);
-  registerUseCaseArchiveRoutes(app, state, branchStore, membershipStore);
-  registerUseCaseRoutes(app, state, actorStore, branchStore, goalStore, membershipStore);
+  registerUseCaseAgentRoutes(app, state, actorStore, membershipStore, projectStore);
+  registerUseCaseArchiveRoutes(app, state, branchStore, membershipStore, projectStore);
+  registerUseCaseRoutes(app, state, actorStore, branchStore, goalStore, membershipStore, projectStore);
   registerUseCaseSearchRoutes(app, state, actorStore, membershipStore);
   registerUseCaseTestRoutes(app, state);
   registerRevisionDiffRoutes(app, state, branchStore, membershipStore);
-  registerRevisionHistoryRoutes(app, state, membershipStore);
-  registerRevisionRevertRoutes(app, state, branchStore, membershipStore);
+  registerRevisionHistoryRoutes(app, state, membershipStore, projectStore);
+  registerRevisionRevertRoutes(app, state, branchStore, membershipStore, projectStore);
   registerWhoRoutes(app, state, branchStore, membershipStore, mergeRequestStore);
   registerScenarioRoutes(app, state, actorStore, membershipStore);
   registerSessionCompleteRoutes(
@@ -120,12 +119,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     state,
     branchStore,
     membershipStore,
-    mergeRequestStore
+    mergeRequestStore,
+    projectStore
   );
-  registerSessionListRoutes(app, state, branchStore, membershipStore);
-  registerSessionRoutes(app, state, branchStore, membershipStore);
+  registerSessionListRoutes(app, state, branchStore, membershipStore, projectStore);
+  registerSessionRoutes(app, state, branchStore, membershipStore, projectStore);
   registerStepRoutes(app, state, membershipStore);
-  registerSyncRoutes(app, state, branchStore, membershipStore);
+  registerSyncRoutes(app, state, branchStore, membershipStore, projectStore);
 
   return app;
 }
@@ -133,7 +133,6 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
     pendingOAuth: new Map(),
-    projectsById: new Map(),
     readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),

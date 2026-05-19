@@ -8,6 +8,7 @@ import type { SignupState, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
@@ -26,10 +27,19 @@ export function registerSessionCompleteRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
-    completeSession(request, reply, state, branchStore, membershipStore, mergeRequestStore)
+    completeSession(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      mergeRequestStore,
+      projectStore
+    )
   );
 }
 
@@ -39,7 +49,8 @@ async function completeSession(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  projectStore: ProjectStore
 ) {
   const session = state.workSessionsById.get(sessionIdFrom(request.params));
   const parsed = completeSchema.safeParse(request.body);
@@ -49,7 +60,7 @@ async function completeSession(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid session completion request"));
   }
-  if (!(await canCompleteSession(request, state, membershipStore, session))) {
+  if (!(await canCompleteSession(request, state, membershipStore, projectStore, session))) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   if (session.status !== "ACTIVE") {
@@ -83,7 +94,7 @@ async function completeSession(
   session.ended_at = new Date().toISOString();
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
-    : openMergeRequest(state, session, parsed.data.simulate_conflicts);
+    : await openMergeRequest(projectStore, session, parsed.data.simulate_conflicts);
   if (mergeRequest !== undefined) {
     await mergeRequestStore.saveMergeRequest(mergeRequest);
   }
@@ -101,27 +112,26 @@ async function completeSession(
   });
 }
 
-function canCompleteSession(
+async function canCompleteSession(
   request: FastifyRequest,
   state: SignupState,
   membershipStore: MembershipStore,
+  projectStore: ProjectStore,
   session: StoredWorkSession
 ): Promise<boolean> {
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (userId === undefined || session.project_id === undefined) {
-    return Promise.resolve(false);
+    return false;
   }
-  const project = state.projectsById.get(session.project_id);
+  const project = await projectStore.findProjectById(session.project_id);
   if (session.user_id === userId) {
-    return Promise.resolve(true);
+    return true;
   }
   if (project === undefined) {
-    return Promise.resolve(false);
+    return false;
   }
 
-  return membershipStore
-    .membershipForWorkspace(project.workspace_id, userId)
-    .then((membership) => membership !== undefined);
+  return (await membershipStore.membershipForWorkspace(project.workspace_id, userId)) !== undefined;
 }
 
 function releaseSessionLocks(
@@ -150,12 +160,15 @@ function releaseSessionLocks(
   return { releasedLockIds, warnings };
 }
 
-function openMergeRequest(
-  state: SignupState,
+async function openMergeRequest(
+  projectStore: ProjectStore,
   session: StoredWorkSession,
   withConflicts: boolean
-): StoredMergeRequest {
-  const project = state.projectsById.get(session.project_id ?? "");
+): Promise<StoredMergeRequest> {
+  const project =
+    session.project_id === undefined
+      ? undefined
+      : await projectStore.findProjectById(session.project_id);
   const conflicts = withConflicts
     ? Object.keys(session.pinned_revisions ?? {}).map((entityId) => ({ entity_id: entityId, type: "SEMANTIC" }))
     : [];

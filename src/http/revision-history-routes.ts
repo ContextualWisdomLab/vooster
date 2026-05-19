@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 
 const historyQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
@@ -16,10 +17,11 @@ const historyQuerySchema = z.object({
 export function registerRevisionHistoryRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.get("/v1/usecases/:usecaseId/revisions", (request, reply) =>
-    listHistory(request, reply, state, membershipStore)
+    listHistory(request, reply, state, membershipStore, projectStore)
   );
 }
 
@@ -27,7 +29,8 @@ async function listHistory(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = historyQuerySchema.safeParse(request.query);
@@ -36,7 +39,7 @@ async function listHistory(
   }
   const found = useCaseWithProjectId(state, params.usecaseId);
   if (found === undefined) {
-    const projectKey = projectKeyFor(state, parsed.data.project_id);
+    const projectKey = await projectKeyFor(projectStore, parsed.data.project_id);
     return reply.code(404).send(missingHistoryProblem(projectKey));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
@@ -110,8 +113,15 @@ function historyReadFailureProblem(usecase: StoredUseCase) {
   );
 }
 
-function projectKeyFor(state: SignupState, projectId: string | undefined): string {
-  return state.projectsById.get(projectId ?? "")?.key ?? "unknown";
+async function projectKeyFor(
+  projectStore: ProjectStore,
+  projectId: string | undefined
+): Promise<string> {
+  if (projectId === undefined) {
+    return "unknown";
+  }
+
+  return (await projectStore.findProjectById(projectId))?.key ?? "unknown";
 }
 
 function revisionsFor(state: SignupState, usecase: StoredUseCase) {

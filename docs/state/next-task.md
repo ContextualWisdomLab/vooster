@@ -1,22 +1,22 @@
 # Next Task
 
-_Auto-generated 2026-05-19T16:25:31Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T16:38:46Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Migrate the next entity to Prisma (gates 2.A1 / 2.A2 / 2.A3 / 2.A4).
 
-  Candidate SignupState field: mergeRequestsById
+  Candidate SignupState field: projectKeysByWorkspaceId
 
   One TDD cycle:
-  1. Identify the Prisma model that backs mergeRequestsById. If absent, add it to
+  1. Identify the Prisma model that backs projectKeysByWorkspaceId. If absent, add it to
      prisma/schema.prisma and run npx prisma migrate dev.
   2. RED: extend tests/integration/persistence-matrix.test.ts with a stanza
-     that creates a mergeRequestsById entity via the HTTP API, restarts the
+     that creates a projectKeysByWorkspaceId entity via the HTTP API, restarts the
      server, and reads it back. Commit:
-         red(persist): mergeRequestsById survives restart
+         red(persist): projectKeysByWorkspaceId survives restart
   3. GREEN: add src/infrastructure/<entity>-store.ts with Prisma calls,
      expose via a port in src/ports/, consume in src/http/. Delete the
-     'mergeRequestsById' field from SignupState in the SAME commit. Commit:
+     'projectKeysByWorkspaceId' field from SignupState in the SAME commit. Commit:
          green(persist): <entity> backed by prisma
   4. Verify previous goals still green:
          bash goals/0-init.gates.sh && bash goals/1-runnable.gates.sh

@@ -59,6 +59,25 @@ describe("UC-032 - Issue and manage API keys", () => {
     const revokeBody = (await revoked.json()) as ApiKeyResponse;
     expect(Date.parse(revokeBody.api_key.revoked_at ?? "")).not.toBeNaN();
   });
+
+  test("2a: unsupported scope is rejected with allowed scope guidance", async () => {
+    const owner = await signup(server, "API Key Scope", "api-key-scope", "stub-api-key-scope");
+
+    const response = await createApiKey(owner.workspaceId, owner.cookie, {
+      name: "admin job",
+      scopes: ["read", "admin"]
+    });
+
+    expect(response.status).toBe(422);
+    const problem = (await response.json()) as {
+      allowed_scopes: string[];
+      offending_scope: string;
+    };
+    expect(problem.offending_scope).toBe("admin");
+    expect(problem.allowed_scopes).toEqual(["read", "write"]);
+    const listed = await listApiKeys(owner.workspaceId, owner.cookie);
+    expect(((await listed.json()) as ApiKeyListResponse).api_keys).toEqual([]);
+  });
 });
 
 function createApiKey(

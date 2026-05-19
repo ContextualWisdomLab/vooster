@@ -19,12 +19,16 @@ export class VspecCommand extends Command {
     "actor-id": Flags.string(),
     at: Flags.string(),
     "base-revision": Flags.string(),
+    "agent-type": Flags.string(),
+    "auto-branch": Flags.boolean(),
+    "branch-name": Flags.string(),
     condition: Flags.string(),
     cursor: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
+    intent: Flags.string(),
     interest: Flags.string(),
     key: Flags.string(),
     level: Flags.string(),
@@ -35,6 +39,7 @@ export class VspecCommand extends Command {
     "project-id": Flags.string(),
     "protection-mechanism": Flags.string(),
     outcome: Flags.string(),
+    pin: Flags.string(),
     q: Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
@@ -112,6 +117,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "step" && this.argv[1] === "edit") {
       await this.editStep(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "session" && this.argv[1] === "start") {
+      await this.startSession(parsed.flags);
       return;
     }
 
@@ -491,6 +500,35 @@ export class VspecCommand extends Command {
     this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
     this.log(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
   }
+
+  private async startSession(flags: ParsedFlags): Promise<void> {
+    const sessionFlags = sessionStartFlagsFrom(flags);
+    const response = await postJson(
+      `${sessionFlags.apiUrl}/v1/sessions`,
+      {
+        agent_type: sessionFlags.agentType,
+        auto_branch: sessionFlags.autoBranch,
+        ...(sessionFlags.branchName === undefined ? {} : { branch_name: sessionFlags.branchName }),
+        intent: sessionFlags.intent,
+        pins: sessionFlags.pins,
+        project_id: sessionFlags.projectId
+      },
+      {
+        Cookie: sessionFlags.sessionCookie,
+        "X-Vspec-Agent": "codex-cli"
+      }
+    );
+    const body = response.body as SessionStartResponse;
+
+    this.log(`Session ${body.session.id}`);
+    this.log(`Intent ${body.session.intent}`);
+    this.log(`Agent ${body.session.agent_type} ${body.session.agent_identifier}`);
+    this.log(`Pinned revisions ${String(Object.keys(body.session.pinned_revisions).length)}`);
+    this.log(`Session file ${body.session_file.path}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -623,19 +661,34 @@ type StepEditFlags = {
   stepId: string;
 };
 
+type SessionStartFlags = {
+  agentType: string;
+  apiUrl: string;
+  autoBranch: boolean;
+  branchName: string | undefined;
+  intent: string;
+  pins: string[];
+  projectId: string;
+  sessionCookie: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
+  "agent-type"?: string;
+  "auto-branch"?: boolean;
   action?: string;
   actor?: string;
   aliases?: string;
   "actor-id"?: string;
   at?: string;
   "base-revision"?: string;
+  "branch-name"?: string;
   condition?: string;
   cursor?: string;
   description?: string;
   email?: string;
   "github-code"?: string;
+  intent?: string;
   interest?: string;
   key?: string;
   level?: string;
@@ -646,6 +699,7 @@ type ParsedFlags = {
   "project-id"?: string;
   "protection-mechanism"?: string;
   outcome?: string;
+  pin?: string;
   q?: string;
   role?: string;
   "session-cookie"?: string;
@@ -883,6 +937,22 @@ type StepEditResponse = {
   };
 };
 
+type SessionStartResponse = {
+  session: {
+    agent_identifier: string;
+    agent_type: string;
+    id: string;
+    intent: string;
+    pinned_revisions: Record<string, string>;
+  };
+  session_file: {
+    path: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -1068,6 +1138,19 @@ function stepEditFlagsFrom(
   };
 }
 
+function sessionStartFlagsFrom(flags: ParsedFlags): SessionStartFlags {
+  return {
+    agentType: agentType(flags["agent-type"] ?? "OTHER"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    autoBranch: flags["auto-branch"] ?? false,
+    branchName: optionalFlag(flags, "branch-name"),
+    intent: requiredFlag(flags, "intent"),
+    pins: pinsFrom(requiredFlag(flags, "pin")),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -1168,9 +1251,17 @@ function aliasesFrom(rawAliases: string | undefined): string[] {
   return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
 }
 
+function pinsFrom(rawPins: string): string[] {
+  return rawPins.split(",").map((pin) => pin.trim()).filter(Boolean);
+}
+
+function agentType(rawAgentType: string): string {
+  return rawAgentType.toUpperCase().replaceAll("-", "_");
+}
+
 function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | undefined {
   const value = values[name];
-  if (value === undefined || value.trim() === "") {
+  if (typeof value !== "string" || value.trim() === "") {
     return undefined;
   }
 
@@ -1185,7 +1276,7 @@ function setSearchParam(url: URL, name: string, value: string | undefined): void
 
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {
   const value = values[name];
-  if (value === undefined || value.trim() === "") {
+  if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`Missing --${name}.`);
   }
 

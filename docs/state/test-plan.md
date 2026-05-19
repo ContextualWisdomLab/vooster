@@ -19,6 +19,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **ApiKey**: create signup and an API key through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert listing API keys returns the persisted key metadata without plaintext token material.
 
+### Goal 2 Auth - Real GitHub OAuth
+
+- **UC-001 real OAuth**: boot `createServer({ authStub: false })` with fixture GitHub client credentials in the environment; intercept GitHub token and user-profile HTTP calls via a fetch mock; complete `/v1/auth/github/start` -> `/callback`; assert a workspace is created, a session cookie is set, and the plaintext OAuth token is never returned.
+
 ## Example
 
 ### UC-009

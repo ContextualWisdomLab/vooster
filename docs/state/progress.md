@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T10:52:56Z_
+_Last updated: 2026-05-19T10:59:59Z_
 
 ## Overall
 
-- Commits: 594
-- Last commit: 7707cb5 green(cli): UC-020 CLI E2E
+- Commits: 597
+- Last commit: 8e61401 green(cli): UC-021 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -42,7 +42,7 @@ _Last updated: 2026-05-19T10:52:56Z_
 | UC-018 | Complete a work session | ✓ DONE | 6/6 | ✓ |
 | UC-019 | Create a branch | ✓ DONE | 6/6 | ✓ |
 | UC-020 | Merge a branch | ✓ DONE | 6/6 | ✓ |
-| UC-021 | Resolve a merge conflict | ✓ DONE | 6/6 | ○ |
+| UC-021 | Resolve a merge conflict | ✓ DONE | 6/6 | ✓ |
 | UC-022 | Lock a use case | ✓ DONE | 6/6 | ○ |
 | UC-023 | See who is working on a use case | ✓ DONE | 6/6 | ○ |
 | UC-024 | View a use case revision history | ✓ DONE | 5/5 | ○ |

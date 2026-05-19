@@ -22,6 +22,7 @@ export class VspecCommand extends Command {
     "base-revision": Flags.string(),
     "agent-type": Flags.string(),
     "auto-branch": Flags.boolean(),
+    body: Flags.string(),
     "branch-name": Flags.string(),
     condition: Flags.string(),
     cursor: Flags.string(),
@@ -120,6 +121,26 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "impact") {
       await this.previewImpact(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "comment" && this.argv[1] === "add") {
+      await this.addComment(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "comment" && this.argv[1] === "list") {
+      await this.listComments(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "comment" && this.argv[1] === "edit") {
+      await this.editComment(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "comment" && this.argv[1] === "resolve") {
+      await this.resolveComment(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "comment" && this.argv[1] === "delete") {
+      await this.deleteComment(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -568,6 +589,89 @@ export class VspecCommand extends Command {
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
+  }
+
+  private async addComment(flags: ParsedFlags): Promise<void> {
+    const commentFlags = commentBodyFlagsFrom(flags, this.argv[2], "usecase-id");
+    const response = await postJson(
+      `${commentFlags.apiUrl}/v1/usecases/${commentFlags.targetId}/comments`,
+      { body: commentFlags.body },
+      {
+        Cookie: commentFlags.sessionCookie
+      }
+    );
+    this.printCommentResponse(response.body as CommentResponse);
+  }
+
+  private async listComments(flags: ParsedFlags): Promise<void> {
+    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "usecase-id");
+    const response = await fetchJson(
+      `${commentFlags.apiUrl}/v1/usecases/${commentFlags.targetId}/comments`,
+      {
+        headers: {
+          Cookie: commentFlags.sessionCookie
+        }
+      }
+    );
+    const body = response.body as CommentListResponse;
+
+    this.log(`Comments ${String(body.comments.length)}`);
+    for (const comment of body.comments) {
+      this.printComment(comment);
+    }
+  }
+
+  private async editComment(flags: ParsedFlags): Promise<void> {
+    const commentFlags = commentBodyFlagsFrom(flags, this.argv[2], "comment-id");
+    const response = await patchJson(
+      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
+      { body: commentFlags.body },
+      {
+        Cookie: commentFlags.sessionCookie
+      }
+    );
+    this.printCommentResponse(response.body as CommentResponse);
+  }
+
+  private async resolveComment(flags: ParsedFlags): Promise<void> {
+    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "comment-id");
+    const response = await patchJson(
+      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
+      { resolved: true },
+      {
+        Cookie: commentFlags.sessionCookie
+      }
+    );
+    this.printCommentResponse(response.body as CommentResponse);
+  }
+
+  private async deleteComment(flags: ParsedFlags): Promise<void> {
+    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "comment-id");
+    const response = await deleteJson(
+      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
+      {
+        Cookie: commentFlags.sessionCookie
+      }
+    );
+    this.printCommentResponse(response.body as CommentResponse);
+    this.log("Deleted true");
+  }
+
+  private printCommentResponse(body: CommentResponse): void {
+    this.printComment(body.comment);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private printComment(comment: CommentPayload): void {
+    this.log(`Comment ${comment.id}`);
+    this.log(`Target ${comment.target_id}`);
+    this.log(`Author ${comment.author_id}`);
+    this.log(`Resolved ${String(comment.resolved)}`);
+    this.log(`Resolved at ${comment.resolved_at ?? ""}`);
+    this.log(`Updated at ${comment.updated_at ?? ""}`);
+    this.log(`Body ${comment.body}`);
   }
 
   private async createActor(flags: ParsedFlags): Promise<void> {
@@ -1055,6 +1159,16 @@ type ImpactFlags = {
   usecaseId: string;
 };
 
+type CommentTargetFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  targetId: string;
+};
+
+type CommentBodyFlags = CommentTargetFlags & {
+  body: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1195,6 +1309,7 @@ type ParsedFlags = {
   "actor-id"?: string;
   at?: string;
   "base-revision"?: string;
+  body?: string;
   "branch-name"?: string;
   condition?: string;
   cursor?: string;
@@ -1484,6 +1599,29 @@ type ImpactResponse = {
   suggested_next_actions: Array<{
     command: string;
   }>;
+};
+
+type CommentPayload = {
+  author_id: string;
+  body: string;
+  created_at: string;
+  id: string;
+  resolved: boolean;
+  resolved_at: null | string;
+  target_id: string;
+  target_type: string;
+  updated_at: null | string;
+};
+
+type CommentResponse = {
+  comment: CommentPayload;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
+type CommentListResponse = {
+  comments: CommentPayload[];
 };
 
 type ActorResponse = {
@@ -1871,6 +2009,29 @@ function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Imp
     proposedChangePath: optionalFlag(flags, "proposed-change"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function commentTargetFlagsFrom(
+  flags: ParsedFlags,
+  targetId: string | undefined,
+  argumentName: string
+): CommentTargetFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    targetId: requiredArgument(targetId, argumentName)
+  };
+}
+
+function commentBodyFlagsFrom(
+  flags: ParsedFlags,
+  targetId: string | undefined,
+  argumentName: string
+): CommentBodyFlags {
+  return {
+    ...commentTargetFlagsFrom(flags, targetId, argumentName),
+    body: requiredFlag(flags, "body")
   };
 }
 

@@ -15,6 +15,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Goal**: create signup, project, actor, and actor goal through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert listing goals for that actor returns the persisted goal.
 
+### Goal 2 Persistence - ApiKey
+
+- **ApiKey**: create signup and an API key through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert listing API keys returns the persisted key metadata without plaintext token material.
+
 ## Example
 
 ### UC-009

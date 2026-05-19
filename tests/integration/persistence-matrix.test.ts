@@ -328,6 +328,49 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 
+  test("ApiKey survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "apikey.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "api-key-owner");
+    const apiKey = await createApiKey(
+      first.url,
+      signup.sessionCookie,
+      signup.workspaceId,
+      "restart key"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "api-key-owner");
+    const listed = await listApiKeys(
+      second.url,
+      loggedIn.sessionCookie,
+      signup.workspaceId
+    );
+
+    await second.stop();
+
+    expect(listed.status).toBe(200);
+    const listedBody = (await listed.json()) as {
+      api_keys?: Array<{
+        id?: unknown;
+        name?: unknown;
+        plaintext_token?: unknown;
+        token_hash?: unknown;
+        workspace_id?: unknown;
+      }>;
+    };
+    const persisted = (listedBody.api_keys ?? []).find((entry) => entry.id === apiKey.id);
+    expect(persisted).toMatchObject({
+      id: apiKey.id,
+      name: "restart key",
+      workspace_id: signup.workspaceId
+    });
+    expect(persisted).not.toHaveProperty("plaintext_token");
+    expect(persisted).not.toHaveProperty("token_hash");
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -1099,6 +1142,40 @@ async function addComment(
 
 function listComments(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}/comments`, {
+    headers: { cookie: sessionCookie }
+  });
+}
+
+async function createApiKey(
+  baseUrl: string,
+  sessionCookie: string,
+  workspaceId: string,
+  name: string
+) {
+  const response = await fetch(`${baseUrl}/v1/api-keys`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      name,
+      scopes: ["read"],
+      workspace_id: workspaceId
+    })
+  });
+  const body = (await response.json()) as {
+    api_key: { id: string };
+    plaintext_token?: string;
+  };
+
+  expect(response.status).toBe(201);
+  expect(body.plaintext_token).toMatch(/^vsp_/);
+  return body.api_key;
+}
+
+function listApiKeys(baseUrl: string, sessionCookie: string, workspaceId: string) {
+  return fetch(`${baseUrl}/v1/api-keys?workspace_id=${workspaceId}`, {
     headers: { cookie: sessionCookie }
   });
 }

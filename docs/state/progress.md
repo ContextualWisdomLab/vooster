@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T16:02:27Z_
+_Last updated: 2026-05-19T16:25:31Z_
 
 ## Overall
 
-- Commits: 653
-- Last commit: 4f3f822 green(persist): goals backed by prisma
+- Commits: 656
+- Last commit: 7206f34 green(persist): memberships backed by prisma
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

@@ -28,6 +28,7 @@ export class VspecCommand extends Command {
     email: Flags.string(),
     "entity-id": Flags.string(),
     field: Flags.string(),
+    force: Flags.boolean(),
     format: Flags.string(),
     from: Flags.string(),
     "github-code": Flags.string(),
@@ -56,6 +57,7 @@ export class VspecCommand extends Command {
     strategy: Flags.string(),
     summary: Flags.string(),
     title: Flags.string(),
+    to: Flags.string(),
     ttl: Flags.string(),
     type: Flags.string(),
     version: Flags.version({ char: "v" }),
@@ -108,6 +110,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "diff") {
       await this.compareRevisions(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "revert") {
+      await this.revertRevision(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -487,6 +493,40 @@ export class VspecCommand extends Command {
     }
     if (body.note !== undefined) {
       this.log(body.note);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async revertRevision(flags: ParsedFlags): Promise<void> {
+    const revertFlags = revertFlagsFrom(flags, this.argv[1]);
+    const response = await postJson(
+      `${revertFlags.apiUrl}/v1/usecases/${revertFlags.usecaseId}/revert`,
+      {
+        force: revertFlags.force,
+        revision_id: revertFlags.revisionId,
+        ...(revertFlags.summary === undefined ? {} : { summary: revertFlags.summary })
+      },
+      {
+        Cookie: revertFlags.sessionCookie
+      }
+    );
+    const body = response.body as RevertResponse;
+
+    this.log(`UseCase ${body.usecase.id}`);
+    this.log(`Title ${body.usecase.title}`);
+    this.log(`Current revision ${body.usecase.current_revision_id}`);
+    this.log(`Revision ${body.revision.id}`);
+    this.log(`Parent ${body.revision.parent_revision_id}`);
+    this.log(`Change ${body.revision.change_summary}`);
+    this.log(`Version ${String(body.revision.version_number)}`);
+    this.log(`Severity ${body.revision.severity}`);
+    this.log(`Impact ${body.impact.severity}`);
+    this.log(`Affected sessions ${body.impact.affected_sessions.join(", ") || "none"}`);
+    this.log(`Affected branches ${body.impact.affected_branches.join(", ") || "none"}`);
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.type} ${warning.message}`);
     }
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
@@ -962,6 +1002,15 @@ type DiffFlags = {
   usecaseId: string;
 };
 
+type RevertFlags = {
+  apiUrl: string;
+  force: boolean;
+  revisionId: string;
+  sessionCookie: string;
+  summary: string | undefined;
+  usecaseId: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1109,6 +1158,7 @@ type ParsedFlags = {
   email?: string;
   "entity-id"?: string;
   field?: string;
+  force?: boolean;
   format?: string;
   from?: string;
   "github-code"?: string;
@@ -1136,6 +1186,7 @@ type ParsedFlags = {
   strategy?: string;
   summary?: string;
   title?: string;
+  to?: string;
   ttl?: string;
   type?: string;
   value?: string;
@@ -1338,6 +1389,33 @@ type DiffResponse = {
   warnings?: Array<{
     from_branch: string;
     to_branch: string;
+    type: string;
+  }>;
+};
+
+type RevertResponse = {
+  impact: {
+    affected_branches: string[];
+    affected_sessions: string[];
+    severity: string;
+  };
+  revision: {
+    change_summary: string;
+    id: string;
+    parent_revision_id: string;
+    severity: string;
+    version_number: number;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  usecase: {
+    current_revision_id: string;
+    id: string;
+    title: string;
+  };
+  warnings?: Array<{
+    message: string;
     type: string;
   }>;
 };
@@ -1706,6 +1784,17 @@ function diffFlagsFrom(
     fromRevision: requiredArgument(fromRevision, "from-revision"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     toRevision: requiredArgument(toRevision, "to-revision"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function revertFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): RevertFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    force: flags.force ?? false,
+    revisionId: requiredFlag(flags, "to"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    summary: optionalFlag(flags, "summary"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }

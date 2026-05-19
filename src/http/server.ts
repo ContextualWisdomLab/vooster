@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
+import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
 import { registerBranchRoutes } from "./branch-routes.js";
@@ -40,6 +41,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const app = Fastify({ logger: false });
   const state = initialState(options);
   registerAiGuideRoutes(app);
+  registerApiKeyRoutes(app, state);
   registerSignupRoutes(app, options, state);
   registerProjectRoutes(app, state);
   registerBranchRoutes(app, state);

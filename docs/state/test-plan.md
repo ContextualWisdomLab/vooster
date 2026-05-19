@@ -47,6 +47,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Stakeholder interest application extraction**: test `addStakeholderInterest` and `removeStakeholderInterest` without Fastify by faking use case, stakeholder, stakeholder-interest, revision, and membership stores; assert add persists an interest plus NON_BREAKING revision, duplicate/unknown stakeholders return write-free errors, and removing the final interest returns a BREAKING revision with the zero-interest warning.
 
+### Goal 2 Layers - Actor Goals
+
+- **Actor goal application extraction**: test `createGoal`, `patchGoal`, and `listGoals` without Fastify by faking actor, goal, membership, project, revision, and workspace stores; assert create persists a goal plus revision and duplicate warning, unavailable actors do not write, illegal/promoted status changes leave goals unchanged, and list groups goals by active actor.
+
 ## Example
 
 ### UC-009

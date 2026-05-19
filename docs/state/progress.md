@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T10:20:09Z_
+_Last updated: 2026-05-19T10:29:04Z_
 
 ## Overall
 
-- Commits: 579
-- Last commit: 8e7b919 green(cli): UC-015 CLI E2E
+- Commits: 582
+- Last commit: f876e1f green(cli): UC-016 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -37,7 +37,7 @@ _Last updated: 2026-05-19T10:20:09Z_
 | UC-013 | Edit a use case step | ✓ DONE | 6/6 | ✓ |
 | UC-014 | Search and filter use cases | ✓ DONE | 5/5 | ✓ |
 | UC-015 | Archive or restore a use case | ✓ DONE | 6/6 | ✓ |
-| UC-016 | Start a work session | ✓ DONE | 7/7 | ○ |
+| UC-016 | Start a work session | ✓ DONE | 7/7 | ✓ |
 | UC-017 | Monitor active sessions | ✓ DONE | 5/5 | ○ |
 | UC-018 | Complete a work session | ✓ DONE | 6/6 | ○ |
 | UC-019 | Create a branch | ✓ DONE | 6/6 | ○ |

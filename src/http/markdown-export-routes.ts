@@ -1,5 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  existingOutputProblem,
+  missingMarkdownRevisionProblem,
+  outputPathProblem
+} from "./markdown-export-problems.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
@@ -9,7 +14,8 @@ const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
   existing_file_content: z.string().optional(),
   force: z.boolean().default(false),
-  output_path: z.string().optional()
+  output_path: z.string().optional(),
+  revision_id: z.string().optional()
 });
 
 export function registerMarkdownExportRoutes(app: FastifyInstance, state: SignupState) {
@@ -30,6 +36,12 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   }
   if (membershipForProject(request, state, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export markdown"));
+  }
+  if (
+    parsed.data.revision_id !== undefined &&
+    !hasRevision(state, found.usecase, parsed.data.revision_id)
+  ) {
+    return reply.code(404).send(missingMarkdownRevisionProblem(found.usecase, parsed.data.revision_id));
   }
   const prerequisiteProblem = markdownPrerequisiteProblem(state, found.usecase);
   if (prerequisiteProblem !== undefined) {
@@ -82,42 +94,10 @@ function markdownPrerequisiteProblem(state: SignupState, usecase: StoredUseCase)
   );
 }
 
-function existingOutputProblem(existing: string, rendered: string) {
-  return problem(
-    409,
-    "Markdown output file already exists",
-    { diff: titleDiff(existing, rendered) },
-    [
-      {
-        command: "vspec export markdown --force",
-        reason: "Overwrite the existing markdown file after reviewing the diff."
-      }
-    ]
+function hasRevision(state: SignupState, usecase: StoredUseCase, revisionId: string) {
+  return (state.revisionsByEntityId.get(usecase.id) ?? []).some(
+    (revision) => revision.id === revisionId
   );
-}
-
-function outputPathProblem(outputPath: string | undefined) {
-  if (outputPath === undefined || !outputPath.startsWith("missing/")) {
-    return undefined;
-  }
-  return problem(
-    400,
-    "Output directory is not writable",
-    { exit_code: 6, path: outputPath },
-    [
-      {
-        command: "mkdir -p missing",
-        reason: "Create the export output directory."
-      }
-    ]
-  );
-}
-
-function titleDiff(existing: string, rendered: string) {
-  return [
-    `-${existing.split("\n").find((line) => line.startsWith("# ")) ?? ""}`,
-    `+${rendered.split("\n").find((line) => line.startsWith("# ")) ?? ""}`
-  ].join("\n");
 }
 
 function frontmatter(state: SignupState, projectId: string, usecase: StoredUseCase) {

@@ -54,6 +54,37 @@ describe("Goal 2 persistence matrix", () => {
       expect.stringMatching(/actor name.*already exists/i)
     );
   }, 90_000);
+
+  test("SpecBranch survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "specbranch.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "branch-owner");
+    const project = await createProject(first.url, signup, "Branch Matrix", "BRANCH");
+    await createBranch(first.url, signup.sessionCookie, project.id, "feature/persist");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "branch-owner");
+    const duplicate = await createBranchResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      project.id,
+      "feature/persist"
+    );
+
+    await second.stop();
+
+    expect(duplicate.status).toBe(422);
+    const duplicateBody = (await duplicate.json()) as {
+      suggested_name?: unknown;
+      title?: unknown;
+    };
+    expect(duplicateBody.suggested_name).toBe("feature/persist-2");
+    expect(duplicateBody.title).toEqual(
+      expect.stringMatching(/branch name is already in use/i)
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -159,6 +190,32 @@ async function createActor(
 ) {
   const response = await createActorResponse(baseUrl, sessionCookie, projectId, name);
   expect(response.status).toBe(201);
+}
+
+async function createBranch(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  name: string
+) {
+  const response = await createBranchResponse(baseUrl, sessionCookie, projectId, name);
+  expect(response.status).toBe(201);
+}
+
+function createBranchResponse(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  name: string
+) {
+  return fetch(`${baseUrl}/v1/projects/${projectId}/branches`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ from: "main", name })
+  });
 }
 
 function createActorResponse(

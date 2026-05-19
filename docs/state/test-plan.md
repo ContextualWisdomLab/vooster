@@ -7,6 +7,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Actor**: create signup, project, and actor through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert creating the same actor name is rejected as an existing active actor.
 
+### Goal 2 Persistence - SpecBranch
+
+- **SpecBranch**: create signup, project, and feature branch through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert creating the same branch name is rejected as an existing branch.
+
 ## Example
 
 ### UC-009

@@ -1,13 +1,13 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T13:04:25Z_
+_Last updated: 2026-05-19T15:24:02Z_
 
 ## Overall
 
-- Commits: 642
-- Last commit: c4b72f9 refactor(layers): extract AI guide slice
+- Commits: 646
+- Last commit: d95ff2f green(persist): actors backed by prisma
 - Use cases complete: 35 / 35
-- Active goal: ALL_DONE
+- Active goal: goals/2-shippable.md
 
 ## Runnability (goal 1)
 

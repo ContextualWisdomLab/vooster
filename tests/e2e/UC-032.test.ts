@@ -78,12 +78,37 @@ describe("UC-032 - Issue and manage API keys", () => {
     const listed = await listApiKeys(owner.workspaceId, owner.cookie);
     expect(((await listed.json()) as ApiKeyListResponse).api_keys).toEqual([]);
   });
+
+  test("5a: lost create response leaves metadata only and requires reissue", async () => {
+    const owner = await signup(server, "API Key Lost", "api-key-lost", "stub-api-key-lost");
+
+    const dropped = await createApiKey(owner.workspaceId, owner.cookie, {
+      name: "lost token",
+      scopes: ["read"],
+      simulate_response_drop: true
+    });
+
+    expect(dropped.status).toBe(503);
+    const listed = await listApiKeys(owner.workspaceId, owner.cookie);
+    const listBody = (await listed.json()) as ApiKeyListResponse;
+    expect(listBody.api_keys).toHaveLength(1);
+    expect(listBody.api_keys[0]).toMatchObject({ name: "lost token", revoked_at: null });
+    expect(listBody.api_keys[0]).not.toHaveProperty("plaintext_token");
+
+    await revokeApiKey(listBody.api_keys[0]?.id ?? "", owner.cookie);
+    const reissued = await createApiKey(owner.workspaceId, owner.cookie, {
+      name: "lost token replacement",
+      scopes: ["read"]
+    });
+    expect(reissued.status).toBe(201);
+    expect(((await reissued.json()) as ApiKeyResponse).plaintext_token).toMatch(/^vsp_/);
+  });
 });
 
 function createApiKey(
   workspaceId: string,
   cookie: string,
-  body: { name: string; scopes: string[] }
+  body: { name: string; scopes: string[]; simulate_response_drop?: boolean }
 ) {
   return server.fetch("/v1/api-keys", {
     method: "POST",

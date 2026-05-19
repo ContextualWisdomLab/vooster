@@ -34,6 +34,7 @@ export class VspecCommand extends Command {
     level: Flags.string(),
     limit: Flags.string(),
     name: Flags.string(),
+    "no-merge": Flags.boolean(),
     priority: Flags.string(),
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
@@ -45,6 +46,7 @@ export class VspecCommand extends Command {
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
     status: Flags.string(),
+    summary: Flags.string(),
     title: Flags.string(),
     type: Flags.string(),
     version: Flags.version({ char: "v" }),
@@ -117,6 +119,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "step" && this.argv[1] === "edit") {
       await this.editStep(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "session" && this.argv[1] === "complete") {
+      await this.completeSession(parsed.flags);
       return;
     }
     if (parsed.args.command === "session" && this.argv[1] === "list") {
@@ -568,6 +574,39 @@ export class VspecCommand extends Command {
       this.log(action.command);
     }
   }
+
+  private async completeSession(flags: ParsedFlags): Promise<void> {
+    const sessionFlags = sessionCompleteFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${sessionFlags.apiUrl}/v1/sessions/${sessionFlags.sessionId}/complete`,
+      {
+        no_merge: sessionFlags.noMerge,
+        ...(sessionFlags.summary === undefined ? {} : { summary: sessionFlags.summary })
+      },
+      {
+        Cookie: sessionFlags.sessionCookie
+      }
+    );
+    const body = response.body as SessionCompleteResponse;
+
+    this.log(`Session ${body.session.id}`);
+    this.log(`Status ${body.session.status}`);
+    this.log(`Ended at ${body.session.ended_at}`);
+    this.log(`Released locks ${body.released_lock_ids.join(", ") || "none"}`);
+    if (body.merge_request !== undefined) {
+      this.log(`Merge request ${body.merge_request.id}`);
+      this.log(`Merge status ${body.merge_request.status}`);
+      this.log(`Strategy ${body.merge_request.strategy}`);
+      this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
+    }
+    this.log(`Session file ${body.session_file.path} cleared`);
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.type} ${warning.lock_id}`);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -719,6 +758,14 @@ type SessionListFlags = {
   workspaceId: string;
 };
 
+type SessionCompleteFlags = {
+  apiUrl: string;
+  noMerge: boolean;
+  sessionCookie: string;
+  sessionId: string;
+  summary: string | undefined;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   "agent-type"?: string;
@@ -741,6 +788,7 @@ type ParsedFlags = {
   level?: string;
   limit?: string;
   name?: string;
+  "no-merge"?: boolean;
   priority?: string;
   "primary-actor"?: string;
   "project-id"?: string;
@@ -752,6 +800,7 @@ type ParsedFlags = {
   "session-cookie"?: string;
   stakeholder?: string;
   status?: string;
+  summary?: string;
   title?: string;
   type?: string;
   visibility?: string;
@@ -1023,6 +1072,31 @@ type SessionListResponse = {
   total: number;
 };
 
+type SessionCompleteResponse = {
+  merge_request?: {
+    conflicts: unknown[];
+    id: string;
+    status: string;
+    strategy: string;
+  };
+  released_lock_ids: string[];
+  session: {
+    ended_at: string;
+    id: string;
+    status: string;
+  };
+  session_file: {
+    path: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  warnings?: Array<{
+    lock_id: string;
+    type: string;
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -1228,6 +1302,19 @@ function sessionListFlagsFrom(flags: ParsedFlags): SessionListFlags {
     sessionCookie: requiredFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status"),
     workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function sessionCompleteFlagsFrom(
+  flags: ParsedFlags,
+  sessionId: string | undefined
+): SessionCompleteFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    noMerge: flags["no-merge"] ?? false,
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionId: requiredArgument(sessionId, "session-id"),
+    summary: optionalFlag(flags, "summary")
   };
 }
 

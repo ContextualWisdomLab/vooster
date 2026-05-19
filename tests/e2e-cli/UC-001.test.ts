@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,7 +21,7 @@ describe("UC-001 CLI - Sign up for a workspace", () => {
   test("MAIN: login creates a workspace and prints the next command", async () => {
     const server = await startNetworkServer();
     try {
-      const result = spawnSync(
+      const result = await runCli(
         process.execPath,
         [
           "bin/run.js",
@@ -35,10 +35,7 @@ describe("UC-001 CLI - Sign up for a workspace", () => {
           "--api-url",
           server.apiUrl
         ],
-        {
-          cwd: process.cwd(),
-          encoding: "utf8"
-        }
+        { ...process.env, VSPEC_CLI_SOURCE: "1" }
       );
 
       expect(result.stderr).toBe("");
@@ -78,4 +75,27 @@ async function startNetworkServer() {
       await app.close();
     }
   };
+}
+
+async function runCli(command: string, args: string[], env: NodeJS.ProcessEnv) {
+  const child = spawn(command, args, {
+    cwd: process.cwd(),
+    env
+  });
+  let stdout = "";
+  let stderr = "";
+
+  child.stdout.on("data", (chunk: Buffer) => {
+    stdout += chunk.toString("utf8");
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString("utf8");
+  });
+
+  const status = await new Promise<number | null>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("exit", resolve);
+  });
+
+  return { status, stderr, stdout };
 }

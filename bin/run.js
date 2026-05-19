@@ -9,6 +9,10 @@ const binDir = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 
 try {
+  if (process.env.VSPEC_CLI_SOURCE === "1") {
+    throw Object.assign(new Error("Use source CLI"), { code: "ERR_MODULE_NOT_FOUND" });
+  }
+
   const cli = await import("../dist/src/cli/index.js");
   await cli.runCli(argv);
 } catch (error) {

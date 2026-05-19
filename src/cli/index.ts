@@ -16,9 +16,12 @@ export class VspecCommand extends Command {
     email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
+    key: Flags.string(),
+    name: Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
     version: Flags.version({ char: "v" }),
+    visibility: Flags.string(),
     "workspace-id": Flags.string(),
     "workspace-name": Flags.string(),
     "workspace-slug": Flags.string()
@@ -35,6 +38,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {
       await this.inviteMember(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "project" && this.argv[1] === "create") {
+      await this.createProject(parsed.flags);
       return;
     }
 
@@ -109,6 +116,26 @@ export class VspecCommand extends Command {
       this.log(action.command);
     }
   }
+
+  private async createProject(flags: ParsedFlags): Promise<void> {
+    const projectFlags = projectFlagsFrom(flags);
+    const response = await postJson(
+      `${projectFlags.apiUrl}/v1/workspaces/${projectFlags.workspaceId}/projects`,
+      {
+        key: projectFlags.key,
+        name: projectFlags.name,
+        visibility: projectFlags.visibility
+      },
+      {
+        Cookie: projectFlags.sessionCookie
+      }
+    );
+    const body = response.body as ProjectResponse;
+
+    this.log(`Project ${body.project.name} ${body.project.key}`);
+    this.log(`Branch ${body.default_branch.name}`);
+    this.log(body.recommended_next_command);
+  }
 }
 
 type OAuthFlags = {
@@ -129,12 +156,24 @@ type InviteFlags = {
   workspaceId: string;
 };
 
+type ProjectFlags = {
+  apiUrl: string;
+  key: string;
+  name: string;
+  sessionCookie: string;
+  visibility: "INTERNAL" | "PRIVATE";
+  workspaceId: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   email?: string;
   "github-code"?: string;
+  key?: string;
+  name?: string;
   role?: string;
   "session-cookie"?: string;
+  visibility?: string;
   "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
@@ -175,6 +214,17 @@ type InvitationResponse = {
   }>;
 };
 
+type ProjectResponse = {
+  default_branch: {
+    name: string;
+  };
+  project: {
+    key: string;
+    name: string;
+  };
+  recommended_next_command: string;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -203,6 +253,17 @@ function inviteFlagsFrom(flags: ParsedFlags): InviteFlags {
   };
 }
 
+function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    key: requiredFlag(flags, "key"),
+    name: requiredFlag(flags, "name"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
+    workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -210,6 +271,15 @@ function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   }
 
   throw new Error("Role must be EDITOR or OWNER.");
+}
+
+function projectVisibility(rawVisibility: string): "INTERNAL" | "PRIVATE" {
+  const visibility = rawVisibility.toUpperCase();
+  if (visibility === "INTERNAL" || visibility === "PRIVATE") {
+    return visibility;
+  }
+
+  throw new Error("Visibility must be INTERNAL or PRIVATE.");
 }
 
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {

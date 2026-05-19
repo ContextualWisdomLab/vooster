@@ -367,6 +367,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **StakeholderInterest**: owner creates a project, actor, stakeholder, use case, and stakeholder interest through public APIs, restarts the server, logs back in, then attempts to add the same stakeholder interest again and asserts the duplicate-interest 409 still reports the original persisted interest text.
 
+### Goal 2 Persistence - Step
+
+- **Step**: owner creates a project, actor, stakeholder interest, use case, main scenario, and step through public APIs, restarts the server, logs back in, then fetches the use case in agent format and asserts the persisted step action and actor are listed under the scenario.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

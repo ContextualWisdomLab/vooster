@@ -374,6 +374,66 @@ describe("Goal 2 persistence matrix", () => {
       expect.stringMatching(/stakeholder interest.*already exists/i)
     );
   }, 90_000);
+
+  test("Step survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "step.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "step-owner");
+    const project = await createProject(first.url, signup, "Step Matrix", "STEP");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    await createStakeholder(first.url, signup.sessionCookie, project.id, "Operations");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a stepped workflow",
+      "Customer"
+    );
+    await addStakeholderInterest(
+      first.url,
+      signup.sessionCookie,
+      usecase.id,
+      "Operations"
+    );
+    const scenario = await createMainScenario(first.url, signup.sessionCookie, usecase.id);
+    const step = await createStep(
+      first.url,
+      signup.sessionCookie,
+      scenario.id,
+      "Customer",
+      "Submit the support request."
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "step-owner");
+    const shown = await showUseCase(second.url, loggedIn.sessionCookie, usecase.id);
+
+    await second.stop();
+
+    expect(shown.status).toBe(200);
+    const shownBody = (await shown.json()) as {
+      data?: {
+        scenarios?: Array<{
+          id?: unknown;
+          steps?: Array<{ action?: unknown; actor?: unknown; step_number?: unknown }>;
+        }>;
+      };
+    };
+    expect(shownBody.data?.scenarios ?? []).toContainEqual(
+      expect.objectContaining({
+        id: scenario.id,
+        steps: expect.arrayContaining([
+          expect.objectContaining({
+            action: step.action,
+            actor: "Customer",
+            step_number: 1
+          })
+        ])
+      })
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -703,6 +763,27 @@ function createMainScenarioResponse(
   });
 }
 
+async function createStep(
+  baseUrl: string,
+  sessionCookie: string,
+  scenarioId: string,
+  actor: string,
+  action: string
+) {
+  const response = await fetch(`${baseUrl}/v1/scenarios/${scenarioId}/steps`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ action, actor })
+  });
+  const body = (await response.json()) as { step: { action: string; id: string } };
+
+  expect(response.status).toBe(201);
+  return body.step;
+}
+
 async function createLock(baseUrl: string, sessionCookie: string, usecaseId: string) {
   const response = await fetch(`${baseUrl}/v1/locks`, {
     method: "POST",
@@ -726,6 +807,12 @@ async function createLock(baseUrl: string, sessionCookie: string, usecaseId: str
 
 function whoIsWorking(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}/who`, {
+    headers: { cookie: sessionCookie }
+  });
+}
+
+function showUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}?format=agent`, {
     headers: { cookie: sessionCookie }
   });
 }

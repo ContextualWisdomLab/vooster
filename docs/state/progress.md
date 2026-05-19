@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T21:01:47Z_
+_Last updated: 2026-05-19T21:37:02Z_
 
 ## Overall
 
-- Commits: 701
-- Last commit: 641904b green(persist): ApiKey adapter
+- Commits: 706
+- Last commit: f76e984 green(auth): boot without GitHub credentials
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

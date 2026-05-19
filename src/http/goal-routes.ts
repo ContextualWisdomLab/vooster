@@ -7,10 +7,8 @@ import {
   goalCreateResponse,
   goalIdFrom,
   goalRevision,
-  goalWithProjectId,
   nearDuplicateGoal,
-  projectIdFrom,
-  projectWorkspaceArchived
+  projectIdFrom
 } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -20,6 +18,8 @@ import type {
   StoredMembership
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { GoalStore } from "../ports/goal-store.js";
+import type { SignupStore } from "../ports/signup-store.js";
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -32,25 +32,31 @@ const goalPatchSchema = z.object({
 export function registerGoalRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
 ) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
-    createGoal(request, reply, state, actorStore)
+    createGoal(request, reply, state, actorStore, goalStore, store)
   );
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
-    listGoals(request, reply, state, actorStore)
+    listGoals(request, reply, state, actorStore, goalStore, store)
   );
-  app.patch("/v1/goals/:goalId", (request, reply) => patchGoal(request, reply, state));
+  app.patch("/v1/goals/:goalId", (request, reply) =>
+    patchGoal(request, reply, state, goalStore, store)
+  );
 }
 
 async function createGoal(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
 ) {
   const projectId = projectIdFrom(request.params);
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, projectId, store) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -99,27 +105,34 @@ async function createGoal(
     priority: parsed.data.priority,
     archived_at: null
   };
-  const duplicateGoal = nearDuplicateGoal(state, projectId, actor.id, goal.description);
+  const duplicateGoal = nearDuplicateGoal(
+    await goalStore.listGoals(projectId),
+    actor.id,
+    goal.description
+  );
   const revision = goalRevision(goal, 1);
 
-  state.goalsByProjectId.set(projectId, [
-    ...(state.goalsByProjectId.get(projectId) ?? []),
-    goal
-  ]);
+  await goalStore.saveGoal(goal);
   state.revisionsByEntityId.set(goal.id, [revision]);
 
   return reply.code(201).send(goalCreateResponse(goal, revision, duplicateGoal));
 }
 
-function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = goalWithProjectId(state, goalIdFrom(request.params));
-  if (found === undefined) {
+async function patchGoal(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
+) {
+  const goal = await goalStore.findGoalById(goalIdFrom(request.params));
+  if (goal === undefined) {
     return reply.code(404).send(problem(404, "Goal not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, goal.project_id, store) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  if (projectWorkspaceArchived(state, found.projectId)) {
+  if (projectWorkspaceArchived(state, goal.project_id)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -130,7 +143,7 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
 
   if (
     parsed.data.status !== undefined &&
-    !canTransition(found.goal.status, parsed.data.status)
+    !canTransition(goal.status, parsed.data.status)
   ) {
     return reply.code(422).send(
       problem(422, "Illegal status transition", {
@@ -139,7 +152,7 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     );
   }
 
-  if (found.goal.status === "PROMOTED" && parsed.data.status === "REJECTED") {
+  if (goal.status === "PROMOTED" && parsed.data.status === "REJECTED") {
     return reply.code(422).send(
       problem(422, "Use case must be archived before rejecting this goal", {}, [
         {
@@ -151,28 +164,31 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   }
 
   if (parsed.data.status !== undefined) {
-    found.goal.status = parsed.data.status;
+    goal.status = parsed.data.status;
   }
   const revision = goalRevision(
-    found.goal,
-    (state.revisionsByEntityId.get(found.goal.id) ?? []).length + 1
+    goal,
+    (state.revisionsByEntityId.get(goal.id) ?? []).length + 1
   );
-  state.revisionsByEntityId.set(found.goal.id, [
-    ...(state.revisionsByEntityId.get(found.goal.id) ?? []),
+  state.revisionsByEntityId.set(goal.id, [
+    ...(state.revisionsByEntityId.get(goal.id) ?? []),
     revision
   ]);
+  await goalStore.updateGoal(goal);
 
-  return reply.send({ goal: found.goal, revision });
+  return reply.send({ goal, revision });
 }
 
 async function listGoals(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
 ) {
   const projectId = projectIdFrom(request.params);
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, projectId, store) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -183,7 +199,7 @@ async function listGoals(
     (actor) =>
       actor.archived_at === null && (actorId === undefined || actor.id === actorId)
   );
-  const goals = state.goalsByProjectId.get(projectId) ?? [];
+  const goals = await goalStore.listGoals(projectId);
 
   return reply.send({
     actors: actors.map((actor) => ({
@@ -193,13 +209,17 @@ async function listGoals(
   });
 }
 
-function membershipForProject(
+async function membershipForProject(
   request: FastifyRequest,
   state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
+  projectId: string,
+  store: SignupStore | undefined
+): Promise<StoredMembership | undefined> {
   const project = state.projectsById.get(projectId);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (store !== undefined && userId !== undefined) {
+    return store.membershipForProject(projectId, userId);
+  }
   if (project === undefined || userId === undefined) {
     return undefined;
   }
@@ -207,4 +227,9 @@ function membershipForProject(
   return (state.membershipsByUserId.get(userId) ?? []).find(
     (membership) => membership.workspace_id === project.workspace_id
   );
+}
+
+function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
+  const project = state.projectsById.get(projectId);
+  return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
 }

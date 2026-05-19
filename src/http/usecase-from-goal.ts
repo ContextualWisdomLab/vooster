@@ -1,26 +1,29 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { goalWithProjectId } from "./goal-support.js";
 import { promoteGoalToUseCase } from "./goal-promotion-routes.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
+import type { GoalStore } from "../ports/goal-store.js";
 
-export function createUseCaseFromGoal(
+export async function createUseCaseFromGoal(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  goalStore: GoalStore,
   projectId: string
-) {
+): Promise<boolean> {
   const fromGoalId = fromGoalIdFrom(request.body);
   if (fromGoalId === undefined) {
-    return undefined;
+    return false;
   }
 
-  const found = goalWithProjectId(state, fromGoalId);
-  if (found === undefined || found.projectId !== projectId) {
-    return reply.code(404).send(problem(404, "Goal not found"));
+  const goal = await goalStore.findGoalById(fromGoalId);
+  if (goal === undefined || goal.project_id !== projectId) {
+    reply.code(404).send(problem(404, "Goal not found"));
+    return true;
   }
 
-  return promoteGoalToUseCase(reply, state, found);
+  await promoteGoalToUseCase(reply, state, goalStore, { goal, projectId });
+  return true;
 }
 
 function fromGoalIdFrom(body: unknown): string | undefined {

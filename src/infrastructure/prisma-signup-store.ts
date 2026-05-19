@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
 import type {
   StoredActor,
+  StoredGoal,
   StoredMembership,
   StoredProject,
   StoredSpecBranch,
@@ -94,6 +95,14 @@ class PrismaSignupStore implements SignupStore {
     return branch === null ? undefined : storedBranch(branch);
   }
 
+  async findGoalById(goalId: string): Promise<StoredGoal | undefined> {
+    const goal = await this.prisma.goal.findUnique({
+      where: { id: goalId }
+    });
+
+    return goal === null ? undefined : storedGoal(goal);
+  }
+
   async findProjectById(projectId: string): Promise<StoredProject | undefined> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId }
@@ -118,6 +127,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return branches.map(storedBranch);
+  }
+
+  async listGoals(projectId: string): Promise<StoredGoal[]> {
+    const goals = await this.prisma.goal.findMany({
+      orderBy: { created_at: "asc" },
+      where: { project_id: projectId }
+    });
+
+    return goals.map(storedGoal);
   }
 
   async membershipForProject(
@@ -172,6 +190,10 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.specBranch.create({ data: specBranchData(branch) });
   }
 
+  async saveGoal(goal: StoredGoal): Promise<void> {
+    await this.prisma.goal.create({ data: goalData(goal) });
+  }
+
   async saveProjectWithDefaultBranch(
     project: StoredProject,
     branch: StoredSpecBranch
@@ -210,6 +232,13 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async updateGoal(goal: StoredGoal): Promise<void> {
+    await this.prisma.goal.update({
+      data: goalUpdate(goal),
+      where: { id: goal.id }
+    });
+  }
+
   async updateLastLoginAt(userId: string, lastLoginAt: string): Promise<void> {
     await this.prisma.user.update({
       data: { last_login_at: new Date(lastLoginAt) },
@@ -240,6 +269,30 @@ class PrismaSignupStore implements SignupStore {
       slug: membership.workspace.slug
     }));
   }
+}
+
+function storedGoal(goal: {
+  actor_id: string;
+  archived_at: Date | null;
+  description: string;
+  id: string;
+  level: string;
+  linked_usecase_id: null | string;
+  priority: string;
+  project_id: string;
+  status: string;
+}): StoredGoal {
+  return {
+    actor_id: goal.actor_id,
+    archived_at: goal.archived_at?.toISOString() ?? null,
+    description: goal.description,
+    id: goal.id,
+    level: storedUseCaseLevel(goal.level),
+    linked_usecase_id: goal.linked_usecase_id,
+    priority: storedPriority(goal.priority),
+    project_id: goal.project_id,
+    status: storedGoalStatus(goal.status)
+  };
 }
 
 function storedBranch(branch: {
@@ -392,6 +445,27 @@ function specBranchUpdate(branch: StoredSpecBranch) {
   };
 }
 
+function goalData(goal: StoredGoal) {
+  return {
+    actor_id: goal.actor_id,
+    archived_at: dateOrNull(goal.archived_at),
+    description: goal.description,
+    id: goal.id,
+    level: goal.level,
+    linked_usecase_id: goal.linked_usecase_id,
+    priority: goal.priority,
+    project_id: goal.project_id,
+    status: goal.status
+  };
+}
+
+function goalUpdate(goal: StoredGoal) {
+  return {
+    archived_at: dateOrNull(goal.archived_at),
+    status: goal.status
+  };
+}
+
 function storedBranchStatus(status: string): StoredSpecBranch["status"] {
   return status === "ABANDONED" || status === "MERGED" ? status : "ACTIVE";
 }
@@ -402,4 +476,18 @@ function storedOwnerType(ownerType: string): StoredSpecBranch["owner_type"] {
 
 function storedActorType(type: string): StoredActor["type"] {
   return type === "OFFSTAGE" || type === "SUPPORTING" ? type : "PRIMARY";
+}
+
+function storedGoalStatus(status: string): StoredGoal["status"] {
+  return status === "IN_DESIGN" || status === "PROMOTED" || status === "REJECTED"
+    ? status
+    : "IDENTIFIED";
+}
+
+function storedPriority(priority: string): StoredGoal["priority"] {
+  return priority === "P0" || priority === "P1" || priority === "P3" ? priority : "P2";
+}
+
+function storedUseCaseLevel(level: string): StoredGoal["level"] {
+  return level === "SUMMARY" || level === "SUBFUNCTION" ? level : "USER_GOAL";
 }

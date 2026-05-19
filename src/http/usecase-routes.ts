@@ -19,6 +19,7 @@ import type {
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { GoalStore } from "../ports/goal-store.js";
 
 const useCaseRequestSchema = z.object({
   force: z.boolean().default(false),
@@ -38,10 +39,11 @@ export function registerUseCaseRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  goalStore: GoalStore
 ) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
-    createUseCase(request, reply, state, actorStore)
+    createUseCase(request, reply, state, actorStore, goalStore)
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
     patchUseCase(request, reply, state, branchStore)
@@ -52,7 +54,8 @@ async function createUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  goalStore: GoalStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
@@ -69,9 +72,8 @@ async function createUseCase(
       ])
     );
   }
-  const fromGoal = createUseCaseFromGoal(request, reply, state, projectId);
-  if (fromGoal !== undefined) {
-    return fromGoal;
+  if (await createUseCaseFromGoal(request, reply, state, goalStore, projectId)) {
+    return undefined;
   }
   const parsed = useCaseRequestSchema.safeParse(request.body);
   if (!parsed.success) {

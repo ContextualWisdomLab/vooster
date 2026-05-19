@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { goalWithProjectId } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import {
@@ -15,23 +14,36 @@ import type {
   StoredGoal,
   StoredUseCase
 } from "./signup-types.js";
+import type { GoalStore } from "../ports/goal-store.js";
+import type { SignupStore } from "../ports/signup-store.js";
 
 const promoteRequestSchema = z.object({
   simulate_usecase_insert_failure: z.boolean().optional()
 });
 
-export function registerGoalPromotionRoutes(app: FastifyInstance, state: SignupState) {
+export function registerGoalPromotionRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
+) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
-    promoteGoal(request, reply, state)
+    promoteGoal(request, reply, state, goalStore, store)
   );
 }
 
-function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = goalWithProjectId(state, goalIdFrom(request.params));
-  if (found === undefined) {
+async function promoteGoal(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  goalStore: GoalStore,
+  store: SignupStore | undefined
+) {
+  const goal = await goalStore.findGoalById(goalIdFrom(request.params));
+  if (goal === undefined) {
     return reply.code(404).send(problem(404, "Goal not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, goal.project_id, store) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = promoteRequestSchema.safeParse(request.body ?? {});
@@ -39,14 +51,15 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
-  return promoteGoalToUseCase(reply, state, found, {
+  return promoteGoalToUseCase(reply, state, goalStore, { goal, projectId: goal.project_id }, {
     simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true
   });
 }
 
-export function promoteGoalToUseCase(
+export async function promoteGoalToUseCase(
   reply: FastifyReply,
   state: SignupState,
+  goalStore: GoalStore,
   found: { goal: StoredGoal; projectId: string },
   options: { simulateUseCaseInsertFailure?: boolean } = {}
 ) {
@@ -108,6 +121,7 @@ export function promoteGoalToUseCase(
   state.revisionsByEntityId.set(usecase.id, [revision]);
   found.goal.status = "PROMOTED";
   found.goal.linked_usecase_id = usecase.id;
+  await goalStore.updateGoal(found.goal);
   const titleWarning = titleLooksLikeVerbPhrase(usecase.title)
     ? undefined
     : { field: "title", message: "Title may not be a verb phrase." };
@@ -141,13 +155,17 @@ function titleLooksLikeVerbPhrase(title: string): boolean {
   );
 }
 
-function membershipForProject(
+async function membershipForProject(
   request: FastifyRequest,
   state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
+  projectId: string,
+  store: SignupStore | undefined
+): Promise<StoredMembership | undefined> {
   const project = state.projectsById.get(projectId);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (store !== undefined && userId !== undefined) {
+    return store.membershipForProject(projectId, userId);
+  }
   if (project === undefined || userId === undefined) {
     return undefined;
   }

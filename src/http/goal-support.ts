@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { SignupState, StoredGoal } from "./signup-types.js";
+import type { StoredGoal } from "./signup-types.js";
 
 export const allowedStatusTransitions = [
   "IDENTIFIED -> IN_DESIGN",
@@ -20,25 +20,6 @@ export function canTransition(
   );
 }
 
-export function goalWithProjectId(
-  state: SignupState,
-  goalId: string
-): { goal: StoredGoal; projectId: string } | undefined {
-  for (const [projectId, goals] of state.goalsByProjectId) {
-    const goal = goals.find((candidate) => candidate.id === goalId);
-    if (goal !== undefined) {
-      return { goal, projectId };
-    }
-  }
-
-  return undefined;
-}
-
-export function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
-  const project = state.projectsById.get(projectId);
-  return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
-}
-
 export function goalRevision(goal: StoredGoal, versionNumber: number) {
   return {
     id: randomUUID(),
@@ -50,13 +31,12 @@ export function goalRevision(goal: StoredGoal, versionNumber: number) {
 }
 
 export function nearDuplicateGoal(
-  state: SignupState,
-  projectId: string,
+  goals: StoredGoal[],
   actorId: string,
   description: string
 ): StoredGoal | undefined {
   const normalized = comparableDescription(description);
-  return (state.goalsByProjectId.get(projectId) ?? []).find(
+  return goals.find(
     (goal) =>
       goal.actor_id === actorId && comparableDescription(goal.description) === normalized
   );

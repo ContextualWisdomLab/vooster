@@ -19,14 +19,17 @@ export class VspecCommand extends Command {
     email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
+    interest: Flags.string(),
     key: Flags.string(),
     level: Flags.string(),
     name: Flags.string(),
     priority: Flags.string(),
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
+    "protection-mechanism": Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
+    stakeholder: Flags.string(),
     title: Flags.string(),
     type: Flags.string(),
     version: Flags.version({ char: "v" }),
@@ -75,6 +78,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "create") {
       await this.createUseCase(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "usecase" && this.argv[1] === "add-stakeholder") {
+      await this.addStakeholderInterest(parsed.flags);
       return;
     }
 
@@ -308,6 +315,33 @@ export class VspecCommand extends Command {
       this.log(action.command);
     }
   }
+
+  private async addStakeholderInterest(flags: ParsedFlags): Promise<void> {
+    const interestFlags = stakeholderInterestFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${interestFlags.apiUrl}/v1/usecases/${interestFlags.usecaseId}/stakeholder-interests`,
+      {
+        interest: interestFlags.interest,
+        protection_mechanism: interestFlags.protectionMechanism,
+        stakeholder: interestFlags.stakeholder
+      },
+      {
+        Cookie: interestFlags.sessionCookie
+      }
+    );
+    const body = response.body as StakeholderInterestResponse;
+
+    this.log(`Stakeholder ${body.stakeholder_interests.at(-1)?.stakeholder.name ?? ""}`);
+    this.log(`Interest ${body.stakeholder_interest.interest}`);
+    this.log(`Protection ${body.stakeholder_interest.protection_mechanism}`);
+    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+    for (const item of body.stakeholder_interests) {
+      this.log(`${item.stakeholder.name}: ${item.interest.interest}`);
+    }
+    if (body.next_missing_role_hint !== "") {
+      this.log(body.next_missing_role_hint);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -387,6 +421,15 @@ type UseCaseCreateFlags = {
   title: string;
 };
 
+type StakeholderInterestFlags = {
+  apiUrl: string;
+  interest: string;
+  protectionMechanism: string;
+  sessionCookie: string;
+  stakeholder: string;
+  usecaseId: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   aliases?: string;
@@ -394,14 +437,17 @@ type ParsedFlags = {
   description?: string;
   email?: string;
   "github-code"?: string;
+  interest?: string;
   key?: string;
   level?: string;
   name?: string;
   priority?: string;
   "primary-actor"?: string;
   "project-id"?: string;
+  "protection-mechanism"?: string;
   role?: string;
   "session-cookie"?: string;
+  stakeholder?: string;
   title?: string;
   type?: string;
   visibility?: string;
@@ -543,6 +589,26 @@ type UseCaseResponse = {
   };
 };
 
+type StakeholderInterestResponse = {
+  next_missing_role_hint: string;
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  stakeholder_interest: {
+    interest: string;
+    protection_mechanism: string;
+  };
+  stakeholder_interests: Array<{
+    interest: {
+      interest: string;
+    };
+    stakeholder: {
+      name: string;
+    };
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -644,6 +710,20 @@ function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
     projectId: requiredFlag(flags, "project-id"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     title: requiredFlag(flags, "title")
+  };
+}
+
+function stakeholderInterestFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined
+): StakeholderInterestFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    interest: requiredFlag(flags, "interest"),
+    protectionMechanism: flags["protection-mechanism"] ?? "",
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    stakeholder: requiredFlag(flags, "stakeholder"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
 

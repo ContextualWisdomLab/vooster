@@ -19,24 +19,26 @@ export class VspecCommand extends Command {
 }
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
-  await VspecCommand.run(argv, {
-    pjson: {
-      name: "vspec",
-      oclif: {
-        commands: {
-          strategy: "single",
-          target: "index.js"
-        }
+  try {
+    await VspecCommand.run(argv, {
+      pjson: {
+        name: "vspec",
+        oclif: {
+          commands: {
+            strategy: "single",
+            target: "index.js"
+          }
+        },
+        version: "1.0.0"
       },
-      version: "1.0.0"
-    },
-    root
-  });
-  await flush();
+      root
+    });
+    await flush();
+  } catch (error: unknown) {
+    await handle(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  void runCli().catch(async (error: unknown) => {
-    await handle(error instanceof Error ? error : new Error(String(error)));
-  });
+  void runCli();
 }

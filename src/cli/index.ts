@@ -67,6 +67,10 @@ export class VspecCommand extends Command {
       await this.listGoals(parsed.flags);
       return;
     }
+    if (parsed.args.command === "goal" && this.argv[1] === "promote") {
+      await this.promoteGoal(parsed.flags);
+      return;
+    }
 
     this.log("vspec CLI");
   }
@@ -248,6 +252,30 @@ export class VspecCommand extends Command {
       }
     }
   }
+
+  private async promoteGoal(flags: ParsedFlags): Promise<void> {
+    const goalFlags = goalPromoteFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}/promote`,
+      {},
+      {
+        Cookie: goalFlags.sessionCookie
+      }
+    );
+    const body = response.body as GoalPromotionResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Title ${body.usecase.title}`);
+    this.log(`Format ${body.usecase.format}`);
+    this.log(`Revision version ${String(body.revision.version_number)}`);
+    this.log(`Goal ${body.goal.status}`);
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.message}`);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -310,6 +338,12 @@ type GoalListFlags = {
   actorId: string | undefined;
   apiUrl: string;
   projectId: string;
+  sessionCookie: string;
+};
+
+type GoalPromoteFlags = {
+  apiUrl: string;
+  goalId: string;
   sessionCookie: string;
 };
 
@@ -430,6 +464,26 @@ type GoalListResponse = {
   }>;
 };
 
+type GoalPromotionResponse = {
+  goal: {
+    status: string;
+  };
+  revision: {
+    version_number: number;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  usecase: {
+    format: string;
+    key: string;
+    title: string;
+  };
+  warnings?: Array<{
+    message: string;
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -513,6 +567,17 @@ function goalListFlagsFrom(flags: ParsedFlags): GoalListFlags {
   };
 }
 
+function goalPromoteFlagsFrom(
+  flags: ParsedFlags,
+  goalId: string | undefined
+): GoalPromoteFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    goalId: requiredArgument(goalId, "goal-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -588,6 +653,14 @@ function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {
   const value = values[name];
   if (value === undefined || value.trim() === "") {
     throw new Error(`Missing --${name}.`);
+  }
+
+  return value;
+}
+
+function requiredArgument(value: string | undefined, name: string): string {
+  if (value === undefined || value.trim() === "") {
+    throw new Error(`Missing ${name}.`);
   }
 
   return value;

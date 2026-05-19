@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T08:29:24Z_
+_Last updated: 2026-05-19T08:39:08Z_
 
 ## Overall
 
-- Commits: 529
-- Last commit: 2b420e5 green(persist): signup backed by prisma
+- Commits: 532
+- Last commit: e4dbdfd fix(cli): handle oclif help exit
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -15,7 +15,7 @@ _Last updated: 2026-05-19T08:29:24Z_
 | --- | --- |
 | Bootable (npm start, /healthz) | ✓ |
 | Persistence (restart survival) | ✓ |
-| CLI binary + subcommands | ✗ |
+| CLI binary + subcommands | ✓ |
 | Layered architecture | ✗ |
 
 ## By Use Case

@@ -105,9 +105,11 @@ function revokeApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
   if (apiKey === undefined || ownerMembership(request, state, apiKey.workspace_id) === undefined) {
     return reply.code(404).send(problem(404, "API key not found"));
   }
+  const idempotent = apiKey.revoked_at !== null;
   apiKey.revoked_at = apiKey.revoked_at ?? new Date().toISOString();
   return reply.send({
     api_key: publicApiKey(apiKey),
+    ...(idempotent ? { idempotent: true } : {}),
     suggested_next_actions: [
       { command: "vspec api-key list", reason: "Confirm the key revocation status." }
     ]

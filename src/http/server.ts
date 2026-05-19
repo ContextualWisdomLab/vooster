@@ -367,19 +367,17 @@ function withGithubOAuthFromEnv(options: ServerOptions): ServerOptions {
   if (options.authStub || options.githubOAuth !== undefined) {
     return options;
   }
+  const githubOAuth = githubOAuthFromEnv();
 
-  return {
-    ...options,
-    githubOAuth: githubOAuthFromEnv()
-  };
+  return githubOAuth === undefined ? options : { ...options, githubOAuth };
 }
 
-function githubOAuthFromEnv(): GithubOAuthConfig {
+function githubOAuthFromEnv(): GithubOAuthConfig | undefined {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
   if (clientId === undefined || clientSecret === undefined) {
-    throw new Error("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required.");
+    return undefined;
   }
 
   return { clientId, clientSecret };

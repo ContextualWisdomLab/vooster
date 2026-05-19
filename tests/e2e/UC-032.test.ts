@@ -1,4 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import {
+  acceptInvitation,
+  inviteMember,
+  type InvitationResponse
+} from "../helpers/invitation-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { signup } from "../helpers/uc-fixtures.js";
 
@@ -19,6 +24,9 @@ type ApiKeyResponse = {
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type ApiKeyListResponse = { api_keys: ApiKey[] };
+type ProblemResponse = {
+  suggested_next_actions: Array<{ command: string; reason: string }>;
+};
 
 let server: TestServer;
 beforeAll(async () => { server = await startServer(); });
@@ -120,6 +128,32 @@ describe("UC-032 - Issue and manage API keys", () => {
     const second = (await secondResponse.json()) as ApiKeyResponse;
     expect(second.api_key.revoked_at).toBe(first.api_key.revoked_at);
     expect(second.idempotent).toBe(true);
+  });
+
+  test("2b: editor cannot create API keys and gets owner-role guidance", async () => {
+    const owner = await signup(server, "API Key Editor", "api-key-editor", "stub-api-key-editor-owner");
+    const invited = await inviteMember(
+      server,
+      owner.workspaceId,
+      owner.cookie,
+      "stub-api-key-editor@users.noreply.github.com",
+      "EDITOR"
+    );
+    const inviteBody = (await invited.json()) as InvitationResponse;
+    const accepted = await acceptInvitation(server, inviteBody.invitation.token, "stub-api-key-editor");
+    const editorCookie = accepted.headers.get("set-cookie") ?? "";
+
+    const response = await createApiKey(owner.workspaceId, editorCookie, {
+      name: "editor key",
+      scopes: ["read"]
+    });
+
+    expect(response.status).toBe(403);
+    const problem = (await response.json()) as ProblemResponse;
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner to grant OWNER before issuing API keys."
+    });
   });
 });
 

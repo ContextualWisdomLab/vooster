@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { createActor, createProject } from "../helpers/uc-fixtures.js";
+import { createActor, createGoalForActor, createProject } from "../helpers/uc-fixtures.js";
 
 type UseCase = {
   current_revision_id: string;
@@ -132,6 +132,35 @@ describe("UC-009 - Author a use case from scratch", () => {
     expect(body.suggested_next_actions).toContainEqual({
       command: "vspec actor create --name Customer",
       reason: "Create the actor before authoring the use case."
+    });
+  });
+
+  test("3a: from goal delegates to promotion and carries goal fields", async () => {
+    const setup = await createProject(server, "Author From Goal", "author-from-goal", "stub-author-from-goal");
+    const actor = await createActor(server, setup, "Customer");
+    const goal = await createGoalForActor(server, setup, actor, "Requests a refund");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ from_goal_id: goal.id })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as UseCaseResponse & { goal: { linked_usecase_id: string; status: string } };
+    expect(body.usecase).toMatchObject({
+      key: "CHK-001",
+      level: goal.level,
+      primary_actor_id: actor.id,
+      title: goal.description
+    });
+    expect(body.revision).toMatchObject({
+      change_summary: `Promoted from goal ${goal.id}`,
+      entity_id: body.usecase.id
+    });
+    expect(body.goal).toMatchObject({
+      linked_usecase_id: body.usecase.id,
+      status: "PROMOTED"
     });
   });
 

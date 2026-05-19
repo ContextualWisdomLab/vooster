@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T08:54:37Z_
+_Last updated: 2026-05-19T09:01:42Z_
 
 ## Overall
 
-- Commits: 536
-- Last commit: 520a933 fix(tdd): prefer scoped green matching
+- Commits: 540
+- Last commit: 0128bd7 green(cli): UC-002 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -23,7 +23,7 @@ _Last updated: 2026-05-19T08:54:37Z_
 | ID | Title | E2E Status | API Tests | CLI E2E |
 | --- | --- | --- | --- | --- |
 | UC-001 | Sign up for a workspace | ✓ DONE | 5/5 | ✓ |
-| UC-002 | Log in | ✓ DONE | 5/5 | ○ |
+| UC-002 | Log in | ✓ DONE | 5/5 | ✓ |
 | UC-003 | Invite a member | ✓ DONE | 7/7 | ○ |
 | UC-004 | Create a project | ✓ DONE | 6/6 | ○ |
 | UC-005 | Define an actor | ✓ DONE | 6/6 | ○ |

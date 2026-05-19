@@ -19,9 +19,33 @@ export function createMemoryWorkspaceStore(): WorkspaceStore {
       return Promise.resolve(archivedWorkspaces.has(workspaceId));
     },
 
+    nextAvailableWorkspaceSlug(slug) {
+      return Promise.resolve(nextAvailableSlug(slug, existingSlugs(workspacesById)));
+    },
+
     saveWorkspace(workspace) {
       workspacesById.set(workspace.id, workspace);
       return Promise.resolve();
+    },
+
+    workspaceSlugExists(slug) {
+      return Promise.resolve(existingSlugs(workspacesById).has(slug));
     }
   };
+}
+
+function existingSlugs(workspacesById: Map<string, StoredWorkspace>) {
+  return new Set([...workspacesById.values()].map((workspace) => workspace.slug));
+}
+
+function nextAvailableSlug(slug: string, existingSlugs: Set<string>): string {
+  let suffix = 2;
+  let candidate = `${slug}-${String(suffix)}`;
+
+  while (existingSlugs.has(candidate)) {
+    suffix += 1;
+    candidate = `${slug}-${String(suffix)}`;
+  }
+
+  return candidate;
 }

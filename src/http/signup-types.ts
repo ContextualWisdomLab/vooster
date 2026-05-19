@@ -14,7 +14,6 @@ export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
-  workspaceSlugs: Set<string>;
 };
 export type GithubProfile = {
   githubId: string;

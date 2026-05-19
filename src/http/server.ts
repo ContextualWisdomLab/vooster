@@ -352,8 +352,7 @@ function initialState(): SignupState {
   const state: SignupState = {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
-    sessionsByToken: new Map(),
-    workspaceSlugs: new Set()
+    sessionsByToken: new Map()
   };
 
   return state;

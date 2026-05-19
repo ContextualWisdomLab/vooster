@@ -56,6 +56,5 @@ export type SignupStore = ActorStore &
     project: StoredProject,
     branch: StoredSpecBranch
   ) => Promise<void>;
-  workspaceSlugExists: (slug: string) => Promise<boolean>;
   workspaceSummariesForUser: (userId: string) => Promise<WorkspaceSummary[]>;
 };

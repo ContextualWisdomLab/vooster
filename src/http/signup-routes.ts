@@ -3,7 +3,6 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { establishSession } from "./session-support.js";
 import {
-  alternativeSlug,
   clearOAuthState,
   cookie,
   fetchGithubProfile,
@@ -164,15 +163,14 @@ async function completeVerifiedSignup(
   profile: GithubProfile,
   pending: PendingSignup
 ) {
-  if (state.workspaceSlugs.has(pending.slug) || await workspaceSlugExists(store, pending.slug)) {
+  if (await workspaceStore.workspaceSlugExists(pending.slug)) {
     return reply.code(422).send(
       problem(422, "Workspace slug is already taken", {
-        suggested_alternative_slug: alternativeSlug(pending.slug, state.workspaceSlugs)
+        suggested_alternative_slug: await workspaceStore.nextAvailableWorkspaceSlug(pending.slug)
       })
     );
   }
 
-  state.workspaceSlugs.add(pending.slug);
   const entities = signupEntities(profile, pending);
   if (store === undefined) {
     await userStore.saveUser(entities.user);
@@ -243,13 +241,6 @@ async function workspacesForUser(
 
 function isSignupStore(userStore: UserStore): userStore is SignupStore {
   return "workspaceSummariesForUser" in userStore;
-}
-
-async function workspaceSlugExists(
-  store: SignupStore | undefined,
-  slug: string
-): Promise<boolean> {
-  return store === undefined ? false : store.workspaceSlugExists(slug);
 }
 
 function pendingOAuthFor(

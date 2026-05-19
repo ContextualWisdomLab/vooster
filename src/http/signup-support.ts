@@ -109,18 +109,6 @@ export function readCookie(header: string | undefined, name: string): string | u
     .find(([key]) => key === name)?.[1];
 }
 
-export function alternativeSlug(slug: string, existingSlugs: Set<string>): string {
-  let suffix = 2;
-  let candidate = `${slug}-${String(suffix)}`;
-
-  while (existingSlugs.has(candidate)) {
-    suffix += 1;
-    candidate = `${slug}-${String(suffix)}`;
-  }
-
-  return candidate;
-}
-
 export function problem(
   status: number,
   title: string,

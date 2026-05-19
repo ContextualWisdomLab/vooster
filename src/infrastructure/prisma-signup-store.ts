@@ -727,6 +727,18 @@ class PrismaSignupStore implements SignupStore {
     return workspace !== null;
   }
 
+  async nextAvailableWorkspaceSlug(slug: string): Promise<string> {
+    let suffix = 2;
+    let candidate = `${slug}-${String(suffix)}`;
+
+    while (await this.workspaceSlugExists(candidate)) {
+      suffix += 1;
+      candidate = `${slug}-${String(suffix)}`;
+    }
+
+    return candidate;
+  }
+
   async isWorkspaceArchived(workspaceId: string): Promise<boolean> {
     const workspace = await this.prisma.workspace.findUnique({
       select: { archived_at: true },

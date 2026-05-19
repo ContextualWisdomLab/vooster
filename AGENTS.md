@@ -248,4 +248,22 @@ history — even after deletion, the data lives on in git history and forks.
 You are not racing. You are building correctly. Each commit is a tiny, verified
 step. The system grows as a series of small, correct moves.
 
-Now go to `GOAL.md` and follow its instructions.
+## Active Goal Lookup
+
+Goals are versioned files under `goals/` (e.g., `goals/0-init.md`,
+`goals/1-runnable.md`). The active goal is whichever goal is currently
+failing its `<n>-<name>.gates.sh`, lowest-numbered first.
+
+To find it:
+
+```
+bash scripts/diagnose.sh        # prints active goal path
+cat .state/active-goal           # written by scripts/completion-check.sh
+```
+
+Treat the active goal file as the equivalent of the old top-level `GOAL.md` —
+read it before each iteration, follow its forbidden-actions list, satisfy its
+completion conditions via TDD. When its gates pass, the next goal becomes
+active automatically.
+
+Now run `bash scripts/diagnose.sh` and read the active goal file it points to.

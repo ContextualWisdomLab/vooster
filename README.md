@@ -9,16 +9,23 @@ coding agents**.
 
 ## What this Repository Is
 
-This is the **autonomous-build harness** for vspec MVP. It is designed to be
-executed by `codex goal` (or any equivalent looping agent runner) with a single
-high-level goal:
+This is the **autonomous-build harness** for vspec. It is designed to be
+executed by `codex goal` (or any equivalent looping agent runner) against a
+stack of versioned goal files under [`goals/`](goals/):
 
-> Implement all 35 use cases under `docs/usecases/` such that each has
-> passing E2E tests, and `scripts/completion-check.sh` returns 0.
+- [`goals/0-init.md`](goals/0-init.md) — bring the MVP up via TDD (35 UCs,
+  full test suite, `scripts/completion-check.sh` returns 0).
+- [`goals/1-runnable.md`](goals/1-runnable.md) — make vspec actually runnable
+  (bootable Fastify, Prisma persistence, oclif CLI, layered architecture).
+
+The lowest-numbered goal whose `<n>-<name>.gates.sh` still fails is the
+**active goal**. `scripts/completion-check.sh` records it in
+`.state/active-goal`.
 
 ## Files You Read First
 
-1. [`GOAL.md`](GOAL.md) — the mission given to the agent.
+1. [`goals/`](goals/) — versioned mission files (see above). Read the active
+   goal first.
 2. [`AGENTS.md`](AGENTS.md) — working protocol (TDD, commit rules, layout).
 3. [`docs/00-overview.md`](docs/00-overview.md) — what vspec is.
 4. [`docs/04-tdd-protocol.md`](docs/04-tdd-protocol.md) — how TDD is enforced.
@@ -36,7 +43,7 @@ high-level goal:
 ## Loop
 
 ```
-codex goal "$(cat GOAL.md)"
+codex goal "$(cat "$(cat .state/active-goal 2>/dev/null || echo goals/0-init.md)")"
 ```
 
 Each iteration:

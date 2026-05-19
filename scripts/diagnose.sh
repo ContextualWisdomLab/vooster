@@ -23,6 +23,43 @@ else
 fi
 echo ""
 
+echo "=== Active Goal ==="
+ACTIVE_FILE="$ROOT/.state/active-goal"
+if [ -f "$ACTIVE_FILE" ]; then
+  ACTIVE=$(cat "$ACTIVE_FILE")
+else
+  ACTIVE="(unknown — run scripts/completion-check.sh first)"
+fi
+echo "  $ACTIVE"
+if [ -d goals ]; then
+  echo "  All goals:"
+  for f in $(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort); do
+    name=$(basename "$f" .md)
+    gate="goals/${name}.gates.sh"
+    if [ -f "$gate" ]; then
+      status="(not yet checked)"
+      if [ -f "$ACTIVE_FILE" ]; then
+        if [ "$(cat "$ACTIVE_FILE")" = "ALL_DONE" ]; then
+          status="✓ passed"
+        elif [ "$ACTIVE" = "$f" ]; then
+          status="⚙ active (failing)"
+        else
+          # If a goal precedes the active one, completion-check confirmed it passed.
+          if [ "$f" \< "$ACTIVE" ]; then
+            status="✓ passed"
+          else
+            status="(deferred — earlier goal is active)"
+          fi
+        fi
+      fi
+      echo "    - $f $status"
+    else
+      echo "    - $f (no gate script)"
+    fi
+  done
+fi
+echo ""
+
 echo "=== Scaffolding ==="
 [ -f package.json ]      && echo "  ✓ package.json"      || echo "  ✗ package.json (run scaffolding)"
 [ -f tsconfig.json ]     && echo "  ✓ tsconfig.json"     || echo "  ✗ tsconfig.json"
@@ -30,6 +67,9 @@ echo "=== Scaffolding ==="
 [ -d prisma ]            && echo "  ✓ prisma/"           || echo "  ✗ prisma/"
 [ -d src ]               && echo "  ✓ src/"              || echo "  ✗ src/"
 [ -d tests/e2e ]         && echo "  ✓ tests/e2e/"        || echo "  ✗ tests/e2e/"
+[ -d tests/e2e-cli ]     && echo "  ✓ tests/e2e-cli/"    || echo "  ⊘ tests/e2e-cli/ (goal 1)"
+[ -f bin/run.js ]        && echo "  ✓ bin/run.js"        || echo "  ⊘ bin/run.js (goal 1)"
+[ -s src/index.ts ]      && echo "  ✓ src/index.ts non-empty" || echo "  ⊘ src/index.ts empty (goal 1)"
 echo ""
 
 echo "=== Test Status ==="

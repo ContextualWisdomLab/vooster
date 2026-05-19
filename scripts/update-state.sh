@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# update-state.sh — Refresh docs/state/* based on git + test status.
+# update-state.sh — Refresh docs/state/* based on git + test + goal status.
 
 set -uo pipefail
 
@@ -13,6 +13,7 @@ NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 COMMITS=$(git log --oneline 2>/dev/null | wc -l | tr -d ' ')
 LAST=$(git log -1 --pretty='%h %s' 2>/dev/null || echo '(none)')
 
+# ----- Per-UC test matrix (goal-0 carry-over) -----
 TOTAL=0
 COMPLETED=0
 declare -a ROWS
@@ -21,8 +22,10 @@ for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
   TITLE=$(grep -m1 '^title:' "$f" 2>/dev/null | sed 's/^title:[[:space:]]*//' || echo "")
   TEST_FILE="tests/e2e/${UC_ID}.test.ts"
+  CLI_FILE="tests/e2e-cli/${UC_ID}.test.ts"
   STATUS="○ NOT STARTED"
   TESTS="0/0"
+  CLI="○"
   if [ -f "$TEST_FILE" ]; then
     TEST_COUNT=$(grep -cE '\b(test|it)\(' "$TEST_FILE" 2>/dev/null || echo 0)
     if npx --no-install vitest run "$TEST_FILE" --reporter=dot >/dev/null 2>&1; then
@@ -34,8 +37,38 @@ for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
       TESTS="?/$TEST_COUNT"
     fi
   fi
-  ROWS+=("| $UC_ID | $TITLE | $STATUS | $TESTS |")
+  if [ -f "$CLI_FILE" ]; then
+    if npx --no-install vitest run "$CLI_FILE" --reporter=dot >/dev/null 2>&1; then
+      CLI="✓"
+    else
+      CLI="⚙"
+    fi
+  fi
+  ROWS+=("| $UC_ID | $TITLE | $STATUS | $TESTS | $CLI |")
 done
+
+# ----- Goal-1 runnability matrix -----
+RUN_BOOT="○"
+RUN_PERSIST="○"
+RUN_CLI="○"
+RUN_LAYERS="○"
+if [ -f "$ROOT/scripts/check-bootable.sh" ]; then
+  bash "$ROOT/scripts/check-bootable.sh"    >/dev/null 2>&1 && RUN_BOOT="✓"   || RUN_BOOT="✗"
+fi
+if [ -f "$ROOT/scripts/check-persistence.sh" ]; then
+  bash "$ROOT/scripts/check-persistence.sh" >/dev/null 2>&1 && RUN_PERSIST="✓" || RUN_PERSIST="✗"
+fi
+if [ -f "$ROOT/scripts/check-cli.sh" ]; then
+  bash "$ROOT/scripts/check-cli.sh"         >/dev/null 2>&1 && RUN_CLI="✓"     || RUN_CLI="✗"
+fi
+if [ -f "$ROOT/scripts/check-layers.sh" ]; then
+  bash "$ROOT/scripts/check-layers.sh"      >/dev/null 2>&1 && RUN_LAYERS="✓"  || RUN_LAYERS="✗"
+fi
+
+ACTIVE_GOAL="(unknown — run scripts/completion-check.sh)"
+if [ -f "$ROOT/.state/active-goal" ]; then
+  ACTIVE_GOAL=$(cat "$ROOT/.state/active-goal")
+fi
 
 {
   echo "# Progress Matrix"
@@ -47,11 +80,21 @@ done
   echo "- Commits: $COMMITS"
   echo "- Last commit: $LAST"
   echo "- Use cases complete: $COMPLETED / $TOTAL"
+  echo "- Active goal: $ACTIVE_GOAL"
+  echo ""
+  echo "## Runnability (goal 1)"
+  echo ""
+  echo "| Gate | Status |"
+  echo "| --- | --- |"
+  echo "| Bootable (npm start, /healthz) | $RUN_BOOT |"
+  echo "| Persistence (restart survival) | $RUN_PERSIST |"
+  echo "| CLI binary + subcommands | $RUN_CLI |"
+  echo "| Layered architecture | $RUN_LAYERS |"
   echo ""
   echo "## By Use Case"
   echo ""
-  echo "| ID | Title | Status | Tests |"
-  echo "| --- | --- | --- | --- |"
+  echo "| ID | Title | E2E Status | API Tests | CLI E2E |"
+  echo "| --- | --- | --- | --- | --- |"
   for r in "${ROWS[@]}"; do echo "$r"; done
 } > "$STATE/progress.md"
 
@@ -77,7 +120,7 @@ EOF
 [ -f "$STATE/learnings.md" ] || cat > "$STATE/learnings.md" <<'EOF'
 # Learnings
 
-_Append-only. One bullet per learning._
+_Append-only. One bullet per learning. Keep it terse._
 
 EOF
 

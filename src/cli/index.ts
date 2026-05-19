@@ -13,13 +13,17 @@ export class VspecCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    aliases: Flags.string(),
+    description: Flags.string(),
     email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
     key: Flags.string(),
     name: Flags.string(),
+    "project-id": Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
+    type: Flags.string(),
     version: Flags.version({ char: "v" }),
     visibility: Flags.string(),
     "workspace-id": Flags.string(),
@@ -42,6 +46,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "project" && this.argv[1] === "create") {
       await this.createProject(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "actor" && this.argv[1] === "create") {
+      await this.createActor(parsed.flags);
       return;
     }
 
@@ -136,6 +144,28 @@ export class VspecCommand extends Command {
     this.log(`Branch ${body.default_branch.name}`);
     this.log(body.recommended_next_command);
   }
+
+  private async createActor(flags: ParsedFlags): Promise<void> {
+    const actorFlags = actorFlagsFrom(flags);
+    const response = await postJson(
+      `${actorFlags.apiUrl}/v1/projects/${actorFlags.projectId}/actors`,
+      {
+        aliases: actorFlags.aliases,
+        description: actorFlags.description,
+        is_human: true,
+        name: actorFlags.name,
+        type: actorFlags.type
+      },
+      {
+        Cookie: actorFlags.sessionCookie
+      }
+    );
+    const body = response.body as ActorResponse;
+
+    this.log(`Actor ${body.actor.name} ${body.actor.type}`);
+    this.log(`Revision version ${String(body.revision.version_number)}`);
+    this.log(body.recommended_next_command);
+  }
 }
 
 type OAuthFlags = {
@@ -165,14 +195,28 @@ type ProjectFlags = {
   workspaceId: string;
 };
 
+type ActorFlags = {
+  aliases: string[];
+  apiUrl: string;
+  description: string;
+  name: string;
+  projectId: string;
+  sessionCookie: string;
+  type: "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
+};
+
 type ParsedFlags = {
   "api-url"?: string;
+  aliases?: string;
+  description?: string;
   email?: string;
   "github-code"?: string;
   key?: string;
   name?: string;
+  "project-id"?: string;
   role?: string;
   "session-cookie"?: string;
+  type?: string;
   visibility?: string;
   "workspace-id"?: string;
   "workspace-name"?: string;
@@ -225,6 +269,17 @@ type ProjectResponse = {
   recommended_next_command: string;
 };
 
+type ActorResponse = {
+  actor: {
+    name: string;
+    type: string;
+  };
+  recommended_next_command: string;
+  revision: {
+    version_number: number;
+  };
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -264,6 +319,18 @@ function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
   };
 }
 
+function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
+  return {
+    aliases: aliasesFrom(flags.aliases),
+    apiUrl: requiredFlag(flags, "api-url"),
+    description: flags.description ?? "",
+    name: requiredFlag(flags, "name"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    type: actorType(requiredFlag(flags, "type"))
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -280,6 +347,23 @@ function projectVisibility(rawVisibility: string): "INTERNAL" | "PRIVATE" {
   }
 
   throw new Error("Visibility must be INTERNAL or PRIVATE.");
+}
+
+function actorType(rawType: string): "OFFSTAGE" | "PRIMARY" | "SUPPORTING" {
+  const type = rawType.toUpperCase();
+  if (type === "OFFSTAGE" || type === "PRIMARY" || type === "SUPPORTING") {
+    return type;
+  }
+
+  throw new Error("Actor type must be PRIMARY, SUPPORTING, or OFFSTAGE.");
+}
+
+function aliasesFrom(rawAliases: string | undefined): string[] {
+  if (rawAliases === undefined || rawAliases.trim() === "") {
+    return [];
+  }
+
+  return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
 }
 
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {

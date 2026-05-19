@@ -14,6 +14,8 @@ export class VspecCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     aliases: Flags.string(),
+    action: Flags.string(),
+    actor: Flags.string(),
     "actor-id": Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
@@ -82,6 +84,14 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "add-stakeholder") {
       await this.addStakeholderInterest(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "scenario" && this.argv[1] === "add") {
+      await this.createScenario(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "step" && this.argv[1] === "add") {
+      await this.addStep(parsed.flags);
       return;
     }
 
@@ -342,6 +352,46 @@ export class VspecCommand extends Command {
       this.log(body.next_missing_role_hint);
     }
   }
+
+  private async createScenario(flags: ParsedFlags): Promise<void> {
+    const scenarioFlags = scenarioCreateFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${scenarioFlags.apiUrl}/v1/usecases/${scenarioFlags.usecaseId}/scenarios`,
+      {
+        type: scenarioFlags.type
+      },
+      {
+        Cookie: scenarioFlags.sessionCookie
+      }
+    );
+    const body = response.body as ScenarioResponse;
+
+    this.log(`Scenario ${body.scenario.id}`);
+    this.log(`Type ${body.scenario.type}`);
+    this.log(`Outcome ${body.scenario.outcome}`);
+    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  }
+
+  private async addStep(flags: ParsedFlags): Promise<void> {
+    const stepFlags = stepCreateFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${stepFlags.apiUrl}/v1/scenarios/${stepFlags.scenarioId}/steps`,
+      {
+        action: stepFlags.action,
+        actor: stepFlags.actor
+      },
+      {
+        Cookie: stepFlags.sessionCookie
+      }
+    );
+    const body = response.body as StepResponse;
+
+    this.log(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
+    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+    for (const step of body.scenario_steps) {
+      this.log(`${String(step.step_number)}. ${step.action}`);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -430,8 +480,25 @@ type StakeholderInterestFlags = {
   usecaseId: string;
 };
 
+type ScenarioCreateFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  type: "EXTENSION" | "MAIN_SUCCESS";
+  usecaseId: string;
+};
+
+type StepCreateFlags = {
+  action: string;
+  actor: string;
+  apiUrl: string;
+  scenarioId: string;
+  sessionCookie: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
+  action?: string;
+  actor?: string;
   aliases?: string;
   "actor-id"?: string;
   description?: string;
@@ -609,6 +676,33 @@ type StakeholderInterestResponse = {
   }>;
 };
 
+type ScenarioResponse = {
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  scenario: {
+    id: string;
+    outcome: string;
+    type: string;
+  };
+};
+
+type StepResponse = {
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  scenario_steps: Array<{
+    action: string;
+    step_number: number;
+  }>;
+  step: {
+    action: string;
+    step_number: number;
+  };
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -727,6 +821,31 @@ function stakeholderInterestFlagsFrom(
   };
 }
 
+function scenarioCreateFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined
+): ScenarioCreateFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    type: scenarioType(requiredFlag(flags, "type")),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function stepCreateFlagsFrom(
+  flags: ParsedFlags,
+  scenarioId: string | undefined
+): StepCreateFlags {
+  return {
+    action: requiredFlag(flags, "action"),
+    actor: requiredFlag(flags, "actor"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    scenarioId: requiredArgument(scenarioId, "scenario-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -779,6 +898,15 @@ function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
   }
 
   throw new Error("Goal priority must be P0, P1, P2, or P3.");
+}
+
+function scenarioType(rawType: string): "EXTENSION" | "MAIN_SUCCESS" {
+  const type = rawType.toUpperCase().replaceAll("-", "_");
+  if (type === "EXTENSION" || type === "MAIN_SUCCESS") {
+    return type;
+  }
+
+  throw new Error("Scenario type must be MAIN_SUCCESS or EXTENSION.");
 }
 
 function aliasesFrom(rawAliases: string | undefined): string[] {

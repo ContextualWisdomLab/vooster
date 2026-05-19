@@ -383,6 +383,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **WorkSession**: owner creates a project, actor, and use case through public APIs, starts a session pinned to that use case through `POST /v1/sessions`, restarts the server, logs back in, then calls `GET /v1/sessions?workspace_id=...` and asserts the persisted active session is listed.
 
+### Goal 2 Persistence - Workspace Archive
+
+- **Workspace**: owner signs up, archives the workspace through the HTTP archive path used by UC extension tests, restarts the server, logs back in, then attempts `POST /v1/workspaces/:id/projects` and asserts the persisted archived workspace state still rejects project creation.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

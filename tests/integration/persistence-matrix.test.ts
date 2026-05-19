@@ -201,6 +201,31 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 
+  test("Workspace archive survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "workspace-archive.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "workspace-archive-owner");
+    await archiveWorkspace(first.url, signup.workspaceId);
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "workspace-archive-owner");
+    const created = await createProjectResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      signup.workspaceId,
+      "Archived Workspace Project",
+      "WARC"
+    );
+
+    await second.stop();
+
+    expect(created.status).toBe(409);
+    const createdBody = (await created.json()) as { title?: unknown };
+    expect(createdBody.title).toEqual(expect.stringMatching(/workspace.*archived/i));
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -964,6 +989,14 @@ function listSessions(baseUrl: string, sessionCookie: string, workspaceId: strin
   return fetch(`${baseUrl}/v1/sessions?workspace_id=${workspaceId}`, {
     headers: { cookie: sessionCookie }
   });
+}
+
+async function archiveWorkspace(baseUrl: string, workspaceId: string) {
+  const response = await fetch(`${baseUrl}/__test/workspaces/${workspaceId}/archive`, {
+    method: "POST"
+  });
+
+  expect(response.status).toBe(200);
 }
 
 async function createInvitation(

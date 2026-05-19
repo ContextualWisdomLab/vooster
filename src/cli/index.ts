@@ -14,12 +14,15 @@ export class VspecCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     aliases: Flags.string(),
+    "actor-id": Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
     key: Flags.string(),
+    level: Flags.string(),
     name: Flags.string(),
+    priority: Flags.string(),
     "project-id": Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
@@ -54,6 +57,14 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
       await this.createStakeholder(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "goal" && this.argv[1] === "create") {
+      await this.createGoal(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "goal" && this.argv[1] === "list") {
+      await this.listGoals(parsed.flags);
       return;
     }
 
@@ -190,6 +201,53 @@ export class VspecCommand extends Command {
     this.log(`Revision version ${String(body.revision.version_number)}`);
     this.log(body.recommended_next_command);
   }
+
+  private async createGoal(flags: ParsedFlags): Promise<void> {
+    const goalFlags = goalCreateFlagsFrom(flags);
+    const response = await postJson(
+      `${goalFlags.apiUrl}/v1/projects/${goalFlags.projectId}/goals`,
+      {
+        actor_id: goalFlags.actorId,
+        description: goalFlags.description,
+        level: goalFlags.level,
+        priority: goalFlags.priority
+      },
+      {
+        Cookie: goalFlags.sessionCookie
+      }
+    );
+    const body = response.body as GoalResponse;
+
+    this.log(`Goal ${body.goal.description}`);
+    this.log(`Status ${body.goal.status} ${body.goal.priority}`);
+    this.log(`Revision version ${String(body.revision.version_number)}`);
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.command}`);
+    }
+    this.log(body.recommended_next_command);
+  }
+
+  private async listGoals(flags: ParsedFlags): Promise<void> {
+    const goalFlags = goalListFlagsFrom(flags);
+    const url = new URL(`/v1/projects/${goalFlags.projectId}/goals`, goalFlags.apiUrl);
+    if (goalFlags.actorId !== undefined) {
+      url.searchParams.set("actor_id", goalFlags.actorId);
+    }
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: goalFlags.sessionCookie
+      }
+    });
+    const body = response.body as GoalListResponse;
+
+    for (const actorGoals of body.actors) {
+      this.log(`Actor ${actorGoals.actor.name}`);
+      for (const goal of actorGoals.goals) {
+        this.log(`${goal.description} ${goal.priority} ${goal.status}`);
+      }
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -238,14 +296,34 @@ type StakeholderFlags = {
   type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
 };
 
+type GoalCreateFlags = {
+  actorId: string;
+  apiUrl: string;
+  description: string;
+  level: "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";
+  priority: "P0" | "P1" | "P2" | "P3";
+  projectId: string;
+  sessionCookie: string;
+};
+
+type GoalListFlags = {
+  actorId: string | undefined;
+  apiUrl: string;
+  projectId: string;
+  sessionCookie: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   aliases?: string;
+  "actor-id"?: string;
   description?: string;
   email?: string;
   "github-code"?: string;
   key?: string;
+  level?: string;
   name?: string;
+  priority?: string;
   "project-id"?: string;
   role?: string;
   "session-cookie"?: string;
@@ -324,6 +402,34 @@ type StakeholderResponse = {
   };
 };
 
+type GoalResponse = {
+  goal: {
+    description: string;
+    priority: string;
+    status: string;
+  };
+  recommended_next_command: string;
+  revision: {
+    version_number: number;
+  };
+  warnings?: Array<{
+    command: string;
+  }>;
+};
+
+type GoalListResponse = {
+  actors: Array<{
+    actor: {
+      name: string;
+    };
+    goals: Array<{
+      description: string;
+      priority: string;
+      status: string;
+    }>;
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -386,6 +492,27 @@ function stakeholderFlagsFrom(flags: ParsedFlags): StakeholderFlags {
   };
 }
 
+function goalCreateFlagsFrom(flags: ParsedFlags): GoalCreateFlags {
+  return {
+    actorId: requiredFlag(flags, "actor-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    description: requiredFlag(flags, "description"),
+    level: goalLevel(requiredFlag(flags, "level")),
+    priority: goalPriority(requiredFlag(flags, "priority")),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
+function goalListFlagsFrom(flags: ParsedFlags): GoalListFlags {
+  return {
+    actorId: optionalFlag(flags, "actor-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -422,12 +549,39 @@ function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY
   throw new Error("Stakeholder type must be INTERNAL, EXTERNAL, or REGULATORY.");
 }
 
+function goalLevel(rawLevel: string): "SUMMARY" | "USER_GOAL" | "SUBFUNCTION" {
+  const level = rawLevel.toUpperCase();
+  if (level === "SUMMARY" || level === "USER_GOAL" || level === "SUBFUNCTION") {
+    return level;
+  }
+
+  throw new Error("Goal level must be SUMMARY, USER_GOAL, or SUBFUNCTION.");
+}
+
+function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
+  const priority = rawPriority.toUpperCase();
+  if (priority === "P0" || priority === "P1" || priority === "P2" || priority === "P3") {
+    return priority;
+  }
+
+  throw new Error("Goal priority must be P0, P1, P2, or P3.");
+}
+
 function aliasesFrom(rawAliases: string | undefined): string[] {
   if (rawAliases === undefined || rawAliases.trim() === "") {
     return [];
   }
 
   return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
+}
+
+function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | undefined {
+  const value = values[name];
+  if (value === undefined || value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
 }
 
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {

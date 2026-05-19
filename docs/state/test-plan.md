@@ -31,6 +31,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Docker deploy contract**: assert `Dockerfile` exists with a multi-stage Node 20 build/runtime shape and `docker-compose.prod.yml` defines an app plus database service with `DATABASE_URL` and the expected deploy-test port mapping. The shell gate `scripts/check-deployable.sh` remains the runtime proof.
 
+### Goal 2 Docs - End User README
+
+- **README B4**: assert `README.md` has user-facing `Install`, `Run`, `Deploy`, and `Documentation` sections with copy-pasteable commands, and that the autonomous-build harness content is preserved in `docs/build-harness.md`.
+
 ## Example
 
 ### UC-009

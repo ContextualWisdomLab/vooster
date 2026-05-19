@@ -152,7 +152,8 @@ function workspaceFor(pending: PendingSignup, ownerId: string): StoredWorkspace 
     name: pending.name,
     slug: pending.slug,
     owner_id: ownerId,
-    plan: "FREE"
+    plan: "FREE",
+    archived_at: null
   };
 }
 

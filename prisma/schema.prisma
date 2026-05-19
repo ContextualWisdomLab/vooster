@@ -50,6 +50,7 @@ model Workspace {
   owner_id    String
   plan        String       @default("FREE")
   settings    String       @default("{}")
+  archived_at DateTime?
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
 

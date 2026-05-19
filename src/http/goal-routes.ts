@@ -21,6 +21,7 @@ import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
+import type { WorkspaceStore } from "../ports/workspace-store.js";
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -37,7 +38,8 @@ export function registerGoalRoutes(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
-  revisionStore: RevisionStore
+  revisionStore: RevisionStore,
+  workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
     createGoal(
@@ -48,14 +50,24 @@ export function registerGoalRoutes(
       goalStore,
       membershipStore,
       projectStore,
-      revisionStore
+      revisionStore,
+      workspaceStore
     )
   );
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
     listGoals(request, reply, state, actorStore, goalStore, membershipStore)
   );
   app.patch("/v1/goals/:goalId", (request, reply) =>
-    patchGoal(request, reply, state, goalStore, membershipStore, projectStore, revisionStore)
+    patchGoal(
+      request,
+      reply,
+      state,
+      goalStore,
+      membershipStore,
+      projectStore,
+      revisionStore,
+      workspaceStore
+    )
   );
 }
 
@@ -67,7 +79,8 @@ async function createGoal(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
-  revisionStore: RevisionStore
+  revisionStore: RevisionStore,
+  workspaceStore: WorkspaceStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -86,7 +99,7 @@ async function createGoal(
       })
     );
   }
-  if (await projectWorkspaceArchived(state, projectStore, projectId)) {
+  if (await projectWorkspaceArchived(projectStore, workspaceStore, projectId)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -139,7 +152,8 @@ async function patchGoal(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
-  revisionStore: RevisionStore
+  revisionStore: RevisionStore,
+  workspaceStore: WorkspaceStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
@@ -148,7 +162,7 @@ async function patchGoal(
   if (await membershipForProject(request, state, membershipStore, goal.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  if (await projectWorkspaceArchived(state, projectStore, goal.project_id)) {
+  if (await projectWorkspaceArchived(projectStore, workspaceStore, goal.project_id)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -234,10 +248,10 @@ async function membershipForProject(
 }
 
 async function projectWorkspaceArchived(
-  state: SignupState,
   projectStore: ProjectStore,
+  workspaceStore: WorkspaceStore,
   projectId: string
 ): Promise<boolean> {
   const project = await projectStore.findProjectById(projectId);
-  return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
+  return project !== undefined && await workspaceStore.isWorkspaceArchived(project.workspace_id);
 }

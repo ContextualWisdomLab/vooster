@@ -16,6 +16,7 @@ import type {
   StoredStep,
   StoredUser,
   StoredUseCase,
+  StoredWorkspace,
   StoredWorkSession
 } from "../http/signup-types.js";
 
@@ -44,6 +45,13 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return user === null ? undefined : storedUser(user);
+  }
+
+  async archiveWorkspace(workspaceId: string, archivedAt: string): Promise<void> {
+    await this.prisma.workspace.update({
+      data: { archived_at: new Date(archivedAt) },
+      where: { id: workspaceId }
+    });
   }
 
   async findUserByEmail(email: string): Promise<StoredUser | undefined> {
@@ -485,7 +493,7 @@ class PrismaSignupStore implements SignupStore {
         data: entities.user
       }),
       this.prisma.workspace.create({
-        data: entities.workspace
+        data: workspaceData(entities.workspace)
       }),
       this.prisma.membership.create({
         data: entities.membership
@@ -705,6 +713,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return workspace !== null;
+  }
+
+  async isWorkspaceArchived(workspaceId: string): Promise<boolean> {
+    const workspace = await this.prisma.workspace.findUnique({
+      select: { archived_at: true },
+      where: { id: workspaceId }
+    });
+
+    return workspace?.archived_at !== null && workspace?.archived_at !== undefined;
   }
 
   async workspaceSummariesForUser(userId: string): Promise<WorkspaceSummary[]> {
@@ -1313,6 +1330,17 @@ function projectData(project: StoredProject) {
     name: project.name,
     visibility: project.visibility,
     workspace_id: project.workspace_id
+  };
+}
+
+function workspaceData(workspace: StoredWorkspace) {
+  return {
+    archived_at: dateOrNull(workspace.archived_at),
+    id: workspace.id,
+    name: workspace.name,
+    owner_id: workspace.owner_id,
+    plan: workspace.plan,
+    slug: workspace.slug
   };
 }
 

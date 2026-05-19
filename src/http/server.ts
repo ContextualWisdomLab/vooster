@@ -13,6 +13,7 @@ import { createMemoryStakeholderStore } from "../infrastructure/memory-stakehold
 import { createMemoryStepStore } from "../infrastructure/memory-step-store.js";
 import { createMemoryUseCaseStore } from "../infrastructure/memory-usecase-store.js";
 import { createMemoryUserStore } from "../infrastructure/memory-user-store.js";
+import { createMemoryWorkspaceStore } from "../infrastructure/memory-workspace-store.js";
 import { createMemoryWorkSessionStore } from "../infrastructure/memory-work-session-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
@@ -75,6 +76,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const stepStore = options.signupStore ?? createMemoryStepStore();
   const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
   const userStore = options.signupStore ?? createMemoryUserStore();
+  const workspaceStore = options.signupStore ?? createMemoryWorkspaceStore();
   const workSessionStore = options.signupStore ?? createMemoryWorkSessionStore();
   if (options.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
@@ -95,7 +97,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     options.signupStore,
     branchStore,
     membershipStore,
-    projectStore
+    projectStore,
+    workspaceStore
   );
   registerBranchRoutes(
     app,
@@ -161,7 +164,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     goalStore,
     membershipStore,
     projectStore,
-    revisionStore
+    revisionStore,
+    workspaceStore
   );
   registerGoalPromotionRoutes(
     app,
@@ -197,7 +201,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     projectStore,
     revisionStore,
-    stakeholderStore
+    stakeholderStore,
+    workspaceStore
   );
   registerStakeholderInterestRoutes(
     app,
@@ -348,7 +353,6 @@ function initialState(): SignupState {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
     sessionsByToken: new Map(),
-    workspaceArchivedAt: new Map(),
     workspacesById: new Map(),
     workspaceSlugs: new Set()
   };

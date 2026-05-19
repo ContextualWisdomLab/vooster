@@ -20,6 +20,7 @@ import type { StepStore } from "./step-store.js";
 import type { UseCaseStore } from "./usecase-store.js";
 import type { UserStore } from "./user-store.js";
 import type { WorkSessionStore } from "./work-session-store.js";
+import type { WorkspaceStore } from "./workspace-store.js";
 
 export type SignupEntities = {
   membership: StoredMembership;
@@ -47,7 +48,8 @@ export type SignupStore = ActorStore &
   StepStore &
   UseCaseStore &
   UserStore &
-  WorkSessionStore & {
+  WorkSessionStore &
+  WorkspaceStore & {
   close: () => Promise<void>;
   saveSignup: (entities: SignupEntities) => Promise<void>;
   saveProjectWithDefaultBranch: (

@@ -11,6 +11,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
+import type { WorkspaceStore } from "../ports/workspace-store.js";
 
 const stakeholderRequestSchema = z.object({
   attach_to_step: z.boolean().optional(),
@@ -27,7 +28,8 @@ export function registerStakeholderRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
     createStakeholder(
@@ -37,7 +39,8 @@ export function registerStakeholderRoutes(
       membershipStore,
       projectStore,
       revisionStore,
-      stakeholderStore
+      stakeholderStore,
+      workspaceStore
     )
   );
 }
@@ -49,7 +52,8 @@ async function createStakeholder(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  workspaceStore: WorkspaceStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -61,7 +65,7 @@ async function createStakeholder(
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
 
-  if (await projectWorkspaceArchived(state, projectStore, projectId)) {
+  if (await projectWorkspaceArchived(projectStore, workspaceStore, projectId)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -138,12 +142,12 @@ async function activeStakeholderNamed(
 }
 
 async function projectWorkspaceArchived(
-  state: SignupState,
   projectStore: ProjectStore,
+  workspaceStore: WorkspaceStore,
   projectId: string
 ): Promise<boolean> {
   const project = await projectStore.findProjectById(projectId);
-  return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
+  return project !== undefined && await workspaceStore.isWorkspaceArchived(project.workspace_id);
 }
 
 function projectIdFrom(params: unknown): string {

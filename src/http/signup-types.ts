@@ -14,7 +14,6 @@ export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
-  workspaceArchivedAt: Map<string, string>;
   workspacesById: Map<string, StoredWorkspace>;
   workspaceSlugs: Set<string>;
 };
@@ -40,6 +39,7 @@ export type StoredWorkspace = {
   slug: string;
   owner_id: string;
   plan: "FREE";
+  archived_at: null | string;
 };
 
 export type StoredMembership = {

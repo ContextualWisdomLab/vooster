@@ -8,6 +8,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
+import type { WorkspaceStore } from "../ports/workspace-store.js";
 
 const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
 
@@ -24,13 +25,23 @@ export function registerProjectRoutes(
   store: SignupStore | undefined,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
-    createProject(request, reply, state, store, branchStore, membershipStore, projectStore)
+    createProject(
+      request,
+      reply,
+      state,
+      store,
+      branchStore,
+      membershipStore,
+      projectStore,
+      workspaceStore
+    )
   );
   app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
-    archiveWorkspace(request, reply, state)
+    archiveWorkspace(request, reply, workspaceStore)
   );
 }
 
@@ -41,7 +52,8 @@ async function createProject(
   store: SignupStore | undefined,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  workspaceStore: WorkspaceStore
 ) {
   const workspaceId = workspaceIdFrom(request.params);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
@@ -71,7 +83,7 @@ async function createProject(
     );
   }
 
-  if (state.workspaceArchivedAt.has(workspaceId)) {
+  if (await workspaceStore.isWorkspaceArchived(workspaceId)) {
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
@@ -134,12 +146,12 @@ async function createProject(
   });
 }
 
-function archiveWorkspace(
+async function archiveWorkspace(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  workspaceStore: WorkspaceStore
 ) {
-  state.workspaceArchivedAt.set(workspaceIdFrom(request.params), new Date().toISOString());
+  await workspaceStore.archiveWorkspace(workspaceIdFrom(request.params), new Date().toISOString());
   return reply.send({ archived: true });
 }
 

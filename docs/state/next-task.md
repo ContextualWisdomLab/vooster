@@ -1,19 +1,22 @@
 # Next Task
 
-_Auto-generated 2026-05-19T22:03:06Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T22:22:11Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Rewrite README.md for end users (gate 2.B4).
+TASK: Slim down a fat route file (gate 2.C1).
 
-  1. Move the current "autonomous-build harness" content from README.md
-     into docs/build-harness.md (keep the loop instructions intact).
-  2. Replace README.md with a user-facing layout:
-        # vspec
-        <one-paragraph description>
-        ## Install            # npm install -g vspec  (or  npx vspec --help)
-        ## Run                # local dev: docker compose up -d db && npm run dev
-        ## Deploy             # docker compose -f docker-compose.prod.yml up -d
-        ## Documentation      # links to docs/ and to docs/build-harness.md
-  3. Each section's commands must work on a clean clone — no implicit env
-     setup.
+  Candidate: src/http/session-routes.ts (255 lines)
+
+  1. Identify the route's business logic vs. parsing/validation.
+  2. Extract logic into src/application/<area>.ts as pure functions taking
+     port interfaces (no Fastify import).
+  3. Add tests/unit/application/<area>.test.ts that exercises those
+     functions directly.
+  4. The remaining route file should only:
+        - parse + validate the request (zod)
+        - call the application function
+        - serialize + send the response
+     (Validation problems and HTTP-shaped errors stay in src/http.)
+  Commit:
+     refactor(layers): extract <area> from <route>
 ```

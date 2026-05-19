@@ -318,3 +318,7 @@ write. This guides your TDD cycles within an iteration._
 - **7b**: `auto_commit` is set for a NON_BREAKING/BREAKING preview -> returns the preview plus human-review warning and does not append a revision.
 - **6a**: proposed change touches revisions pinned by other active sessions -> preview impact lists session id, owner, agent type, and pinned use case keys, with `vspec who <KEY-NNN>` coordination guidance.
 - **2a**: another session holds a HARD lock -> 409 with holding session, `vspec who <KEY-NNN>` and owner unlock guidance, and no preview.
+
+### Goal 1 Bootable
+
+- **MAIN**: `npm start` listens on `$PORT` (default 3000), serves `GET /healthz` as `200 {"status":"ok"}`, and exits cleanly on `SIGTERM`.

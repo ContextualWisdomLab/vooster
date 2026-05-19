@@ -40,6 +40,8 @@ import type { ServerOptions, SignupState } from "./signup-types.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const state = initialState(options);
+  app.get("/healthz", () => ({ status: "ok" }));
+
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state);
   registerSignupRoutes(app, options, state);

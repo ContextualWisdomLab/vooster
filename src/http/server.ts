@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
 import { createMemoryCommentStore } from "../infrastructure/memory-comment-store.js";
@@ -58,6 +59,7 @@ import type { UserStore } from "../ports/user-store.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const state = initialState();
+  const apiKeyStore = options.signupStore ?? createMemoryApiKeyStore();
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
   const commentStore = options.signupStore ?? createMemoryCommentStore();
@@ -91,7 +93,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   }
 
   registerAiGuideRoutes(app);
-  registerApiKeyRoutes(app, state, membershipStore);
+  registerApiKeyRoutes(app, state, membershipStore, apiKeyStore);
   registerSignupRoutes(app, options, state, membershipStore, userStore, workspaceStore);
   registerProjectRoutes(
     app,

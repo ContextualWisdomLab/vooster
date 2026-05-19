@@ -4,20 +4,10 @@ import { z } from "zod";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredMembership } from "./signup-types.js";
+import type { StoredApiKey } from "./api-key-types.js";
+import type { ApiKeyStore } from "../ports/api-key-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 
-type StoredApiKey = {
-  created_at: string;
-  created_by: string;
-  id: string;
-  name: string;
-  revoked_at: null | string;
-  scopes: Array<"read" | "write">;
-  token_hash: string;
-  workspace_id: string;
-};
-
-const apiKeysByState = new WeakMap<SignupState, Map<string, StoredApiKey>>();
 const createSchema = z.object({
   name: z.string().min(1),
   scopes: z.array(z.string()).min(1),
@@ -30,16 +20,17 @@ const allowedScopes = ["read", "write"] as const;
 export function registerApiKeyRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  apiKeyStore: ApiKeyStore
 ) {
   app.post("/v1/api-keys", (request, reply) =>
-    createApiKey(request, reply, state, membershipStore)
+    createApiKey(request, reply, state, membershipStore, apiKeyStore)
   );
   app.get("/v1/api-keys", (request, reply) =>
-    listApiKeys(request, reply, state, membershipStore)
+    listApiKeys(request, reply, state, membershipStore, apiKeyStore)
   );
   app.delete("/v1/api-keys/:id", (request, reply) =>
-    revokeApiKey(request, reply, state, membershipStore)
+    revokeApiKey(request, reply, state, membershipStore, apiKeyStore)
   );
 }
 
@@ -47,7 +38,8 @@ async function createApiKey(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  apiKeyStore: ApiKeyStore
 ) {
   const parsed = createSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -82,7 +74,7 @@ async function createApiKey(
     token_hash: `$argon2id$${randomUUID()}`,
     workspace_id: parsed.data.workspace_id
   };
-  apiKeys(state).set(apiKey.id, apiKey);
+  await apiKeyStore.saveApiKey(apiKey);
   if (parsed.data.simulate_response_drop === true) {
     return reply.code(503).send(
       problem(503, "API key token was not delivered", {}, [
@@ -109,7 +101,8 @@ async function listApiKeys(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  apiKeyStore: ApiKeyStore
 ) {
   const parsed = listSchema.safeParse(request.query);
   if (!parsed.success) {
@@ -121,10 +114,9 @@ async function listApiKeys(
   ) {
     return reply.code(403).send(problem(403, "Workspace owner role required"));
   }
+  const apiKeys = await apiKeyStore.listApiKeysForWorkspace(parsed.data.workspace_id);
   return reply.send({
-    api_keys: [...apiKeys(state).values()]
-      .filter((apiKey) => apiKey.workspace_id === parsed.data.workspace_id)
-      .map(publicApiKey)
+    api_keys: apiKeys.map(publicApiKey)
   });
 }
 
@@ -132,10 +124,11 @@ async function revokeApiKey(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  apiKeyStore: ApiKeyStore
 ) {
   const id = z.object({ id: z.string().min(1) }).parse(request.params).id;
-  const apiKey = apiKeys(state).get(id);
+  const apiKey = await apiKeyStore.findApiKeyById(id);
   if (
     apiKey === undefined ||
     await ownerMembership(request, state, membershipStore, apiKey.workspace_id) ===
@@ -145,6 +138,7 @@ async function revokeApiKey(
   }
   const idempotent = apiKey.revoked_at !== null;
   apiKey.revoked_at = apiKey.revoked_at ?? new Date().toISOString();
+  await apiKeyStore.updateApiKey(apiKey);
   return reply.send({
     api_key: publicApiKey(apiKey),
     ...(idempotent ? { idempotent: true } : {}),
@@ -212,14 +206,4 @@ function publicApiKey(apiKey: StoredApiKey) {
 
 function isAllowedScope(scope: string): scope is "read" | "write" {
   return allowedScopes.includes(scope as "read" | "write");
-}
-
-function apiKeys(state: SignupState) {
-  const existing = apiKeysByState.get(state);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const created = new Map<string, StoredApiKey>();
-  apiKeysByState.set(state, created);
-  return created;
 }

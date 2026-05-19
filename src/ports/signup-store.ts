@@ -5,6 +5,7 @@ import type {
   StoredUser,
   StoredWorkspace
 } from "../http/signup-types.js";
+import type { ApiKeyStore } from "./api-key-store.js";
 import type { ActorStore } from "./actor-store.js";
 import type { BranchStore } from "./branch-store.js";
 import type { CommentStore } from "./comment-store.js";
@@ -36,6 +37,7 @@ export type WorkspaceSummary = {
 };
 
 export type SignupStore = ActorStore &
+  ApiKeyStore &
   BranchStore &
   CommentStore &
   GoalStore &

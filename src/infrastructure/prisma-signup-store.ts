@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
+import type { StoredApiKey } from "../http/api-key-types.js";
 import type { StoredComment } from "../http/comment-types.js";
 import type { StoredMergeRequest } from "../http/merge-request-types.js";
 import type {
@@ -136,6 +137,14 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return branch === null ? undefined : storedBranch(branch);
+  }
+
+  async findApiKeyById(apiKeyId: string): Promise<StoredApiKey | undefined> {
+    const apiKey = await this.prisma.apiKey.findUnique({
+      where: { id: apiKeyId }
+    });
+
+    return apiKey === null ? undefined : storedApiKey(apiKey);
   }
 
   async findCommentById(commentId: string): Promise<StoredComment | undefined> {
@@ -326,6 +335,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return branches.map(storedBranch);
+  }
+
+  async listApiKeysForWorkspace(workspaceId: string): Promise<StoredApiKey[]> {
+    const apiKeys = await this.prisma.apiKey.findMany({
+      orderBy: { created_at: "asc" },
+      where: { workspace_id: workspaceId }
+    });
+
+    return apiKeys.map(storedApiKey);
   }
 
   async listCommentsForUseCase(usecaseId: string): Promise<StoredComment[]> {
@@ -541,6 +559,10 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.specBranch.create({ data: specBranchData(branch) });
   }
 
+  async saveApiKey(apiKey: StoredApiKey): Promise<void> {
+    await this.prisma.apiKey.create({ data: apiKeyData(apiKey) });
+  }
+
   async saveComment(comment: StoredComment): Promise<void> {
     await this.prisma.comment.create({ data: commentData(comment) });
   }
@@ -700,6 +722,13 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.comment.update({
       data: commentUpdate(comment),
       where: { id: comment.id }
+    });
+  }
+
+  async updateApiKey(apiKey: StoredApiKey): Promise<void> {
+    await this.prisma.apiKey.update({
+      data: apiKeyUpdate(apiKey),
+      where: { id: apiKey.id }
     });
   }
 
@@ -1326,6 +1355,28 @@ function storedComment(comment: {
   };
 }
 
+function storedApiKey(apiKey: {
+  created_at: Date;
+  id: string;
+  key_hash: string;
+  name: string;
+  revoked_at: Date | null;
+  scopes: string;
+  user_id: string;
+  workspace_id: string;
+}): StoredApiKey {
+  return {
+    created_at: apiKey.created_at.toISOString(),
+    created_by: apiKey.user_id,
+    id: apiKey.id,
+    name: apiKey.name,
+    revoked_at: apiKey.revoked_at?.toISOString() ?? null,
+    scopes: parseApiKeyScopes(apiKey.scopes),
+    token_hash: apiKey.key_hash,
+    workspace_id: apiKey.workspace_id
+  };
+}
+
 function storedWorkspace(workspace: {
   archived_at: Date | null;
   id: string;
@@ -1370,6 +1421,15 @@ function parseAliases(raw: string): string[] {
   const parsed = JSON.parse(raw) as unknown;
   return Array.isArray(parsed) && parsed.every((entry) => typeof entry === "string")
     ? parsed
+    : [];
+}
+
+function parseApiKeyScopes(raw: string): StoredApiKey["scopes"] {
+  const parsed = JSON.parse(raw) as unknown;
+  return Array.isArray(parsed)
+    ? parsed.filter((scope): scope is "read" | "write" =>
+        scope === "read" || scope === "write"
+      )
     : [];
 }
 
@@ -1420,6 +1480,19 @@ function specBranchData(branch: StoredSpecBranch) {
     owner_type: branch.owner_type,
     project_id: branch.project_id,
     status: branch.status ?? "ACTIVE"
+  };
+}
+
+function apiKeyData(apiKey: StoredApiKey) {
+  return {
+    created_at: dateOrUndefined(apiKey.created_at),
+    id: apiKey.id,
+    key_hash: apiKey.token_hash,
+    name: apiKey.name,
+    revoked_at: dateOrNull(apiKey.revoked_at),
+    scopes: JSON.stringify(apiKey.scopes),
+    user_id: apiKey.created_by,
+    workspace_id: apiKey.workspace_id
   };
 }
 
@@ -1591,6 +1664,12 @@ function commentUpdate(comment: StoredComment) {
     resolved: comment.resolved,
     resolved_at: dateOrNull(comment.resolved_at),
     updated_at: dateOrNull(comment.updated_at)
+  };
+}
+
+function apiKeyUpdate(apiKey: StoredApiKey) {
+  return {
+    revoked_at: dateOrNull(apiKey.revoked_at)
   };
 }
 

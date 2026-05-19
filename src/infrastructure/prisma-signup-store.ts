@@ -54,6 +54,14 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async findWorkspaceById(workspaceId: string): Promise<StoredWorkspace | undefined> {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId }
+    });
+
+    return workspace === null ? undefined : storedWorkspace(workspace);
+  }
+
   async findUserByEmail(email: string): Promise<StoredUser | undefined> {
     const user = await this.prisma.user.findUnique({
       where: { email }
@@ -643,6 +651,10 @@ class PrismaSignupStore implements SignupStore {
 
   async saveUser(user: StoredUser): Promise<void> {
     await this.prisma.user.create({ data: user });
+  }
+
+  async saveWorkspace(workspace: StoredWorkspace): Promise<void> {
+    await this.prisma.workspace.create({ data: workspaceData(workspace) });
   }
 
   async saveWorkSession(session: StoredWorkSession): Promise<void> {
@@ -1240,6 +1252,24 @@ function storedUser(user: {
     id: user.id,
     last_login_at: user.last_login_at?.toISOString(),
     name: user.name ?? ""
+  };
+}
+
+function storedWorkspace(workspace: {
+  archived_at: Date | null;
+  id: string;
+  name: string;
+  owner_id: string;
+  plan: string;
+  slug: string;
+}): StoredWorkspace {
+  return {
+    archived_at: workspace.archived_at?.toISOString() ?? null,
+    id: workspace.id,
+    name: workspace.name,
+    owner_id: workspace.owner_id,
+    plan: "FREE",
+    slug: workspace.slug
   };
 }
 

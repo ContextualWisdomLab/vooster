@@ -11,13 +11,13 @@ import {
   problem,
   readCookie,
   signupEntities,
-  signupResponse,
-  workspacesForUser
+  signupResponse
 } from "./signup-support.js";
 import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 import type { UserStore } from "../ports/user-store.js";
+import type { WorkspaceStore } from "../ports/workspace-store.js";
 
 const startSignupSchema = z.union([
   z.object({
@@ -49,13 +49,22 @@ export function registerSignupRoutes(
   options: ServerOptions,
   state: SignupState,
   membershipStore: MembershipStore,
-  userStore: UserStore
+  userStore: UserStore,
+  workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/auth/github/start", (request, reply) =>
     startSignup(request, reply, state)
   );
   app.get("/v1/auth/github/callback", async (request, reply) => {
-    return completeSignup(request, reply, options, state, membershipStore, userStore);
+    return completeSignup(
+      request,
+      reply,
+      options,
+      state,
+      membershipStore,
+      userStore,
+      workspaceStore
+    );
   });
 }
 
@@ -85,7 +94,8 @@ async function completeSignup(
   options: ServerOptions,
   state: SignupState,
   membershipStore: MembershipStore,
-  userStore: UserStore
+  userStore: UserStore,
+  workspaceStore: WorkspaceStore
 ) {
   const parsed = callbackQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -125,7 +135,7 @@ async function completeSignup(
   }
 
   if (pending.flow === "login") {
-    return completeLogin(reply, state, membershipStore, userStore, profile);
+    return completeLogin(reply, state, membershipStore, userStore, workspaceStore, profile);
   }
 
   return completeVerifiedSignup(
@@ -134,6 +144,7 @@ async function completeSignup(
     options.signupStore,
     membershipStore,
     userStore,
+    workspaceStore,
     profile,
     pending.workspace
   );
@@ -149,6 +160,7 @@ async function completeVerifiedSignup(
   store: SignupStore | undefined,
   membershipStore: MembershipStore,
   userStore: UserStore,
+  workspaceStore: WorkspaceStore,
   profile: GithubProfile,
   pending: PendingSignup
 ) {
@@ -165,10 +177,10 @@ async function completeVerifiedSignup(
   if (store === undefined) {
     await userStore.saveUser(entities.user);
     await membershipStore.saveMembership(entities.membership);
+    await workspaceStore.saveWorkspace(entities.workspace);
   } else {
     await store.saveSignup(entities);
   }
-  state.workspacesById.set(entities.workspace.id, entities.workspace);
 
   establishSession(reply, state.sessionsByToken, entities.user.id);
   return reply
@@ -181,6 +193,7 @@ async function completeLogin(
   state: SignupState,
   membershipStore: MembershipStore,
   userStore: UserStore,
+  workspaceStore: WorkspaceStore,
   profile: GithubProfile
 ) {
   const user = await userStore.findUserByGithubId(profile.githubId);
@@ -196,10 +209,7 @@ async function completeLogin(
   await userStore.updateLastLoginAt(user.id, user.last_login_at);
   establishSession(reply, state.sessionsByToken, user.id);
   const workspaces = !isSignupStore(userStore)
-    ? workspacesForUser(
-        await membershipStore.membershipsForUser(user.id),
-        state.workspacesById
-      )
+    ? await workspacesForUser(membershipStore, workspaceStore, user.id)
     : await userStore.workspaceSummariesForUser(user.id);
 
   return reply.code(200).send({
@@ -209,6 +219,26 @@ async function completeLogin(
       ? { recommended_next_command: "vspec workspace create" }
       : {})
   });
+}
+
+async function workspacesForUser(
+  membershipStore: MembershipStore,
+  workspaceStore: WorkspaceStore,
+  userId: string
+) {
+  const memberships = await membershipStore.membershipsForUser(userId);
+  const summaries = await Promise.all(
+    memberships.map(async (membership) => {
+      const workspace = await workspaceStore.findWorkspaceById(membership.workspace_id);
+      return workspace === undefined
+        ? undefined
+        : { id: workspace.id, role: membership.role, slug: workspace.slug };
+    })
+  );
+
+  return summaries.filter((summary): summary is NonNullable<typeof summary> =>
+    summary !== undefined
+  );
 }
 
 function isSignupStore(userStore: UserStore): userStore is SignupStore {

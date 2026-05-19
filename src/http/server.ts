@@ -90,7 +90,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore);
-  registerSignupRoutes(app, options, state, membershipStore, userStore);
+  registerSignupRoutes(app, options, state, membershipStore, userStore, workspaceStore);
   registerProjectRoutes(
     app,
     state,
@@ -185,7 +185,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     workSessionStore,
     useCaseStore
   );
-  registerInvitationRoutes(app, options, state, membershipStore, userStore);
+  registerInvitationRoutes(app, options, state, membershipStore, userStore, workspaceStore);
   registerCommentRoutes(app, state, membershipStore, useCaseStore);
   registerChangeCommitRoutes(
     app,
@@ -353,7 +353,6 @@ function initialState(): SignupState {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
     sessionsByToken: new Map(),
-    workspacesById: new Map(),
     workspaceSlugs: new Set()
   };
 

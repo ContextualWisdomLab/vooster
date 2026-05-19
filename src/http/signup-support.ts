@@ -16,16 +16,6 @@ export function clearOAuthState(reply: FastifyReply) {
   reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
 }
 
-export function workspacesForUser(
-  memberships: Array<{ role: "EDITOR" | "OWNER"; workspace_id: string }>,
-  workspacesById: Map<string, StoredWorkspace>
-) {
-  return memberships.flatMap((membership) => {
-    const workspace = workspacesById.get(membership.workspace_id);
-    return workspace === undefined ? [] : [workspaceSummary(workspace, membership)];
-  });
-}
-
 export function signupEntities(profile: GithubProfile, pending: PendingSignup) {
   const user: StoredUser = {
     id: randomUUID(),
@@ -172,15 +162,4 @@ export function cookie(name: string, value: string): string {
 
 function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax`;
-}
-
-function workspaceSummary(
-  workspace: StoredWorkspace,
-  membership: { role: "EDITOR" | "OWNER" }
-) {
-  return {
-    id: workspace.id,
-    slug: workspace.slug,
-    role: membership.role
-  };
 }

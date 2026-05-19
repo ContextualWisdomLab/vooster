@@ -19,6 +19,7 @@ import { githubProfile, problem } from "./signup-support.js";
 import type { ServerOptions, SignupState, StoredUser } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
+import type { WorkspaceStore } from "../ports/workspace-store.js";
 const inviteSchema = z.object({
   email: z.email(),
   role: z.enum(["EDITOR", "OWNER"]),
@@ -32,10 +33,11 @@ export function registerInvitationRoutes(
   options: ServerOptions,
   state: SignupState,
   membershipStore: MembershipStore,
-  userStore: UserStore
+  userStore: UserStore,
+  workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/workspaces/:workspaceId/invitations", (request, reply) =>
-    createInvitation(request, reply, state, membershipStore, userStore)
+    createInvitation(request, reply, state, membershipStore, userStore, workspaceStore)
   );
   app.post("/v1/invitations/:token/accept", (request, reply) =>
     acceptInvitation(request, reply, options, state, membershipStore, userStore)
@@ -47,7 +49,8 @@ async function createInvitation(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
-  userStore: UserStore
+  userStore: UserStore,
+  workspaceStore: WorkspaceStore
 ) {
   const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
   const parsed = inviteSchema.safeParse(request.body);
@@ -59,7 +62,10 @@ async function createInvitation(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid invitation request"));
   }
-  if (!state.workspacesById.has(params.workspaceId) || membership === undefined) {
+  if (
+    await workspaceStore.findWorkspaceById(params.workspaceId) === undefined ||
+    membership === undefined
+  ) {
     return reply.code(403).send(problem(403, "Workspace owner role required"));
   }
   if (membership.role !== "OWNER" && parsed.data.role === "OWNER") {

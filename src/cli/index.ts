@@ -18,6 +18,7 @@ export class VspecCommand extends Command {
     actor: Flags.string(),
     "actor-id": Flags.string(),
     at: Flags.string(),
+    "base-revision": Flags.string(),
     condition: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
@@ -95,6 +96,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "step" && this.argv[1] === "add") {
       await this.addStep(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "step" && this.argv[1] === "edit") {
+      await this.editStep(parsed.flags);
       return;
     }
 
@@ -404,6 +409,26 @@ export class VspecCommand extends Command {
       this.log(`${String(step.step_number)}. ${step.action}`);
     }
   }
+
+  private async editStep(flags: ParsedFlags): Promise<void> {
+    const stepFlags = stepEditFlagsFrom(flags, this.argv[2]);
+    const response = await patchJson(
+      `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
+      {
+        action: stepFlags.action,
+        base_revision: stepFlags.baseRevision
+      },
+      {
+        Cookie: stepFlags.sessionCookie
+      }
+    );
+    const body = response.body as StepEditResponse;
+
+    this.log(`Step ${body.step.id}`);
+    this.log(`Action ${body.step.action}`);
+    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+    this.log(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
+  }
 }
 
 type OAuthFlags = {
@@ -510,6 +535,14 @@ type StepCreateFlags = {
   sessionCookie: string;
 };
 
+type StepEditFlags = {
+  action: string;
+  apiUrl: string;
+  baseRevision: string;
+  sessionCookie: string;
+  stepId: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   action?: string;
@@ -517,6 +550,7 @@ type ParsedFlags = {
   aliases?: string;
   "actor-id"?: string;
   at?: string;
+  "base-revision"?: string;
   condition?: string;
   description?: string;
   email?: string;
@@ -723,6 +757,18 @@ type StepResponse = {
   };
 };
 
+type StepEditResponse = {
+  affected_sessions: string[];
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  step: {
+    action: string;
+    id: string;
+  };
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -870,6 +916,19 @@ function stepCreateFlagsFrom(
   };
 }
 
+function stepEditFlagsFrom(
+  flags: ParsedFlags,
+  stepId: string | undefined
+): StepEditFlags {
+  return {
+    action: requiredFlag(flags, "action"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    baseRevision: requiredFlag(flags, "base-revision"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    stepId: requiredArgument(stepId, "step-id")
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -1013,6 +1072,21 @@ async function postJson(
       ...headers
     },
     method: "POST"
+  });
+}
+
+async function patchJson(
+  url: string,
+  body: unknown,
+  headers: Record<string, string> = {}
+): Promise<JsonResponse> {
+  return fetchJson(url, {
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      ...headers
+    },
+    method: "PATCH"
   });
 }
 

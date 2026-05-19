@@ -140,6 +140,30 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 
+  test("User survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "user.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const owner = await signupWorkspace(first.url, "user-owner");
+    const invitation = await createInvitation(
+      first.url,
+      owner.sessionCookie,
+      owner.workspaceId,
+      "fresh-invitee@users.noreply.github.com"
+    );
+    await acceptInvitation(first.url, invitation.token, "fresh-invitee");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await loginWithWorkspaces(second.url, "fresh-invitee");
+
+    await second.stop();
+
+    expect(loggedIn.workspaces.map((workspace) => workspace.id)).toContain(
+      owner.workspaceId
+    );
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);

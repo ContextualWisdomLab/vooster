@@ -14,6 +14,7 @@ type ApiKey = {
 };
 type ApiKeyResponse = {
   api_key: ApiKey;
+  idempotent?: boolean;
   plaintext_token?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
@@ -102,6 +103,23 @@ describe("UC-032 - Issue and manage API keys", () => {
     });
     expect(reissued.status).toBe(201);
     expect(((await reissued.json()) as ApiKeyResponse).plaintext_token).toMatch(/^vsp_/);
+  });
+
+  test("5b: revoking an already-revoked key is idempotent", async () => {
+    const owner = await signup(server, "API Key Idempotent", "api-key-idempotent", "stub-api-key-idempotent");
+    const created = await createApiKey(owner.workspaceId, owner.cookie, {
+      name: "agent key",
+      scopes: ["write"]
+    });
+    const key = ((await created.json()) as ApiKeyResponse).api_key;
+    const first = (await (await revokeApiKey(key.id, owner.cookie)).json()) as ApiKeyResponse;
+
+    const secondResponse = await revokeApiKey(key.id, owner.cookie);
+
+    expect(secondResponse.status).toBe(200);
+    const second = (await secondResponse.json()) as ApiKeyResponse;
+    expect(second.api_key.revoked_at).toBe(first.api_key.revoked_at);
+    expect(second.idempotent).toBe(true);
   });
 });
 

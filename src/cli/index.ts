@@ -144,6 +144,10 @@ export class VspecCommand extends Command {
       await this.exportGherkin(parsed.flags);
       return;
     }
+    if (parsed.args.command === "export" && this.argv[1] === "markdown") {
+      await this.exportMarkdown(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "comment" && this.argv[1] === "add") {
       await this.addComment(parsed.flags);
       return;
@@ -669,6 +673,29 @@ export class VspecCommand extends Command {
     const exportFlags = exportFlagsFrom(flags, this.argv[2]);
     const response = await postText(
       `${exportFlags.apiUrl}/v1/usecases/${exportFlags.usecaseId}/export/gherkin?format=feature`,
+      {
+        force: exportFlags.force,
+        ...(exportFlags.output === undefined ? {} : { output_path: exportFlags.output }),
+        ...(exportFlags.revision === undefined ? {} : { revision_id: exportFlags.revision })
+      },
+      {
+        Cookie: exportFlags.sessionCookie
+      }
+    );
+
+    if (exportFlags.output === undefined) {
+      this.log(response.body);
+      return;
+    }
+    await writeSyncFile(process.cwd(), exportFlags.output, response.body);
+    this.log(`Exported ${exportFlags.output}`);
+    this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
+  }
+
+  private async exportMarkdown(flags: ParsedFlags): Promise<void> {
+    const exportFlags = exportFlagsFrom(flags, this.argv[2]);
+    const response = await postText(
+      `${exportFlags.apiUrl}/v1/usecases/${exportFlags.usecaseId}/export/markdown`,
       {
         force: exportFlags.force,
         ...(exportFlags.output === undefined ? {} : { output_path: exportFlags.output }),

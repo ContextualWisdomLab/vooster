@@ -20,6 +20,7 @@ const apiKeysByState = new WeakMap<SignupState, Map<string, StoredApiKey>>();
 const createSchema = z.object({
   name: z.string().min(1),
   scopes: z.array(z.string()).min(1),
+  simulate_response_drop: z.boolean().optional(),
   workspace_id: z.string().min(1)
 });
 const listSchema = z.object({ workspace_id: z.string().min(1) });
@@ -61,6 +62,16 @@ function createApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
     workspace_id: parsed.data.workspace_id
   };
   apiKeys(state).set(apiKey.id, apiKey);
+  if (parsed.data.simulate_response_drop === true) {
+    return reply.code(503).send(
+      problem(503, "API key token was not delivered", {}, [
+        {
+          command: "vspec api-key revoke",
+          reason: "Revoke the unviewable key before creating a replacement."
+        }
+      ])
+    );
+  }
   return reply.code(201).send({
     api_key: apiKey,
     plaintext_token: token,

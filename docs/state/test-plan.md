@@ -27,6 +27,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **DB config consistency**: run `scripts/check-db-consistency.sh` through Vitest so package scripts, Prisma schema, `.env.example`, and compose files remain aligned; assert the checker exits cleanly.
 
+### Goal 2 Deploy - Docker Stack
+
+- **Docker deploy contract**: assert `Dockerfile` exists with a multi-stage Node 20 build/runtime shape and `docker-compose.prod.yml` defines an app plus database service with `DATABASE_URL` and the expected deploy-test port mapping. The shell gate `scripts/check-deployable.sh` remains the runtime proof.
+
 ## Example
 
 ### UC-009

@@ -35,6 +35,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **README B4**: assert `README.md` has user-facing `Install`, `Run`, `Deploy`, and `Documentation` sections with copy-pasteable commands, and that the autonomous-build harness content is preserved in `docs/build-harness.md`.
 
+### Goal 2 Layers - Work Session Start
+
+- **Work session application extraction**: test `startWorkSession` without Fastify by faking the required stores; assert it creates an active session pinned to latest revisions, preserves unknown-agent warnings, and rejects semantic-lock auto-branch starts without writing a branch or session.
+
 ## Example
 
 ### UC-009

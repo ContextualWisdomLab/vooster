@@ -1,24 +1,17 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { createAutoBranch } from "./session-branch-support.js";
+import {
+  startWorkSession,
+  type StartWorkSessionResult
+} from "../application/work-session-start.js";
 import {
   archivedPinProblem,
   hardLockedPinProblem,
-  resolvePins,
-  semanticLockConflict,
-  semanticLockProblem,
-  type PinnedUseCases
+  semanticLockProblem
 } from "./session-pin-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredAgentType,
-  StoredMembership,
-  StoredSpecBranch,
-  StoredWorkSession
-} from "./signup-types.js";
+import type { SignupState, StoredSpecBranch, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -27,14 +20,6 @@ import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
-const knownAgentTypes = new Set<StoredAgentType>([
-  "CLAUDE_CODE",
-  "CODEX",
-  "CURSOR",
-  "HUMAN",
-  "OTHER",
-  "WINDSURF"
-]);
 const sessionStartSchema = z.object({
   agent_type: z.string().default("OTHER"),
   auto_branch: z.boolean().default(false),
@@ -57,10 +42,7 @@ export function registerSessionRoutes(
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(
-      request,
-      reply,
-      state,
+    startSession(request, reply, {
       branchStore,
       lockStore,
       membershipStore,
@@ -68,137 +50,69 @@ export function registerSessionRoutes(
       revisionStore,
       workSessionStore,
       useCaseStore
-    )
+    }, state)
   );
 }
 
 async function startSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
-  branchStore: BranchStore,
-  lockStore: LockStore,
-  membershipStore: MembershipStore,
-  projectStore: ProjectStore,
-  revisionStore: RevisionStore,
-  workSessionStore: WorkSessionStore,
-  useCaseStore: UseCaseStore
+  deps: Parameters<typeof startWorkSession>[0],
+  state: SignupState
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid session request"));
   }
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (await membershipForProject(membershipStore, userId, parsed.data.project_id) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-  }
 
-  const pinned = await resolvePins(
-    state,
-    lockStore,
-    revisionStore,
-    useCaseStore,
-    parsed.data.project_id,
-    parsed.data.pins
-  );
-  if (pinned.status === "ARCHIVED") {
-    return reply.code(422).send(archivedPinProblem(pinned.key));
-  }
-  if (pinned.status === "HARD_LOCKED") {
-    return reply.code(409).send(hardLockedPinProblem(pinned.key, pinned.holder));
-  }
-  if (pinned.status !== "OK") {
-    return reply.code(422).send(problem(422, "Pinned use case not found"));
-  }
-  const semanticConflict = parsed.data.auto_branch
-    ? await semanticLockConflict(lockStore, pinned)
-    : undefined;
-  if (semanticConflict !== undefined) {
-    return reply
-      .code(409)
-      .send(semanticLockProblem(semanticConflict.key, semanticConflict.holder));
-  }
-  if (parsed.data.simulate_write_failure) {
-    return reply.code(500).send(problem(500, "Session creation failed", { created_branch: false, created_session: false }, [{ command: "vspec session start --retry", reason: "Retry after the failed transaction." }]));
-  }
-  return createPinnedSession(
-    request,
-    reply,
-    state,
-    branchStore,
-    projectStore,
-    workSessionStore,
-    parsed.data,
-    pinned,
-    userId ?? ""
-  );
+  const result = await startWorkSession(deps, {
+    agentIdentifier: agentIdentifier(request, parsed.data.agent_type),
+    agentType: parsed.data.agent_type,
+    autoBranch: parsed.data.auto_branch,
+    branchName: parsed.data.branch_name,
+    intent: parsed.data.intent,
+    pins: parsed.data.pins,
+    projectId: parsed.data.project_id,
+    simulateWriteFailure: parsed.data.simulate_write_failure,
+    userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+  });
+
+  return sendSessionResult(reply, result);
 }
 
-async function createPinnedSession(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  state: SignupState,
-  branchStore: BranchStore,
-  projectStore: ProjectStore,
-  workSessionStore: WorkSessionStore,
-  data: z.infer<typeof sessionStartSchema>,
-  pinned: PinnedUseCases,
-  userId: string
-) {
-  const session = workSession(data, pinned, userId, agentIdentifier(request, data.agent_type));
-  const branch = data.auto_branch
-    ? await createAutoBranch(
-        state,
-        branchStore,
-        projectStore,
-        data.project_id,
-        data.branch_name ?? `agent/${session.id}`,
-        session
-      )
-    : undefined;
-  if (branch === undefined && data.auto_branch) {
-    return reply.code(409).send(problem(409, "Auto branch name is already in use"));
+function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) {
+  switch (result.status) {
+    case "ARCHIVED_PIN":
+      return reply.code(422).send(archivedPinProblem(result.key));
+    case "AUTO_BRANCH_COLLISION":
+      return reply.code(409).send(problem(409, "Auto branch name is already in use"));
+    case "FORBIDDEN":
+      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+    case "HARD_LOCKED":
+      return reply.code(409).send(hardLockedPinProblem(result.key, result.holder));
+    case "MISSING_PIN":
+      return reply.code(422).send(problem(422, "Pinned use case not found"));
+    case "SEMANTIC_LOCKED":
+      return reply.code(409).send(semanticLockProblem(result.key, result.holder));
+    case "WRITE_FAILURE":
+      return reply.code(500).send(writeFailureProblem());
+    case "STARTED":
+      return reply
+        .code(201)
+        .send(sessionStartResponse(result.session, result.pinnedKeys, result.warning, result.branch));
   }
-  session.branch_id = branch?.id ?? null;
-  await workSessionStore.saveWorkSession(session);
-
-  return reply
-    .code(201)
-    .send(sessionStartResponse(session, pinned.keys, data.agent_type, branch));
-}
-
-function workSession(
-  data: z.infer<typeof sessionStartSchema>,
-  pinned: PinnedUseCases,
-  userId: string,
-  agentIdentifier: string
-): StoredWorkSession {
-  const agentType = agentTypeFor(data.agent_type);
-  return {
-    id: randomUUID(),
-    project_id: data.project_id,
-    user_id: userId,
-    agent_type: agentType,
-    agent_identifier: agentType === "OTHER" ? data.agent_type : agentIdentifier,
-    intent: data.intent,
-    pinned_revisions: pinned.revisions,
-    branch_id: null,
-    status: "ACTIVE",
-    started_at: new Date().toISOString(),
-    last_activity_at: new Date().toISOString()
-  };
 }
 
 function sessionStartResponse(
   session: StoredWorkSession,
   keys: string[],
-  rawAgentType: string,
+  warning?: { message: string; type: "UNKNOWN_AGENT_TYPE" },
   branch?: StoredSpecBranch
 ) {
   return {
     session,
     ...(branch === undefined ? {} : { branch }),
-    ...unknownAgentWarning(rawAgentType),
+    ...(warning === undefined ? {} : { warnings: [warning] }),
     session_file: {
       path: ".vspec/session.json",
       session_id: session.id
@@ -216,40 +130,21 @@ function sessionStartResponse(
   };
 }
 
-function unknownAgentWarning(rawAgentType: string) {
-  return knownAgentTypes.has(rawAgentType as StoredAgentType)
-    ? {}
-    : {
-        warnings: [
-          {
-            type: "UNKNOWN_AGENT_TYPE",
-            message: `Stored unrecognized agent_type ${rawAgentType} as OTHER.`
-          }
-        ]
-      };
-}
-
-function membershipForProject(
-  membershipStore: MembershipStore,
-  userId: string | undefined,
-  projectId: string
-): Promise<StoredMembership | undefined> {
-  if (userId === undefined) {
-    return Promise.resolve(undefined);
-  }
-
-  return membershipStore.membershipForProject(projectId, userId);
+function writeFailureProblem() {
+  return problem(
+    500,
+    "Session creation failed",
+    { created_branch: false, created_session: false },
+    [
+      {
+        command: "vspec session start --retry",
+        reason: "Retry after the failed transaction."
+      }
+    ]
+  );
 }
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {
   const header = request.headers["x-vspec-agent"];
-  if (Array.isArray(header)) {
-    return header[0] ?? fallback;
-  }
-
-  return header ?? fallback;
-}
-
-function agentTypeFor(value: string): StoredAgentType {
-  return knownAgentTypes.has(value as StoredAgentType) ? (value as StoredAgentType) : "OTHER";
+  return Array.isArray(header) ? header[0] ?? fallback : header ?? fallback;
 }

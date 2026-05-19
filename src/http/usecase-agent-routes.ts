@@ -13,6 +13,7 @@ import type { StakeholderInterestStore } from "../ports/stakeholder-interest-sto
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
@@ -28,6 +29,7 @@ export function registerUseCaseAgentRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -43,6 +45,7 @@ export function registerUseCaseAgentRoutes(
       membershipStore,
       projectStore,
       revisionStore,
+      workSessionStore,
       useCaseStore,
       scenarioStore,
       stakeholderInterestStore,
@@ -60,6 +63,7 @@ async function showUseCase(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -99,7 +103,7 @@ async function showUseCase(
   if (query.format !== "agent") {
     return reply.send({ usecase: found.usecase });
   }
-  const session = activeSession(state, query.session);
+  const session = await activeSession(workSessionStore, query.session);
   const pinned = session?.pinned_revisions?.[found.usecase.id];
   const revision = pinned ?? await resolveRevision(revisionStore, found.usecase, query.revision);
   if (revision === undefined) {
@@ -214,11 +218,14 @@ async function resolveRevision(
   return exists ? requestedRevision : undefined;
 }
 
-function activeSession(state: SignupState, sessionId: string | undefined) {
+async function activeSession(
+  workSessionStore: WorkSessionStore,
+  sessionId: string | undefined
+) {
   if (sessionId === undefined) {
     return undefined;
   }
-  const session = state.workSessionsById.get(sessionId);
+  const session = await workSessionStore.findWorkSessionById(sessionId);
   return session?.status === "ACTIVE" ? session : undefined;
 }
 

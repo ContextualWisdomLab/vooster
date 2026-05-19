@@ -25,6 +25,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
   "CLAUDE_CODE",
@@ -52,6 +53,7 @@ export function registerSessionRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
@@ -64,6 +66,7 @@ export function registerSessionRoutes(
       membershipStore,
       projectStore,
       revisionStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -78,6 +81,7 @@ async function startSession(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
@@ -123,6 +127,7 @@ async function startSession(
     state,
     branchStore,
     projectStore,
+    workSessionStore,
     parsed.data,
     pinned,
     userId ?? ""
@@ -135,6 +140,7 @@ async function createPinnedSession(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore,
   data: z.infer<typeof sessionStartSchema>,
   pinned: PinnedUseCases,
   userId: string
@@ -154,11 +160,7 @@ async function createPinnedSession(
     return reply.code(409).send(problem(409, "Auto branch name is already in use"));
   }
   session.branch_id = branch?.id ?? null;
-  state.workSessionsById.set(session.id, session);
-  for (const usecase of pinned.usecases) {
-    const sessions = state.workSessionsByUseCaseId.get(usecase.id) ?? [];
-    state.workSessionsByUseCaseId.set(usecase.id, [...sessions, session]);
-  }
+  await workSessionStore.saveWorkSession(session);
 
   return reply
     .code(201)

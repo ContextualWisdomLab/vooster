@@ -10,6 +10,7 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
@@ -30,7 +31,8 @@ export function registerSessionCompleteRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore
 ) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
     completeSession(
@@ -41,7 +43,8 @@ export function registerSessionCompleteRoutes(
       lockStore,
       membershipStore,
       mergeRequestStore,
-      projectStore
+      projectStore,
+      workSessionStore
     )
   );
 }
@@ -54,9 +57,10 @@ async function completeSession(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore
 ) {
-  const session = state.workSessionsById.get(sessionIdFrom(request.params));
+  const session = await workSessionStore.findWorkSessionById(sessionIdFrom(request.params));
   const parsed = completeSchema.safeParse(request.body);
   if (session === undefined) {
     return reply.code(404).send(problem(404, "Session not found"));
@@ -100,12 +104,14 @@ async function completeSession(
   );
   session.status = "COMPLETED";
   session.ended_at = new Date().toISOString();
+  session.last_activity_at = session.ended_at;
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
     : await openMergeRequest(projectStore, session, parsed.data.simulate_conflicts);
   if (mergeRequest !== undefined) {
     await mergeRequestStore.saveMergeRequest(mergeRequest);
   }
+  await workSessionStore.updateWorkSession(session);
   const noMergeBranch = parsed.data.no_merge
     ? await branchName(branchStore, session)
     : undefined;

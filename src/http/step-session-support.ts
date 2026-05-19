@@ -1,17 +1,18 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredWorkSession } from "./signup-types.js";
+import type { StoredWorkSession } from "./signup-types.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const sessionBodySchema = z.object({
   id: z.string().min(1),
   pinned_revision_id: z.string().min(1)
 });
 
-export function createTestWorkSession(
+export async function createTestWorkSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  workSessionStore: WorkSessionStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = sessionBodySchema.safeParse(request.body);
@@ -24,14 +25,14 @@ export function createTestWorkSession(
     status: "ACTIVE",
     usecase_id: params.usecaseId
   };
-  state.workSessionsByUseCaseId.set(params.usecaseId, [
-    ...(state.workSessionsByUseCaseId.get(params.usecaseId) ?? []),
-    session
-  ]);
+  await workSessionStore.saveWorkSession(session);
   return reply.code(201).send({ session });
 }
 
-export function affectedSessionIds(state: SignupState, usecaseId: string): string[] {
-  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+export async function affectedSessionIds(
+  workSessionStore: WorkSessionStore,
+  usecaseId: string
+): Promise<string[]> {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .map((session) => session.id);
 }

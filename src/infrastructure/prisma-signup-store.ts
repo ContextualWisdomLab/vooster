@@ -15,7 +15,8 @@ import type {
   StoredStakeholderInterest,
   StoredStep,
   StoredUser,
-  StoredUseCase
+  StoredUseCase,
+  StoredWorkSession
 } from "../http/signup-types.js";
 
 export function createPrismaSignupStore(databaseUrl: string): SignupStore {
@@ -51,6 +52,14 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return user === null ? undefined : storedUser(user);
+  }
+
+  async findWorkSessionById(sessionId: string): Promise<StoredWorkSession | undefined> {
+    const session = await this.prisma.workSession.findUnique({
+      where: { id: sessionId }
+    });
+
+    return session === null ? undefined : storedWorkSession(session);
   }
 
   async archiveActor(
@@ -397,6 +406,21 @@ class PrismaSignupStore implements SignupStore {
     return revisions.map(storedRevision);
   }
 
+  async listWorkSessions(): Promise<StoredWorkSession[]> {
+    const sessions = await this.prisma.workSession.findMany({
+      orderBy: { started_at: "desc" }
+    });
+
+    return sessions.map(storedWorkSession);
+  }
+
+  async listWorkSessionsForUseCase(usecaseId: string): Promise<StoredWorkSession[]> {
+    return (await this.listWorkSessions()).filter((session) =>
+      session.usecase_id === usecaseId ||
+      session.pinned_revisions?.[usecaseId] !== undefined
+    );
+  }
+
   async listProjectsForWorkspace(workspaceId: string): Promise<StoredProject[]> {
     const projects = await this.prisma.project.findMany({
       orderBy: { created_at: "asc" },
@@ -613,6 +637,10 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.user.create({ data: user });
   }
 
+  async saveWorkSession(session: StoredWorkSession): Promise<void> {
+    await this.prisma.workSession.create({ data: workSessionData(session) });
+  }
+
   async updateBranch(branch: StoredSpecBranch): Promise<void> {
     await this.prisma.specBranch.update({
       data: specBranchUpdate(branch),
@@ -653,6 +681,13 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.useCase.update({
       data: useCaseUpdate(usecase),
       where: { id: usecase.id }
+    });
+  }
+
+  async updateWorkSession(session: StoredWorkSession): Promise<void> {
+    await this.prisma.workSession.update({
+      data: workSessionUpdate(session),
+      where: { id: session.id }
     });
   }
 
@@ -1067,6 +1102,59 @@ function storedRevision(revision: {
   };
 }
 
+function storedWorkSession(session: {
+  agent_identifier: null | string;
+  agent_type: string;
+  branch_id: null | string;
+  ended_at: Date | null;
+  id: string;
+  intent: string;
+  last_activity_at?: Date | null;
+  pinned_revisions: string;
+  project_id: string;
+  started_at: Date;
+  status: string;
+  user_id: string;
+}): StoredWorkSession {
+  return {
+    agent_identifier: session.agent_identifier ?? undefined,
+    agent_type: storedAgentType(session.agent_type),
+    branch_id: session.branch_id,
+    ended_at: session.ended_at?.toISOString(),
+    id: session.id,
+    intent: session.intent,
+    last_activity_at: session.last_activity_at?.toISOString(),
+    pinned_revisions: parseRecord(session.pinned_revisions),
+    project_id: session.project_id,
+    started_at: session.started_at.toISOString(),
+    status: storedWorkSessionStatus(session.status),
+    user_id: session.user_id
+  };
+}
+
+function storedAgentType(value: string): StoredWorkSession["agent_type"] {
+  if (
+    value === "CLAUDE_CODE" ||
+    value === "CODEX" ||
+    value === "CURSOR" ||
+    value === "HUMAN" ||
+    value === "OTHER" ||
+    value === "WINDSURF"
+  ) {
+    return value;
+  }
+
+  return "OTHER";
+}
+
+function storedWorkSessionStatus(value: string): StoredWorkSession["status"] {
+  if (value === "ABANDONED" || value === "COMPLETED") {
+    return value;
+  }
+
+  return "ACTIVE";
+}
+
 function storedRevisionEntityType(value: string): StoredRevision["entity_type"] {
   if (
     value === "ACTOR" ||
@@ -1317,6 +1405,40 @@ function useCaseUpdate(usecase: StoredUseCase) {
     scope: usecase.scope,
     status: usecase.status,
     title: usecase.title
+  };
+}
+
+function workSessionData(session: StoredWorkSession) {
+  if (session.project_id === undefined || session.user_id === undefined) {
+    throw new Error(`Work session ${session.id} requires project_id and user_id`);
+  }
+  return {
+    agent_identifier: session.agent_identifier ?? null,
+    agent_type: session.agent_type ?? "OTHER",
+    branch_id: session.branch_id ?? null,
+    ended_at: dateOrNull(session.ended_at ?? null),
+    id: session.id,
+    intent: session.intent ?? "",
+    last_activity_at: dateOrNull(session.last_activity_at ?? null),
+    pinned_revisions: JSON.stringify(session.pinned_revisions ?? {}),
+    project_id: session.project_id,
+    started_at: dateOrUndefined(session.started_at),
+    status: session.status,
+    user_id: session.user_id
+  };
+}
+
+function workSessionUpdate(session: StoredWorkSession) {
+  return {
+    agent_identifier: session.agent_identifier ?? null,
+    agent_type: session.agent_type ?? "OTHER",
+    branch_id: session.branch_id ?? null,
+    ended_at: dateOrNull(session.ended_at ?? null),
+    intent: session.intent ?? "",
+    last_activity_at: dateOrNull(session.last_activity_at ?? null),
+    pinned_revisions: JSON.stringify(session.pinned_revisions ?? {}),
+    started_at: dateOrUndefined(session.started_at),
+    status: session.status
   };
 }
 

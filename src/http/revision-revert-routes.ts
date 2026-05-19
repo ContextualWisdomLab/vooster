@@ -10,6 +10,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
@@ -27,6 +28,7 @@ export function registerRevisionRevertRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
@@ -39,6 +41,7 @@ export function registerRevisionRevertRoutes(
       membershipStore,
       projectStore,
       revisionStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -53,6 +56,7 @@ async function revertUseCase(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
@@ -86,7 +90,7 @@ async function revertUseCase(
   if (!parsed.data.force && current.severity === "BREAKING") {
     return reply
       .code(409)
-      .send(breakingRevertProblem(found.usecase, target.id, current, state));
+      .send(await breakingRevertProblem(found.usecase, target.id, current, workSessionStore));
   }
   if (parsed.data.simulate_write_failure) {
     return reply.code(500).send(writeFailureProblem(found.usecase, target.id));
@@ -169,17 +173,17 @@ function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
   );
 }
 
-function breakingRevertProblem(
+async function breakingRevertProblem(
   usecase: StoredUseCase,
   targetRevision: string,
   current: StoredRevision,
-  state: SignupState
+  workSessionStore: WorkSessionStore
 ) {
   return problem(
     409,
     "Revert would reintroduce breaking changes",
     {
-      affected_sessions: activeSessionIds(state, usecase.id),
+      affected_sessions: await activeSessionIds(workSessionStore, usecase.id),
       breaking_changes: [
         { path: "usecase.title", revision: current.id, severity: "BREAKING" }
       ]
@@ -193,8 +197,8 @@ function breakingRevertProblem(
   );
 }
 
-function activeSessionIds(state: SignupState, usecaseId: string) {
-  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+async function activeSessionIds(workSessionStore: WorkSessionStore, usecaseId: string) {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
     .map((session) => session.id);
 }

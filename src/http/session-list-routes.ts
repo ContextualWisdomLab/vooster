@@ -8,6 +8,7 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const sessionListSchema = z.object({
   project_id: z.string().optional(),
@@ -24,6 +25,7 @@ export function registerSessionListRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/sessions", (request, reply) =>
@@ -35,6 +37,7 @@ export function registerSessionListRoutes(
       lockStore,
       membershipStore,
       projectStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -47,11 +50,12 @@ export function registerSessionListRoutes(
       lockStore,
       membershipStore,
       projectStore,
+      workSessionStore,
       useCaseStore
     )
   );
   app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
-    ageSessionHeartbeat(request, reply, state)
+    ageSessionHeartbeat(request, reply, workSessionStore)
   );
 }
 
@@ -63,6 +67,7 @@ async function listSessions(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const snapshot = await sessionSnapshot(
@@ -73,6 +78,7 @@ async function listSessions(
     lockStore,
     membershipStore,
     projectStore,
+    workSessionStore,
     useCaseStore
   );
   return snapshot === undefined ? undefined : reply.send(snapshot);
@@ -86,6 +92,7 @@ async function watchSessions(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const snapshot = await sessionSnapshot(
@@ -96,6 +103,7 @@ async function watchSessions(
     lockStore,
     membershipStore,
     projectStore,
+    workSessionStore,
     useCaseStore
   );
   if (snapshot === undefined) {
@@ -114,6 +122,7 @@ async function sessionSnapshot(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = sessionListSchema.safeParse(request.query);
@@ -132,10 +141,13 @@ async function sessionSnapshot(
   }
 
   const projects = await projectStore.listProjectsForWorkspace(parsed.data.workspace_id);
-  const sessions = await Promise.all([...state.workSessionsById.values()]
+  const allSessions = await workSessionStore.listWorkSessions();
+  const sessions = await Promise.all(allSessions
     .filter((session) => sessionMatches(session, projects, parsed.data))
     .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""))
-    .map((session) => sessionRow(state, session, branchStore, lockStore, useCaseStore)));
+    .map((session) =>
+      sessionRow(allSessions, session, branchStore, lockStore, useCaseStore)
+    ));
 
   return {
     total: sessions.length,
@@ -147,17 +159,18 @@ async function sessionSnapshot(
   };
 }
 
-function ageSessionHeartbeat(
+async function ageSessionHeartbeat(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  workSessionStore: WorkSessionStore
 ) {
-  const session = state.workSessionsById.get(sessionIdFrom(request.params));
+  const session = await workSessionStore.findWorkSessionById(sessionIdFrom(request.params));
   const parsed = heartbeatSchema.safeParse(request.body);
   if (session === undefined || !parsed.success) {
     return reply.code(404).send(problem(404, "Session not found"));
   }
   session.last_activity_at = parsed.data.last_activity_at;
+  await workSessionStore.updateWorkSession(session);
   return reply.send({ updated: true });
 }
 
@@ -189,7 +202,7 @@ function sessionMatches(
 }
 
 async function sessionRow(
-  state: SignupState,
+  allSessions: StoredWorkSession[],
   session: StoredWorkSession,
   branchStore: BranchStore,
   lockStore: LockStore,
@@ -206,7 +219,7 @@ async function sessionRow(
     branch_name: await branchName(branchStore, session),
     idle_seconds: idleSeconds(session.last_activity_at ?? session.started_at),
     lock_count: await lockCount(lockStore, session),
-    conflict_markers: conflictMarkers(state, session),
+    conflict_markers: conflictMarkers(allSessions, session),
     markers: sessionMarkers(session),
     status: session.status,
     started_at: session.started_at
@@ -244,9 +257,9 @@ async function lockCount(lockStore: LockStore, session: StoredWorkSession): Prom
   return (await lockStore.listLocksHeldBySession(session.id)).length;
 }
 
-function conflictMarkers(state: SignupState, session: StoredWorkSession): string[] {
+function conflictMarkers(allSessions: StoredWorkSession[], session: StoredWorkSession): string[] {
   const pinned = new Set(Object.keys(session.pinned_revisions ?? {}));
-  return [...state.workSessionsById.values()]
+  return allSessions
     .filter((other) => other.id !== session.id)
     .filter((other) => Object.keys(other.pinned_revisions ?? {}).some((key) => pinned.has(key)))
     .map((other) => `PINNED_BY:${other.id}`);

@@ -314,6 +314,7 @@ model WorkSession {
   branch_id        String?
   status           String        @default("ACTIVE")
   started_at       DateTime      @default(now())
+  last_activity_at DateTime?
   ended_at         DateTime?
 
   project Project     @relation(fields: [project_id], references: [id])

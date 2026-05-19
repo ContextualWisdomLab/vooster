@@ -19,6 +19,7 @@ import type { StakeholderStore } from "./stakeholder-store.js";
 import type { StepStore } from "./step-store.js";
 import type { UseCaseStore } from "./usecase-store.js";
 import type { UserStore } from "./user-store.js";
+import type { WorkSessionStore } from "./work-session-store.js";
 
 export type SignupEntities = {
   membership: StoredMembership;
@@ -45,7 +46,8 @@ export type SignupStore = ActorStore &
   StakeholderStore &
   StepStore &
   UseCaseStore &
-  UserStore & {
+  UserStore &
+  WorkSessionStore & {
   close: () => Promise<void>;
   saveSignup: (entities: SignupEntities) => Promise<void>;
   saveProjectWithDefaultBranch: (

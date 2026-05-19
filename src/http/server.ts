@@ -13,6 +13,7 @@ import { createMemoryStakeholderStore } from "../infrastructure/memory-stakehold
 import { createMemoryStepStore } from "../infrastructure/memory-step-store.js";
 import { createMemoryUseCaseStore } from "../infrastructure/memory-usecase-store.js";
 import { createMemoryUserStore } from "../infrastructure/memory-user-store.js";
+import { createMemoryWorkSessionStore } from "../infrastructure/memory-work-session-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -74,6 +75,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const stepStore = options.signupStore ?? createMemoryStepStore();
   const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
   const userStore = options.signupStore ?? createMemoryUserStore();
+  const workSessionStore = options.signupStore ?? createMemoryWorkSessionStore();
   if (options.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
   }
@@ -170,7 +172,15 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     revisionStore,
     useCaseStore
   );
-  registerImpactRoutes(app, state, lockStore, membershipStore, revisionStore, useCaseStore);
+  registerImpactRoutes(
+    app,
+    state,
+    lockStore,
+    membershipStore,
+    revisionStore,
+    workSessionStore,
+    useCaseStore
+  );
   registerInvitationRoutes(app, options, state, membershipStore, userStore);
   registerCommentRoutes(app, state, membershipStore, useCaseStore);
   registerChangeCommitRoutes(
@@ -205,6 +215,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     projectStore,
     revisionStore,
+    workSessionStore,
     useCaseStore,
     scenarioStore,
     stakeholderInterestStore,
@@ -219,6 +230,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     projectStore,
     revisionStore,
+    workSessionStore,
     useCaseStore
   );
   registerUseCaseRoutes(
@@ -252,9 +264,19 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     projectStore,
     revisionStore,
+    workSessionStore,
     useCaseStore
   );
-  registerWhoRoutes(app, state, branchStore, lockStore, membershipStore, mergeRequestStore, useCaseStore);
+  registerWhoRoutes(
+    app,
+    state,
+    branchStore,
+    lockStore,
+    membershipStore,
+    mergeRequestStore,
+    workSessionStore,
+    useCaseStore
+  );
   registerScenarioRoutes(
     app,
     state,
@@ -273,7 +295,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     mergeRequestStore,
-    projectStore
+    projectStore,
+    workSessionStore
   );
   registerSessionListRoutes(
     app,
@@ -282,6 +305,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     projectStore,
+    workSessionStore,
     useCaseStore
   );
   registerSessionRoutes(
@@ -292,6 +316,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     projectStore,
     revisionStore,
+    workSessionStore,
     useCaseStore
   );
   registerStepRoutes(
@@ -302,6 +327,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     scenarioStore,
     revisionStore,
     stepStore,
+    workSessionStore,
     useCaseStore
   );
   registerSyncRoutes(
@@ -322,8 +348,6 @@ function initialState(): SignupState {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
     sessionsByToken: new Map(),
-    workSessionsById: new Map(),
-    workSessionsByUseCaseId: new Map(),
     workspaceArchivedAt: new Map(),
     workspacesById: new Map(),
     workspaceSlugs: new Set()

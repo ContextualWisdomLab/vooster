@@ -14,6 +14,7 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export function registerWhoRoutes(
   app: FastifyInstance,
@@ -22,6 +23,7 @@ export function registerWhoRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/who", (request, reply) =>
@@ -33,6 +35,7 @@ export function registerWhoRoutes(
       lockStore,
       membershipStore,
       mergeRequestStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -46,6 +49,7 @@ async function showWho(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const usecaseId = usecaseIdFrom(request.params);
@@ -57,7 +61,7 @@ async function showWho(
     return reply.code(403).send(workspaceMembershipProblem());
   }
 
-  const sessions = activeSessions(state, usecase.id).map(sessionRow);
+  const sessions = (await activeSessions(workSessionStore, usecase.id)).map(sessionRow);
   const locks = (await activeLocks(lockStore, usecase.id)).map(lockRow);
   const mergeRequests = (
     await openMergeRequests(branchStore, mergeRequestStore, usecase.id)
@@ -101,8 +105,8 @@ function workspaceMembershipProblem() {
   );
 }
 
-function activeSessions(state: SignupState, usecaseId: string) {
-  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+async function activeSessions(workSessionStore: WorkSessionStore, usecaseId: string) {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
     .filter((session) => session.pinned_revisions?.[usecaseId] !== undefined);
 }

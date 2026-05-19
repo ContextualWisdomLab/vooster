@@ -19,6 +19,7 @@ import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const stepPatchSchema = z.object({
   action: z.string().optional(),
@@ -35,6 +36,7 @@ export function registerStepRoutes(
   scenarioStore: ScenarioStore,
   revisionStore: RevisionStore,
   stepStore: StepStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.patch("/v1/steps/:stepId", (request, reply) =>
@@ -47,6 +49,7 @@ export function registerStepRoutes(
       scenarioStore,
       revisionStore,
       stepStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -54,7 +57,7 @@ export function registerStepRoutes(
     createTestLock(request, reply, lockStore)
   );
   app.post("/__test/usecases/:usecaseId/work-sessions", (request, reply) =>
-    createTestWorkSession(request, reply, state)
+    createTestWorkSession(request, reply, workSessionStore)
   );
 }
 
@@ -67,6 +70,7 @@ async function patchStep(
   scenarioStore: ScenarioStore,
   revisionStore: RevisionStore,
   stepStore: StepStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await stepWithUseCase(
@@ -125,7 +129,7 @@ async function patchStep(
   );
 
   return reply.send({
-    affected_sessions: affectedSessionIds(state, found.usecase.id),
+    affected_sessions: await affectedSessionIds(workSessionStore, found.usecase.id),
     revision,
     step: updated
   });

@@ -9,10 +9,11 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 type ImpactPayload = {
   affected_branches: string[];
-  affected_sessions: ReturnType<typeof affectedActiveSessions>;
+  affected_sessions: Awaited<ReturnType<typeof affectedActiveSessions>>;
   affected_tests: string[];
   confidence: number;
   input_hash: string;
@@ -34,6 +35,7 @@ export function registerImpactRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/preview", async (request, reply) => {
@@ -45,12 +47,21 @@ export function registerImpactRoutes(
         lockStore,
         membershipStore,
         revisionStore,
+        workSessionStore,
         useCaseStore
       )
     ) {
       return undefined;
     }
-    return previewImpact(request, reply, state, membershipStore, revisionStore, useCaseStore);
+    return previewImpact(
+      request,
+      reply,
+      state,
+      membershipStore,
+      revisionStore,
+      workSessionStore,
+      useCaseStore
+    );
   });
 }
 
@@ -60,6 +71,7 @@ async function previewImpact(
   state: SignupState,
   membershipStore: MembershipStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = previewSchema.safeParse(request.body);
@@ -88,7 +100,7 @@ async function previewImpact(
     return reply.code(404).send(problem(404, "Revision not found"));
   }
 
-  const affectedSessions = affectedActiveSessions(state, found.usecase.id);
+  const affectedSessions = await affectedActiveSessions(workSessionStore, found.usecase.id);
   const inputHash = impactHash(revision.id, revision.snapshot);
   const previewId = randomUUID();
   const cached = cacheFor(state).get(inputHash);
@@ -131,7 +143,7 @@ function cacheFor(state: SignupState) {
 
 function impactPayload(
   revision: StoredRevision,
-  affectedSessions: ReturnType<typeof affectedActiveSessions>,
+  affectedSessions: Awaited<ReturnType<typeof affectedActiveSessions>>,
   inputHash: string
 ): ImpactPayload {
   return {
@@ -150,8 +162,8 @@ function impactHash(revisionId: string, snapshot: StoredRevision["snapshot"]) {
     .digest("hex");
 }
 
-function affectedActiveSessions(state: SignupState, usecaseId: string) {
-  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+async function affectedActiveSessions(workSessionStore: WorkSessionStore, usecaseId: string) {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
     .map((session) => ({
       agent_type: session.agent_type,

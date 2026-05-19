@@ -10,6 +10,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export function registerUseCaseArchiveRoutes(
   app: FastifyInstance,
@@ -19,6 +20,7 @@ export function registerUseCaseArchiveRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   app.delete("/v1/usecases/:usecaseId", (request, reply) =>
@@ -31,6 +33,7 @@ export function registerUseCaseArchiveRoutes(
       membershipStore,
       projectStore,
       revisionStore,
+      workSessionStore,
       useCaseStore
     )
   );
@@ -45,6 +48,7 @@ async function archiveUseCase(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -77,7 +81,7 @@ async function archiveUseCase(
   await useCaseStore.updateUseCase(found.usecase);
   await revisionStore.saveRevision(revision);
   await advanceMainHead(projectStore, branchStore, found.usecase, revision.id);
-  const affectedSessions = affectedSessionsFor(state, found.usecase.id);
+  const affectedSessions = await affectedSessionsFor(workSessionStore, found.usecase.id);
 
   return reply.send({
     active_locks_count: await activeLockCount(lockStore, found.usecase.id),
@@ -215,8 +219,8 @@ async function activeHardLock(lockStore: LockStore, usecaseId: string) {
     : undefined;
 }
 
-function affectedSessionsFor(state: SignupState, usecaseId: string) {
-  return (state.workSessionsByUseCaseId.get(usecaseId) ?? [])
+async function affectedSessionsFor(workSessionStore: WorkSessionStore, usecaseId: string) {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
     .map((session) => ({
       id: session.id,

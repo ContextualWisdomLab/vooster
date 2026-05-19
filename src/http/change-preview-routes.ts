@@ -9,6 +9,7 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
 const proposalSchema = z.object({
@@ -28,6 +29,7 @@ export async function previewSpecChange(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   revisionStore: RevisionStore,
+  workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ): Promise<boolean> {
   if (!proposalMarkerSchema.safeParse(request.body).success) {
@@ -70,7 +72,7 @@ export async function previewSpecChange(
   }
 
   const preview = changePreview(usecase, parsed.data.base_revision, patch.fields.title);
-  const affectedSessions = affectedActiveSessions(state, usecase);
+  const affectedSessions = await affectedActiveSessions(workSessionStore, usecase);
   previews(state).set(preview.id, preview);
   reply.code(201).send({
     diff: preview.diff,
@@ -171,8 +173,11 @@ async function staleBaseProblem(revisionStore: RevisionStore, usecase: StoredUse
   );
 }
 
-function affectedActiveSessions(state: SignupState, usecase: StoredUseCase) {
-  return (state.workSessionsByUseCaseId.get(usecase.id) ?? [])
+async function affectedActiveSessions(
+  workSessionStore: WorkSessionStore,
+  usecase: StoredUseCase
+) {
+  return (await workSessionStore.listWorkSessionsForUseCase(usecase.id))
     .filter((session) => session.status === "ACTIVE")
     .map((session) => ({
       agent_type: session.agent_type,

@@ -46,9 +46,9 @@ function createApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
       })
     );
   }
-  const membership = ownerMembership(request, state, parsed.data.workspace_id);
-  if (membership === undefined) {
-    return reply.code(403).send(problem(403, "Workspace owner role required"));
+  const membership = workspaceMembership(request, state, parsed.data.workspace_id);
+  if (membership?.role !== "OWNER") {
+    return reply.code(403).send(ownerRequiredProblem());
   }
   const token = `vsp_${randomUUID().replaceAll("-", "")}`;
   const apiKey: StoredApiKey = {
@@ -124,6 +124,31 @@ function ownerMembership(
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   return (state.membershipsByUserId.get(userId ?? "") ?? []).find(
     (membership) => membership.workspace_id === workspaceId && membership.role === "OWNER"
+  );
+}
+
+function workspaceMembership(
+  request: FastifyRequest,
+  state: SignupState,
+  workspaceId: string
+): StoredMembership | undefined {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  return (state.membershipsByUserId.get(userId ?? "") ?? []).find(
+    (membership) => membership.workspace_id === workspaceId
+  );
+}
+
+function ownerRequiredProblem() {
+  return problem(
+    403,
+    "Workspace owner role required",
+    {},
+    [
+      {
+        command: "vspec member set-role",
+        reason: "Ask a workspace owner to grant OWNER before issuing API keys."
+      }
+    ]
   );
 }
 

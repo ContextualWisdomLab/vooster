@@ -1,13 +1,13 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T12:55:33Z_
+_Last updated: 2026-05-19T13:04:25Z_
 
 ## Overall
 
-- Commits: 640
-- Last commit: 1110cb9 green(cli): UC-035 CLI E2E
+- Commits: 642
+- Last commit: c4b72f9 refactor(layers): extract AI guide slice
 - Use cases complete: 35 / 35
-- Active goal: goals/1-runnable.md
+- Active goal: ALL_DONE
 
 ## Runnability (goal 1)
 
@@ -16,7 +16,7 @@ _Last updated: 2026-05-19T12:55:33Z_
 | Bootable (npm start, /healthz) | ✓ |
 | Persistence (restart survival) | ✓ |
 | CLI binary + subcommands | ✓ |
-| Layered architecture | ✗ |
+| Layered architecture | ✓ |
 
 ## By Use Case
 

@@ -333,3 +333,4 @@ write. This guides your TDD cycles within an iteration._
 - **UC-001 MAIN**: `vspec login --workspace-name <n> --workspace-slug <s>` calls the real API, completes stub GitHub signup, and prints the created workspace plus `vspec project create`.
 - **UC-002 MAIN**: after signup, `vspec login --github-code <existing>` calls the real API login flow and prints the returning user plus workspace membership.
 - **UC-003 MAIN**: after owner signup, `vspec member invite --email <addr> --role EDITOR` calls the real API and prints the pending invitation plus `vspec member list`.
+- **UC-004 MAIN**: after signup, `vspec project create --name <n> --key <KEY>` calls the real API and prints the project, main branch, and `vspec actor define`.

@@ -1,11 +1,11 @@
 # Next Task
 
-_Auto-generated 2026-05-19T23:30:31Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T23:48:39Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Slim down a fat route file (gate 2.C1).
 
-  Candidate: src/http/goal-routes.ts (257 lines)
+  Candidate: src/http/scenario-routes.ts (207 lines)
 
   1. Identify the route's business logic vs. parsing/validation.
   2. Extract logic into src/application/<area>.ts as pure functions taking

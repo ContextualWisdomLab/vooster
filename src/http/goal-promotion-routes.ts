@@ -12,6 +12,7 @@ import {
 import type {
   SignupState,
   StoredMembership,
+  StoredGoal,
   StoredUseCase
 } from "./signup-types.js";
 
@@ -38,6 +39,17 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
+  return promoteGoalToUseCase(reply, state, found, {
+    simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true
+  });
+}
+
+export function promoteGoalToUseCase(
+  reply: FastifyReply,
+  state: SignupState,
+  found: { goal: StoredGoal; projectId: string },
+  options: { simulateUseCaseInsertFailure?: boolean } = {}
+) {
   const project = state.projectsById.get(found.projectId);
   if (project === undefined) {
     return reply.code(404).send(problem(404, "Project not found"));
@@ -60,7 +72,7 @@ function promoteGoal(request: FastifyRequest, reply: FastifyReply, state: Signup
       ])
     );
   }
-  if (parsed.data.simulate_usecase_insert_failure === true) {
+  if (options.simulateUseCaseInsertFailure === true) {
     return reply.code(500).send(
       problem(500, "Promotion failed", { exit_code: 5 }, [
         {

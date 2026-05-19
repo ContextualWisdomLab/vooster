@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { activeActorNamed, projectIdFrom } from "./goal-support.js";
+import { activeActorNamed, goalWithProjectId, projectIdFrom } from "./goal-support.js";
+import { promoteGoalToUseCase } from "./goal-promotion-routes.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
@@ -25,6 +26,9 @@ const useCaseRequestSchema = z.object({
   scope: z.string().optional(),
   simulate_key_collision_once: z.boolean().default(false),
   title: z.string().min(1)
+});
+const useCaseFromGoalRequestSchema = z.object({
+  from_goal_id: z.string().min(1)
 });
 const useCasePatchSchema = z.object({
   archived_at: z.null().optional(),
@@ -55,6 +59,15 @@ function createUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
         }
       ])
     );
+  }
+  const fromGoal = useCaseFromGoalRequestSchema.safeParse(request.body);
+  if (fromGoal.success) {
+    const found = goalWithProjectId(state, fromGoal.data.from_goal_id);
+    if (found === undefined || found.projectId !== projectId) {
+      return reply.code(404).send(problem(404, "Goal not found"));
+    }
+
+    return promoteGoalToUseCase(reply, state, found);
   }
   const parsed = useCaseRequestSchema.safeParse(request.body);
   if (!parsed.success) {

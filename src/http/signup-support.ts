@@ -74,12 +74,14 @@ export function githubProfile(options: ServerOptions, code: string): GithubProfi
   };
 }
 
-export function fetchGithubProfile(
+export async function fetchGithubProfile(
   options: ServerOptions,
   code: string
-): GithubProfile | undefined {
+): Promise<GithubProfile | undefined> {
   try {
-    return githubProfile(options, code);
+    return options.authStub
+      ? githubProfile(options, code)
+      : await fetchRealGithubProfile(options, code);
   } catch (error) {
     if (error instanceof GithubNetworkError) {
       return undefined;
@@ -87,6 +89,92 @@ export function fetchGithubProfile(
 
     throw error;
   }
+}
+
+async function fetchRealGithubProfile(
+  options: ServerOptions,
+  code: string
+): Promise<GithubProfile> {
+  const config = options.githubOAuth;
+  if (config === undefined) {
+    throw new GithubNetworkError("GitHub OAuth is not configured.");
+  }
+
+  const token = await exchangeGithubCode(config.clientId, config.clientSecret, code);
+  const response = await fetch("https://api.github.com/user", {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${token}`,
+      "user-agent": "vspec"
+    }
+  });
+  if (!response.ok) {
+    throw new GithubNetworkError("GitHub profile request failed.");
+  }
+
+  return profileFromGithubUser(await response.json());
+}
+
+async function exchangeGithubCode(
+  clientId: string,
+  clientSecret: string,
+  code: string
+): Promise<string> {
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    code
+  });
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/x-www-form-urlencoded"
+    },
+    body: body.toString()
+  });
+  if (!response.ok) {
+    throw new GithubNetworkError("GitHub token request failed.");
+  }
+
+  const parsed = await response.json() as { access_token?: unknown };
+  if (typeof parsed.access_token !== "string" || parsed.access_token === "") {
+    throw new GithubNetworkError("GitHub token response was invalid.");
+  }
+
+  return parsed.access_token;
+}
+
+function profileFromGithubUser(raw: unknown): GithubProfile {
+  if (!isRecord(raw)) {
+    throw new GithubNetworkError("GitHub profile response was invalid.");
+  }
+
+  const email = stringField(raw.email);
+  return {
+    avatarUrl: stringField(raw.avatar_url) ?? "",
+    email: email ?? "",
+    emailVerified: email !== undefined,
+    githubId: githubIdFrom(raw.id),
+    name: stringField(raw.name) ?? stringField(raw.login) ?? "GitHub User"
+  };
+}
+
+function githubIdFrom(value: unknown): string {
+  if (typeof value === "number" || typeof value === "string") {
+    return String(value);
+  }
+
+  throw new GithubNetworkError("GitHub profile response was invalid.");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringField(value: unknown): string | undefined {
+  return typeof value === "string" && value !== "" ? value : undefined;
 }
 
 export function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"]) {

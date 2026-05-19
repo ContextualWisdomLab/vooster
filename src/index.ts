@@ -6,6 +6,7 @@ const defaultPort = 3000;
 async function main() {
   const app = await createServer({
     authStub: process.env.VSPEC_AUTH_STUB === "1",
+    githubOAuth: githubOAuthFromEnv(process.env.VSPEC_AUTH_STUB === "1"),
     signupStore: process.env.DATABASE_URL === undefined
       ? undefined
       : createPrismaSignupStore(process.env.DATABASE_URL)
@@ -40,6 +41,21 @@ function portFrom(rawPort: string | undefined): number {
   }
 
   return port;
+}
+
+function githubOAuthFromEnv(authStub: boolean) {
+  if (authStub) {
+    return undefined;
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  if (clientId === undefined || clientSecret === undefined) {
+    return undefined;
+  }
+
+  return { clientId, clientSecret };
 }
 
 main().catch((error: unknown) => {

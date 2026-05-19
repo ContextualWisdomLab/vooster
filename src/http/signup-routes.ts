@@ -52,7 +52,7 @@ export function registerSignupRoutes(
   workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/auth/github/start", (request, reply) =>
-    startSignup(request, reply, state)
+    startSignup(request, reply, options, state)
   );
   app.get("/v1/auth/github/callback", async (request, reply) => {
     return completeSignup(
@@ -70,6 +70,7 @@ export function registerSignupRoutes(
 function startSignup(
   request: FastifyRequest,
   reply: FastifyReply,
+  options: ServerOptions,
   state: SignupState
 ) {
   const parsed = startSignupSchema.safeParse(request.body);
@@ -82,7 +83,7 @@ function startSignup(
   reply.header("set-cookie", cookie("vspec_oauth_state", oauthState));
 
   return {
-    authorization_url: `https://github.com/login/oauth/authorize?state=${oauthState}`,
+    authorization_url: authorizationUrl(options, oauthState),
     state: oauthState
   };
 }
@@ -122,7 +123,7 @@ async function completeSignup(
     return reply.code(400).send(problem(400, "Invalid OAuth state"));
   }
 
-  const profile = fetchGithubProfile(options, parsed.data.code);
+  const profile = await fetchGithubProfile(options, parsed.data.code);
   state.pendingOAuth.delete(parsed.data.state);
   clearOAuthState(reply);
   if (profile === undefined) {
@@ -151,6 +152,17 @@ async function completeSignup(
 
 function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
   return "flow" in data ? { flow: "login" } : { flow: "signup", workspace: data.workspace };
+}
+
+function authorizationUrl(options: ServerOptions, oauthState: string): string {
+  const url = new URL("https://github.com/login/oauth/authorize");
+  url.searchParams.set("state", oauthState);
+
+  if (!options.authStub) {
+    url.searchParams.set("client_id", options.githubOAuth?.clientId ?? "");
+  }
+
+  return url.toString();
 }
 
 async function completeVerifiedSignup(

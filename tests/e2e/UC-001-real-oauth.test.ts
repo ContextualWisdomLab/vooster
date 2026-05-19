@@ -78,21 +78,19 @@ describe("UC-001 real GitHub OAuth", () => {
       });
       expect(callbackBody.workspace.owner_id).toBe(callbackBody.user.id);
       expect(callbackBody.access_token).toBeUndefined();
-      expect(fetchMock).toHaveBeenCalledWith(
-        "https://github.com/login/oauth/access_token",
-        expect.objectContaining({
-          body: expect.stringContaining("client_secret=fixture-client-secret"),
-          method: "POST"
-        })
+      const calls = fetchMock.mock.calls;
+      const tokenCall = calls.find(([url]) =>
+        requestUrl(url) === "https://github.com/login/oauth/access_token"
       );
-      expect(fetchMock).toHaveBeenCalledWith(
-        "https://api.github.com/user",
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            authorization: "Bearer fixture-access-token"
-          }),
-          method: "GET"
-        })
+      expect(tokenCall?.[1]?.method).toBe("POST");
+      expect(bodyText(tokenCall?.[1]?.body)).toContain("client_secret=fixture-client-secret");
+
+      const profileCall = calls.find(([url]) =>
+        requestUrl(url) === "https://api.github.com/user"
+      );
+      expect(profileCall?.[1]?.method).toBe("GET");
+      expect(headerValue(profileCall?.[1]?.headers, "authorization")).toBe(
+        "Bearer fixture-access-token"
       );
     } finally {
       await app.close();
@@ -101,7 +99,7 @@ describe("UC-001 real GitHub OAuth", () => {
 });
 
 function fetchGithubResponse(input: string | URL | Request, init?: RequestInit) {
-  const url = typeof input === "string" ? input : input.url;
+  const url = requestUrl(input);
 
   if (url === "https://github.com/login/oauth/access_token") {
     expect(init?.body).toContain("code=real-code");
@@ -128,15 +126,70 @@ function fetchGithubResponse(input: string | URL | Request, init?: RequestInit) 
   throw new Error(`Unexpected GitHub request: ${url}`);
 }
 
-function cookieFrom(response: { headers: Record<string, string | string[] | undefined> }, name: string) {
+function cookieFrom(
+  response: { headers: Record<string, number | string | string[] | undefined> },
+  name: string
+) {
   const raw = response.headers["set-cookie"];
-  const entries = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
+  const entries = Array.isArray(raw) ? raw : raw === undefined ? [] : [String(raw)];
   return entries.find((entry) => entry.startsWith(`${name}=`)) ?? "";
 }
 
-function restoreEnv(name: string, value: string | undefined) {
+function requestUrl(input: string | URL | Request): string {
+  return input instanceof Request ? input.url : input.toString();
+}
+
+function bodyText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value instanceof URLSearchParams) {
+    return value.toString();
+  }
+
+  return "";
+}
+
+function headerValue(headers: unknown, name: string): string | undefined {
+  if (headers instanceof Headers) {
+    return headers.get(name) ?? undefined;
+  }
+  if (isHeaderPairs(headers)) {
+    return headers.find(([key]) => key.toLowerCase() === name)?.[1];
+  }
+  if (isStringRecord(headers)) {
+    return headers[name];
+  }
+
+  return undefined;
+}
+
+function isHeaderPairs(value: unknown): value is Array<[string, string]> {
+  return Array.isArray(value) && value.every((entry) =>
+    Array.isArray(entry) &&
+    entry.length === 2 &&
+    typeof entry[0] === "string" &&
+    typeof entry[1] === "string"
+  );
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((entry) => typeof entry === "string");
+}
+
+function restoreEnv(
+  name: "GITHUB_CLIENT_ID" | "GITHUB_CLIENT_SECRET",
+  value: string | undefined
+) {
   if (value === undefined) {
-    delete process.env[name];
+    if (name === "GITHUB_CLIENT_ID") {
+      delete process.env.GITHUB_CLIENT_ID;
+    } else {
+      delete process.env.GITHUB_CLIENT_SECRET;
+    }
   } else {
     process.env[name] = value;
   }

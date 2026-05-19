@@ -53,52 +53,53 @@ import { registerUseCaseArchiveRoutes } from "./usecase-archive-routes.js";
 import { registerUseCaseRoutes } from "./usecase-routes.js";
 import { registerUseCaseSearchRoutes } from "./usecase-search-routes.js";
 import { registerWhoRoutes } from "./who-routes.js";
-import type { ServerOptions, SignupState } from "./signup-types.js";
+import type { GithubOAuthConfig, ServerOptions, SignupState } from "./signup-types.js";
 import type { UserStore } from "../ports/user-store.js";
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
+  const serverOptions = withGithubOAuthFromEnv(options);
   const app = Fastify({ logger: false });
   const state = initialState();
-  const apiKeyStore = options.signupStore ?? createMemoryApiKeyStore();
-  const actorStore = options.signupStore ?? createMemoryActorStore();
-  const branchStore = options.signupStore ?? createMemoryBranchStore();
-  const commentStore = options.signupStore ?? createMemoryCommentStore();
-  const goalStore = options.signupStore ?? createMemoryGoalStore();
-  const lockStore = options.signupStore ?? createMemoryLockStore();
-  const projectStore = options.signupStore ?? createMemoryProjectStore();
+  const apiKeyStore = serverOptions.signupStore ?? createMemoryApiKeyStore();
+  const actorStore = serverOptions.signupStore ?? createMemoryActorStore();
+  const branchStore = serverOptions.signupStore ?? createMemoryBranchStore();
+  const commentStore = serverOptions.signupStore ?? createMemoryCommentStore();
+  const goalStore = serverOptions.signupStore ?? createMemoryGoalStore();
+  const lockStore = serverOptions.signupStore ?? createMemoryLockStore();
+  const projectStore = serverOptions.signupStore ?? createMemoryProjectStore();
   const membershipStore =
-    options.signupStore ??
+    serverOptions.signupStore ??
     createMemoryMembershipStore(async (projectId) =>
       (await projectStore.findProjectById(projectId))?.workspace_id
     );
-  const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
-  const revisionStore = options.signupStore ?? createMemoryRevisionStore();
-  const scenarioStore = options.signupStore ?? createMemoryScenarioStore();
+  const mergeRequestStore = serverOptions.signupStore ?? createMemoryMergeRequestStore();
+  const revisionStore = serverOptions.signupStore ?? createMemoryRevisionStore();
+  const scenarioStore = serverOptions.signupStore ?? createMemoryScenarioStore();
   const stakeholderInterestStore =
-    options.signupStore ?? createMemoryStakeholderInterestStore();
-  const stakeholderStore = options.signupStore ?? createMemoryStakeholderStore();
-  const stepStore = options.signupStore ?? createMemoryStepStore();
-  const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
-  const userStore = options.signupStore ?? createMemoryUserStore();
-  const workspaceStore = options.signupStore ?? createMemoryWorkspaceStore();
-  const workSessionStore = options.signupStore ?? createMemoryWorkSessionStore();
-  if (options.authStub) {
+    serverOptions.signupStore ?? createMemoryStakeholderInterestStore();
+  const stakeholderStore = serverOptions.signupStore ?? createMemoryStakeholderStore();
+  const stepStore = serverOptions.signupStore ?? createMemoryStepStore();
+  const useCaseStore = serverOptions.signupStore ?? createMemoryUseCaseStore();
+  const userStore = serverOptions.signupStore ?? createMemoryUserStore();
+  const workspaceStore = serverOptions.signupStore ?? createMemoryWorkspaceStore();
+  const workSessionStore = serverOptions.signupStore ?? createMemoryWorkSessionStore();
+  if (serverOptions.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
   }
   app.get("/healthz", () => ({ status: "ok" }));
-  if (options.signupStore !== undefined) {
+  if (serverOptions.signupStore !== undefined) {
     app.addHook("onClose", async () => {
-      await options.signupStore?.close();
+      await serverOptions.signupStore?.close();
     });
   }
 
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore, apiKeyStore);
-  registerSignupRoutes(app, options, state, membershipStore, userStore, workspaceStore);
+  registerSignupRoutes(app, serverOptions, state, membershipStore, userStore, workspaceStore);
   registerProjectRoutes(
     app,
     state,
-    options.signupStore,
+    serverOptions.signupStore,
     branchStore,
     membershipStore,
     projectStore,
@@ -360,6 +361,28 @@ function initialState(): SignupState {
   };
 
   return state;
+}
+
+function withGithubOAuthFromEnv(options: ServerOptions): ServerOptions {
+  if (options.authStub || options.githubOAuth !== undefined) {
+    return options;
+  }
+
+  return {
+    ...options,
+    githubOAuth: githubOAuthFromEnv()
+  };
+}
+
+function githubOAuthFromEnv(): GithubOAuthConfig {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  if (clientId === undefined || clientSecret === undefined) {
+    throw new Error("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required.");
+  }
+
+  return { clientId, clientSecret };
 }
 
 async function seedStubZeroWorkspaceUser(userStore: UserStore) {

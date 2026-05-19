@@ -1,6 +1,13 @@
 import type { SignupStore } from "../ports/signup-store.js";
+
+export type GithubOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+};
+
 export type ServerOptions = {
   authStub: boolean;
+  githubOAuth?: GithubOAuthConfig;
   signupStore?: SignupStore;
 };
 export type PendingSignup = {

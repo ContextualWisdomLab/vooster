@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T10:01:19Z_
+_Last updated: 2026-05-19T10:07:50Z_
 
 ## Overall
 
-- Commits: 570
-- Last commit: 4ce277f green(cli): UC-012 CLI E2E
+- Commits: 573
+- Last commit: ac20841 green(cli): UC-013 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -34,7 +34,7 @@ _Last updated: 2026-05-19T10:01:19Z_
 | UC-010 | Define stakeholder interests | ✓ DONE | 5/5 | ✓ |
 | UC-011 | Write the main success scenario | ✓ DONE | 5/5 | ✓ |
 | UC-012 | Add an extension flow | ✓ DONE | 5/5 | ✓ |
-| UC-013 | Edit a use case step | ✓ DONE | 6/6 | ○ |
+| UC-013 | Edit a use case step | ✓ DONE | 6/6 | ✓ |
 | UC-014 | Search and filter use cases | ✓ DONE | 5/5 | ○ |
 | UC-015 | Archive or restore a use case | ✓ DONE | 6/6 | ○ |
 | UC-016 | Start a work session | ✓ DONE | 7/7 | ○ |

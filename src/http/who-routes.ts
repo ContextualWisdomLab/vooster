@@ -10,14 +10,16 @@ import type {
   StoredWorkSession
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 export function registerWhoRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.get("/v1/usecases/:usecaseId/who", (request, reply) =>
-    showWho(request, reply, state, branchStore)
+    showWho(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -25,14 +27,15 @@ async function showWho(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const usecaseId = usecaseIdFrom(request.params);
   const usecase = useCaseById(state, usecaseId);
   if (usecase === undefined) {
     return reply.code(404).send(missingUseCaseProblem(usecaseId));
   }
-  if (membershipForProject(request, state, usecase.project_id) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, usecase.project_id) === undefined) {
     return reply.code(403).send(workspaceMembershipProblem());
   }
 

@@ -1,4 +1,5 @@
 import type { SignupState } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 export type StoredInvitation = {
   accepted_at: null | string;
@@ -23,11 +24,16 @@ export function invitations(state: SignupState) {
   return created;
 }
 
-export function activeMembershipForEmail(state: SignupState, workspaceId: string, email: string) {
+export async function activeMembershipForEmail(
+  state: SignupState,
+  membershipStore: MembershipStore,
+  workspaceId: string,
+  email: string
+) {
   const user = [...state.usersByGithubId.values()].find((candidate) => candidate.email === email);
-  return (state.membershipsByUserId.get(user?.id ?? "") ?? []).find(
-    (membership) => membership.workspace_id === workspaceId
-  );
+  return user === undefined
+    ? undefined
+    : membershipStore.membershipForWorkspace(workspaceId, user.id);
 }
 
 export function pendingInvitationForEmail(state: SignupState, workspaceId: string, email: string) {

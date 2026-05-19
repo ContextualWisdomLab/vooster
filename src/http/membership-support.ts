@@ -1,20 +1,34 @@
 import type { FastifyRequest } from "fastify";
 import { authenticatedUserId } from "./session-support.js";
 import type { SignupState, StoredMembership } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
-export function membershipForProject(
+export async function membershipForProject(
   request: FastifyRequest,
   state: SignupState,
+  membershipStore: MembershipStore,
   projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
+): Promise<StoredMembership | undefined> {
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
+  if (userId === undefined) {
     return undefined;
   }
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
+
+  return membershipStore.membershipForProject(projectId, userId);
+}
+
+export async function membershipForWorkspace(
+  request: FastifyRequest,
+  state: SignupState,
+  membershipStore: MembershipStore,
+  workspaceId: string
+): Promise<StoredMembership | undefined> {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (userId === undefined) {
+    return undefined;
+  }
+
+  return membershipStore.membershipForWorkspace(workspaceId, userId);
 }
 
 export function isReadOnlyMembership(

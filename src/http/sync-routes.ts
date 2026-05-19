@@ -19,6 +19,7 @@ import {
 } from "./sync-result-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const pullSchema = z.object({
   branch: z.string().default("main"),
@@ -40,23 +41,29 @@ type PushFile = z.infer<typeof pushSchema>["files"][number];
 export function registerSyncRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
-    pullFiles(request, reply, state)
+    pullFiles(request, reply, state, membershipStore)
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
-    pushFiles(request, reply, state, branchStore)
+    pushFiles(request, reply, state, branchStore, membershipStore)
   );
 }
 
-function pullFiles(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function pullFiles(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const projectId = projectIdFrom(request.params);
   const parsed = pullSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid sync pull request"));
   }
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(syncAccessProblem());
   }
   const files = activeUseCases(state, projectId).map((usecase) => ({
@@ -74,14 +81,15 @@ async function pushFiles(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pushSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid sync push request"));
   }
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(syncAccessProblem());
   }
   const parseErrors = parsed.data.files.flatMap(parseFileErrors);

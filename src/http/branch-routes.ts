@@ -3,12 +3,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   isReadOnlyMembership,
-  membershipForProject as inMemoryMembershipForProject
+  membershipForProject
 } from "./membership-support.js";
-import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 
 const branchCreateSchema = z.object({
@@ -21,10 +21,11 @@ export function registerBranchRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  store: SignupStore | undefined
+  store: SignupStore | undefined,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/projects/:projectId/branches", (request, reply) =>
-    createBranch(request, reply, state, branchStore, store)
+    createBranch(request, reply, state, branchStore, store, membershipStore)
   );
 }
 
@@ -33,10 +34,11 @@ async function createBranch(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  store: SignupStore | undefined
+  store: SignupStore | undefined,
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
-  const membership = await membershipForProject(request, state, projectId, store);
+  const membership = await membershipForProject(request, state, membershipStore, projectId);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
@@ -178,20 +180,6 @@ async function nextBranchName(
     candidate = `${name}-${String(suffix)}`;
   }
   return candidate;
-}
-
-async function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string,
-  store: SignupStore | undefined
-) {
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (store !== undefined && userId !== undefined) {
-    return store.membershipForProject(projectId, userId);
-  }
-
-  return inMemoryMembershipForProject(request, state, projectId);
 }
 
 function projectById(

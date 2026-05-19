@@ -8,6 +8,7 @@ import type {
 import type { ActorStore } from "./actor-store.js";
 import type { BranchStore } from "./branch-store.js";
 import type { GoalStore } from "./goal-store.js";
+import type { MembershipStore } from "./membership-store.js";
 
 export type SignupEntities = {
   membership: StoredMembership;
@@ -21,14 +22,10 @@ export type WorkspaceSummary = {
   slug: string;
 };
 
-export type SignupStore = ActorStore & BranchStore & GoalStore & {
+export type SignupStore = ActorStore & BranchStore & GoalStore & MembershipStore & {
   close: () => Promise<void>;
   findProjectById: (projectId: string) => Promise<StoredProject | undefined>;
   findUserByGithubId: (githubId: string) => Promise<StoredUser | undefined>;
-  membershipForProject: (
-    projectId: string,
-    userId: string
-  ) => Promise<StoredMembership | undefined>;
   saveSignup: (entities: SignupEntities) => Promise<void>;
   saveProjectWithDefaultBranch: (
     project: StoredProject,

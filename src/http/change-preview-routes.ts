@@ -5,6 +5,7 @@ import { isReadOnlyMembership, membershipForProject } from "./membership-support
 import { hardLockProblem, previews, type ChangePreview } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
 const proposalSchema = z.object({
@@ -17,42 +18,54 @@ const proposalSchema = z.object({
   }),
   usecase_key: z.string().min(1)
 });
-export function previewSpecChange(
+export async function previewSpecChange(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
-) {
+  state: SignupState,
+  membershipStore: MembershipStore
+): Promise<boolean> {
   if (!proposalMarkerSchema.safeParse(request.body).success) {
-    return undefined;
+    return false;
   }
   const parsed = proposalSchema.safeParse(request.body);
   if (!parsed.success) {
-    return reply.code(400).send(problem(400, "Invalid change proposal"));
+    reply.code(400).send(problem(400, "Invalid change proposal"));
+    return true;
   }
-  const access = accessibleUseCaseByKey(request, state, parsed.data.usecase_key);
+  const access = await accessibleUseCaseByKey(
+    request,
+    state,
+    membershipStore,
+    parsed.data.usecase_key
+  );
   if (access === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
+    reply.code(404).send(problem(404, "Use case not found"));
+    return true;
   }
   const { membership, usecase } = access;
   if (isReadOnlyMembership(state, membership)) {
-    return reply.code(403).send(problem(403, "Write access required"));
+    reply.code(403).send(problem(403, "Write access required"));
+    return true;
   }
   const patch = parsed.data.patch;
   if (patch.entity_id !== usecase.id) {
-    return reply.code(400).send(problem(400, "Patch targets a different use case"));
+    reply.code(400).send(problem(400, "Patch targets a different use case"));
+    return true;
   }
   const hardLock = blockingHardLock(state, usecase);
   if (hardLock !== undefined) {
-    return reply.code(409).send(hardLockProblem(usecase, hardLock));
+    reply.code(409).send(hardLockProblem(usecase, hardLock));
+    return true;
   }
   if (parsed.data.base_revision !== usecase.current_revision_id) {
-    return reply.code(409).send(staleBaseProblem(state, usecase));
+    reply.code(409).send(staleBaseProblem(state, usecase));
+    return true;
   }
 
   const preview = changePreview(usecase, parsed.data.base_revision, patch.fields.title);
   const affectedSessions = affectedActiveSessions(state, usecase);
   previews(state).set(preview.id, preview);
-  return reply.code(201).send({
+  reply.code(201).send({
     diff: preview.diff,
     expires_at: preview.expires_at,
     impact: { affected_sessions: affectedSessions, severity: preview.severity },
@@ -75,6 +88,7 @@ export function previewSpecChange(
       }
     ] : []
   });
+  return true;
 }
 
 function changePreview(usecase: StoredUseCase, baseRevision: string, title: string): ChangePreview {
@@ -98,17 +112,32 @@ function changePreview(usecase: StoredUseCase, baseRevision: string, title: stri
   return preview;
 }
 
-function accessibleUseCaseByKey(
+async function accessibleUseCaseByKey(
   request: FastifyRequest,
   state: SignupState,
+  membershipStore: MembershipStore,
   key: string
 ) {
-  const usecase = useCasesByKey(state, key).find((candidate) =>
-    membershipForProject(request, state, candidate.project_id) !== undefined);
+  const candidates = useCasesByKey(state, key);
+  let usecase: StoredUseCase | undefined;
+  for (const candidate of candidates) {
+    if (
+      await membershipForProject(request, state, membershipStore, candidate.project_id) !==
+      undefined
+    ) {
+      usecase = candidate;
+      break;
+    }
+  }
   if (usecase === undefined || usecase.archived_at !== null) {
     return undefined;
   }
-  const membership = membershipForProject(request, state, usecase.project_id);
+  const membership = await membershipForProject(
+    request,
+    state,
+    membershipStore,
+    usecase.project_id
+  );
   return membership === undefined ? undefined : { membership, usecase };
 }
 

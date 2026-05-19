@@ -12,16 +12,16 @@ import {
   unknownStepActorProblem,
   usesPassiveVoice
 } from "./scenario-support.js";
-import { authenticatedUserId } from "./session-support.js";
+import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredScenario,
   StoredStep
 } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const scenarioRequestSchema = z.object({
   condition: z.string().optional(),
@@ -38,26 +38,28 @@ const stepRequestSchema = z.object({
 export function registerScenarioRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
-    createScenario(request, reply, state)
+    createScenario(request, reply, state, membershipStore)
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
-    addStep(request, reply, state, actorStore)
+    addStep(request, reply, state, actorStore, membershipStore)
   );
 }
 
-function createScenario(
+async function createScenario(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = scenarioRequestSchema.safeParse(request.body);
@@ -107,13 +109,14 @@ async function addStep(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   const found = scenarioWithUseCase(state, scenarioIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Scenario not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = stepRequestSchema.safeParse(request.body);
@@ -154,22 +157,6 @@ async function addStep(
   );
 
   return reply.code(201).send(stepCreateResponse(step, revision, scenarioSteps));
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
 }
 
 function usecaseIdFrom(params: unknown): string {

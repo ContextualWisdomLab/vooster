@@ -12,6 +12,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 type StoredComment = {
   author_id: string;
@@ -35,23 +36,32 @@ const patchSchema = z.object({
   resolved: z.literal(true).optional()
 });
 
-export function registerCommentRoutes(app: FastifyInstance, state: SignupState) {
+export function registerCommentRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   app.post("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    addComment(request, reply, state)
+    addComment(request, reply, state, membershipStore)
   );
   app.get("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    listComments(request, reply, state)
+    listComments(request, reply, state, membershipStore)
   );
   app.patch("/v1/comments/:commentId", (request, reply) =>
-    patchComment(request, reply, state)
+    patchComment(request, reply, state, membershipStore)
   );
   app.delete("/v1/comments/:commentId", (request, reply) =>
-    deleteComment(request, reply, state)
+    deleteComment(request, reply, state, membershipStore)
   );
 }
 
-function addComment(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = authorizedUseCase(request, reply, state);
+async function addComment(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  const found = await authorizedUseCase(request, reply, state, membershipStore);
   if (found === undefined) {
     return;
   }
@@ -78,8 +88,13 @@ function addComment(request: FastifyRequest, reply: FastifyReply, state: SignupS
   return reply.code(201).send(commentResponse(comment, found.usecase));
 }
 
-function listComments(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = authorizedUseCase(request, reply, state);
+async function listComments(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  const found = await authorizedUseCase(request, reply, state, membershipStore);
   if (found === undefined) {
     return;
   }
@@ -88,8 +103,13 @@ function listComments(request: FastifyRequest, reply: FastifyReply, state: Signu
   });
 }
 
-function patchComment(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = authorizedComment(request, reply, state);
+async function patchComment(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  const found = await authorizedComment(request, reply, state, membershipStore);
   if (found === undefined) {
     return;
   }
@@ -111,8 +131,13 @@ function patchComment(request: FastifyRequest, reply: FastifyReply, state: Signu
   return reply.send(commentResponse(found.comment, found.usecase));
 }
 
-function deleteComment(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const found = authorizedComment(request, reply, state);
+async function deleteComment(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  const found = await authorizedComment(request, reply, state, membershipStore);
   if (found === undefined) {
     return;
   }
@@ -123,7 +148,12 @@ function deleteComment(request: FastifyRequest, reply: FastifyReply, state: Sign
   return reply.send(commentResponse(found.comment, found.usecase));
 }
 
-function authorizedUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function authorizedUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const found = useCaseWithProjectId(state, params.usecaseId);
   if (found === undefined || found.usecase.archived_at !== null) {
@@ -131,14 +161,22 @@ function authorizedUseCase(request: FastifyRequest, reply: FastifyReply, state: 
     return undefined;
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
+  if (
+    userId === undefined ||
+    await membershipForProject(request, state, membershipStore, found.projectId) === undefined
+  ) {
     reply.code(403).send(problem(403, "Contact the workspace owner for access"));
     return undefined;
   }
   return { usecase: found.usecase, userId };
 }
 
-function authorizedComment(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function authorizedComment(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const id = z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
   const comment = comments(state).get(id);
   const found = comment === undefined ? undefined : useCaseWithProjectId(state, comment.target_id);
@@ -147,7 +185,10 @@ function authorizedComment(request: FastifyRequest, reply: FastifyReply, state: 
     return undefined;
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
+  if (
+    userId === undefined ||
+    await membershipForProject(request, state, membershipStore, found.projectId) === undefined
+  ) {
     reply.code(403).send(problem(403, "Contact the workspace owner for access"));
     return undefined;
   }

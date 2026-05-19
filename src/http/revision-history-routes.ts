@@ -5,6 +5,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const historyQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
@@ -12,13 +13,22 @@ const historyQuerySchema = z.object({
   simulate_server_error: z.literal("true").optional()
 });
 
-export function registerRevisionHistoryRoutes(app: FastifyInstance, state: SignupState) {
+export function registerRevisionHistoryRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   app.get("/v1/usecases/:usecaseId/revisions", (request, reply) =>
-    listHistory(request, reply, state)
+    listHistory(request, reply, state, membershipStore)
   );
 }
 
-function listHistory(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function listHistory(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = historyQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -30,7 +40,10 @@ function listHistory(request: FastifyRequest, reply: FastifyReply, state: Signup
     return reply.code(404).send(missingHistoryProblem(projectKey));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (userId === undefined || membershipForProject(request, state, found.projectId) === undefined) {
+  if (
+    userId === undefined ||
+    await membershipForProject(request, state, membershipStore, found.projectId) === undefined
+  ) {
     return reply.code(403).send(historyAccessProblem());
   }
   if (parsed.data.simulate_server_error === "true") {

@@ -5,6 +5,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 type DiffChange = {
   change_type: "ADD" | "CHANGE";
@@ -24,10 +25,11 @@ const diffQuerySchema = z.object({
 export function registerRevisionDiffRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.get("/v1/usecases/:usecaseId/diff", (request, reply) =>
-    compareRevisions(request, reply, state, branchStore)
+    compareRevisions(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -35,7 +37,8 @@ async function compareRevisions(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = diffQuerySchema.safeParse(request.query);
@@ -46,7 +49,7 @@ async function compareRevisions(
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(diffAccessProblem());
   }
 

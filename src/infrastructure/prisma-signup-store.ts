@@ -162,6 +162,31 @@ class PrismaSignupStore implements SignupStore {
     return membership === null ? undefined : storedMembership(membership);
   }
 
+  async membershipForWorkspace(
+    workspaceId: string,
+    userId: string
+  ): Promise<StoredMembership | undefined> {
+    const membership = await this.prisma.membership.findUnique({
+      where: {
+        user_id_workspace_id: {
+          user_id: userId,
+          workspace_id: workspaceId
+        }
+      }
+    });
+
+    return membership === null ? undefined : storedMembership(membership);
+  }
+
+  async membershipsForUser(userId: string): Promise<StoredMembership[]> {
+    const memberships = await this.prisma.membership.findMany({
+      orderBy: { id: "asc" },
+      where: { user_id: userId }
+    });
+
+    return memberships.map(storedMembership);
+  }
+
   async saveSignup(entities: SignupEntities): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.user.create({
@@ -192,6 +217,10 @@ class PrismaSignupStore implements SignupStore {
 
   async saveGoal(goal: StoredGoal): Promise<void> {
     await this.prisma.goal.create({ data: goalData(goal) });
+  }
+
+  async saveMembership(membership: StoredMembership): Promise<void> {
+    await this.prisma.membership.create({ data: membership });
   }
 
   async saveProjectWithDefaultBranch(

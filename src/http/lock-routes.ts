@@ -12,6 +12,7 @@ import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredUseCase } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const lockSchema = z.object({
   lock_type: z.enum(["SOFT", "SEMANTIC", "HARD"]),
@@ -24,12 +25,25 @@ const renewSchema = z.object({
   ttl_minutes: z.number().positive().default(30)
 });
 
-export function registerLockRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/locks", (request, reply) => createLock(request, reply, state));
-  app.post("/v1/locks/:lockId/renew", (request, reply) => renewLock(request, reply, state));
+export function registerLockRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  app.post("/v1/locks", (request, reply) =>
+    createLock(request, reply, state, membershipStore)
+  );
+  app.post("/v1/locks/:lockId/renew", (request, reply) =>
+    renewLock(request, reply, state, membershipStore)
+  );
 }
 
-function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createLock(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const parsed = lockSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid lock request"));
@@ -39,7 +53,11 @@ function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupS
     return reply.code(404).send(problem(404, "Use case not found"));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (userId === undefined || membershipForProject(request, state, usecase.project_id) === undefined) {
+  if (
+    userId === undefined ||
+    await membershipForProject(request, state, membershipStore, usecase.project_id) ===
+      undefined
+  ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -65,7 +83,12 @@ function createLock(request: FastifyRequest, reply: FastifyReply, state: SignupS
   });
 }
 
-function renewLock(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function renewLock(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
   const parsed = renewSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -80,7 +103,11 @@ function renewLock(request: FastifyRequest, reply: FastifyReply, state: SignupSt
     return reply.code(404).send(problem(404, "Use case not found"));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (userId === undefined || membershipForProject(request, state, usecase.project_id) === undefined) {
+  if (
+    userId === undefined ||
+    await membershipForProject(request, state, membershipStore, usecase.project_id) ===
+      undefined
+  ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   if (!ownsLock(lock, userId, sessionIdFrom(request))) {

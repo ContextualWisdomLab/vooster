@@ -6,6 +6,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 type ImpactPayload = {
   affected_branches: string[];
@@ -25,12 +26,25 @@ const previewSchema = z.object({
   proposed_change_path: z.string().optional()
 });
 
-export function registerImpactRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/changes/preview", (request, reply) =>
-    previewSpecChange(request, reply, state) ?? previewImpact(request, reply, state));
+export function registerImpactRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  app.post("/v1/changes/preview", async (request, reply) => {
+    if (await previewSpecChange(request, reply, state, membershipStore)) {
+      return undefined;
+    }
+    return previewImpact(request, reply, state, membershipStore);
+  });
 }
 
-function previewImpact(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function previewImpact(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const parsed = previewSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid impact preview request"));
@@ -39,7 +53,7 @@ function previewImpact(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(impactAccessProblem());
   }
   if (parsed.data.proposed_change_content !== undefined) {

@@ -15,6 +15,7 @@ import {
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const resolutionSchema = z.object({
   entity_id: z.string().min(1),
@@ -31,10 +32,11 @@ const resolveSchema = z.object({
 export function registerMergeResolveRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/merges/:mergeId/resolve", (request, reply) =>
-    resolveMerge(request, reply, state, branchStore)
+    resolveMerge(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -42,7 +44,8 @@ async function resolveMerge(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const merge = state.mergeRequestsById.get(mergeIdFrom(request.params));
   const parsed = resolveSchema.safeParse(request.body);
@@ -57,7 +60,7 @@ async function resolveMerge(
   if (source === undefined || target === undefined) {
     return reply.code(404).send(problem(404, "Merge branch not found"));
   }
-  if (membershipForProject(request, state, source.project_id) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, source.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   if (merge.status !== "OPEN" || merge.conflicts.length === 0) {

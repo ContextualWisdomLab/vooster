@@ -6,6 +6,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
@@ -22,10 +23,11 @@ type MergeRequestResponse = {
 export function registerSessionCompleteRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
-    completeSession(request, reply, state, branchStore)
+    completeSession(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -33,7 +35,8 @@ async function completeSession(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const session = state.workSessionsById.get(sessionIdFrom(request.params));
   const parsed = completeSchema.safeParse(request.body);
@@ -43,7 +46,7 @@ async function completeSession(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid session completion request"));
   }
-  if (!canCompleteSession(request, state, session)) {
+  if (!(await canCompleteSession(request, state, membershipStore, session))) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   if (session.status !== "ACTIVE") {
@@ -95,19 +98,24 @@ async function completeSession(
 function canCompleteSession(
   request: FastifyRequest,
   state: SignupState,
+  membershipStore: MembershipStore,
   session: StoredWorkSession
-): boolean {
+): Promise<boolean> {
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (userId === undefined || session.project_id === undefined) {
-    return false;
+    return Promise.resolve(false);
   }
   const project = state.projectsById.get(session.project_id);
-  return (
-    session.user_id === userId ||
-    (state.membershipsByUserId.get(userId) ?? []).some(
-      (membership) => membership.workspace_id === project?.workspace_id
-    )
-  );
+  if (session.user_id === userId) {
+    return Promise.resolve(true);
+  }
+  if (project === undefined) {
+    return Promise.resolve(false);
+  }
+
+  return membershipStore
+    .membershipForWorkspace(project.workspace_id, userId)
+    .then((membership) => membership !== undefined);
 }
 
 function releaseSessionLocks(

@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
 import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
+import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -46,6 +47,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
   const goalStore = options.signupStore ?? createMemoryGoalStore();
+  const membershipStore =
+    options.signupStore ??
+    createMemoryMembershipStore(
+      (projectId) => state.projectsById.get(projectId)?.workspace_id
+    );
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -54,48 +60,47 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   }
 
   registerAiGuideRoutes(app);
-  registerApiKeyRoutes(app, state);
-  registerSignupRoutes(app, options, state);
-  registerProjectRoutes(app, state, options.signupStore, branchStore);
-  registerBranchRoutes(app, state, branchStore, options.signupStore);
+  registerApiKeyRoutes(app, state, membershipStore);
+  registerSignupRoutes(app, options, state, membershipStore);
+  registerProjectRoutes(app, state, options.signupStore, branchStore, membershipStore);
+  registerBranchRoutes(app, state, branchStore, options.signupStore, membershipStore);
   registerBranchTestRoutes(app, state, branchStore);
-  registerLockRoutes(app, state);
-  registerMarkdownExportRoutes(app, state, actorStore);
-  registerMergeRoutes(app, state, branchStore);
-  registerMergeResolveRoutes(app, state, branchStore);
-  registerActorRoutes(app, state, actorStore, options.signupStore);
-  registerActorTestRoutes(app, state, actorStore);
-  registerGherkinExportRoutes(app, state, actorStore);
-  registerGoalRoutes(app, state, actorStore, goalStore, options.signupStore);
-  registerGoalPromotionRoutes(app, state, goalStore, options.signupStore);
-  registerImpactRoutes(app, state);
-  registerInvitationRoutes(app, options, state);
-  registerCommentRoutes(app, state);
+  registerLockRoutes(app, state, membershipStore);
+  registerMarkdownExportRoutes(app, state, actorStore, membershipStore);
+  registerMergeRoutes(app, state, branchStore, membershipStore);
+  registerMergeResolveRoutes(app, state, branchStore, membershipStore);
+  registerActorRoutes(app, state, actorStore, membershipStore);
+  registerActorTestRoutes(app, state, actorStore, membershipStore);
+  registerGherkinExportRoutes(app, state, actorStore, membershipStore);
+  registerGoalRoutes(app, state, actorStore, goalStore, membershipStore);
+  registerGoalPromotionRoutes(app, state, goalStore, membershipStore);
+  registerImpactRoutes(app, state, membershipStore);
+  registerInvitationRoutes(app, options, state, membershipStore);
+  registerCommentRoutes(app, state, membershipStore);
   registerChangeCommitRoutes(app, state, branchStore);
-  registerStakeholderRoutes(app, state);
-  registerStakeholderInterestRoutes(app, state);
-  registerUseCaseAgentRoutes(app, state, actorStore);
-  registerUseCaseArchiveRoutes(app, state, branchStore);
-  registerUseCaseRoutes(app, state, actorStore, branchStore, goalStore);
-  registerUseCaseSearchRoutes(app, state, actorStore);
+  registerStakeholderRoutes(app, state, membershipStore);
+  registerStakeholderInterestRoutes(app, state, membershipStore);
+  registerUseCaseAgentRoutes(app, state, actorStore, membershipStore);
+  registerUseCaseArchiveRoutes(app, state, branchStore, membershipStore);
+  registerUseCaseRoutes(app, state, actorStore, branchStore, goalStore, membershipStore);
+  registerUseCaseSearchRoutes(app, state, actorStore, membershipStore);
   registerUseCaseTestRoutes(app, state);
-  registerRevisionDiffRoutes(app, state, branchStore);
-  registerRevisionHistoryRoutes(app, state);
-  registerRevisionRevertRoutes(app, state, branchStore);
-  registerWhoRoutes(app, state, branchStore);
-  registerScenarioRoutes(app, state, actorStore);
-  registerSessionCompleteRoutes(app, state, branchStore);
-  registerSessionListRoutes(app, state, branchStore);
-  registerSessionRoutes(app, state, branchStore);
-  registerStepRoutes(app, state);
-  registerSyncRoutes(app, state, branchStore);
+  registerRevisionDiffRoutes(app, state, branchStore, membershipStore);
+  registerRevisionHistoryRoutes(app, state, membershipStore);
+  registerRevisionRevertRoutes(app, state, branchStore, membershipStore);
+  registerWhoRoutes(app, state, branchStore, membershipStore);
+  registerScenarioRoutes(app, state, actorStore, membershipStore);
+  registerSessionCompleteRoutes(app, state, branchStore, membershipStore);
+  registerSessionListRoutes(app, state, branchStore, membershipStore);
+  registerSessionRoutes(app, state, branchStore, membershipStore);
+  registerStepRoutes(app, state, membershipStore);
+  registerSyncRoutes(app, state, branchStore, membershipStore);
 
   return app;
 }
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
-    membershipsByUserId: new Map(),
     mergeRequestsById: new Map(),
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),

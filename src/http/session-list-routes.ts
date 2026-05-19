@@ -4,6 +4,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const sessionListSchema = z.object({
   project_id: z.string().optional(),
@@ -16,13 +17,14 @@ const heartbeatSchema = z.object({ last_activity_at: z.iso.datetime() });
 export function registerSessionListRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.get("/v1/sessions", (request, reply) =>
-    listSessions(request, reply, state, branchStore)
+    listSessions(request, reply, state, branchStore, membershipStore)
   );
   app.get("/v1/sessions/watch", (request, reply) =>
-    watchSessions(request, reply, state, branchStore)
+    watchSessions(request, reply, state, branchStore, membershipStore)
   );
   app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
     ageSessionHeartbeat(request, reply, state)
@@ -33,9 +35,10 @@ async function listSessions(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
-  const snapshot = await sessionSnapshot(request, reply, state, branchStore);
+  const snapshot = await sessionSnapshot(request, reply, state, branchStore, membershipStore);
   return snapshot === undefined ? undefined : reply.send(snapshot);
 }
 
@@ -43,9 +46,10 @@ async function watchSessions(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
-  const snapshot = await sessionSnapshot(request, reply, state, branchStore);
+  const snapshot = await sessionSnapshot(request, reply, state, branchStore, membershipStore);
   if (snapshot === undefined) {
     return undefined;
   }
@@ -58,7 +62,8 @@ async function sessionSnapshot(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const parsed = sessionListSchema.safeParse(request.query);
   if (!parsed.success) {
@@ -66,7 +71,7 @@ async function sessionSnapshot(
     return undefined;
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (!hasWorkspaceMembership(state, userId, parsed.data.workspace_id)) {
+  if (!(await hasWorkspaceMembership(membershipStore, userId, parsed.data.workspace_id))) {
     reply.code(403).send(
       problem(403, "Workspace membership required", {}, [
         { command: "vspec workspace list", reason: "Choose a workspace you can access." }
@@ -106,13 +111,15 @@ function ageSessionHeartbeat(
 }
 
 function hasWorkspaceMembership(
-  state: SignupState,
+  membershipStore: MembershipStore,
   userId: string | undefined,
   workspaceId: string
-): boolean {
-  return (state.membershipsByUserId.get(userId ?? "") ?? []).some(
-    (membership) => membership.workspace_id === workspaceId
-  );
+): Promise<boolean> {
+  return userId === undefined
+    ? Promise.resolve(false)
+    : membershipStore
+        .membershipForWorkspace(workspaceId, userId)
+        .then((membership) => membership !== undefined);
 }
 
 function projectsForWorkspace(state: SignupState, workspaceId: string): StoredProject[] {

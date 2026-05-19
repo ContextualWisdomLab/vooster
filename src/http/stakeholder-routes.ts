@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { authenticatedUserId } from "./session-support.js";
+import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredStakeholder
 } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const stakeholderRequestSchema = z.object({
   attach_to_step: z.boolean().optional(),
@@ -18,19 +18,24 @@ const stakeholderRequestSchema = z.object({
 
 const stakeholderTypes = ["INTERNAL", "EXTERNAL", "REGULATORY"] as const;
 
-export function registerStakeholderRoutes(app: FastifyInstance, state: SignupState) {
+export function registerStakeholderRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
-    createStakeholder(request, reply, state)
+    createStakeholder(request, reply, state, membershipStore)
   );
 }
 
-function createStakeholder(
+async function createStakeholder(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -122,22 +127,6 @@ function activeStakeholderNamed(
 function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {
   const project = state.projectsById.get(projectId);
   return project !== undefined && state.workspaceArchivedAt.has(project.workspace_id);
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
 }
 
 function projectIdFrom(params: unknown): string {

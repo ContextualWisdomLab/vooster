@@ -16,16 +16,8 @@ export function clearOAuthState(reply: FastifyReply) {
   reply.header("set-cookie", expiredCookie("vspec_oauth_state"));
 }
 
-export function addMembership(
-  membershipsByUserId: Map<string, StoredMembership[]>,
-  membership: StoredMembership
-) {
-  const existing = membershipsByUserId.get(membership.user_id) ?? [];
-  membershipsByUserId.set(membership.user_id, [...existing, membership]);
-}
-
 export function workspacesForUser(
-  memberships: StoredMembership[],
+  memberships: Array<{ role: "EDITOR" | "OWNER"; workspace_id: string }>,
   workspacesById: Map<string, StoredWorkspace>
 ) {
   return memberships.flatMap((membership) => {
@@ -181,7 +173,10 @@ function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; HttpOnly; Path=/; SameSite=Lax`;
 }
 
-function workspaceSummary(workspace: StoredWorkspace, membership: StoredMembership) {
+function workspaceSummary(
+  workspace: StoredWorkspace,
+  membership: { role: "EDITOR" | "OWNER" }
+) {
   return {
     id: workspace.id,
     slug: workspace.slug,

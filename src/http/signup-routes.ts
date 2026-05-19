@@ -4,7 +4,6 @@ import { z } from "zod";
 import { establishSession } from "./session-support.js";
 import {
   alternativeSlug,
-  addMembership,
   clearOAuthState,
   cookie,
   fetchGithubProfile,
@@ -16,6 +15,7 @@ import {
   workspacesForUser
 } from "./signup-support.js";
 import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 
 const startSignupSchema = z.union([
@@ -46,13 +46,14 @@ const callbackQuerySchema = z.union([
 export function registerSignupRoutes(
   app: FastifyInstance,
   options: ServerOptions,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/auth/github/start", (request, reply) =>
     startSignup(request, reply, state)
   );
   app.get("/v1/auth/github/callback", async (request, reply) => {
-    return completeSignup(request, reply, options, state);
+    return completeSignup(request, reply, options, state, membershipStore);
   });
 }
 
@@ -80,7 +81,8 @@ async function completeSignup(
   request: FastifyRequest,
   reply: FastifyReply,
   options: ServerOptions,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const parsed = callbackQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -120,10 +122,17 @@ async function completeSignup(
   }
 
   if (pending.flow === "login") {
-    return completeLogin(reply, state, options.signupStore, profile);
+    return completeLogin(reply, state, options.signupStore, membershipStore, profile);
   }
 
-  return completeVerifiedSignup(reply, state, options.signupStore, profile, pending.workspace);
+  return completeVerifiedSignup(
+    reply,
+    state,
+    options.signupStore,
+    membershipStore,
+    profile,
+    pending.workspace
+  );
 }
 
 function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
@@ -134,6 +143,7 @@ async function completeVerifiedSignup(
   reply: FastifyReply,
   state: SignupState,
   store: SignupStore | undefined,
+  membershipStore: MembershipStore,
   profile: GithubProfile,
   pending: PendingSignup
 ) {
@@ -147,10 +157,13 @@ async function completeVerifiedSignup(
 
   state.workspaceSlugs.add(pending.slug);
   const entities = signupEntities(profile, pending);
-  await store?.saveSignup(entities);
+  if (store === undefined) {
+    await membershipStore.saveMembership(entities.membership);
+  } else {
+    await store.saveSignup(entities);
+  }
   state.usersByGithubId.set(entities.user.github_id, entities.user);
   state.workspacesById.set(entities.workspace.id, entities.workspace);
-  addMembership(state.membershipsByUserId, entities.membership);
 
   establishSession(reply, state.sessionsByToken, entities.user.id);
   return reply
@@ -162,6 +175,7 @@ async function completeLogin(
   reply: FastifyReply,
   state: SignupState,
   store: SignupStore | undefined,
+  membershipStore: MembershipStore,
   profile: GithubProfile
 ) {
   const user = state.usersByGithubId.get(profile.githubId) ?? await store?.findUserByGithubId(profile.githubId);
@@ -178,7 +192,7 @@ async function completeLogin(
   establishSession(reply, state.sessionsByToken, user.id);
   const workspaces = store === undefined
     ? workspacesForUser(
-        state.membershipsByUserId.get(user.id) ?? [],
+        await membershipStore.membershipsForUser(user.id),
         state.workspacesById
       )
     : await store.workspaceSummariesForUser(user.id);

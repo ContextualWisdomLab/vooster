@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { authenticatedUserId } from "./session-support.js";
+import { membershipForProject } from "./membership-support.js";
 import {
   activeStakeholderNamed,
   existingInterestForStakeholder,
@@ -14,9 +14,9 @@ import { problem } from "./signup-support.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredStakeholderInterest
 } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const interestRequestSchema = z.object({
   interest: z.string().min(1),
@@ -26,27 +26,29 @@ const interestRequestSchema = z.object({
 
 export function registerStakeholderInterestRoutes(
   app: FastifyInstance,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/usecases/:usecaseId/stakeholder-interests", (request, reply) =>
-    addStakeholderInterest(request, reply, state)
+    addStakeholderInterest(request, reply, state, membershipStore)
   );
   app.delete(
     "/v1/usecases/:usecaseId/stakeholder-interests/:stakeholderInterestId",
-    (request, reply) => removeStakeholderInterest(request, reply, state)
+    (request, reply) => removeStakeholderInterest(request, reply, state, membershipStore)
   );
 }
 
-function addStakeholderInterest(
+async function addStakeholderInterest(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = interestRequestSchema.safeParse(request.body);
@@ -114,10 +116,11 @@ function addStakeholderInterest(
   });
 }
 
-function removeStakeholderInterest(
+async function removeStakeholderInterest(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const params = z
     .object({
@@ -129,7 +132,7 @@ function removeStakeholderInterest(
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const interests = state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? [];
@@ -171,20 +174,4 @@ function removeStakeholderInterest(
         }
       : {})
   });
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
 }

@@ -14,12 +14,11 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
-  StoredGoal,
-  StoredMembership
+  StoredGoal
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
-import type { SignupStore } from "../ports/signup-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -34,16 +33,16 @@ export function registerGoalRoutes(
   state: SignupState,
   actorStore: ActorStore,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
-    createGoal(request, reply, state, actorStore, goalStore, store)
+    createGoal(request, reply, state, actorStore, goalStore, membershipStore)
   );
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
-    listGoals(request, reply, state, actorStore, goalStore, store)
+    listGoals(request, reply, state, actorStore, goalStore, membershipStore)
   );
   app.patch("/v1/goals/:goalId", (request, reply) =>
-    patchGoal(request, reply, state, goalStore, store)
+    patchGoal(request, reply, state, goalStore, membershipStore)
   );
 }
 
@@ -53,10 +52,10 @@ async function createGoal(
   state: SignupState,
   actorStore: ActorStore,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
-  if (await membershipForProject(request, state, projectId, store) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -123,13 +122,13 @@ async function patchGoal(
   reply: FastifyReply,
   state: SignupState,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
     return reply.code(404).send(problem(404, "Goal not found"));
   }
-  if (await membershipForProject(request, state, goal.project_id, store) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, goal.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   if (projectWorkspaceArchived(state, goal.project_id)) {
@@ -185,10 +184,10 @@ async function listGoals(
   state: SignupState,
   actorStore: ActorStore,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
-  if (await membershipForProject(request, state, projectId, store) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -212,21 +211,15 @@ async function listGoals(
 async function membershipForProject(
   request: FastifyRequest,
   state: SignupState,
-  projectId: string,
-  store: SignupStore | undefined
-): Promise<StoredMembership | undefined> {
-  const project = state.projectsById.get(projectId);
+  membershipStore: MembershipStore,
+  projectId: string
+) {
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (store !== undefined && userId !== undefined) {
-    return store.membershipForProject(projectId, userId);
-  }
-  if (project === undefined || userId === undefined) {
+  if (userId === undefined) {
     return undefined;
   }
 
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
+  return membershipStore.membershipForProject(projectId, userId);
 }
 
 function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {

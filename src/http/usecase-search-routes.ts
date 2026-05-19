@@ -4,6 +4,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredActor, StoredUseCase } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const searchQuerySchema = z.object({
   actor_id: z.string().optional(),
@@ -17,10 +18,11 @@ const searchQuerySchema = z.object({
 export function registerUseCaseSearchRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   app.get("/v1/projects/:projectId/usecases", (request, reply) =>
-    searchUseCases(request, reply, state, actorStore)
+    searchUseCases(request, reply, state, actorStore, membershipStore)
   );
 }
 
@@ -28,10 +30,11 @@ async function searchUseCases(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   const projectId = z.object({ projectId: z.string().min(1) }).parse(request.params).projectId;
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = searchQuerySchema.safeParse(request.query);

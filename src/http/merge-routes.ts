@@ -7,6 +7,7 @@ import { problem } from "./signup-support.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const mergeOpenSchema = z.object({
   simulate_write_failure: z.boolean().default(false),
@@ -18,10 +19,11 @@ const mergeOpenSchema = z.object({
 export function registerMergeRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/merges", (request, reply) =>
-    openMerge(request, reply, state, branchStore)
+    openMerge(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -29,7 +31,8 @@ async function openMerge(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const parsed = mergeOpenSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -40,7 +43,8 @@ async function openMerge(
   if (source === undefined || project === undefined) {
     return reply.code(404).send(problem(404, "Source branch not found"));
   }
-  if (membershipForProject(request, state, project.id) === undefined) {
+  const membership = await membershipForProject(request, state, membershipStore, project.id);
+  if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const target = await branchStore.findBranchById(project.default_branch_id);
@@ -68,7 +72,15 @@ async function openMerge(
     );
   }
   const strategy = conflicts.length === 0 && canFastForward ? "FAST_FORWARD" : "SQUASH";
-  const mergeRequest = mergeRequestFor(request, source, target.id, touched, state, strategy, conflicts);
+  const mergeRequest = mergeRequestFor(
+    membership.user_id,
+    source,
+    target.id,
+    touched,
+    state,
+    strategy,
+    conflicts
+  );
   state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
   if (hardLock !== undefined) {
     return reply.code(409).send(
@@ -136,7 +148,7 @@ async function openMerge(
 }
 
 function mergeRequestFor(
-  request: FastifyRequest,
+  createdBy: string,
   source: StoredSpecBranch,
   targetBranchId: string,
   touched: string[],
@@ -151,7 +163,7 @@ function mergeRequestFor(
     target_branch_id: targetBranchId,
     status: "OPEN",
     strategy,
-    created_by: membershipForProject(request, state, source.project_id)?.user_id ?? "",
+    created_by: createdBy,
     impact: {
       affected_branches: [],
       affected_sessions: [],

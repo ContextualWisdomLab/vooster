@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { SignupState } from "./signup-types.js";
-import { addMembership } from "./signup-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 export function registerActorTestRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
     archiveActor(request, reply, actorStore)
@@ -17,7 +18,7 @@ export function registerActorTestRoutes(
     markReadOnly(request, reply, state)
   );
   app.post("/__test/workspaces/:workspaceId/members/:userId", (request, reply) =>
-    addTestMember(request, reply, state)
+    addTestMember(request, reply, membershipStore)
   );
 }
 
@@ -46,11 +47,15 @@ function markReadOnly(request: FastifyRequest, reply: FastifyReply, state: Signu
   return reply.send({ read_only: true });
 }
 
-function addTestMember(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function addTestMember(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  membershipStore: MembershipStore
+) {
   const params = z
     .object({ userId: z.string().min(1), workspaceId: z.string().min(1) })
     .parse(request.params);
-  addMembership(state.membershipsByUserId, {
+  await membershipStore.saveMembership({
     id: randomUUID(),
     role: "OWNER",
     user_id: params.userId,

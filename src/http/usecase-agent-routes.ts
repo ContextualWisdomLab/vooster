@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
@@ -17,10 +18,11 @@ const querySchema = z.object({
 export function registerUseCaseAgentRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
-    showUseCase(request, reply, state, actorStore)
+    showUseCase(request, reply, state, actorStore, membershipStore)
   );
 }
 
@@ -28,7 +30,8 @@ async function showUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
@@ -36,7 +39,7 @@ async function showUseCase(
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(401).send(
       problem(401, "Authentication required", {}, [
         {

@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
@@ -18,10 +19,11 @@ const revertBodySchema = z.object({
 export function registerRevisionRevertRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
-    revertUseCase(request, reply, state, branchStore)
+    revertUseCase(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -29,7 +31,8 @@ async function revertUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = revertBodySchema.safeParse(request.body);
@@ -40,7 +43,7 @@ async function revertUseCase(
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to revert use case"));
   }
   const lock = state.stepLocksByUseCaseId.get(found.usecase.id);

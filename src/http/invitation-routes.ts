@@ -15,8 +15,9 @@ import {
   type StoredInvitation
 } from "./invitation-store.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
-import { addMembership, githubProfile, problem } from "./signup-support.js";
-import type { ServerOptions, SignupState, StoredMembership, StoredUser } from "./signup-types.js";
+import { githubProfile, problem } from "./signup-support.js";
+import type { ServerOptions, SignupState, StoredUser } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 const inviteSchema = z.object({
   email: z.email(),
   role: z.enum(["EDITOR", "OWNER"]),
@@ -28,21 +29,30 @@ const acceptSchema = z.object({ code: z.string().min(1) });
 export function registerInvitationRoutes(
   app: FastifyInstance,
   options: ServerOptions,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/workspaces/:workspaceId/invitations", (request, reply) =>
-    createInvitation(request, reply, state)
+    createInvitation(request, reply, state, membershipStore)
   );
   app.post("/v1/invitations/:token/accept", (request, reply) =>
-    acceptInvitation(request, reply, options, state)
+    acceptInvitation(request, reply, options, state, membershipStore)
   );
 }
 
-function createInvitation(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createInvitation(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
   const parsed = inviteSchema.safeParse(request.body);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  const membership = workspaceMembership(state, userId, params.workspaceId);
+  const membership =
+    userId === undefined
+      ? undefined
+      : await membershipStore.membershipForWorkspace(params.workspaceId, userId);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid invitation request"));
   }
@@ -52,7 +62,14 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   if (membership.role !== "OWNER" && parsed.data.role === "OWNER") {
     return reply.code(403).send(editorOwnerInviteProblem());
   }
-  if (activeMembershipForEmail(state, params.workspaceId, parsed.data.email) !== undefined) {
+  if (
+    await activeMembershipForEmail(
+      state,
+      membershipStore,
+      params.workspaceId,
+      parsed.data.email
+    ) !== undefined
+  ) {
     return reply.code(422).send(alreadyMemberProblem());
   }
   const existing = pendingInvitationForEmail(state, params.workspaceId, parsed.data.email);
@@ -73,11 +90,12 @@ function createInvitation(request: FastifyRequest, reply: FastifyReply, state: S
   return reply.code(201).send(invitationResponse(invitation));
 }
 
-function acceptInvitation(
+async function acceptInvitation(
   request: FastifyRequest,
   reply: FastifyReply,
   options: ServerOptions,
-  state: SignupState
+  state: SignupState,
+  membershipStore: MembershipStore
 ) {
   const token = z.object({ token: z.string().min(1) }).parse(request.params).token;
   const parsed = acceptSchema.safeParse(request.body);
@@ -100,19 +118,9 @@ function acceptInvitation(
     workspace_id: invitation.workspace_id
   };
   invitation.accepted_at = new Date().toISOString();
-  addMembership(state.membershipsByUserId, membership);
+  await membershipStore.saveMembership(membership);
   establishSession(reply, state.sessionsByToken, user.id);
   return reply.send({ invitation, membership, user });
-}
-
-function workspaceMembership(
-  state: SignupState,
-  userId: string | undefined,
-  workspaceId: string
-): StoredMembership | undefined {
-  return (state.membershipsByUserId.get(userId ?? "") ?? []).find(
-    (membership) => membership.workspace_id === workspaceId
-  );
 }
 
 function userForProfile(

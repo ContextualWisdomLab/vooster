@@ -119,7 +119,7 @@ describe("Goal 2 persistence matrix", () => {
     const databaseUrl = `file:${path.join(tempDir, "membership.sqlite")}`;
     const first = await bootServer(databaseUrl);
     const owner = await signupWorkspace(first.url, "membership-owner");
-    const invitee = await signupWorkspace(first.url, "membership-invitee");
+    await signupWorkspace(first.url, "membership-invitee");
     const invitation = await createInvitation(
       first.url,
       owner.sessionCookie,

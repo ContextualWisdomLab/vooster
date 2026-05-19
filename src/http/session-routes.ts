@@ -15,11 +15,12 @@ import { problem } from "./signup-support.js";
 import type {
   SignupState,
   StoredAgentType,
-  StoredSpecBranch,
   StoredMembership,
+  StoredSpecBranch,
   StoredWorkSession
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
   "CLAUDE_CODE",
@@ -42,25 +43,27 @@ const sessionStartSchema = z.object({
 export function registerSessionRoutes(
   app: FastifyInstance,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, state, branchStore)
+    startSession(request, reply, state, branchStore, membershipStore)
   );
 }
 
-function startSession(
+async function startSession(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid session request"));
   }
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (membershipForProject(state, userId, parsed.data.project_id) === undefined) {
+  if (await membershipForProject(membershipStore, userId, parsed.data.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -193,18 +196,15 @@ function unknownAgentWarning(rawAgentType: string) {
 }
 
 function membershipForProject(
-  state: SignupState,
+  membershipStore: MembershipStore,
   userId: string | undefined,
   projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  if (project === undefined || userId === undefined) {
-    return undefined;
+): Promise<StoredMembership | undefined> {
+  if (userId === undefined) {
+    return Promise.resolve(undefined);
   }
 
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
+  return membershipStore.membershipForProject(projectId, userId);
 }
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {

@@ -6,14 +6,14 @@ import {
   createTestWorkSession
 } from "./step-session-support.js";
 import { appendUseCaseRevision, scenarioWithUseCase } from "./scenario-support.js";
-import { authenticatedUserId } from "./session-support.js";
+import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredStep,
   StoredUseCase
 } from "./signup-types.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const stepPatchSchema = z.object({
   action: z.string().optional(),
@@ -22,8 +22,14 @@ const stepPatchSchema = z.object({
   notes: z.string().optional()
 });
 
-export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
-  app.patch("/v1/steps/:stepId", (request, reply) => patchStep(request, reply, state));
+export function registerStepRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
+  app.patch("/v1/steps/:stepId", (request, reply) =>
+    patchStep(request, reply, state, membershipStore)
+  );
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
     createTestLock(request, reply, state)
   );
@@ -32,12 +38,17 @@ export function registerStepRoutes(app: FastifyInstance, state: SignupState) {
   );
 }
 
-function patchStep(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function patchStep(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore
+) {
   const found = stepWithUseCase(state, stepIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Step not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = stepPatchSchema.safeParse(request.body);
@@ -173,22 +184,6 @@ function activeRewrite(action: string): string {
 
 function capitalized(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
 }
 
 function stepIdFrom(params: unknown): string {

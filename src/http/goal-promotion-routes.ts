@@ -10,12 +10,11 @@ import {
 } from "./usecase-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredGoal,
   StoredUseCase
 } from "./signup-types.js";
 import type { GoalStore } from "../ports/goal-store.js";
-import type { SignupStore } from "../ports/signup-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const promoteRequestSchema = z.object({
   simulate_usecase_insert_failure: z.boolean().optional()
@@ -25,10 +24,10 @@ export function registerGoalPromotionRoutes(
   app: FastifyInstance,
   state: SignupState,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
-    promoteGoal(request, reply, state, goalStore, store)
+    promoteGoal(request, reply, state, goalStore, membershipStore)
   );
 }
 
@@ -37,13 +36,13 @@ async function promoteGoal(
   reply: FastifyReply,
   state: SignupState,
   goalStore: GoalStore,
-  store: SignupStore | undefined
+  membershipStore: MembershipStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
     return reply.code(404).send(problem(404, "Goal not found"));
   }
-  if (await membershipForProject(request, state, goal.project_id, store) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, goal.project_id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = promoteRequestSchema.safeParse(request.body ?? {});
@@ -158,21 +157,15 @@ function titleLooksLikeVerbPhrase(title: string): boolean {
 async function membershipForProject(
   request: FastifyRequest,
   state: SignupState,
-  projectId: string,
-  store: SignupStore | undefined
-): Promise<StoredMembership | undefined> {
-  const project = state.projectsById.get(projectId);
+  membershipStore: MembershipStore,
+  projectId: string
+) {
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (store !== undefined && userId !== undefined) {
-    return store.membershipForProject(projectId, userId);
-  }
-  if (project === undefined || userId === undefined) {
+  if (userId === undefined) {
     return undefined;
   }
 
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
+  return membershipStore.membershipForProject(projectId, userId);
 }
 
 function goalIdFrom(params: unknown): string {

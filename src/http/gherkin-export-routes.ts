@@ -12,6 +12,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
@@ -24,10 +25,11 @@ const exportSchema = z.object({
 export function registerGherkinExportRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/usecases/:id/export/gherkin", (request, reply) =>
-    exportGherkin(request, reply, state, actorStore)
+    exportGherkin(request, reply, state, actorStore, membershipStore)
   );
 }
 
@@ -35,7 +37,8 @@ async function exportGherkin(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  membershipStore: MembershipStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
@@ -46,7 +49,7 @@ async function exportGherkin(
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to export Gherkin"));
   }
   const archivedProblem = archivedUseCaseProblem(found.usecase);

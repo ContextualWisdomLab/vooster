@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { projectIdFrom } from "./goal-support.js";
-import { authenticatedUserId } from "./session-support.js";
+import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
 import { createUseCaseFromGoal } from "./usecase-from-goal.js";
@@ -14,12 +14,12 @@ import {
 } from "./usecase-support.js";
 import type {
   SignupState,
-  StoredMembership,
   StoredUseCase
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 
 const useCaseRequestSchema = z.object({
   force: z.boolean().default(false),
@@ -40,13 +40,14 @@ export function registerUseCaseRoutes(
   state: SignupState,
   actorStore: ActorStore,
   branchStore: BranchStore,
-  goalStore: GoalStore
+  goalStore: GoalStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
-    createUseCase(request, reply, state, actorStore, goalStore)
+    createUseCase(request, reply, state, actorStore, goalStore, membershipStore)
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
-    patchUseCase(request, reply, state, branchStore)
+    patchUseCase(request, reply, state, branchStore, membershipStore)
   );
 }
 
@@ -55,10 +56,11 @@ async function createUseCase(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  goalStore: GoalStore
+  goalStore: GoalStore,
+  membershipStore: MembershipStore
 ) {
   const projectId = projectIdFrom(request.params);
-  if (membershipForProject(request, state, projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(
       problem(403, "Not authorized to create use cases in this project", {}, [
         {
@@ -152,17 +154,18 @@ async function createUseCase(
   });
 }
 
-function patchUseCase(
+async function patchUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  if (membershipForProject(request, state, found.projectId) === undefined) {
+  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
   const parsed = useCasePatchSchema.safeParse(request.body);
@@ -183,22 +186,6 @@ function patchUseCase(
   }
 
   return reply.send({ usecase: found.usecase });
-}
-
-function membershipForProject(
-  request: FastifyRequest,
-  state: SignupState,
-  projectId: string
-): StoredMembership | undefined {
-  const project = state.projectsById.get(projectId);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (project === undefined || userId === undefined) {
-    return undefined;
-  }
-
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === project.workspace_id
-  );
 }
 
 function titleLooksLikeVerbPhrase(title: string): boolean {

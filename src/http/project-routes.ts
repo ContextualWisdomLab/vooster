@@ -5,6 +5,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredMembership, StoredProject } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 
 const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
@@ -20,10 +21,11 @@ export function registerProjectRoutes(
   app: FastifyInstance,
   state: SignupState,
   store: SignupStore | undefined,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
-    createProject(request, reply, state, store, branchStore)
+    createProject(request, reply, state, store, branchStore, membershipStore)
   );
   app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
     archiveWorkspace(request, reply, state)
@@ -35,11 +37,12 @@ async function createProject(
   reply: FastifyReply,
   state: SignupState,
   store: SignupStore | undefined,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  membershipStore: MembershipStore
 ) {
   const workspaceId = workspaceIdFrom(request.params);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  const membership = membershipFor(state, userId, workspaceId);
+  const membership = await membershipFor(membershipStore, userId, workspaceId);
   if (membership === undefined) {
     return reply.code(403).send(
       problem(403, "Request an invitation to this workspace", {}, [
@@ -141,17 +144,15 @@ function workspaceIdFrom(params: unknown): string {
 }
 
 function membershipFor(
-  state: SignupState,
+  membershipStore: MembershipStore,
   userId: string | undefined,
   workspaceId: string
-): StoredMembership | undefined {
+): Promise<StoredMembership | undefined> {
   if (userId === undefined) {
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
-  return (state.membershipsByUserId.get(userId) ?? []).find(
-    (membership) => membership.workspace_id === workspaceId
-  );
+  return membershipStore.membershipForWorkspace(workspaceId, userId);
 }
 
 function newProject(

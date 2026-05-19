@@ -164,6 +164,43 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 
+  test("WorkSession survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "worksession.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "work-session-owner");
+    const project = await createProject(first.url, signup, "Work Session Matrix", "WS");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a session workflow",
+      "Customer"
+    );
+    const session = await startWorkSession(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      usecase.key
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "work-session-owner");
+    const listed = await listSessions(second.url, loggedIn.sessionCookie, signup.workspaceId);
+
+    await second.stop();
+
+    expect(listed.status).toBe(200);
+    const listedBody = (await listed.json()) as {
+      sessions?: Array<{ id?: unknown; status?: unknown }>;
+    };
+    expect(listedBody.sessions ?? []).toContainEqual(
+      expect.objectContaining({ id: session.id, status: "ACTIVE" })
+    );
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -748,10 +785,35 @@ async function createUseCase(
       title
     })
   });
-  const body = (await response.json()) as { usecase: { id: string } };
+  const body = (await response.json()) as { usecase: { id: string; key: string } };
 
   expect(response.status).toBe(201);
   return body.usecase;
+}
+
+async function startWorkSession(
+  baseUrl: string,
+  sessionCookie: string,
+  projectId: string,
+  usecaseKey: string
+) {
+  const response = await fetch(`${baseUrl}/v1/sessions`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      agent_type: "CODEX",
+      intent: "Verify work session persistence",
+      pins: [usecaseKey],
+      project_id: projectId
+    })
+  });
+  const body = (await response.json()) as { session: { id: string } };
+
+  expect(response.status).toBe(201);
+  return body.session;
 }
 
 async function createStakeholder(
@@ -894,6 +956,12 @@ function showUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) 
 
 function listRevisionHistory(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}/revisions`, {
+    headers: { cookie: sessionCookie }
+  });
+}
+
+function listSessions(baseUrl: string, sessionCookie: string, workspaceId: string) {
+  return fetch(`${baseUrl}/v1/sessions?workspace_id=${workspaceId}`, {
     headers: { cookie: sessionCookie }
   });
 }

@@ -379,6 +379,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **User**: owner signs up, invites a fresh GitHub identity that has no prior vspec signup, invitee accepts through the public invitation API, server restarts, invitee logs in, and the login response still includes the workspace from the accepted invitation.
 
+### Goal 2 Persistence - WorkSession
+
+- **WorkSession**: owner creates a project, actor, and use case through public APIs, starts a session pinned to that use case through `POST /v1/sessions`, restarts the server, logs back in, then calls `GET /v1/sessions?workspace_id=...` and asserts the persisted active session is listed.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

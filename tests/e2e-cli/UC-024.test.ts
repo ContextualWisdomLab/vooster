@@ -185,7 +185,7 @@ async function signup(apiUrl: string) {
   };
 }
 
-function jsonHeaders(cookie?: string) {
+function jsonHeaders(cookie?: string): Record<string, string> {
   return cookie === undefined
     ? { "Content-Type": "application/json" }
     : { "Content-Type": "application/json", Cookie: cookie };

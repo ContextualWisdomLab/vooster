@@ -101,6 +101,10 @@ export class VspecCommand extends Command {
       await this.showWho(parsed.flags);
       return;
     }
+    if (parsed.args.command === "history") {
+      await this.listHistory(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
       await this.createActor(parsed.flags);
       return;
@@ -402,6 +406,37 @@ export class VspecCommand extends Command {
       this.log(`Source branch ${merge.source_branch_id}`);
       this.log(`Status ${merge.status}`);
       this.log(`Conflicts ${String(merge.conflict_count)}`);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async listHistory(flags: ParsedFlags): Promise<void> {
+    const historyFlags = historyFlagsFrom(flags, this.argv[1]);
+    const url = new URL(`/v1/usecases/${historyFlags.usecaseId}/revisions`, historyFlags.apiUrl);
+    setSearchParam(url, "limit", historyFlags.limit);
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: historyFlags.sessionCookie
+      }
+    });
+    const body = response.body as HistoryResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Limit ${String(body.limit)}`);
+    this.log(`Truncated ${String(body.truncated)}`);
+    this.log(`Suppressed ${String(body.suppressed_count)}`);
+    for (const revision of body.revisions) {
+      this.log(`Revision ${revision.revision}`);
+      this.log(`Version ${String(revision.version_number)}`);
+      this.log(`Entity ${revision.entity_type} ${revision.entity_id}`);
+      this.log(`Author ${revision.author}`);
+      this.log(`Timestamp ${revision.timestamp}`);
+      if (revision.change_summary !== undefined) {
+        this.log(revision.change_summary);
+      }
     }
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
@@ -861,6 +896,13 @@ type WhoFlags = {
   usecaseId: string;
 };
 
+type HistoryFlags = {
+  apiUrl: string;
+  limit: string | undefined;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1182,6 +1224,27 @@ type WhoResponse = {
   suggested_next_actions: Array<{
     command: string;
   }>;
+  usecase: {
+    key: string;
+  };
+};
+
+type HistoryResponse = {
+  limit: number;
+  revisions: Array<{
+    author: string;
+    change_summary?: string;
+    entity_id: string;
+    entity_type: string;
+    revision: string;
+    timestamp: string;
+    version_number: number;
+  }>;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  suppressed_count: number;
+  truncated: boolean;
   usecase: {
     key: string;
   };
@@ -1525,6 +1588,15 @@ function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): 
 function whoFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): WhoFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function historyFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): HistoryFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    limit: optionalFlag(flags, "limit"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };

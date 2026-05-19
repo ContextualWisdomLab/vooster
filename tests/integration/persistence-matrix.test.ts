@@ -251,6 +251,43 @@ describe("Goal 2 persistence matrix", () => {
     expect(invitationBody.invitation?.workspace_id).toBe(signup.workspaceId);
   }, 90_000);
 
+  test("Workspace slug namespace survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "workspace-slug.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    await signupWorkspaceWithSlug(first.url, "workspace-slug-owner", "persisted-slug");
+    await signupWorkspaceWithSlug(first.url, "workspace-slug-owner-2", "persisted-slug-2");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const start = await fetch(`${second.url}/v1/auth/github/start`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workspace: {
+          name: "Duplicate Persisted Slug",
+          slug: "persisted-slug"
+        }
+      })
+    });
+    const oauthCookie = cookieFrom(start, "vspec_oauth_state");
+    const { state } = (await start.json()) as { state: string };
+    const callback = await fetch(
+      `${second.url}/v1/auth/github/callback?code=workspace-slug-owner-3&state=${state}`,
+      { headers: { cookie: oauthCookie } }
+    );
+
+    await second.stop();
+
+    expect(callback.status).toBe(422);
+    const callbackBody = (await callback.json()) as {
+      suggested_alternative_slug?: unknown;
+      title?: unknown;
+    };
+    expect(callbackBody.title).toEqual(expect.stringMatching(/workspace slug.*taken/i));
+    expect(callbackBody.suggested_alternative_slug).toBe("persisted-slug-3");
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -631,13 +668,21 @@ async function bootServer(databaseUrl: string) {
 }
 
 async function signupWorkspace(baseUrl: string, githubCode: string) {
+  return signupWorkspaceWithSlug(
+    baseUrl,
+    githubCode,
+    `actor-persistence-${githubCode}`
+  );
+}
+
+async function signupWorkspaceWithSlug(baseUrl: string, githubCode: string, slug: string) {
   const start = await fetch(`${baseUrl}/v1/auth/github/start`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       workspace: {
         name: "Actor Persistence",
-        slug: `actor-persistence-${githubCode}`
+        slug
       }
     })
   });

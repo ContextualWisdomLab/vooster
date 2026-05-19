@@ -391,6 +391,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Workspace**: owner signs up, server restarts, owner logs back in, then calls `POST /v1/workspaces/:id/invitations` and asserts the persisted workspace is accepted as existing instead of being rejected by an empty in-memory workspace lookup.
 
+### Goal 2 Persistence - Workspace Slug
+
+- **Workspace**: two owners sign up through public OAuth callbacks with slugs `persisted-slug` and `persisted-slug-2`, server restarts, then a third signup attempts `persisted-slug` and asserts the persisted slug namespace rejects it with `persisted-slug-3` as the next available suggestion.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T00:20:11Z_
+_Last updated: 2026-05-19T00:29:05Z_
 
 ## Overall
 
-- Commits: 513
-- Last commit: b4bc91f green: UC-032 hide foreign api key revoke
+- Commits: 515
+- Last commit: 005635e chore: make completion gates runnable
 - Use cases complete: 35 / 35
 
 ## By Use Case

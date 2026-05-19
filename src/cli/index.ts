@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
@@ -44,6 +45,7 @@ export class VspecCommand extends Command {
     priority: Flags.string(),
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
+    "proposed-change": Flags.string(),
     "protection-mechanism": Flags.string(),
     outcome: Flags.string(),
     pin: Flags.string(),
@@ -114,6 +116,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "revert") {
       await this.revertRevision(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "impact") {
+      await this.previewImpact(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -528,6 +534,37 @@ export class VspecCommand extends Command {
     for (const warning of body.warnings ?? []) {
       this.log(`Warning ${warning.type} ${warning.message}`);
     }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async previewImpact(flags: ParsedFlags): Promise<void> {
+    const impactFlags = impactFlagsFrom(flags, this.argv[1]);
+    const history = await latestUseCaseRevision(impactFlags);
+    const proposedChange = await proposedChangePayload(impactFlags.proposedChangePath);
+    const response = await postJson(
+      `${impactFlags.apiUrl}/v1/changes/preview`,
+      {
+        base_revision: history.revision,
+        entity_id: impactFlags.usecaseId,
+        entity_type: "USECASE",
+        ...proposedChange
+      },
+      {
+        Cookie: impactFlags.sessionCookie
+      }
+    );
+    const body = response.body as ImpactResponse;
+
+    this.log(`Preview ${body.preview_id}`);
+    this.log(`Cached ${String(body.cached)}`);
+    this.log(`Severity ${body.impact.severity}`);
+    this.log(`Confidence ${String(body.impact.confidence)}`);
+    this.log(`Affected sessions ${formatAffectedSessions(body.impact.affected_sessions)}`);
+    this.log(`Affected branches ${body.impact.affected_branches.join(", ") || "none"}`);
+    this.log(`Affected tests ${body.impact.affected_tests.join(", ") || "none"}`);
+    this.log(`Input hash ${body.impact.input_hash}`);
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
@@ -1011,6 +1048,13 @@ type RevertFlags = {
   usecaseId: string;
 };
 
+type ImpactFlags = {
+  apiUrl: string;
+  proposedChangePath: string | undefined;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1173,6 +1217,7 @@ type ParsedFlags = {
   priority?: string;
   "primary-actor"?: string;
   "project-id"?: string;
+  "proposed-change"?: string;
   "protection-mechanism"?: string;
   outcome?: string;
   pin?: string;
@@ -1417,6 +1462,27 @@ type RevertResponse = {
   warnings?: Array<{
     message: string;
     type: string;
+  }>;
+};
+
+type ImpactResponse = {
+  cached: boolean;
+  impact: {
+    affected_branches: string[];
+    affected_sessions: Array<{
+      agent_type: string;
+      id: string;
+      owner: string;
+      pinned_revision: string;
+    }>;
+    affected_tests: string[];
+    confidence: number;
+    input_hash: string;
+    severity: string;
+  };
+  preview_id: string;
+  suggested_next_actions: Array<{
+    command: string;
   }>;
 };
 
@@ -1795,6 +1861,15 @@ function revertFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Rev
     revisionId: requiredFlag(flags, "to"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     summary: optionalFlag(flags, "summary"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): ImpactFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    proposedChangePath: optionalFlag(flags, "proposed-change"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
@@ -2178,6 +2253,48 @@ function requiredArgument(value: string | undefined, name: string): string {
   }
 
   return value;
+}
+
+async function latestUseCaseRevision(
+  flags: Pick<ImpactFlags, "apiUrl" | "sessionCookie" | "usecaseId">
+): Promise<{ revision: string }> {
+  const url = new URL(`/v1/usecases/${flags.usecaseId}/revisions`, flags.apiUrl);
+  url.searchParams.set("limit", "1");
+  const response = await fetchJson(url, {
+    headers: {
+      Cookie: flags.sessionCookie
+    }
+  });
+  const body = response.body as Pick<HistoryResponse, "revisions">;
+  const latest = body.revisions[0];
+  if (latest === undefined) {
+    throw new Error("Use case has no revisions.");
+  }
+
+  return { revision: latest.revision };
+}
+
+async function proposedChangePayload(path: string | undefined): Promise<Record<string, string>> {
+  if (path === undefined) {
+    return {};
+  }
+
+  return {
+    proposed_change_content: await readFile(path, "utf8"),
+    proposed_change_path: path
+  };
+}
+
+function formatAffectedSessions(sessions: ImpactResponse["impact"]["affected_sessions"]): string {
+  if (sessions.length === 0) {
+    return "none";
+  }
+
+  return sessions
+    .map((session) =>
+      `${session.id} ${session.agent_type} ${session.owner} ${session.pinned_revision}`
+    )
+    .join(", ");
 }
 
 type JsonResponse = {

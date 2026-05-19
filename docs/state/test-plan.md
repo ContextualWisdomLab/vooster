@@ -387,6 +387,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Workspace**: owner signs up, archives the workspace through the HTTP archive path used by UC extension tests, restarts the server, logs back in, then attempts `POST /v1/workspaces/:id/projects` and asserts the persisted archived workspace state still rejects project creation.
 
+### Goal 2 Persistence - Workspace Lookup
+
+- **Workspace**: owner signs up, server restarts, owner logs back in, then calls `POST /v1/workspaces/:id/invitations` and asserts the persisted workspace is accepted as existing instead of being rejected by an empty in-memory workspace lookup.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

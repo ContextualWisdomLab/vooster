@@ -226,6 +226,31 @@ describe("Goal 2 persistence matrix", () => {
     expect(createdBody.title).toEqual(expect.stringMatching(/workspace.*archived/i));
   }, 90_000);
 
+  test("Workspace lookup survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "workspace-lookup.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "workspace-lookup-owner");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "workspace-lookup-owner");
+    const invitation = await createInvitationResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      signup.workspaceId,
+      "workspace-lookup-invitee@users.noreply.github.com"
+    );
+
+    await second.stop();
+
+    expect(invitation.status).toBe(201);
+    const invitationBody = (await invitation.json()) as {
+      invitation?: { workspace_id?: unknown };
+    };
+    expect(invitationBody.invitation?.workspace_id).toBe(signup.workspaceId);
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -1005,7 +1030,20 @@ async function createInvitation(
   workspaceId: string,
   email: string
 ) {
-  const response = await fetch(`${baseUrl}/v1/workspaces/${workspaceId}/invitations`, {
+  const response = await createInvitationResponse(baseUrl, sessionCookie, workspaceId, email);
+  const body = (await response.json()) as { invitation: { token: string } };
+
+  expect(response.status).toBe(201);
+  return body.invitation;
+}
+
+function createInvitationResponse(
+  baseUrl: string,
+  sessionCookie: string,
+  workspaceId: string,
+  email: string
+) {
+  return fetch(`${baseUrl}/v1/workspaces/${workspaceId}/invitations`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -1013,10 +1051,6 @@ async function createInvitation(
     },
     body: JSON.stringify({ email, role: "EDITOR" })
   });
-  const body = (await response.json()) as { invitation: { token: string } };
-
-  expect(response.status).toBe(201);
-  return body.invitation;
 }
 
 async function acceptInvitation(baseUrl: string, token: string, githubCode: string) {

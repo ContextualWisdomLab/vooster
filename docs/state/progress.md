@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-18T23:47:11Z_
+_Last updated: 2026-05-19T00:02:33Z_
 
 ## Overall
 
-- Commits: 485
-- Last commit: c2ea85d green: UC-003 reject invite email mismatch
-- Use cases complete: 33 / 35
+- Commits: 499
+- Last commit: a1e98f6 green: UC-031 reject missing markdown revision
+- Use cases complete: 34 / 35
 
 ## By Use Case
 
@@ -42,7 +42,7 @@ _Last updated: 2026-05-18T23:47:11Z_
 | UC-028 | Comment on a use case | ✓ DONE | 7/7 |
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 |
 | UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 |
-| UC-031 | Export a use case to markdown | ○ NOT STARTED | 0/0 |
+| UC-031 | Export a use case to markdown | ✓ DONE | 6/6 |
 | UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
 | UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 |
 | UC-034 | Fetch a structured spec (AI agent) | ✓ DONE | 6/6 |

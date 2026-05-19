@@ -8,6 +8,7 @@ import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { MergeRequestStore } from "../ports/merge-request-store.js";
 
 const mergeOpenSchema = z.object({
   simulate_write_failure: z.boolean().default(false),
@@ -20,10 +21,11 @@ export function registerMergeRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   app.post("/v1/merges", (request, reply) =>
-    openMerge(request, reply, state, branchStore, membershipStore)
+    openMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore)
   );
 }
 
@@ -32,7 +34,8 @@ async function openMerge(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   const parsed = mergeOpenSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -81,7 +84,7 @@ async function openMerge(
     strategy,
     conflicts
   );
-  state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
+  await mergeRequestStore.saveMergeRequest(mergeRequest);
   if (hardLock !== undefined) {
     return reply.code(409).send(
       problem(
@@ -137,6 +140,7 @@ async function openMerge(
   await branchStore.updateBranch(source);
   mergeRequest.status = "MERGED";
   mergeRequest.resolved_at = new Date().toISOString();
+  await mergeRequestStore.updateMergeRequest(mergeRequest);
   return reply.code(201).send({
     merge_request: mergeRequest,
     source_branch: source,

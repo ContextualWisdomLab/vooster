@@ -16,6 +16,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { MergeRequestStore } from "../ports/merge-request-store.js";
 
 const resolutionSchema = z.object({
   entity_id: z.string().min(1),
@@ -33,10 +34,11 @@ export function registerMergeResolveRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   app.post("/v1/merges/:mergeId/resolve", (request, reply) =>
-    resolveMerge(request, reply, state, branchStore, membershipStore)
+    resolveMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore)
   );
 }
 
@@ -45,9 +47,10 @@ async function resolveMerge(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
-  const merge = state.mergeRequestsById.get(mergeIdFrom(request.params));
+  const merge = await mergeRequestStore.findMergeRequestById(mergeIdFrom(request.params));
   const parsed = resolveSchema.safeParse(request.body);
   if (merge === undefined) {
     return reply.code(404).send(problem(404, "Merge request not found"));
@@ -103,6 +106,7 @@ async function resolveMerge(
   source.merged_at = merge.resolved_at;
   await branchStore.updateBranch(target);
   await branchStore.updateBranch(source);
+  await mergeRequestStore.updateMergeRequest(merge);
   return reply.send({
     main_head_revision_ids: target.head_revision_ids,
     merge_request: merge,

@@ -1,4 +1,3 @@
-import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupStore } from "../ports/signup-store.js";
 export type ServerOptions = {
   authStub: boolean;
@@ -12,7 +11,6 @@ export type PendingOAuth =
   | { flow: "login" }
   | { flow: "signup"; workspace: PendingSignup };
 export type SignupState = {
-  mergeRequestsById: Map<string, StoredMergeRequest>;
   pendingOAuth: Map<string, PendingOAuth>;
   projectKeysByWorkspaceId: Map<string, Map<string, string>>;
   projectsById: Map<string, StoredProject>;

@@ -11,15 +11,17 @@ import type {
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { MergeRequestStore } from "../ports/merge-request-store.js";
 
 export function registerWhoRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   app.get("/v1/usecases/:usecaseId/who", (request, reply) =>
-    showWho(request, reply, state, branchStore, membershipStore)
+    showWho(request, reply, state, branchStore, membershipStore, mergeRequestStore)
   );
 }
 
@@ -28,7 +30,8 @@ async function showWho(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   const usecaseId = usecaseIdFrom(request.params);
   const usecase = useCaseById(state, usecaseId);
@@ -41,7 +44,9 @@ async function showWho(
 
   const sessions = activeSessions(state, usecase.id).map(sessionRow);
   const locks = activeLocks(state, usecase.id).map(lockRow);
-  const mergeRequests = (await openMergeRequests(state, branchStore, usecase.id)).map(mergeRow);
+  const mergeRequests = (
+    await openMergeRequests(branchStore, mergeRequestStore, usecase.id)
+  ).map(mergeRow);
   const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
   return reply.send({
     ...(usecase.archived_at === null ? {} : { archived: true }),
@@ -93,12 +98,11 @@ function activeLocks(state: SignupState, usecaseId: string) {
 }
 
 async function openMergeRequests(
-  state: SignupState,
   branchStore: BranchStore,
+  mergeRequestStore: MergeRequestStore,
   usecaseId: string
 ) {
-  const matches = await Promise.all([...state.mergeRequestsById.values()]
-    .filter((merge) => merge.status === "OPEN")
+  const matches = await Promise.all((await mergeRequestStore.listOpenMergeRequests())
     .map(async (merge) => ({
       merge,
       touches: await branchTouches(branchStore, merge.source_branch_id, usecaseId) ||

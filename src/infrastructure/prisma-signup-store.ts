@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
+import type { StoredMergeRequest } from "../http/merge-request-types.js";
 import type {
   StoredActor,
   StoredGoal,
@@ -103,6 +104,16 @@ class PrismaSignupStore implements SignupStore {
     return goal === null ? undefined : storedGoal(goal);
   }
 
+  async findMergeRequestById(
+    mergeRequestId: string
+  ): Promise<StoredMergeRequest | undefined> {
+    const mergeRequest = await this.prisma.mergeRequest.findUnique({
+      where: { id: mergeRequestId }
+    });
+
+    return mergeRequest === null ? undefined : storedMergeRequest(mergeRequest);
+  }
+
   async findProjectById(projectId: string): Promise<StoredProject | undefined> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId }
@@ -136,6 +147,26 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return goals.map(storedGoal);
+  }
+
+  async listOpenMergeRequests(): Promise<StoredMergeRequest[]> {
+    const mergeRequests = await this.prisma.mergeRequest.findMany({
+      orderBy: { created_at: "asc" },
+      where: { status: "OPEN" }
+    });
+
+    return mergeRequests.map(storedMergeRequest);
+  }
+
+  async listOpenMergeRequestsByTargetBranchId(
+    targetBranchId: string
+  ): Promise<StoredMergeRequest[]> {
+    const mergeRequests = await this.prisma.mergeRequest.findMany({
+      orderBy: { created_at: "asc" },
+      where: { status: "OPEN", target_branch_id: targetBranchId }
+    });
+
+    return mergeRequests.map(storedMergeRequest);
   }
 
   async membershipForProject(
@@ -223,6 +254,12 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.membership.create({ data: membership });
   }
 
+  async saveMergeRequest(mergeRequest: StoredMergeRequest): Promise<void> {
+    await this.prisma.mergeRequest.create({
+      data: mergeRequestData(mergeRequest)
+    });
+  }
+
   async saveProjectWithDefaultBranch(
     project: StoredProject,
     branch: StoredSpecBranch
@@ -265,6 +302,13 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.goal.update({
       data: goalUpdate(goal),
       where: { id: goal.id }
+    });
+  }
+
+  async updateMergeRequest(mergeRequest: StoredMergeRequest): Promise<void> {
+    await this.prisma.mergeRequest.update({
+      data: mergeRequestUpdate(mergeRequest),
+      where: { id: mergeRequest.id }
     });
   }
 
@@ -322,6 +366,72 @@ function storedGoal(goal: {
     project_id: goal.project_id,
     status: storedGoalStatus(goal.status)
   };
+}
+
+function storedMergeRequest(mergeRequest: {
+  conflicts: string;
+  created_by: string;
+  id: string;
+  impact: string;
+  resolved_at: Date | null;
+  source_branch_id: string;
+  status: string;
+  strategy: string;
+  target_branch_id: string;
+}): StoredMergeRequest {
+  const payload = parseMergeRequestPayload(mergeRequest.impact);
+
+  return {
+    conflicts: parseConflicts(mergeRequest.conflicts),
+    created_by: mergeRequest.created_by,
+    current_revision_id: payload.current_revision_id,
+    id: mergeRequest.id,
+    impact: payload.impact,
+    resolved_at: mergeRequest.resolved_at?.toISOString(),
+    source_branch_id: mergeRequest.source_branch_id,
+    status: storedMergeRequestStatus(mergeRequest.status),
+    strategy: storedMergeStrategy(mergeRequest.strategy),
+    target_branch_id: mergeRequest.target_branch_id
+  };
+}
+
+function parseMergeRequestPayload(raw: string): {
+  current_revision_id?: string;
+  impact: StoredMergeRequest["impact"];
+} {
+  const parsed = JSON.parse(raw) as unknown;
+  if (isRecord(parsed) && isRecord(parsed.impact)) {
+    return {
+      current_revision_id:
+        typeof parsed.current_revision_id === "string"
+          ? parsed.current_revision_id
+          : undefined,
+      impact: storedMergeImpact(parsed.impact)
+    };
+  }
+
+  return { impact: storedMergeImpact(parsed) };
+}
+
+function storedMergeImpact(raw: unknown): StoredMergeRequest["impact"] {
+  if (!isRecord(raw)) {
+    return emptyMergeImpact();
+  }
+
+  return {
+    affected_branches: stringArray(raw.affected_branches),
+    affected_sessions: stringArray(raw.affected_sessions),
+    severity_by_entity: stringRecord(raw.severity_by_entity)
+  };
+}
+
+function parseConflicts(raw: string): Array<Record<string, unknown>> {
+  const parsed = JSON.parse(raw) as unknown;
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter(isRecord);
 }
 
 function storedBranch(branch: {
@@ -450,6 +560,28 @@ function parseRecord(raw: string): Record<string, string> {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
+}
+
+function stringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] =>
+      typeof entry[1] === "string"
+    )
+  );
+}
+
 function specBranchData(branch: StoredSpecBranch) {
   return {
     base_branch_id: branch.base_branch_id,
@@ -495,6 +627,44 @@ function goalUpdate(goal: StoredGoal) {
   };
 }
 
+function mergeRequestData(mergeRequest: StoredMergeRequest) {
+  return {
+    conflicts: JSON.stringify(mergeRequest.conflicts),
+    created_by: mergeRequest.created_by ?? "",
+    id: mergeRequest.id,
+    impact: mergeRequestPayload(mergeRequest),
+    resolved_at: dateOrUndefined(mergeRequest.resolved_at),
+    source_branch_id: mergeRequest.source_branch_id ?? "",
+    status: mergeRequest.status,
+    strategy: mergeRequest.strategy,
+    target_branch_id: mergeRequest.target_branch_id
+  };
+}
+
+function mergeRequestUpdate(mergeRequest: StoredMergeRequest) {
+  return {
+    conflicts: JSON.stringify(mergeRequest.conflicts),
+    impact: mergeRequestPayload(mergeRequest),
+    resolved_at: dateOrUndefined(mergeRequest.resolved_at),
+    status: mergeRequest.status
+  };
+}
+
+function mergeRequestPayload(mergeRequest: StoredMergeRequest): string {
+  return JSON.stringify({
+    current_revision_id: mergeRequest.current_revision_id,
+    impact: mergeRequest.impact
+  });
+}
+
+function emptyMergeImpact(): StoredMergeRequest["impact"] {
+  return {
+    affected_branches: [],
+    affected_sessions: [],
+    severity_by_entity: {}
+  };
+}
+
 function storedBranchStatus(status: string): StoredSpecBranch["status"] {
   return status === "ABANDONED" || status === "MERGED" ? status : "ACTIVE";
 }
@@ -519,4 +689,12 @@ function storedPriority(priority: string): StoredGoal["priority"] {
 
 function storedUseCaseLevel(level: string): StoredGoal["level"] {
   return level === "SUMMARY" || level === "SUBFUNCTION" ? level : "USER_GOAL";
+}
+
+function storedMergeRequestStatus(status: string): StoredMergeRequest["status"] {
+  return status === "CLOSED" || status === "MERGED" ? status : "OPEN";
+}
+
+function storedMergeStrategy(strategy: string): StoredMergeRequest["strategy"] {
+  return strategy === "SQUASH" ? "SQUASH" : "FAST_FORWARD";
 }

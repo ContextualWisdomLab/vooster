@@ -9,6 +9,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 
 const branchCreateSchema = z.object({
@@ -22,10 +23,19 @@ export function registerBranchRoutes(
   state: SignupState,
   branchStore: BranchStore,
   store: SignupStore | undefined,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   app.post("/v1/projects/:projectId/branches", (request, reply) =>
-    createBranch(request, reply, state, branchStore, store, membershipStore)
+    createBranch(
+      request,
+      reply,
+      state,
+      branchStore,
+      store,
+      membershipStore,
+      mergeRequestStore
+    )
   );
 }
 
@@ -35,7 +45,8 @@ async function createBranch(
   state: SignupState,
   branchStore: BranchStore,
   store: SignupStore | undefined,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   const projectId = projectIdFrom(request.params);
   const membership = await membershipForProject(request, state, membershipStore, projectId);
@@ -105,7 +116,7 @@ async function createBranch(
     status: "ACTIVE"
   };
   await branchStore.saveBranch(branch);
-  const warnings = inFlightMergeRequestWarnings(state, baseBranch.id);
+  const warnings = await inFlightMergeRequestWarnings(mergeRequestStore, baseBranch.id);
 
   return reply.code(201).send({
     branch,
@@ -120,11 +131,11 @@ async function createBranch(
   });
 }
 
-function inFlightMergeRequestWarnings(state: SignupState, targetBranchId: string) {
-  return [...state.mergeRequestsById.values()]
-    .filter((mergeRequest) =>
-      mergeRequest.target_branch_id === targetBranchId && mergeRequest.status === "OPEN"
-    )
+async function inFlightMergeRequestWarnings(
+  mergeRequestStore: MergeRequestStore,
+  targetBranchId: string
+) {
+  return (await mergeRequestStore.listOpenMergeRequestsByTargetBranchId(targetBranchId))
     .map((mergeRequest) => ({
       merge_request_id: mergeRequest.id,
       type: "IN_FLIGHT_MERGE_REQUEST"

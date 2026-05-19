@@ -3,6 +3,7 @@ import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js"
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
 import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
+import { createMemoryMergeRequestStore } from "../infrastructure/memory-merge-request-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -52,6 +53,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     createMemoryMembershipStore(
       (projectId) => state.projectsById.get(projectId)?.workspace_id
     );
+  const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -63,12 +65,25 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerApiKeyRoutes(app, state, membershipStore);
   registerSignupRoutes(app, options, state, membershipStore);
   registerProjectRoutes(app, state, options.signupStore, branchStore, membershipStore);
-  registerBranchRoutes(app, state, branchStore, options.signupStore, membershipStore);
+  registerBranchRoutes(
+    app,
+    state,
+    branchStore,
+    options.signupStore,
+    membershipStore,
+    mergeRequestStore
+  );
   registerBranchTestRoutes(app, state, branchStore);
   registerLockRoutes(app, state, membershipStore);
   registerMarkdownExportRoutes(app, state, actorStore, membershipStore);
-  registerMergeRoutes(app, state, branchStore, membershipStore);
-  registerMergeResolveRoutes(app, state, branchStore, membershipStore);
+  registerMergeRoutes(app, state, branchStore, membershipStore, mergeRequestStore);
+  registerMergeResolveRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    mergeRequestStore
+  );
   registerActorRoutes(app, state, actorStore, membershipStore);
   registerActorTestRoutes(app, state, actorStore, membershipStore);
   registerGherkinExportRoutes(app, state, actorStore, membershipStore);
@@ -88,9 +103,15 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerRevisionDiffRoutes(app, state, branchStore, membershipStore);
   registerRevisionHistoryRoutes(app, state, membershipStore);
   registerRevisionRevertRoutes(app, state, branchStore, membershipStore);
-  registerWhoRoutes(app, state, branchStore, membershipStore);
+  registerWhoRoutes(app, state, branchStore, membershipStore, mergeRequestStore);
   registerScenarioRoutes(app, state, actorStore, membershipStore);
-  registerSessionCompleteRoutes(app, state, branchStore, membershipStore);
+  registerSessionCompleteRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    mergeRequestStore
+  );
   registerSessionListRoutes(app, state, branchStore, membershipStore);
   registerSessionRoutes(app, state, branchStore, membershipStore);
   registerStepRoutes(app, state, membershipStore);
@@ -101,7 +122,6 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
-    mergeRequestsById: new Map(),
     pendingOAuth: new Map(),
     projectKeysByWorkspaceId: new Map(),
     projectsById: new Map(),

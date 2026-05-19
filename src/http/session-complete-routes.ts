@@ -7,6 +7,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { MergeRequestStore } from "../ports/merge-request-store.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
@@ -24,10 +25,11 @@ export function registerSessionCompleteRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
-    completeSession(request, reply, state, branchStore, membershipStore)
+    completeSession(request, reply, state, branchStore, membershipStore, mergeRequestStore)
   );
 }
 
@@ -36,7 +38,8 @@ async function completeSession(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  mergeRequestStore: MergeRequestStore
 ) {
   const session = state.workSessionsById.get(sessionIdFrom(request.params));
   const parsed = completeSchema.safeParse(request.body);
@@ -81,6 +84,9 @@ async function completeSession(
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
     : openMergeRequest(state, session, parsed.data.simulate_conflicts);
+  if (mergeRequest !== undefined) {
+    await mergeRequestStore.saveMergeRequest(mergeRequest);
+  }
   const noMergeBranch = parsed.data.no_merge
     ? await branchName(branchStore, session)
     : undefined;
@@ -155,10 +161,12 @@ function openMergeRequest(
     : [];
   const mergeRequest: StoredMergeRequest = {
     id: randomUUID(),
+    current_revision_id: randomUUID(),
     source_branch_id: session.branch_id ?? null,
     target_branch_id: project?.default_branch_id ?? "",
     status: "OPEN",
     strategy: "FAST_FORWARD",
+    created_by: session.user_id ?? "",
     impact: {
       affected_sessions: [],
       affected_branches: [],
@@ -168,7 +176,6 @@ function openMergeRequest(
     },
     conflicts
   };
-  state.mergeRequestsById.set(mergeRequest.id, mergeRequest);
   return mergeRequest;
 }
 

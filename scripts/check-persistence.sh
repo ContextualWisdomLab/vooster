@@ -43,6 +43,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
+npm run --silent build >/dev/null 2>&1 || true
+
 boot() {
   local log="$1"
   ( npm start >"$log" 2>&1 ) &

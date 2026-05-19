@@ -10,36 +10,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Enums
+// Enum-like fields are stored as strings because the goal-1 persistence gate
+// runs against SQLite, whose Prisma connector does not support enums.
 // ─────────────────────────────────────────────────────────────────────────────
-
-enum Plan          { FREE  PRO  ENTERPRISE }
-enum Visibility    { PRIVATE  INTERNAL }
-enum Role          { OWNER  EDITOR }
-enum ActorType     { PRIMARY  SUPPORTING  OFFSTAGE }
-enum StakeholderType { INTERNAL  EXTERNAL  REGULATORY }
-enum Level         { SUMMARY  USER_GOAL  SUBFUNCTION }
-enum Priority      { P0  P1  P2  P3 }
-enum GoalStatus    { IDENTIFIED  IN_DESIGN  PROMOTED  REJECTED }
-enum UseCaseStatus { DRAFT  IN_REVIEW  APPROVED  DEPRECATED }
-enum Format        { BRIEF  CASUAL  FULLY_DRESSED }
-enum ScenarioType  { MAIN_SUCCESS  EXTENSION }
-enum Outcome       { SUCCESS  FAILURE  PARTIAL }
-enum RevisionEntity { USECASE  SCENARIO  STEP  ACTOR  STAKEHOLDER  GOAL  STAKEHOLDER_INTEREST }
-enum BranchOwnerType { HUMAN  AGENT }
-enum BranchStatus  { ACTIVE  MERGED  ABANDONED }
-enum MergeStatus   { OPEN  APPROVED  REJECTED  MERGED  ABORTED }
-enum MergeStrategy { FAST_FORWARD  SQUASH }
-enum AgentType     { HUMAN  CURSOR  CLAUDE_CODE  WINDSURF  CODEX  OTHER }
-enum SessionStatus { ACTIVE  COMPLETED  ABANDONED }
-enum LockTarget    { USECASE  SCENARIO  STEP }
-enum LockType      { SOFT  SEMANTIC  HARD }
-enum CommentTarget { USECASE }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Organization layer
@@ -70,8 +48,8 @@ model Workspace {
   name        String
   slug        String       @unique
   owner_id    String
-  plan        Plan         @default(FREE)
-  settings    Json         @default("{}")
+  plan        String       @default("FREE")
+  settings    String       @default("{}")
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
 
@@ -85,7 +63,7 @@ model Membership {
   id           String   @id @default(cuid())
   user_id      String
   workspace_id String
-  role         Role
+  role         String
   joined_at    DateTime @default(now())
 
   user      User      @relation(fields: [user_id], references: [id])
@@ -100,8 +78,8 @@ model Project {
   name              String
   key               String
   description       String?
-  visibility        Visibility   @default(PRIVATE)
-  default_branch_id String?
+  visibility        String       @default("PRIVATE")
+  default_branch_id String?      @unique
   created_at        DateTime     @default(now())
   updated_at        DateTime     @updatedAt
 
@@ -125,10 +103,10 @@ model Actor {
   id          String     @id @default(cuid())
   project_id  String
   name        String
-  type        ActorType
+  type        String
   description String?
   is_human    Boolean    @default(true)
-  aliases     String[]   @default([])
+  aliases     String     @default("[]")
   archived_at DateTime?
   created_at  DateTime   @default(now())
 
@@ -144,7 +122,7 @@ model Stakeholder {
   id          String         @id @default(cuid())
   project_id  String
   name        String
-  type        StakeholderType
+  type        String
   description String?
   archived_at DateTime?
   created_at  DateTime       @default(now())
@@ -160,10 +138,10 @@ model Goal {
   project_id        String
   actor_id          String
   description       String
-  level             Level
-  status            GoalStatus @default(IDENTIFIED)
+  level             String
+  status            String     @default("IDENTIFIED")
   linked_usecase_id String?    @unique
-  priority          Priority   @default(P2)
+  priority          String     @default("P2")
   archived_at       DateTime?
   created_at        DateTime   @default(now())
 
@@ -177,17 +155,17 @@ model UseCase {
   project_id          String
   key                 String
   title               String
-  level               Level
-  format              Format         @default(FULLY_DRESSED)
+  level               String
+  format              String         @default("FULLY_DRESSED")
   scope               String
   primary_actor_id    String
   trigger             String
-  preconditions       String[]       @default([])
+  preconditions       String         @default("[]")
   success_guarantee   String
   minimal_guarantee   String
   frequency           String?
-  priority            Priority       @default(P2)
-  status              UseCaseStatus  @default(DRAFT)
+  priority            String         @default("P2")
+  status              String         @default("DRAFT")
   current_revision_id String?        @unique
   archived_at         DateTime?
   created_at          DateTime       @default(now())
@@ -207,11 +185,11 @@ model UseCase {
 model Scenario {
   id                 String       @id @default(cuid())
   usecase_id         String
-  type               ScenarioType
+  type               String
   extension_point    String?
   parent_step_number Int?
   condition          String?
-  outcome            Outcome      @default(SUCCESS)
+  outcome            String       @default("SUCCESS")
   order_index        Int          @default(0)
   created_at         DateTime     @default(now())
 
@@ -254,12 +232,12 @@ model StakeholderInterest {
 
 model Revision {
   id                  String         @id @default(cuid())
-  entity_type         RevisionEntity
+  entity_type         String
   entity_id           String
   branch_id           String
   version_number      Int
   content_hash        String
-  snapshot            Json
+  snapshot            String
   change_summary      String?
   author_id           String
   parent_revision_id  String?
@@ -284,12 +262,12 @@ model SpecBranch {
   project_id         String
   name               String
   base_branch_id     String?
-  base_revision_ids  Json            @default("{}")
-  head_revision_ids  Json            @default("{}")
-  owner_type         BranchOwnerType
+  base_revision_ids  String          @default("{}")
+  head_revision_ids  String          @default("{}")
+  owner_type         String
   owner_id           String
   purpose            String?
-  status             BranchStatus    @default(ACTIVE)
+  status             String          @default("ACTIVE")
   created_at         DateTime        @default(now())
   merged_at          DateTime?
 
@@ -309,10 +287,10 @@ model MergeRequest {
   id                String        @id @default(cuid())
   source_branch_id  String
   target_branch_id  String
-  status            MergeStatus   @default(OPEN)
-  strategy          MergeStrategy
-  impact            Json          @default("{}")
-  conflicts         Json          @default("[]")
+  status            String        @default("OPEN")
+  strategy          String
+  impact            String        @default("{}")
+  conflicts         String        @default("[]")
   created_by        String
   reviewed_by       String?
   created_at        DateTime      @default(now())
@@ -328,12 +306,12 @@ model WorkSession {
   id               String        @id @default(cuid())
   project_id       String
   user_id          String
-  agent_type       AgentType     @default(HUMAN)
+  agent_type       String        @default("HUMAN")
   agent_identifier String?
   intent           String
-  pinned_revisions Json          @default("{}")
+  pinned_revisions String        @default("{}")
   branch_id        String?
-  status           SessionStatus @default(ACTIVE)
+  status           String        @default("ACTIVE")
   started_at       DateTime      @default(now())
   ended_at         DateTime?
 
@@ -347,9 +325,9 @@ model WorkSession {
 
 model Lock {
   id                  String     @id @default(cuid())
-  target_type         LockTarget
+  target_type         String
   target_id           String
-  lock_type           LockType
+  lock_type           String
   held_by_session_id  String?
   held_by_user_id     String
   reason              String
@@ -370,7 +348,7 @@ model Lock {
 
 model Comment {
   id          String        @id @default(cuid())
-  target_type CommentTarget @default(USECASE)
+  target_type String  @default("USECASE")
   target_id   String
   author_id   String
   body        String
@@ -394,7 +372,7 @@ model ApiKey {
   user_id      String
   name         String
   key_hash     String    @unique
-  scopes       String[]  @default([])
+  scopes       String    @default("[]")
   last_used_at DateTime?
   expires_at   DateTime?
   revoked_at   DateTime?

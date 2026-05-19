@@ -26,15 +26,24 @@ PREFIX=$(echo "$LAST_MSG" | grep -oE '^[a-z]+' | head -1):
 
 case "$PREFIX" in
   green:)
-    # A green: commit must be preceded by a red: for the same UC-ID within 5 commits.
+    # A green commit must be preceded by a matching red within 5 commits.
+    # UC-scoped work uses `green: UC-NNN ...`; goal-level work uses
+    # `green(scope): ...` as documented by goal 1.
     UC_ID=$(echo "$LAST_MSG" | grep -oE 'UC-[0-9]+' | head -1)
-    if [ -z "$UC_ID" ]; then
-      echo "✗ verify-tdd: green: commit missing UC-ID."
+    SCOPE=$(echo "$LAST_MSG" | sed -n 's/^green(\([^)]*\)): .*/\1/p')
+    if [ -n "$UC_ID" ]; then
+      if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red: $UC_ID"; then
+        echo "✗ verify-tdd: green: $UC_ID has no preceding red: $UC_ID within last 5 commits."
+        exit 1
+      fi
+    elif [ -n "$SCOPE" ]; then
+      if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red\\($SCOPE\\):"; then
+        echo "✗ verify-tdd: green($SCOPE) has no preceding red($SCOPE) within last 5 commits."
+        exit 1
+      fi
+    else
+      echo "✗ verify-tdd: green commit missing UC-ID or scope."
       echo "  Got: $LAST_MSG"
-      exit 1
-    fi
-    if ! git log -6 --pretty=%s | tail -5 | grep -qE "^red: $UC_ID"; then
-      echo "✗ verify-tdd: green: $UC_ID has no preceding red: $UC_ID within last 5 commits."
       exit 1
     fi
     ;;
@@ -47,10 +56,9 @@ case "$PREFIX" in
     fi
     ;;
   red:)
-    # Red commits should reference a UC-ID and the working tree should leave
-    # at least one failing test (best-effort; we run quickly).
-    if ! echo "$LAST_MSG" | grep -qE 'UC-[0-9]+'; then
-      echo "⚠ verify-tdd: red: commit lacks UC-ID. Recommended pattern: 'red: UC-NNN <desc>'."
+    # Red commits should reference either a UC-ID or a goal-level scope.
+    if ! echo "$LAST_MSG" | grep -qE 'UC-[0-9]+|^red\([^)]+\):'; then
+      echo "⚠ verify-tdd: red commit lacks UC-ID or scope."
     fi
     ;;
 esac

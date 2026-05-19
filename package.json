@@ -13,7 +13,8 @@
     "dev": "tsx watch src/index.ts",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "start": "node dist/src/index.js",
+    "prestart": "mkdir -p .state && DATABASE_URL=${DATABASE_URL:-file:.state/dev.sqlite} prisma generate && DATABASE_URL=${DATABASE_URL:-file:.state/dev.sqlite} prisma db push --skip-generate",
+    "start": "DATABASE_URL=${DATABASE_URL:-file:.state/dev.sqlite} node dist/src/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

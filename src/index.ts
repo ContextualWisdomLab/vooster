@@ -1,10 +1,14 @@
 import { createServer } from "./http/server.js";
+import { createPrismaSignupStore } from "./infrastructure/prisma-signup-store.js";
 
 const defaultPort = 3000;
 
 async function main() {
   const app = await createServer({
-    authStub: process.env.VSPEC_AUTH_STUB === "1"
+    authStub: process.env.VSPEC_AUTH_STUB === "1",
+    signupStore: process.env.DATABASE_URL === undefined
+      ? undefined
+      : createPrismaSignupStore(process.env.DATABASE_URL)
   });
 
   const shutdown = async () => {

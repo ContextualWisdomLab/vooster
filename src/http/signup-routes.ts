@@ -16,6 +16,7 @@ import {
   workspacesForUser
 } from "./signup-support.js";
 import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
+import type { SignupStore } from "../ports/signup-store.js";
 
 const startSignupSchema = z.union([
   z.object({
@@ -75,7 +76,7 @@ function startSignup(
   };
 }
 
-function completeSignup(
+async function completeSignup(
   request: FastifyRequest,
   reply: FastifyReply,
   options: ServerOptions,
@@ -119,23 +120,24 @@ function completeSignup(
   }
 
   if (pending.flow === "login") {
-    return completeLogin(reply, state, profile);
+    return completeLogin(reply, state, options.signupStore, profile);
   }
 
-  return completeVerifiedSignup(reply, state, profile, pending.workspace);
+  return completeVerifiedSignup(reply, state, options.signupStore, profile, pending.workspace);
 }
 
 function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
   return "flow" in data ? { flow: "login" } : { flow: "signup", workspace: data.workspace };
 }
 
-function completeVerifiedSignup(
+async function completeVerifiedSignup(
   reply: FastifyReply,
   state: SignupState,
+  store: SignupStore | undefined,
   profile: GithubProfile,
   pending: PendingSignup
 ) {
-  if (state.workspaceSlugs.has(pending.slug)) {
+  if (state.workspaceSlugs.has(pending.slug) || await workspaceSlugExists(store, pending.slug)) {
     return reply.code(422).send(
       problem(422, "Workspace slug is already taken", {
         suggested_alternative_slug: alternativeSlug(pending.slug, state.workspaceSlugs)
@@ -145,6 +147,7 @@ function completeVerifiedSignup(
 
   state.workspaceSlugs.add(pending.slug);
   const entities = signupEntities(profile, pending);
+  await store?.saveSignup(entities);
   state.usersByGithubId.set(entities.user.github_id, entities.user);
   state.workspacesById.set(entities.workspace.id, entities.workspace);
   addMembership(state.membershipsByUserId, entities.membership);
@@ -155,8 +158,13 @@ function completeVerifiedSignup(
     .send(signupResponse(entities.user, entities.workspace, entities.membership));
 }
 
-function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubProfile) {
-  const user = state.usersByGithubId.get(profile.githubId);
+async function completeLogin(
+  reply: FastifyReply,
+  state: SignupState,
+  store: SignupStore | undefined,
+  profile: GithubProfile
+) {
+  const user = state.usersByGithubId.get(profile.githubId) ?? await store?.findUserByGithubId(profile.githubId);
   if (user === undefined) {
     return reply.code(404).send(
       problem(404, "No vspec user exists for GitHub identity", {}, [
@@ -166,11 +174,14 @@ function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubP
   }
 
   user.last_login_at = new Date().toISOString();
+  await store?.updateLastLoginAt(user.id, user.last_login_at);
   establishSession(reply, state.sessionsByToken, user.id);
-  const workspaces = workspacesForUser(
-    state.membershipsByUserId.get(user.id) ?? [],
-    state.workspacesById
-  );
+  const workspaces = store === undefined
+    ? workspacesForUser(
+        state.membershipsByUserId.get(user.id) ?? [],
+        state.workspacesById
+      )
+    : await store.workspaceSummariesForUser(user.id);
 
   return reply.code(200).send({
     user,
@@ -179,6 +190,13 @@ function completeLogin(reply: FastifyReply, state: SignupState, profile: GithubP
       ? { recommended_next_command: "vspec workspace create" }
       : {})
   });
+}
+
+async function workspaceSlugExists(
+  store: SignupStore | undefined,
+  slug: string
+): Promise<boolean> {
+  return store === undefined ? false : store.workspaceSlugExists(slug);
 }
 
 function pendingOAuthFor(

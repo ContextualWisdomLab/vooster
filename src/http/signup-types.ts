@@ -1,6 +1,8 @@
 import type { StoredMergeRequest } from "./merge-request-types.js";
+import type { SignupStore } from "../ports/signup-store.js";
 export type ServerOptions = {
   authStub: boolean;
+  signupStore?: SignupStore;
 };
 export type PendingSignup = {
   name: string;

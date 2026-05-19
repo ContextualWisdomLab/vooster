@@ -41,6 +41,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const app = Fastify({ logger: false });
   const state = initialState(options);
   app.get("/healthz", () => ({ status: "ok" }));
+  if (options.signupStore !== undefined) {
+    app.addHook("onClose", async () => {
+      await options.signupStore?.close();
+    });
+  }
 
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state);

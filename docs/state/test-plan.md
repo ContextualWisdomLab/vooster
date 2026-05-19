@@ -337,3 +337,4 @@ write. This guides your TDD cycles within an iteration._
 - **UC-005 MAIN**: after project setup, `vspec actor create --name <n> --type PRIMARY` calls the real API and prints the actor, revision version, and `vspec stakeholder create`.
 - **UC-006 MAIN**: after project setup, `vspec stakeholder create --name <n> --type INTERNAL` calls the real API and prints the stakeholder, revision version, and `vspec usecase add-stakeholder`.
 - **UC-007 MAIN**: after project and actor setup, `vspec goal create --actor-id <id> --description <text>` calls the real API, prints the goal and revision, and `vspec goal list --actor-id <id>` prints the grouped actor goals.
+- **UC-008 MAIN**: after project, actor, and goal setup, `vspec goal promote <goal-id>` calls the real API and prints the new use case key, seeded title, revision version, promoted goal status, and suggested next actions.

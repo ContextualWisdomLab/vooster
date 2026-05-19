@@ -1,25 +1,16 @@
 # Next Task
 
-_Auto-generated 2026-05-19T21:37:02Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T21:52:29Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Align DB configuration (gate 2.B2).
+TASK: Make vspec deployable via Docker (gate 2.B3).
 
-  Bring these four files to agreement on DATABASE_URL shape:
-    - prisma/schema.prisma         (datasource provider)
-    - .env.example                  (DATABASE_URL example)
-    - package.json                  (start / prestart scripts)
-    - docker-compose.yml + docker-compose.prod.yml
-
-  Rule of thumb:
-    - Production / dogfood:  Postgres   (postgresql://…)
-    - Tests / local dev:     SQLite     (file:.state/…sqlite)
-
-  Either:
-    a) Switch the schema to env("DATABASE_PROVIDER") and document the
-       split in docs/02-tech-stack.md, OR
-    b) Make .env.example point at SQLite and document Postgres as a
-       prod-only override.
-
-  Then run: bash scripts/check-db-consistency.sh
+  - Add Dockerfile (multi-stage: deps → build → runtime, node:20-alpine).
+    Final stage runs `node dist/src/index.js` and exposes 3000.
+  - Add docker-compose.prod.yml with:
+      app:    builds the Dockerfile, depends_on db, exposes ${VSPEC_DEPLOY_HOST_PORT:-4400}:3000
+      db:     postgres:16-alpine with a healthcheck
+    Pass DATABASE_URL via environment in the app service.
+  - Verify:
+        bash scripts/check-deployable.sh
 ```

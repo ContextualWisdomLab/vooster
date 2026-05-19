@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T21:37:02Z_
+_Last updated: 2026-05-19T21:52:29Z_
 
 ## Overall
 
-- Commits: 706
-- Last commit: f76e984 green(auth): boot without GitHub credentials
+- Commits: 709
+- Last commit: a67a29d green(deploy): align DB configuration
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

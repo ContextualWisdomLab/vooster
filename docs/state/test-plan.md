@@ -363,6 +363,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Lock**: owner creates a project, actor, and use case through public APIs, acquires a HARD use case lock through `POST /v1/locks`, restarts the server, logs back in, then calls `GET /v1/usecases/:id/who` and asserts the persisted lock id is listed.
 
+### Goal 2 Persistence - StakeholderInterest
+
+- **StakeholderInterest**: owner creates a project, actor, stakeholder, use case, and stakeholder interest through public APIs, restarts the server, logs back in, then attempts to add the same stakeholder interest again and asserts the duplicate-interest 409 still reports the original persisted interest text.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

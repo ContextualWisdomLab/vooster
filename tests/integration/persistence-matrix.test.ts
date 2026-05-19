@@ -324,6 +324,56 @@ describe("Goal 2 persistence matrix", () => {
       expect.objectContaining({ id: lock.id, lock_type: "HARD" })
     );
   }, 90_000);
+
+  test("StakeholderInterest survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "stakeholderinterest.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "stakeholder-interest-owner");
+    const project = await createProject(
+      first.url,
+      signup,
+      "Stakeholder Interest Matrix",
+      "SIM"
+    );
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    await createStakeholder(first.url, signup.sessionCookie, project.id, "Operations");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a protected workflow",
+      "Customer"
+    );
+    await addStakeholderInterest(
+      first.url,
+      signup.sessionCookie,
+      usecase.id,
+      "Operations"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "stakeholder-interest-owner");
+    const duplicate = await addStakeholderInterestResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      usecase.id,
+      "Operations"
+    );
+
+    await second.stop();
+
+    expect(duplicate.status).toBe(409);
+    const duplicateBody = (await duplicate.json()) as {
+      existing_interest?: unknown;
+      title?: unknown;
+    };
+    expect(duplicateBody.existing_interest).toBe("Scenario outcome remains auditable");
+    expect(duplicateBody.title).toEqual(
+      expect.stringMatching(/stakeholder interest.*already exists/i)
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -597,22 +647,33 @@ async function addStakeholderInterest(
   usecaseId: string,
   stakeholder: string
 ) {
-  const response = await fetch(
-    `${baseUrl}/v1/usecases/${usecaseId}/stakeholder-interests`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: sessionCookie
-      },
-      body: JSON.stringify({
-        interest: "Scenario outcome remains auditable",
-        stakeholder
-      })
-    }
+  const response = await addStakeholderInterestResponse(
+    baseUrl,
+    sessionCookie,
+    usecaseId,
+    stakeholder
   );
 
   expect(response.status).toBe(201);
+}
+
+function addStakeholderInterestResponse(
+  baseUrl: string,
+  sessionCookie: string,
+  usecaseId: string,
+  stakeholder: string
+) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}/stakeholder-interests`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      interest: "Scenario outcome remains auditable",
+      stakeholder
+    })
+  });
 }
 
 async function createMainScenario(

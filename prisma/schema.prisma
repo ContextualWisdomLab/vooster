@@ -358,6 +358,7 @@ model Comment {
   resolved    Boolean       @default(false)
   created_at  DateTime      @default(now())
   resolved_at DateTime?
+  updated_at  DateTime?
 
   author  User    @relation(fields: [author_id], references: [id])
   usecase UseCase @relation(fields: [target_id], references: [id])

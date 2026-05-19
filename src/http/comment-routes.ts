@@ -7,26 +7,15 @@ import {
   missingUseCaseProblem,
   notOwnerProblem
 } from "./comment-problems.js";
+import type { StoredComment } from "./comment-types.js";
 import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { CommentStore } from "../ports/comment-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
-type StoredComment = {
-  author_id: string;
-  body: string;
-  created_at: string;
-  id: string;
-  resolved: boolean;
-  resolved_at: null | string;
-  target_id: string;
-  target_type: "USECASE";
-  updated_at: null | string;
-};
-
-const commentsByState = new WeakMap<SignupState, Map<string, StoredComment>>();
 const bodySchema = z.object({
   body: z.string().min(1),
   simulate_write_failure: z.boolean().optional()
@@ -39,20 +28,21 @@ const patchSchema = z.object({
 export function registerCommentRoutes(
   app: FastifyInstance,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    addComment(request, reply, state, membershipStore, useCaseStore)
+    addComment(request, reply, state, commentStore, membershipStore, useCaseStore)
   );
   app.get("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    listComments(request, reply, state, membershipStore, useCaseStore)
+    listComments(request, reply, state, commentStore, membershipStore, useCaseStore)
   );
   app.patch("/v1/comments/:commentId", (request, reply) =>
-    patchComment(request, reply, state, membershipStore, useCaseStore)
+    patchComment(request, reply, state, commentStore, membershipStore, useCaseStore)
   );
   app.delete("/v1/comments/:commentId", (request, reply) =>
-    deleteComment(request, reply, state, membershipStore, useCaseStore)
+    deleteComment(request, reply, state, commentStore, membershipStore, useCaseStore)
   );
 }
 
@@ -60,6 +50,7 @@ async function addComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
@@ -86,7 +77,7 @@ async function addComment(
     target_type: "USECASE",
     updated_at: null
   };
-  comments(state).set(comment.id, comment);
+  await commentStore.saveComment(comment);
   return reply.code(201).send(commentResponse(comment, found.usecase));
 }
 
@@ -94,6 +85,7 @@ async function listComments(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
@@ -102,7 +94,7 @@ async function listComments(
     return;
   }
   return reply.send({
-    comments: [...comments(state).values()].filter((comment) => comment.target_id === found.usecase.id)
+    comments: await commentStore.listCommentsForUseCase(found.usecase.id)
   });
 }
 
@@ -110,10 +102,18 @@ async function patchComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(request, reply, state, membershipStore, useCaseStore);
+  const found = await authorizedComment(
+    request,
+    reply,
+    state,
+    commentStore,
+    membershipStore,
+    useCaseStore
+  );
   if (found === undefined) {
     return;
   }
@@ -132,6 +132,7 @@ async function patchComment(
     found.comment.resolved = true;
     found.comment.resolved_at = new Date().toISOString();
   }
+  await commentStore.updateComment(found.comment);
   return reply.send(commentResponse(found.comment, found.usecase));
 }
 
@@ -139,17 +140,25 @@ async function deleteComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(request, reply, state, membershipStore, useCaseStore);
+  const found = await authorizedComment(
+    request,
+    reply,
+    state,
+    commentStore,
+    membershipStore,
+    useCaseStore
+  );
   if (found === undefined) {
     return;
   }
   if (found.comment.author_id !== found.userId) {
     return reply.code(403).send(notOwnerProblem());
   }
-  comments(state).delete(found.comment.id);
+  await commentStore.deleteComment(found.comment.id);
   return reply.send(commentResponse(found.comment, found.usecase));
 }
 
@@ -181,11 +190,12 @@ async function authorizedComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
   const id = z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
-  const comment = comments(state).get(id);
+  const comment = await commentStore.findCommentById(id);
   const found =
     comment === undefined
       ? undefined
@@ -219,14 +229,4 @@ function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
       }
     ]
   };
-}
-
-function comments(state: SignupState) {
-  const existing = commentsByState.get(state);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const created = new Map<string, StoredComment>();
-  commentsByState.set(state, created);
-  return created;
 }

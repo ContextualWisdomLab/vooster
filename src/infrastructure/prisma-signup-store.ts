@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
+import type { StoredComment } from "../http/comment-types.js";
 import type { StoredMergeRequest } from "../http/merge-request-types.js";
 import type {
   StoredActor,
@@ -135,6 +136,14 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return branch === null ? undefined : storedBranch(branch);
+  }
+
+  async findCommentById(commentId: string): Promise<StoredComment | undefined> {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId }
+    });
+
+    return comment === null ? undefined : storedComment(comment);
   }
 
   async findGoalById(goalId: string): Promise<StoredGoal | undefined> {
@@ -317,6 +326,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return branches.map(storedBranch);
+  }
+
+  async listCommentsForUseCase(usecaseId: string): Promise<StoredComment[]> {
+    const comments = await this.prisma.comment.findMany({
+      orderBy: { created_at: "asc" },
+      where: { target_id: usecaseId, target_type: "USECASE" }
+    });
+
+    return comments.map(storedComment);
   }
 
   async listGoals(projectId: string): Promise<StoredGoal[]> {
@@ -523,6 +541,10 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.specBranch.create({ data: specBranchData(branch) });
   }
 
+  async saveComment(comment: StoredComment): Promise<void> {
+    await this.prisma.comment.create({ data: commentData(comment) });
+  }
+
   async saveGoal(goal: StoredGoal): Promise<void> {
     await this.prisma.goal.create({ data: goalData(goal) });
   }
@@ -589,6 +611,12 @@ class PrismaSignupStore implements SignupStore {
   async deleteLockForUseCase(usecaseId: string): Promise<void> {
     await this.prisma.lock.deleteMany({
       where: { target_id: usecaseId, target_type: "USECASE" }
+    });
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    await this.prisma.comment.deleteMany({
+      where: { id: commentId }
     });
   }
 
@@ -665,6 +693,13 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.specBranch.update({
       data: specBranchUpdate(branch),
       where: { id: branch.id }
+    });
+  }
+
+  async updateComment(comment: StoredComment): Promise<void> {
+    await this.prisma.comment.update({
+      data: commentUpdate(comment),
+      where: { id: comment.id }
     });
   }
 
@@ -1267,6 +1302,30 @@ function storedUser(user: {
   };
 }
 
+function storedComment(comment: {
+  author_id: string;
+  body: string;
+  created_at: Date;
+  id: string;
+  resolved: boolean;
+  resolved_at: Date | null;
+  target_id: string;
+  target_type: string;
+  updated_at?: Date | null;
+}): StoredComment {
+  return {
+    author_id: comment.author_id,
+    body: comment.body,
+    created_at: comment.created_at.toISOString(),
+    id: comment.id,
+    resolved: comment.resolved,
+    resolved_at: comment.resolved_at?.toISOString() ?? null,
+    target_id: comment.target_id,
+    target_type: "USECASE",
+    updated_at: comment.updated_at?.toISOString() ?? null
+  };
+}
+
 function storedWorkspace(workspace: {
   archived_at: Date | null;
   id: string;
@@ -1383,6 +1442,20 @@ function workspaceData(workspace: StoredWorkspace) {
     owner_id: workspace.owner_id,
     plan: workspace.plan,
     slug: workspace.slug
+  };
+}
+
+function commentData(comment: StoredComment) {
+  return {
+    author_id: comment.author_id,
+    body: comment.body,
+    created_at: dateOrUndefined(comment.created_at),
+    id: comment.id,
+    resolved: comment.resolved,
+    resolved_at: dateOrNull(comment.resolved_at),
+    target_id: comment.target_id,
+    target_type: comment.target_type,
+    updated_at: dateOrNull(comment.updated_at)
   };
 }
 
@@ -1509,6 +1582,15 @@ function workSessionUpdate(session: StoredWorkSession) {
     pinned_revisions: JSON.stringify(session.pinned_revisions ?? {}),
     started_at: dateOrUndefined(session.started_at),
     status: session.status
+  };
+}
+
+function commentUpdate(comment: StoredComment) {
+  return {
+    body: comment.body,
+    resolved: comment.resolved,
+    resolved_at: dateOrNull(comment.resolved_at),
+    updated_at: dateOrNull(comment.updated_at)
   };
 }
 

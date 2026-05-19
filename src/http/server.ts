@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
+import { createMemoryCommentStore } from "../infrastructure/memory-comment-store.js";
 import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
 import { createMemoryLockStore } from "../infrastructure/memory-lock-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
@@ -59,6 +60,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const state = initialState();
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
+  const commentStore = options.signupStore ?? createMemoryCommentStore();
   const goalStore = options.signupStore ?? createMemoryGoalStore();
   const lockStore = options.signupStore ?? createMemoryLockStore();
   const projectStore = options.signupStore ?? createMemoryProjectStore();
@@ -186,7 +188,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore
   );
   registerInvitationRoutes(app, options, state, membershipStore, userStore, workspaceStore);
-  registerCommentRoutes(app, state, membershipStore, useCaseStore);
+  registerCommentRoutes(app, state, commentStore, membershipStore, useCaseStore);
   registerChangeCommitRoutes(
     app,
     state,

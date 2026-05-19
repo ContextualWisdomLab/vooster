@@ -30,6 +30,7 @@ export class VspecCommand extends Command {
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
     intent: Flags.string(),
+    into: Flags.string(),
     interest: Flags.string(),
     key: Flags.string(),
     level: Flags.string(),
@@ -47,6 +48,7 @@ export class VspecCommand extends Command {
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
     status: Flags.string(),
+    strategy: Flags.string(),
     summary: Flags.string(),
     title: Flags.string(),
     type: Flags.string(),
@@ -76,6 +78,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "branch" && this.argv[1] === "create") {
       await this.createBranch(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "merge" && this.argv[1] === "open") {
+      await this.openMerge(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -254,6 +260,33 @@ export class VspecCommand extends Command {
     for (const warning of body.warnings ?? []) {
       this.log(`Warning ${warning.type} ${warning.merge_request_id}`);
     }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async openMerge(flags: ParsedFlags): Promise<void> {
+    const mergeFlags = mergeOpenFlagsFrom(flags, this.argv[2]);
+    const response = await postJson(
+      `${mergeFlags.apiUrl}/v1/merges`,
+      {
+        source_branch_id: mergeFlags.sourceBranchId,
+        ...(mergeFlags.strategy === undefined ? {} : { strategy: mergeFlags.strategy }),
+        target: mergeFlags.target
+      },
+      {
+        Cookie: mergeFlags.sessionCookie
+      }
+    );
+    const body = response.body as MergeOpenResponse;
+
+    this.log(`Merge request ${body.merge_request.id}`);
+    this.log(`Status ${body.merge_request.status}`);
+    this.log(`Strategy ${body.merge_request.strategy}`);
+    this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
+    this.log(`Impacted entities ${String(Object.keys(body.merge_request.impact.severity_by_entity).length)}`);
+    this.log(`Source branch ${body.source_branch.id} ${body.source_branch.status}`);
+    this.log(`Main heads ${String(Object.keys(body.main_head_revision_ids).length)}`);
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
@@ -677,6 +710,14 @@ type BranchCreateFlags = {
   sessionCookie: string;
 };
 
+type MergeOpenFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  sourceBranchId: string;
+  strategy: "FAST_FORWARD" | "SQUASH" | undefined;
+  target: "main";
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -825,6 +866,7 @@ type ParsedFlags = {
   from?: string;
   "github-code"?: string;
   intent?: string;
+  into?: string;
   interest?: string;
   key?: string;
   level?: string;
@@ -842,6 +884,7 @@ type ParsedFlags = {
   "session-cookie"?: string;
   stakeholder?: string;
   status?: string;
+  strategy?: string;
   summary?: string;
   title?: string;
   type?: string;
@@ -912,6 +955,26 @@ type BranchCreateResponse = {
   warnings?: Array<{
     merge_request_id: string;
     type: string;
+  }>;
+};
+
+type MergeOpenResponse = {
+  main_head_revision_ids: Record<string, string>;
+  merge_request: {
+    conflicts: unknown[];
+    id: string;
+    impact: {
+      severity_by_entity: Record<string, string>;
+    };
+    status: string;
+    strategy: string;
+  };
+  source_branch: {
+    id: string;
+    status: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
   }>;
 };
 
@@ -1209,6 +1272,19 @@ function branchCreateFlagsFrom(
   };
 }
 
+function mergeOpenFlagsFrom(
+  flags: ParsedFlags,
+  sourceBranchId: string | undefined
+): MergeOpenFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sourceBranchId: requiredArgument(sourceBranchId, "branch-id"),
+    strategy: mergeStrategy(optionalFlag(flags, "strategy")),
+    target: mergeTarget(flags.into ?? "main")
+  };
+}
+
 function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
   return {
     aliases: aliasesFrom(flags.aliases),
@@ -1443,6 +1519,26 @@ function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
   }
 
   throw new Error("Goal priority must be P0, P1, P2, or P3.");
+}
+
+function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {
+  if (rawStrategy === undefined) {
+    return undefined;
+  }
+  const strategy = rawStrategy.toUpperCase().replaceAll("-", "_");
+  if (strategy === "FAST_FORWARD" || strategy === "SQUASH") {
+    return strategy;
+  }
+
+  throw new Error("Merge strategy must be FAST_FORWARD or SQUASH.");
+}
+
+function mergeTarget(rawTarget: string): "main" {
+  if (rawTarget === "main") {
+    return rawTarget;
+  }
+
+  throw new Error("Merge target must be main.");
 }
 
 function scenarioType(rawType: string): "EXTENSION" | "MAIN_SUCCESS" {

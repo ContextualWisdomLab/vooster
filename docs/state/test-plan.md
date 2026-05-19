@@ -330,3 +330,4 @@ write. This guides your TDD cycles within an iteration._
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.
+- **UC-001 MAIN**: `vspec login --workspace-name <n> --workspace-slug <s>` calls the real API, completes stub GitHub signup, and prints the created workspace plus `vspec project create`.

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T11:13:22Z_
+_Last updated: 2026-05-19T11:21:32Z_
 
 ## Overall
 
-- Commits: 603
-- Last commit: 18cf634 green(cli): UC-023 CLI E2E
+- Commits: 606
+- Last commit: 23e050e green(cli): UC-024 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -45,7 +45,7 @@ _Last updated: 2026-05-19T11:13:22Z_
 | UC-021 | Resolve a merge conflict | ✓ DONE | 6/6 | ✓ |
 | UC-022 | Lock a use case | ✓ DONE | 6/6 | ✓ |
 | UC-023 | See who is working on a use case | ✓ DONE | 6/6 | ✓ |
-| UC-024 | View a use case revision history | ✓ DONE | 5/5 | ○ |
+| UC-024 | View a use case revision history | ✓ DONE | 5/5 | ✓ |
 | UC-025 | Compare two revisions of a use case | ✓ DONE | 5/5 | ○ |
 | UC-026 | Revert a use case to a previous revision | ✓ DONE | 6/6 | ○ |
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 | ○ |

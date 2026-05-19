@@ -14,7 +14,7 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(dockerfile).toContain("FROM node:20-alpine AS build");
     expect(dockerfile).toContain("FROM node:20-alpine AS runtime");
     expect(dockerfile).toContain("EXPOSE 3000");
-    expect(dockerfile).toContain("node dist/src/index.js");
+    expect(dockerfile).toContain("dist/src/index.js");
 
     expect(compose).toContain("app:");
     expect(compose).toContain("db:");

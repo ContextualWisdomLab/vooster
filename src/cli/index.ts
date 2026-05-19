@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
 
 const root = dirname(fileURLToPath(import.meta.url));
+const cliVersion = "1.0.0";
 
 export class VspecCommand extends Command {
   static override description = "Cockburn-style use case management for concurrent agents.";
@@ -83,6 +84,10 @@ export class VspecCommand extends Command {
 
     if (parsed.args.command === "login") {
       await this.login(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "ai-guide") {
+      await this.showAiGuide(parsed.flags);
       return;
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {
@@ -290,6 +295,27 @@ export class VspecCommand extends Command {
     }
     if (callbackBody.recommended_next_command !== undefined) {
       this.log(callbackBody.recommended_next_command);
+    }
+  }
+
+  private async showAiGuide(flags: ParsedFlags): Promise<void> {
+    const guideFlags = aiGuideFlagsFrom(flags);
+    const url = new URL("/v1/ai-guide", guideFlags.apiUrl);
+    url.searchParams.set("cli_version", cliVersion);
+    if (guideFlags.format === "json") {
+      url.searchParams.set("format", "json");
+    }
+    const response = await postJson(url.toString(), {});
+
+    if (guideFlags.format === "json") {
+      this.log(JSON.stringify(response.body, null, 2));
+      return;
+    }
+
+    const body = response.body as AiGuideResponse;
+    this.log(body.content.trimEnd());
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
     }
   }
 
@@ -1288,6 +1314,11 @@ type ProjectFlags = {
   workspaceId: string;
 };
 
+type AiGuideFlags = {
+  apiUrl: string;
+  format: "json" | "markdown";
+};
+
 type ApiKeyWorkspaceFlags = {
   apiUrl: string;
   sessionCookie: string;
@@ -1645,6 +1676,13 @@ type ProjectResponse = {
     name: string;
   };
   recommended_next_command: string;
+};
+
+type AiGuideResponse = {
+  content: string;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
 };
 
 type ApiKey = {
@@ -2188,6 +2226,18 @@ function signupFlagsFrom(flags: ParsedFlags): SignupFlags | undefined {
   return {
     workspaceName: requiredFlag(flags, "workspace-name"),
     workspaceSlug: requiredFlag(flags, "workspace-slug")
+  };
+}
+
+function aiGuideFlagsFrom(flags: ParsedFlags): AiGuideFlags {
+  const format = optionalFlag(flags, "format") ?? "markdown";
+  if (format !== "json" && format !== "markdown") {
+    throw new Error("AI guide format must be markdown or json.");
+  }
+
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    format
   };
 }
 

@@ -97,6 +97,10 @@ export class VspecCommand extends Command {
       await this.createLock(parsed.flags);
       return;
     }
+    if (parsed.args.command === "who") {
+      await this.showWho(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
       await this.createActor(parsed.flags);
       return;
@@ -361,6 +365,44 @@ export class VspecCommand extends Command {
     this.log(`Holder ${body.lock.held_by_session_id ?? body.lock.held_by_user_id}`);
     this.log(`Auto release ${String(body.lock.auto_release)}`);
     this.log(`Expires at ${body.lock.expires_at}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async showWho(flags: ParsedFlags): Promise<void> {
+    const whoFlags = whoFlagsFrom(flags, this.argv[1]);
+    const response = await fetchJson(`${whoFlags.apiUrl}/v1/usecases/${whoFlags.usecaseId}/who`, {
+      headers: {
+        Cookie: whoFlags.sessionCookie
+      }
+    });
+    const body = response.body as WhoResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Sessions ${String(body.sessions.length)}`);
+    for (const session of body.sessions) {
+      this.log(`Session ${session.id}`);
+      this.log(`Agent ${session.agent_type}`);
+      this.log(`Intent ${session.intent}`);
+      if ((session.markers ?? []).length > 0) {
+        this.log(`Markers ${(session.markers ?? []).join(", ")}`);
+      }
+    }
+    this.log(`Locks ${String(body.locks.length)}`);
+    for (const lock of body.locks) {
+      this.log(`Lock ${lock.id}`);
+      this.log(`Type ${lock.lock_type}`);
+      this.log(`Holder ${lock.held_by_session_id ?? lock.held_by_user_id}`);
+      this.log(`Expires at ${lock.expires_at}`);
+    }
+    this.log(`Merge requests ${String(body.merge_requests.length)}`);
+    for (const merge of body.merge_requests) {
+      this.log(`Merge request ${merge.id}`);
+      this.log(`Source branch ${merge.source_branch_id}`);
+      this.log(`Status ${merge.status}`);
+      this.log(`Conflicts ${String(merge.conflict_count)}`);
+    }
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
@@ -813,6 +855,12 @@ type LockCreateFlags = {
   type: "HARD" | "SEMANTIC" | "SOFT";
 };
 
+type WhoFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1109,6 +1157,34 @@ type LockCreateResponse = {
   suggested_next_actions: Array<{
     command: string;
   }>;
+};
+
+type WhoResponse = {
+  locks: Array<{
+    expires_at: string;
+    held_by_session_id: null | string;
+    held_by_user_id: string;
+    id: string;
+    lock_type: string;
+  }>;
+  merge_requests: Array<{
+    conflict_count: number;
+    id: string;
+    source_branch_id: string;
+    status: string;
+  }>;
+  sessions: Array<{
+    agent_type: string;
+    id: string;
+    intent: string;
+    markers?: string[];
+  }>;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  usecase: {
+    key: string;
+  };
 };
 
 type ActorResponse = {
@@ -1443,6 +1519,14 @@ function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): 
     targetId: requiredArgument(targetId, "usecase-id"),
     ttlMinutes: ttlMinutes(flags.ttl),
     type: lockType(requiredFlag(flags, "type"))
+  };
+}
+
+function whoFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): WhoFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
 

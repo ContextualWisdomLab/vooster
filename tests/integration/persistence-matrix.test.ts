@@ -288,6 +288,46 @@ describe("Goal 2 persistence matrix", () => {
     expect(callbackBody.suggested_alternative_slug).toBe("persisted-slug-3");
   }, 90_000);
 
+  test("Comment survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "comment.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "comment-owner");
+    const project = await createProject(first.url, signup, "Comment Matrix", "CMT");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a commented workflow",
+      "Customer"
+    );
+    const comment = await addComment(
+      first.url,
+      signup.sessionCookie,
+      usecase.id,
+      "Persist this review note"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "comment-owner");
+    const listed = await listComments(second.url, loggedIn.sessionCookie, usecase.id);
+
+    await second.stop();
+
+    expect(listed.status).toBe(200);
+    const listedBody = (await listed.json()) as {
+      comments?: Array<{ body?: unknown; id?: unknown }>;
+    };
+    expect(listedBody.comments ?? []).toContainEqual(
+      expect.objectContaining({
+        body: "Persist this review note",
+        id: comment.id
+      })
+    );
+  }, 90_000);
+
   test("MergeRequest survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
     const first = await bootServer(databaseUrl);
@@ -1035,6 +1075,32 @@ async function createLock(baseUrl: string, sessionCookie: string, usecaseId: str
 
   expect(response.status).toBe(201);
   return body.lock;
+}
+
+async function addComment(
+  baseUrl: string,
+  sessionCookie: string,
+  usecaseId: string,
+  body: string
+) {
+  const response = await fetch(`${baseUrl}/v1/usecases/${usecaseId}/comments`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ body })
+  });
+  const responseBody = (await response.json()) as { comment: { id: string } };
+
+  expect(response.status).toBe(201);
+  return responseBody.comment;
+}
+
+function listComments(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}/comments`, {
+    headers: { cookie: sessionCookie }
+  });
 }
 
 function whoIsWorking(baseUrl: string, sessionCookie: string, usecaseId: string) {

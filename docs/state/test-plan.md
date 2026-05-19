@@ -395,6 +395,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Workspace**: two owners sign up through public OAuth callbacks with slugs `persisted-slug` and `persisted-slug-2`, server restarts, then a third signup attempts `persisted-slug` and asserts the persisted slug namespace rejects it with `persisted-slug-3` as the next available suggestion.
 
+### Goal 2 Persistence - Comment
+
+- **Comment**: owner creates a project, actor, and use case through public APIs, adds a comment through `POST /v1/usecases/:id/comments`, restarts the server, logs back in, then calls `GET /v1/usecases/:id/comments` and asserts the persisted comment id and body are listed.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

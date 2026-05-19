@@ -23,6 +23,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **UC-001 real OAuth**: boot `createServer({ authStub: false })` with fixture GitHub client credentials in the environment; intercept GitHub token and user-profile HTTP calls via a fetch mock; complete `/v1/auth/github/start` -> `/callback`; assert a workspace is created, a session cookie is set, and the plaintext OAuth token is never returned.
 
+### Goal 2 Deploy - DB Config Consistency
+
+- **DB config consistency**: run `scripts/check-db-consistency.sh` through Vitest so package scripts, Prisma schema, `.env.example`, and compose files remain aligned; assert the checker exits cleanly.
+
 ## Example
 
 ### UC-009

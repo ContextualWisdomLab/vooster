@@ -5,6 +5,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -13,6 +14,7 @@ export function registerUseCaseArchiveRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -23,6 +25,7 @@ export function registerUseCaseArchiveRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       projectStore,
       useCaseStore
@@ -35,6 +38,7 @@ async function archiveUseCase(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -52,7 +56,7 @@ async function archiveUseCase(
   if (found.usecase.archived_at !== null) {
     return reply.code(409).send(alreadyArchivedProblem(found.usecase));
   }
-  const hardLock = activeHardLock(state, found.usecase.id);
+  const hardLock = await activeHardLock(lockStore, found.usecase.id);
   if (hardLock !== undefined) {
     return reply.code(409).send(
       problem(409, "Use case has an active HARD lock", {
@@ -75,7 +79,7 @@ async function archiveUseCase(
   const affectedSessions = affectedSessionsFor(state, found.usecase.id);
 
   return reply.send({
-    active_locks_count: activeLockCount(state, found.usecase.id),
+    active_locks_count: await activeLockCount(lockStore, found.usecase.id),
     affected_sessions: affectedSessions,
     affected_sessions_count: affectedSessions.length,
     revision: { change_summary: revision.change_summary, id: revision.id },
@@ -193,13 +197,14 @@ async function advanceMainHead(
   }
 }
 
-function activeLockCount(state: SignupState, usecaseId: string) {
-  const lock = state.stepLocksByUseCaseId.get(usecaseId);
-  return lock !== undefined && Date.parse(lock.expires_at) > Date.now() ? 1 : 0;
+async function activeLockCount(lockStore: LockStore, usecaseId: string) {
+  return (await lockStore.listLocksForUseCase(usecaseId))
+    .filter((lock) => Date.parse(lock.expires_at) > Date.now())
+    .length;
 }
 
-function activeHardLock(state: SignupState, usecaseId: string) {
-  const lock = state.stepLocksByUseCaseId.get(usecaseId);
+async function activeHardLock(lockStore: LockStore, usecaseId: string) {
+  const lock = await lockStore.findLockForUseCase(usecaseId);
   return lock?.mode === "HARD" && Date.parse(lock.expires_at) > Date.now()
     ? lock
     : undefined;

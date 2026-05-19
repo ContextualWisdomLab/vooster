@@ -5,6 +5,7 @@ import { previewSpecChange } from "./change-preview-routes.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
@@ -29,11 +30,12 @@ const previewSchema = z.object({
 export function registerImpactRoutes(
   app: FastifyInstance,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/preview", async (request, reply) => {
-    if (await previewSpecChange(request, reply, state, membershipStore, useCaseStore)) {
+    if (await previewSpecChange(request, reply, state, lockStore, membershipStore, useCaseStore)) {
       return undefined;
     }
     return previewImpact(request, reply, state, membershipStore, useCaseStore);

@@ -4,6 +4,7 @@ import type { StoredMergeRequest } from "../http/merge-request-types.js";
 import type {
   StoredActor,
   StoredGoal,
+  StoredLock,
   StoredMembership,
   StoredProject,
   StoredScenario,
@@ -108,6 +109,14 @@ class PrismaSignupStore implements SignupStore {
     return goal === null ? undefined : storedGoal(goal);
   }
 
+  async findLockById(lockId: string): Promise<StoredLock | undefined> {
+    const lock = await this.prisma.lock.findUnique({
+      where: { id: lockId }
+    });
+
+    return lock === null ? undefined : storedLock(lock);
+  }
+
   async findMergeRequestById(
     mergeRequestId: string
   ): Promise<StoredMergeRequest | undefined> {
@@ -187,6 +196,15 @@ class PrismaSignupStore implements SignupStore {
     return scenario === null ? undefined : storedScenario(scenario);
   }
 
+  async findLockForUseCase(usecaseId: string): Promise<StoredLock | undefined> {
+    const lock = await this.prisma.lock.findFirst({
+      orderBy: { acquired_at: "desc" },
+      where: { target_id: usecaseId, target_type: "USECASE" }
+    });
+
+    return lock === null ? undefined : storedLock(lock);
+  }
+
   async findScenarioById(scenarioId: string): Promise<StoredScenario | undefined> {
     const scenario = await this.prisma.scenario.findUnique({
       where: { id: scenarioId }
@@ -220,6 +238,24 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return goals.map(storedGoal);
+  }
+
+  async listLocksForUseCase(usecaseId: string): Promise<StoredLock[]> {
+    const locks = await this.prisma.lock.findMany({
+      orderBy: { acquired_at: "asc" },
+      where: { target_id: usecaseId, target_type: "USECASE" }
+    });
+
+    return locks.map(storedLock);
+  }
+
+  async listLocksHeldBySession(sessionId: string): Promise<StoredLock[]> {
+    const locks = await this.prisma.lock.findMany({
+      orderBy: { acquired_at: "asc" },
+      where: { held_by_session_id: sessionId }
+    });
+
+    return locks.map(storedLock);
   }
 
   async listScenarios(usecaseId: string): Promise<StoredScenario[]> {
@@ -350,6 +386,11 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.goal.create({ data: goalData(goal) });
   }
 
+  async saveLock(lock: StoredLock): Promise<void> {
+    await this.ensureLockSession(lock);
+    await this.prisma.lock.create({ data: lockData(lock) });
+  }
+
   async saveMembership(membership: StoredMembership): Promise<void> {
     await this.prisma.membership.create({ data: membership });
   }
@@ -376,6 +417,18 @@ class PrismaSignupStore implements SignupStore {
   async saveMergeRequest(mergeRequest: StoredMergeRequest): Promise<void> {
     await this.prisma.mergeRequest.create({
       data: mergeRequestData(mergeRequest)
+    });
+  }
+
+  async deleteLock(lockId: string): Promise<void> {
+    await this.prisma.lock.deleteMany({
+      where: { id: lockId }
+    });
+  }
+
+  async deleteLockForUseCase(usecaseId: string): Promise<void> {
+    await this.prisma.lock.deleteMany({
+      where: { target_id: usecaseId, target_type: "USECASE" }
     });
   }
 
@@ -415,6 +468,14 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.goal.update({
       data: goalUpdate(goal),
       where: { id: goal.id }
+    });
+  }
+
+  async updateLock(lock: StoredLock): Promise<void> {
+    await this.ensureLockSession(lock);
+    await this.prisma.lock.update({
+      data: lockUpdate(lock),
+      where: { id: lock.id ?? lock.usecase_id }
     });
   }
 
@@ -478,6 +539,29 @@ class PrismaSignupStore implements SignupStore {
         this.useCaseCurrentRevisionIds.get(stored.id) ?? stored.current_revision_id
     };
   }
+
+  private async ensureLockSession(lock: StoredLock): Promise<void> {
+    if (lock.held_by_session_id === null || lock.held_by_session_id === undefined) {
+      return;
+    }
+    const usecase = await this.prisma.useCase.findUnique({
+      select: { project_id: true },
+      where: { id: lock.target_id ?? lock.usecase_id }
+    });
+    if (usecase === null) {
+      return;
+    }
+    await this.prisma.workSession.upsert({
+      create: {
+        id: lock.held_by_session_id,
+        intent: "Hold use case lock",
+        project_id: usecase.project_id,
+        user_id: lock.held_by_user_id ?? lock.holder
+      },
+      update: {},
+      where: { id: lock.held_by_session_id }
+    });
+  }
 }
 
 function storedGoal(goal: {
@@ -501,6 +585,36 @@ function storedGoal(goal: {
     priority: storedPriority(goal.priority),
     project_id: goal.project_id,
     status: storedGoalStatus(goal.status)
+  };
+}
+
+function storedLock(lock: {
+  acquired_at: Date;
+  auto_release: boolean;
+  expires_at: Date;
+  held_by_session_id: null | string;
+  held_by_user_id: string;
+  id: string;
+  lock_type: string;
+  reason: string;
+  target_id: string;
+  target_type: string;
+}): StoredLock {
+  const mode = storedLockType(lock.lock_type);
+  return {
+    acquired_at: lock.acquired_at.toISOString(),
+    auto_release: lock.auto_release,
+    expires_at: lock.expires_at.toISOString(),
+    held_by_session_id: lock.held_by_session_id,
+    held_by_user_id: lock.held_by_user_id,
+    holder: lock.held_by_session_id ?? lock.held_by_user_id,
+    id: lock.id,
+    lock_type: mode,
+    mode,
+    reason: lock.reason,
+    target_id: lock.target_id,
+    target_type: lock.target_type === "USECASE" ? "USECASE" : undefined,
+    usecase_id: lock.target_id
   };
 }
 
@@ -865,6 +979,29 @@ function goalData(goal: StoredGoal) {
   };
 }
 
+function lockData(lock: StoredLock) {
+  return {
+    acquired_at: dateOrUndefined(lock.acquired_at),
+    auto_release: lock.auto_release ?? true,
+    expires_at: new Date(lock.expires_at),
+    held_by_session_id: lock.held_by_session_id ?? null,
+    held_by_user_id: lock.held_by_user_id ?? lock.holder,
+    id: lock.id,
+    lock_type: lock.lock_type ?? lock.mode,
+    reason: lock.reason,
+    target_id: lock.target_id ?? lock.usecase_id,
+    target_type: lock.target_type ?? "USECASE"
+  };
+}
+
+function lockUpdate(lock: StoredLock) {
+  return {
+    auto_release: lock.auto_release ?? true,
+    expires_at: new Date(lock.expires_at),
+    reason: lock.reason
+  };
+}
+
 function goalUpdate(goal: StoredGoal) {
   return {
     archived_at: dateOrNull(goal.archived_at),
@@ -946,4 +1083,8 @@ function storedMergeRequestStatus(status: string): StoredMergeRequest["status"] 
 
 function storedMergeStrategy(strategy: string): StoredMergeRequest["strategy"] {
   return strategy === "SQUASH" ? "SQUASH" : "FAST_FORWARD";
+}
+
+function storedLockType(lockType: string): StoredLock["mode"] {
+  return lockType === "HARD" || lockType === "SOFT" ? lockType : "SEMANTIC";
 }

@@ -15,6 +15,7 @@ import {
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -35,6 +36,7 @@ export function registerMergeResolveRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   useCaseStore: UseCaseStore
@@ -45,6 +47,7 @@ export function registerMergeResolveRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       mergeRequestStore,
       useCaseStore
@@ -57,6 +60,7 @@ async function resolveMerge(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   useCaseStore: UseCaseStore
@@ -91,7 +95,10 @@ async function resolveMerge(
   if (uncovered.length > 0) {
     return reply.code(422).send(uncoveredConflictsProblem(merge, uncovered));
   }
-  const hardLock = hardLockConflict(state, merge.conflicts.map((conflict) => String(conflict.entity_id)));
+  const hardLock = await hardLockConflict(
+    lockStore,
+    merge.conflicts.map((conflict) => String(conflict.entity_id))
+  );
   if (hardLock !== undefined) {
     return reply
       .code(409)

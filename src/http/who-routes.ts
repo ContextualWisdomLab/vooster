@@ -10,6 +10,7 @@ import type {
   StoredWorkSession
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -18,6 +19,7 @@ export function registerWhoRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   useCaseStore: UseCaseStore
@@ -28,6 +30,7 @@ export function registerWhoRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       mergeRequestStore,
       useCaseStore
@@ -40,6 +43,7 @@ async function showWho(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   useCaseStore: UseCaseStore
@@ -54,7 +58,7 @@ async function showWho(
   }
 
   const sessions = activeSessions(state, usecase.id).map(sessionRow);
-  const locks = activeLocks(state, usecase.id).map(lockRow);
+  const locks = (await activeLocks(lockStore, usecase.id)).map(lockRow);
   const mergeRequests = (
     await openMergeRequests(branchStore, mergeRequestStore, usecase.id)
   ).map(mergeRow);
@@ -103,9 +107,9 @@ function activeSessions(state: SignupState, usecaseId: string) {
     .filter((session) => session.pinned_revisions?.[usecaseId] !== undefined);
 }
 
-function activeLocks(state: SignupState, usecaseId: string) {
-  const lock = state.stepLocksByUseCaseId.get(usecaseId);
-  return lock === undefined || Date.parse(lock.expires_at) <= Date.now() ? [] : [lock];
+async function activeLocks(lockStore: LockStore, usecaseId: string) {
+  return (await lockStore.listLocksForUseCase(usecaseId))
+    .filter((lock) => Date.parse(lock.expires_at) > Date.now());
 }
 
 async function openMergeRequests(

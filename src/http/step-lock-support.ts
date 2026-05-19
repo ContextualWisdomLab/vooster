@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredLock } from "./signup-types.js";
+import type { StoredLock } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 
 const lockBodySchema = z.object({
   expires_at: z.string().min(1),
@@ -13,7 +14,7 @@ const lockBodySchema = z.object({
 export function createTestLock(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  lockStore: LockStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = lockBodySchema.safeParse(request.body);
@@ -22,8 +23,7 @@ export function createTestLock(
   }
 
   const lock: StoredLock = { ...parsed.data, usecase_id: params.usecaseId };
-  state.stepLocksByUseCaseId.set(params.usecaseId, lock);
-  return reply.code(201).send({ lock });
+  return lockStore.saveLock(lock).then(() => reply.code(201).send({ lock }));
 }
 
 export function semanticLockProblem(lock: StoredLock) {

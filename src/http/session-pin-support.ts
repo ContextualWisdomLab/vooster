@@ -1,5 +1,6 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export type PinnedUseCases = {
@@ -15,6 +16,7 @@ export type PinResolution =
 
 export async function resolvePins(
   state: SignupState,
+  lockStore: LockStore,
   useCaseStore: UseCaseStore,
   projectId: string,
   keys: string[]
@@ -29,7 +31,7 @@ export async function resolvePins(
     if (usecase.archived_at !== null) {
       return { key, status: "ARCHIVED" };
     }
-    const lock = state.stepLocksByUseCaseId.get(usecase.id);
+    const lock = await lockStore.findLockForUseCase(usecase.id);
     if (lock?.mode === "HARD") {
       return { holder: lock.holder, key, status: "HARD_LOCKED" };
     }
@@ -74,12 +76,12 @@ export function hardLockedPinProblem(key: string, holder: string) {
   );
 }
 
-export function semanticLockConflict(
-  state: SignupState,
+export async function semanticLockConflict(
+  lockStore: LockStore,
   pinned: PinnedUseCases
-): { holder: string; key: string } | undefined {
+): Promise<{ holder: string; key: string } | undefined> {
   for (const usecase of pinned.usecases) {
-    const lock = state.stepLocksByUseCaseId.get(usecase.id);
+    const lock = await lockStore.findLockForUseCase(usecase.id);
     if (lock?.mode === "SEMANTIC") {
       return { holder: lock.holder, key: usecase.key };
     }

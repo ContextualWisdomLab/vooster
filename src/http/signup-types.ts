@@ -14,7 +14,6 @@ export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
-  stepLocksByUseCaseId: Map<string, StoredLock>;
   stakeholderInterestsByUseCaseId: Map<string, StoredStakeholderInterest[]>;
   stepsByScenarioId: Map<string, StoredStep[]>;
   revisionsByEntityId: Map<string, StoredRevision[]>;

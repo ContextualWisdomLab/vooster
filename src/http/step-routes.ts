@@ -13,6 +13,7 @@ import type {
   StoredStep,
   StoredUseCase
 } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -27,15 +28,16 @@ const stepPatchSchema = z.object({
 export function registerStepRoutes(
   app: FastifyInstance,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore
 ) {
   app.patch("/v1/steps/:stepId", (request, reply) =>
-    patchStep(request, reply, state, membershipStore, scenarioStore, useCaseStore)
+    patchStep(request, reply, state, lockStore, membershipStore, scenarioStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
-    createTestLock(request, reply, state)
+    createTestLock(request, reply, lockStore)
   );
   app.post("/__test/usecases/:usecaseId/work-sessions", (request, reply) =>
     createTestWorkSession(request, reply, state)
@@ -46,6 +48,7 @@ async function patchStep(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore
@@ -82,7 +85,7 @@ async function patchStep(
   ) {
     return reply.code(422).send(passiveStepEditProblem(parsed.data.action));
   }
-  const lock = state.stepLocksByUseCaseId.get(found.usecase.id);
+  const lock = await lockStore.findLockForUseCase(found.usecase.id);
   if (lock?.mode === "HARD") {
     return reply.code(409).send(hardLockProblem(lock));
   }

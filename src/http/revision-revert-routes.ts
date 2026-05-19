@@ -5,6 +5,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -21,6 +22,7 @@ export function registerRevisionRevertRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -31,6 +33,7 @@ export function registerRevisionRevertRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       projectStore,
       useCaseStore
@@ -43,6 +46,7 @@ async function revertUseCase(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -59,7 +63,7 @@ async function revertUseCase(
   if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Not authorized to revert use case"));
   }
-  const lock = state.stepLocksByUseCaseId.get(found.usecase.id);
+  const lock = await lockStore.findLockForUseCase(found.usecase.id);
   if (lock?.mode === "HARD") {
     return reply.code(409).send(hardLockProblem(found.usecase, lock));
   }

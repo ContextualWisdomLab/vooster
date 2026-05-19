@@ -20,6 +20,7 @@ import type {
   StoredWorkSession
 } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -46,12 +47,13 @@ export function registerSessionRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, state, branchStore, membershipStore, projectStore, useCaseStore)
+    startSession(request, reply, state, branchStore, lockStore, membershipStore, projectStore, useCaseStore)
   );
 }
 
@@ -60,6 +62,7 @@ async function startSession(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -73,7 +76,13 @@ async function startSession(
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
-  const pinned = await resolvePins(state, useCaseStore, parsed.data.project_id, parsed.data.pins);
+  const pinned = await resolvePins(
+    state,
+    lockStore,
+    useCaseStore,
+    parsed.data.project_id,
+    parsed.data.pins
+  );
   if (pinned.status === "ARCHIVED") {
     return reply.code(422).send(archivedPinProblem(pinned.key));
   }
@@ -84,7 +93,7 @@ async function startSession(
     return reply.code(422).send(problem(422, "Pinned use case not found"));
   }
   const semanticConflict = parsed.data.auto_branch
-    ? semanticLockConflict(state, pinned)
+    ? await semanticLockConflict(lockStore, pinned)
     : undefined;
   if (semanticConflict !== undefined) {
     return reply

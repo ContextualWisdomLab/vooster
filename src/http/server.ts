@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
 import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
+import { createMemoryLockStore } from "../infrastructure/memory-lock-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
 import { createMemoryMergeRequestStore } from "../infrastructure/memory-merge-request-store.js";
 import { createMemoryProjectStore } from "../infrastructure/memory-project-store.js";
@@ -51,6 +52,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
   const goalStore = options.signupStore ?? createMemoryGoalStore();
+  const lockStore = options.signupStore ?? createMemoryLockStore();
   const projectStore = options.signupStore ?? createMemoryProjectStore();
   const membershipStore =
     options.signupStore ??
@@ -88,7 +90,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore
   );
   registerBranchTestRoutes(app, state, branchStore, projectStore, useCaseStore);
-  registerLockRoutes(app, state, membershipStore, useCaseStore);
+  registerLockRoutes(app, state, lockStore, membershipStore, useCaseStore);
   registerMarkdownExportRoutes(
     app,
     state,
@@ -101,6 +103,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     mergeRequestStore,
     projectStore,
@@ -110,6 +113,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     mergeRequestStore,
     useCaseStore
@@ -133,7 +137,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     projectStore,
     useCaseStore
   );
-  registerImpactRoutes(app, state, membershipStore, useCaseStore);
+  registerImpactRoutes(app, state, lockStore, membershipStore, useCaseStore);
   registerInvitationRoutes(app, options, state, membershipStore);
   registerCommentRoutes(app, state, membershipStore, useCaseStore);
   registerChangeCommitRoutes(app, state, branchStore, projectStore, useCaseStore);
@@ -152,6 +156,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     projectStore,
     useCaseStore
@@ -174,16 +179,18 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     projectStore,
     useCaseStore
   );
-  registerWhoRoutes(app, state, branchStore, membershipStore, mergeRequestStore, useCaseStore);
+  registerWhoRoutes(app, state, branchStore, lockStore, membershipStore, mergeRequestStore, useCaseStore);
   registerScenarioRoutes(app, state, actorStore, membershipStore, scenarioStore, useCaseStore);
   registerSessionCompleteRoutes(
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     mergeRequestStore,
     projectStore
@@ -192,12 +199,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     projectStore,
     useCaseStore
   );
-  registerSessionRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
-  registerStepRoutes(app, state, membershipStore, scenarioStore, useCaseStore);
+  registerSessionRoutes(app, state, branchStore, lockStore, membershipStore, projectStore, useCaseStore);
+  registerStepRoutes(app, state, lockStore, membershipStore, scenarioStore, useCaseStore);
   registerSyncRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
 
   return app;
@@ -209,7 +217,6 @@ function initialState(options: ServerOptions): SignupState {
     readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
-    stepLocksByUseCaseId: new Map(),
     stakeholderInterestsByUseCaseId: new Map(),
     stepsByScenarioId: new Map(),
     stakeholdersByProjectId: new Map(),

@@ -7,6 +7,7 @@ import { problem } from "./signup-support.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
@@ -23,6 +24,7 @@ export function registerMergeRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore,
@@ -34,6 +36,7 @@ export function registerMergeRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       mergeRequestStore,
       projectStore,
@@ -47,6 +50,7 @@ async function openMerge(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore,
@@ -72,7 +76,7 @@ async function openMerge(
   }
   const targetHeads = await mainHeadRevisions(state, project, target, useCaseStore);
   const touched = touchedEntityIds(source, targetHeads);
-  const hardLock = hardLockConflict(state, touched);
+  const hardLock = await hardLockConflict(lockStore, touched);
   const conflicts = mergeConflicts(state, source, targetHeads, touched);
   const canFastForward = isFastForward(source, targetHeads, touched);
   if (parsed.data.strategy === "FAST_FORWARD" && !canFastForward) {

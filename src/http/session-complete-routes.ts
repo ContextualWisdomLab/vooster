@@ -6,6 +6,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
@@ -26,6 +27,7 @@ export function registerSessionCompleteRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore
@@ -36,6 +38,7 @@ export function registerSessionCompleteRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       mergeRequestStore,
       projectStore
@@ -48,6 +51,7 @@ async function completeSession(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore
@@ -89,7 +93,11 @@ async function completeSession(
     );
   }
 
-  const lockRelease = releaseSessionLocks(state, session.id, parsed.data.simulate_failed_lock_release);
+  const lockRelease = await releaseSessionLocks(
+    lockStore,
+    session.id,
+    parsed.data.simulate_failed_lock_release
+  );
   session.status = "COMPLETED";
   session.ended_at = new Date().toISOString();
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
@@ -134,28 +142,32 @@ async function canCompleteSession(
   return (await membershipStore.membershipForWorkspace(project.workspace_id, userId)) !== undefined;
 }
 
-function releaseSessionLocks(
-  state: SignupState,
+async function releaseSessionLocks(
+  lockStore: LockStore,
   sessionId: string,
   failedLockId: string | undefined
-) {
+): Promise<{
+  releasedLockIds: string[];
+  warnings: Array<{ lock_id: string; message: string; type: string }>;
+}> {
   const releasedLockIds: string[] = [];
   const warnings: Array<{ lock_id: string; message: string; type: string }> = [];
-  for (const [usecaseId, lock] of state.stepLocksByUseCaseId) {
-    if (lock.holder === sessionId) {
-      const lockId = lock.id ?? usecaseId;
-      if (failedLockId !== undefined && (usecaseId === failedLockId || lock.id === failedLockId)) {
-        state.stepLocksByUseCaseId.delete(usecaseId);
-        warnings.push({
-          lock_id: lockId,
-          type: "LOCK_RELEASE_FAILED",
-          message: "Lock was already released before completion."
-        });
-        continue;
-      }
-      state.stepLocksByUseCaseId.delete(usecaseId);
-      releasedLockIds.push(lockId);
+  for (const lock of await lockStore.listLocksHeldBySession(sessionId)) {
+    const lockId = lock.id ?? lock.usecase_id;
+    if (
+      failedLockId !== undefined &&
+      (lock.usecase_id === failedLockId || lock.id === failedLockId)
+    ) {
+      await lockStore.deleteLock(lockId);
+      warnings.push({
+        lock_id: lockId,
+        type: "LOCK_RELEASE_FAILED",
+        message: "Lock was already released before completion."
+      });
+      continue;
     }
+    await lockStore.deleteLock(lockId);
+    releasedLockIds.push(lockId);
   }
   return { releasedLockIds, warnings };
 }

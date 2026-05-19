@@ -12,6 +12,7 @@ import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredUseCase } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
@@ -29,14 +30,15 @@ const renewSchema = z.object({
 export function registerLockRoutes(
   app: FastifyInstance,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/locks", (request, reply) =>
-    createLock(request, reply, state, membershipStore, useCaseStore)
+    createLock(request, reply, state, lockStore, membershipStore, useCaseStore)
   );
   app.post("/v1/locks/:lockId/renew", (request, reply) =>
-    renewLock(request, reply, state, membershipStore, useCaseStore)
+    renewLock(request, reply, state, lockStore, membershipStore, useCaseStore)
   );
 }
 
@@ -44,6 +46,7 @@ async function createLock(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
@@ -65,12 +68,16 @@ async function createLock(
   }
 
   const sessionId = sessionIdFrom(request);
-  const blockedBy = blockingLock(state.stepLocksByUseCaseId.get(usecase.id), parsed.data.lock_type, sessionId);
+  const existing = await lockStore.findLockForUseCase(usecase.id);
+  const blockedBy = blockingLock(existing, parsed.data.lock_type, sessionId);
   if (blockedBy !== undefined) {
     return reply.code(409).send(competingLockProblem(blockedBy, usecase));
   }
+  if (existing !== undefined) {
+    await lockStore.deleteLock(existing.id ?? existing.usecase_id);
+  }
   const lock = useCaseLock(parsed.data, usecase, userId, sessionId);
-  state.stepLocksByUseCaseId.set(usecase.id, lock);
+  await lockStore.saveLock(lock);
   return reply.code(201).send({
     lock,
     suggested_next_actions: [
@@ -90,6 +97,7 @@ async function renewLock(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
@@ -98,7 +106,7 @@ async function renewLock(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid lock renewal request"));
   }
-  const lock = lockById(state, params.lockId);
+  const lock = await lockStore.findLockById(params.lockId);
   if (lock === undefined) {
     return reply.code(404).send(problem(404, "Lock not found"));
   }
@@ -122,11 +130,8 @@ async function renewLock(
   }
 
   lock.expires_at = new Date(Date.now() + parsed.data.ttl_minutes * 60_000).toISOString();
+  await lockStore.updateLock(lock);
   return reply.send({ lock });
-}
-
-function lockById(state: SignupState, lockId: string): StoredLock | undefined {
-  return [...state.stepLocksByUseCaseId.values()].find((lock) => lock.id === lockId);
 }
 
 function useCaseLock(

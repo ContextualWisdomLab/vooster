@@ -1,4 +1,5 @@
 import type { SignupState, StoredSpecBranch } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type ExtensionChange = { condition: string; extension_point: string };
@@ -15,10 +16,15 @@ export function mergeConflicts(
   ];
 }
 
-export function hardLockConflict(state: SignupState, touched: string[]) {
-  return touched
-    .map((entityId) => state.stepLocksByUseCaseId.get(entityId))
-    .find((lock) => lock?.mode === "HARD");
+export async function hardLockConflict(lockStore: LockStore, touched: string[]) {
+  for (const entityId of touched) {
+    const lock = await lockStore.findLockForUseCase(entityId);
+    if (lock?.mode === "HARD") {
+      return lock;
+    }
+  }
+
+  return undefined;
 }
 
 export async function useCaseKey(

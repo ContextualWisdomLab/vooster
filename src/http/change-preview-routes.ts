@@ -5,6 +5,7 @@ import { isReadOnlyMembership, membershipForProject } from "./membership-support
 import { hardLockProblem, previews, type ChangePreview } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
@@ -23,6 +24,7 @@ export async function previewSpecChange(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ): Promise<boolean> {
@@ -55,7 +57,7 @@ export async function previewSpecChange(
     reply.code(400).send(problem(400, "Patch targets a different use case"));
     return true;
   }
-  const hardLock = blockingHardLock(state, usecase);
+  const hardLock = await blockingHardLock(lockStore, usecase);
   if (hardLock !== undefined) {
     reply.code(409).send(hardLockProblem(usecase, hardLock));
     return true;
@@ -179,7 +181,7 @@ function affectedActiveSessions(state: SignupState, usecase: StoredUseCase) {
     }));
 }
 
-function blockingHardLock(state: SignupState, usecase: StoredUseCase) {
-  const lock = state.stepLocksByUseCaseId.get(usecase.id);
+async function blockingHardLock(lockStore: LockStore, usecase: StoredUseCase) {
+  const lock = await lockStore.findLockForUseCase(usecase.id);
   return lock?.mode === "HARD" && Date.parse(lock.expires_at) > Date.now() ? lock : undefined;
 }

@@ -8,6 +8,7 @@ import type {
 import type { ActorStore } from "./actor-store.js";
 import type { BranchStore } from "./branch-store.js";
 import type { GoalStore } from "./goal-store.js";
+import type { LockStore } from "./lock-store.js";
 import type { MembershipStore } from "./membership-store.js";
 import type { MergeRequestStore } from "./merge-request-store.js";
 import type { ProjectStore } from "./project-store.js";
@@ -29,6 +30,7 @@ export type WorkspaceSummary = {
 export type SignupStore = ActorStore &
   BranchStore &
   GoalStore &
+  LockStore &
   MembershipStore &
   MergeRequestStore &
   ProjectStore &

@@ -4,6 +4,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredWorkSession } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
+import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -20,6 +21,7 @@ export function registerSessionListRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -30,6 +32,7 @@ export function registerSessionListRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       projectStore,
       useCaseStore
@@ -41,6 +44,7 @@ export function registerSessionListRoutes(
       reply,
       state,
       branchStore,
+      lockStore,
       membershipStore,
       projectStore,
       useCaseStore
@@ -56,6 +60,7 @@ async function listSessions(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -65,6 +70,7 @@ async function listSessions(
     reply,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     projectStore,
     useCaseStore
@@ -77,6 +83,7 @@ async function watchSessions(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -86,6 +93,7 @@ async function watchSessions(
     reply,
     state,
     branchStore,
+    lockStore,
     membershipStore,
     projectStore,
     useCaseStore
@@ -103,6 +111,7 @@ async function sessionSnapshot(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
+  lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -126,7 +135,7 @@ async function sessionSnapshot(
   const sessions = await Promise.all([...state.workSessionsById.values()]
     .filter((session) => sessionMatches(session, projects, parsed.data))
     .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""))
-    .map((session) => sessionRow(state, session, branchStore, useCaseStore)));
+    .map((session) => sessionRow(state, session, branchStore, lockStore, useCaseStore)));
 
   return {
     total: sessions.length,
@@ -183,6 +192,7 @@ async function sessionRow(
   state: SignupState,
   session: StoredWorkSession,
   branchStore: BranchStore,
+  lockStore: LockStore,
   useCaseStore: UseCaseStore
 ) {
   return {
@@ -195,7 +205,7 @@ async function sessionRow(
     pinned_keys: await pinnedKeys(session, useCaseStore),
     branch_name: await branchName(branchStore, session),
     idle_seconds: idleSeconds(session.last_activity_at ?? session.started_at),
-    lock_count: lockCount(state, session),
+    lock_count: await lockCount(lockStore, session),
     conflict_markers: conflictMarkers(state, session),
     markers: sessionMarkers(session),
     status: session.status,
@@ -230,8 +240,8 @@ function idleSeconds(startedAt: string | undefined): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(startedAt ?? "")) / 1000));
 }
 
-function lockCount(state: SignupState, session: StoredWorkSession): number {
-  return [...state.stepLocksByUseCaseId.values()].filter((lock) => lock.holder === session.id).length;
+async function lockCount(lockStore: LockStore, session: StoredWorkSession): Promise<number> {
+  return (await lockStore.listLocksHeldBySession(session.id)).length;
 }
 
 function conflictMarkers(state: SignupState, session: StoredWorkSession): string[] {

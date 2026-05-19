@@ -139,6 +139,42 @@ describe("Goal 2 persistence matrix", () => {
       owner.workspaceId
     );
   }, 90_000);
+
+  test("MergeRequest survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "merge-owner");
+    const project = await createProject(first.url, signup, "Merge Matrix", "MERGE");
+    const source = await createBranch(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "feature/open-merge"
+    );
+    const merge = await openFailedMerge(first.url, signup.sessionCookie, source.id);
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "merge-owner");
+    const warned = await createBranchResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      project.id,
+      "feature/next"
+    );
+
+    await second.stop();
+
+    expect(warned.status).toBe(201);
+    const warnedBody = (await warned.json()) as {
+      warnings?: Array<{ merge_request_id?: unknown; type?: unknown }>;
+    };
+    expect(warnedBody.warnings ?? []).toContainEqual({
+      merge_request_id: merge.id,
+      type: "IN_FLIGHT_MERGE_REQUEST"
+    });
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -275,7 +311,9 @@ async function createBranch(
   name: string
 ) {
   const response = await createBranchResponse(baseUrl, sessionCookie, projectId, name);
+  const body = (await response.json()) as { branch: { id: string } };
   expect(response.status).toBe(201);
+  return body.branch;
 }
 
 function createBranchResponse(
@@ -370,6 +408,28 @@ async function acceptInvitation(baseUrl: string, token: string, githubCode: stri
   });
 
   expect(response.status).toBe(200);
+}
+
+async function openFailedMerge(
+  baseUrl: string,
+  sessionCookie: string,
+  sourceBranchId: string
+) {
+  const response = await fetch(`${baseUrl}/v1/merges`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      simulate_write_failure: true,
+      source_branch_id: sourceBranchId
+    })
+  });
+  const body = (await response.json()) as { merge_request: { id: string } };
+
+  expect(response.status).toBe(500);
+  return body.merge_request;
 }
 
 function listGoals(

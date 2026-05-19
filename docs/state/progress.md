@@ -1,12 +1,12 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T00:02:33Z_
+_Last updated: 2026-05-19T00:20:11Z_
 
 ## Overall
 
-- Commits: 499
-- Last commit: a1e98f6 green: UC-031 reject missing markdown revision
-- Use cases complete: 34 / 35
+- Commits: 513
+- Last commit: b4bc91f green: UC-032 hide foreign api key revoke
+- Use cases complete: 35 / 35
 
 ## By Use Case
 
@@ -43,7 +43,7 @@ _Last updated: 2026-05-19T00:02:33Z_
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 |
 | UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 |
 | UC-031 | Export a use case to markdown | ✓ DONE | 6/6 |
-| UC-032 | Issue and manage API keys | ○ NOT STARTED | 0/0 |
+| UC-032 | Issue and manage API keys | ✓ DONE | 6/6 |
 | UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 |
 | UC-034 | Fetch a structured spec (AI agent) | ✓ DONE | 6/6 |
 | UC-035 | Propose a spec change (AI agent) | ✓ DONE | 8/8 |

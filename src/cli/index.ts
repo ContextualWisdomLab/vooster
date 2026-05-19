@@ -119,6 +119,10 @@ export class VspecCommand extends Command {
       await this.editStep(parsed.flags);
       return;
     }
+    if (parsed.args.command === "session" && this.argv[1] === "list") {
+      await this.listSessions(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "session" && this.argv[1] === "start") {
       await this.startSession(parsed.flags);
       return;
@@ -529,6 +533,41 @@ export class VspecCommand extends Command {
       this.log(action.command);
     }
   }
+
+  private async listSessions(flags: ParsedFlags): Promise<void> {
+    const sessionFlags = sessionListFlagsFrom(flags);
+    const url = new URL("/v1/sessions", sessionFlags.apiUrl);
+    url.searchParams.set("workspace_id", sessionFlags.workspaceId);
+    setSearchParam(url, "project_id", sessionFlags.projectId);
+    setSearchParam(url, "status", sessionFlags.status);
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: sessionFlags.sessionCookie
+      }
+    });
+    const body = response.body as SessionListResponse;
+
+    this.log(`Total sessions ${String(body.total)}`);
+    this.log(`Total conflicts ${String(body.summary.total_conflicts)}`);
+    for (const session of body.sessions) {
+      this.log(`Session ${session.id}`);
+      this.log(`Status ${session.status}`);
+      this.log(`Agent ${session.agent_type} ${session.agent_identifier}`);
+      this.log(`Intent ${session.intent}`);
+      this.log(`Pins ${session.pinned_keys.join(", ") || "none"}`);
+      this.log(`Branch ${session.branch_name ?? "none"}`);
+      this.log(`Idle seconds ${String(session.idle_seconds)}`);
+      this.log(`Locks ${String(session.lock_count)}`);
+      this.log(`Conflicts ${String(session.conflict_markers.length)}`);
+      if (session.markers.length > 0) {
+        this.log(`Markers ${session.markers.join(", ")}`);
+      }
+    }
+    for (const action of body.suggested_next_actions ?? []) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -670,6 +709,14 @@ type SessionStartFlags = {
   pins: string[];
   projectId: string;
   sessionCookie: string;
+};
+
+type SessionListFlags = {
+  apiUrl: string;
+  projectId: string | undefined;
+  sessionCookie: string;
+  status: string | undefined;
+  workspaceId: string;
 };
 
 type ParsedFlags = {
@@ -953,6 +1000,29 @@ type SessionStartResponse = {
   }>;
 };
 
+type SessionListResponse = {
+  sessions: Array<{
+    agent_identifier: string;
+    agent_type: string;
+    branch_name: null | string;
+    conflict_markers: string[];
+    id: string;
+    idle_seconds: number;
+    intent: string;
+    lock_count: number;
+    markers: string[];
+    pinned_keys: string[];
+    status: string;
+  }>;
+  suggested_next_actions?: Array<{
+    command: string;
+  }>;
+  summary: {
+    total_conflicts: number;
+  };
+  total: number;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -1148,6 +1218,16 @@ function sessionStartFlagsFrom(flags: ParsedFlags): SessionStartFlags {
     pins: pinsFrom(requiredFlag(flags, "pin")),
     projectId: requiredFlag(flags, "project-id"),
     sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
+function sessionListFlagsFrom(flags: ParsedFlags): SessionListFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    projectId: optionalFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    status: optionalFlag(flags, "status"),
+    workspaceId: requiredFlag(flags, "workspace-id")
   };
 }
 

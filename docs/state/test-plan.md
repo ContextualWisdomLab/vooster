@@ -43,6 +43,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Revision diff application extraction**: test `compareUseCaseRevisions` without Fastify by faking use case, revision, branch, and membership stores; assert it returns structural change summaries with branch warnings, hides revision existence from non-members, and returns missing-revision guidance data without mutating stores.
 
+### Goal 2 Layers - Stakeholder Interest
+
+- **Stakeholder interest application extraction**: test `addStakeholderInterest` and `removeStakeholderInterest` without Fastify by faking use case, stakeholder, stakeholder-interest, revision, and membership stores; assert add persists an interest plus NON_BREAKING revision, duplicate/unknown stakeholders return write-free errors, and removing the final interest returns a BREAKING revision with the zero-interest warning.
+
 ## Example
 
 ### UC-009

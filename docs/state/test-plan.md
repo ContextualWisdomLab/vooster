@@ -326,3 +326,7 @@ write. This guides your TDD cycles within an iteration._
 ### Goal 1 Persistence
 
 - **MAIN**: signup persists user/workspace/membership through Prisma so a restarted server rejects a second signup with the same workspace slug.
+
+### Goal 1 CLI
+
+- **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

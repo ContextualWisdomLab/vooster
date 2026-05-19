@@ -4,6 +4,9 @@
   "description": "Cockburn-style use case management for environments with **6+ concurrent AI coding agents**.",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "vspec": "./bin/run.js"
+  },
   "directories": {
     "doc": "docs",
     "test": "tests"

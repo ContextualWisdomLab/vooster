@@ -3,6 +3,10 @@
 _Append a section per UC before starting it. One bullet per test you intend to
 write. This guides your TDD cycles within an iteration._
 
+### Goal 2 Persistence - Actor
+
+- **Actor**: create signup, project, and actor through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert creating the same actor name is rejected as an existing active actor.
+
 ## Example
 
 ### UC-009

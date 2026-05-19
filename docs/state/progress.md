@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T00:50:12Z_
+_Last updated: 2026-05-19T07:02:40Z_
 
 ## Overall
 
-- Commits: 521
-- Last commit: c41d71e refactor: UC-009 simplify from-goal parsing
+- Commits: 523
+- Last commit: 0977212 docs: align protocol gates with runnable MVP
 - Use cases complete: 35 / 35
 
 ## By Use Case

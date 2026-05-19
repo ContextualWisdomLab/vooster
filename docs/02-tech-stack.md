@@ -89,10 +89,16 @@ conflicts. Editing happens in markdown files via the CLI.
 
 | Tool        | Purpose                                            |
 | ----------- | -------------------------------------------------- |
-| docker compose | Postgres for local dev (`docker compose up db`) |
+| SQLite      | Local dogfood and automated test default (`file:.state/*.sqlite`) |
+| docker compose | Optional local Postgres and production-like deploy |
 | tsx         | `tsx watch` for local server reload                |
 | dotenv      | `.env` loading                                     |
 | husky + lint-staged | Pre-commit hooks (lint + format staged)    |
+
+Prisma's checked-in schema uses the SQLite provider so `npm start` and the
+restart-survival tests work on a fresh machine without a database daemon.
+Production compose files override `DATABASE_URL` with a Postgres connection;
+that deploy path is verified separately by the Goal 2 Docker gate.
 
 ## Versioning
 

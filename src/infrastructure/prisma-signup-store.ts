@@ -122,6 +122,22 @@ class PrismaSignupStore implements SignupStore {
     return project === null ? undefined : storedProject(project);
   }
 
+  async findProjectByWorkspaceAndKey(
+    workspaceId: string,
+    key: string
+  ): Promise<StoredProject | undefined> {
+    const project = await this.prisma.project.findUnique({
+      where: {
+        workspace_id_key: {
+          key,
+          workspace_id: workspaceId
+        }
+      }
+    });
+
+    return project === null ? undefined : storedProject(project);
+  }
+
   async listActors(projectId: string): Promise<StoredActor[]> {
     const actors = await this.prisma.actor.findMany({
       orderBy: { created_at: "asc" },
@@ -254,6 +270,12 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.membership.create({ data: membership });
   }
 
+  async saveProject(project: StoredProject): Promise<void> {
+    await this.prisma.project.create({
+      data: projectData(project)
+    });
+  }
+
   async saveMergeRequest(mergeRequest: StoredMergeRequest): Promise<void> {
     await this.prisma.mergeRequest.create({
       data: mergeRequestData(mergeRequest)
@@ -266,13 +288,7 @@ class PrismaSignupStore implements SignupStore {
   ): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.project.create({
-        data: {
-          id: project.id,
-          key: project.key,
-          name: project.name,
-          visibility: project.visibility,
-          workspace_id: project.workspace_id
-        }
+        data: { ...projectData(project), default_branch_id: null }
       }),
       this.prisma.specBranch.create({
         data: {
@@ -594,6 +610,17 @@ function specBranchData(branch: StoredSpecBranch) {
     owner_type: branch.owner_type,
     project_id: branch.project_id,
     status: branch.status ?? "ACTIVE"
+  };
+}
+
+function projectData(project: StoredProject) {
+  return {
+    default_branch_id: project.default_branch_id === "" ? null : project.default_branch_id,
+    id: project.id,
+    key: project.key,
+    name: project.name,
+    visibility: project.visibility,
+    workspace_id: project.workspace_id
   };
 }
 

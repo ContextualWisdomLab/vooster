@@ -4,6 +4,7 @@ import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.j
 import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
 import { createMemoryMergeRequestStore } from "../infrastructure/memory-merge-request-store.js";
+import { createMemoryProjectStore } from "../infrastructure/memory-project-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -54,6 +55,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
       (projectId) => state.projectsById.get(projectId)?.workspace_id
     );
   const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
+  const projectStore =
+    options.signupStore ?? createMemoryProjectStore(state.projectsById);
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -64,7 +67,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore);
   registerSignupRoutes(app, options, state, membershipStore);
-  registerProjectRoutes(app, state, options.signupStore, branchStore, membershipStore);
+  registerProjectRoutes(
+    app,
+    state,
+    options.signupStore,
+    branchStore,
+    membershipStore,
+    projectStore
+  );
   registerBranchRoutes(
     app,
     state,
@@ -123,7 +133,6 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
     pendingOAuth: new Map(),
-    projectKeysByWorkspaceId: new Map(),
     projectsById: new Map(),
     readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),

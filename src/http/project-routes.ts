@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredMembership, StoredProject } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
 
 const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
@@ -22,10 +23,11 @@ export function registerProjectRoutes(
   state: SignupState,
   store: SignupStore | undefined,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
-    createProject(request, reply, state, store, branchStore, membershipStore)
+    createProject(request, reply, state, store, branchStore, membershipStore, projectStore)
   );
   app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
     archiveWorkspace(request, reply, state)
@@ -38,7 +40,8 @@ async function createProject(
   state: SignupState,
   store: SignupStore | undefined,
   branchStore: BranchStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
 ) {
   const workspaceId = workspaceIdFrom(request.params);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
@@ -72,7 +75,10 @@ async function createProject(
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
-  const existing = existingProjectForKey(state, workspaceId, parsed.data.key);
+  const existing = await projectStore.findProjectByWorkspaceAndKey(
+    workspaceId,
+    parsed.data.key
+  );
   if (existing !== undefined) {
     return reply.code(422).send(
       problem(
@@ -115,12 +121,12 @@ async function createProject(
   project.default_branch_id = branch.id;
 
   if (store === undefined) {
+    await projectStore.saveProject(project);
     await branchStore.saveBranch(branch);
   } else {
     await store.saveProjectWithDefaultBranch(project, branch);
   }
   state.projectsById.set(project.id, project);
-  recordProjectKey(state, project);
 
   return reply.code(201).send({
     project,
@@ -167,20 +173,4 @@ function newProject(
     visibility: data.visibility,
     default_branch_id: ""
   };
-}
-
-function existingProjectForKey(
-  state: SignupState,
-  workspaceId: string,
-  key: string
-): StoredProject | undefined {
-  const projectId = state.projectKeysByWorkspaceId.get(workspaceId)?.get(key);
-  return projectId === undefined ? undefined : state.projectsById.get(projectId);
-}
-
-function recordProjectKey(state: SignupState, project: StoredProject) {
-  const keys =
-    state.projectKeysByWorkspaceId.get(project.workspace_id) ?? new Map<string, string>();
-  keys.set(project.key, project.id);
-  state.projectKeysByWorkspaceId.set(project.workspace_id, keys);
 }

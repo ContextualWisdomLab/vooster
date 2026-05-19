@@ -10,6 +10,7 @@ import type { BranchStore } from "./branch-store.js";
 import type { GoalStore } from "./goal-store.js";
 import type { MembershipStore } from "./membership-store.js";
 import type { MergeRequestStore } from "./merge-request-store.js";
+import type { ProjectStore } from "./project-store.js";
 
 export type SignupEntities = {
   membership: StoredMembership;
@@ -27,9 +28,9 @@ export type SignupStore = ActorStore &
   BranchStore &
   GoalStore &
   MembershipStore &
-  MergeRequestStore & {
+  MergeRequestStore &
+  ProjectStore & {
   close: () => Promise<void>;
-  findProjectById: (projectId: string) => Promise<StoredProject | undefined>;
   findUserByGithubId: (githubId: string) => Promise<StoredUser | undefined>;
   saveSignup: (entities: SignupEntities) => Promise<void>;
   saveProjectWithDefaultBranch: (

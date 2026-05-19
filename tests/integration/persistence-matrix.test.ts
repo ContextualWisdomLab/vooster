@@ -292,6 +292,38 @@ describe("Goal 2 persistence matrix", () => {
       expect.stringMatching(/main_success scenario already exists/i)
     );
   }, 90_000);
+
+  test("Lock survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "lock.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "lock-owner");
+    const project = await createProject(first.url, signup, "Lock Matrix", "LOCK");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a locked workflow",
+      "Customer"
+    );
+    const lock = await createLock(first.url, signup.sessionCookie, usecase.id);
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "lock-owner");
+    const who = await whoIsWorking(second.url, loggedIn.sessionCookie, usecase.id);
+
+    await second.stop();
+
+    expect(who.status).toBe(200);
+    const whoBody = (await who.json()) as {
+      locks?: Array<{ id?: unknown; lock_type?: unknown }>;
+    };
+    expect(whoBody.locks ?? []).toContainEqual(
+      expect.objectContaining({ id: lock.id, lock_type: "HARD" })
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -607,6 +639,33 @@ function createMainScenarioResponse(
       cookie: sessionCookie
     },
     body: JSON.stringify({ type: "MAIN_SUCCESS" })
+  });
+}
+
+async function createLock(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  const response = await fetch(`${baseUrl}/v1/locks`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({
+      lock_type: "HARD",
+      reason: "Protect restart persistence",
+      target_id: usecaseId,
+      target_type: "USECASE",
+      ttl_minutes: 30
+    })
+  });
+  const body = (await response.json()) as { lock: { id: string } };
+
+  expect(response.status).toBe(201);
+  return body.lock;
+}
+
+function whoIsWorking(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}/who`, {
+    headers: { cookie: sessionCookie }
   });
 }
 

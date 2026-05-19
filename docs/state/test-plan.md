@@ -359,6 +359,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Scenario**: owner creates a project, actor, use case, stakeholder interest, and MAIN_SUCCESS scenario through public APIs; server restarts; owner logs back in and attempts to create a second MAIN_SUCCESS scenario for the same use case; the public API returns the duplicate-main 409 with the persisted scenario id.
 
+### Goal 2 Persistence - Lock
+
+- **Lock**: owner creates a project, actor, and use case through public APIs, acquires a HARD use case lock through `POST /v1/locks`, restarts the server, logs back in, then calls `GET /v1/usecases/:id/who` and asserts the persisted lock id is listed.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

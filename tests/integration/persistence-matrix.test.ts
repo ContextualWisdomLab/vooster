@@ -45,10 +45,14 @@ describe("Goal 2 persistence matrix", () => {
     await second.stop();
 
     expect(duplicate.status).toBe(422);
-    await expect(duplicate.json()).resolves.toMatchObject({
-      existing_actor_id: expect.any(String),
-      title: expect.stringMatching(/actor name.*already exists/i)
-    });
+    const duplicateBody = (await duplicate.json()) as {
+      existing_actor_id?: unknown;
+      title?: unknown;
+    };
+    expect(typeof duplicateBody.existing_actor_id).toBe("string");
+    expect(duplicateBody.title).toEqual(
+      expect.stringMatching(/actor name.*already exists/i)
+    );
   }, 90_000);
 });
 
@@ -64,7 +68,7 @@ async function bootServer(databaseUrl: string) {
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
-  const url = `http://127.0.0.1:${port}`;
+  const url = `http://127.0.0.1:${String(port)}`;
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
     if (child.exitCode !== null) {
@@ -195,7 +199,9 @@ async function stopServer(child: ChildProcess) {
 
   child.kill("SIGTERM");
   await new Promise<void>((resolve) => {
-    child.once("exit", () => resolve());
+    child.once("exit", () => {
+      resolve();
+    });
   });
 }
 

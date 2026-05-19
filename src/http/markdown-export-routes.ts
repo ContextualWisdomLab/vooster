@@ -9,6 +9,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
@@ -18,13 +19,22 @@ const exportSchema = z.object({
   revision_id: z.string().optional()
 });
 
-export function registerMarkdownExportRoutes(app: FastifyInstance, state: SignupState) {
+export function registerMarkdownExportRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.post("/v1/usecases/:id/export/markdown", (request, reply) =>
-    exportMarkdown(request, reply, state)
+    exportMarkdown(request, reply, state, actorStore)
   );
 }
 
-function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function exportMarkdown(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
@@ -51,7 +61,7 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  const markdown = renderMarkdown(state, found.projectId, found.usecase);
+  const markdown = await renderMarkdown(state, found.projectId, found.usecase, actorStore);
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
   }
@@ -61,15 +71,20 @@ function exportMarkdown(request: FastifyRequest, reply: FastifyReply, state: Sig
     .send(markdown);
 }
 
-function renderMarkdown(state: SignupState, projectId: string, usecase: StoredUseCase) {
+async function renderMarkdown(
+  state: SignupState,
+  projectId: string,
+  usecase: StoredUseCase,
+  actorStore: ActorStore
+) {
   return [
-    frontmatter(state, projectId, usecase),
+    await frontmatter(actorStore, projectId, usecase),
     `# ${usecase.title}`,
     stakeholderSection(state, projectId, usecase.id),
     "## Preconditions\n\n- None recorded.",
     "## Trigger\n\nNot recorded.",
-    mainScenarioSection(state, projectId, usecase.id),
-    extensionSection(state, projectId, usecase.id),
+    await mainScenarioSection(state, projectId, usecase.id, actorStore),
+    await extensionSection(state, projectId, usecase.id, actorStore),
     "## Success Guarantee\n\nNot recorded.",
     "## Minimal Guarantee\n\nNot recorded.",
     "## Notes\n"
@@ -100,8 +115,12 @@ function hasRevision(state: SignupState, usecase: StoredUseCase, revisionId: str
   );
 }
 
-function frontmatter(state: SignupState, projectId: string, usecase: StoredUseCase) {
-  return `---\nvspec_format: 1\ntype: usecase\nid: ${usecase.id}\nkey: ${usecase.key}\ntitle: ${usecase.title}\nlevel: ${usecase.level}\nformat: ${usecase.format}\nstatus: ${usecase.status}\npriority: ${usecase.priority}\nscope: ${usecase.scope}\nprimary_actor: ${actorName(state, projectId, usecase.primary_actor_id)}\nrevision: ${usecase.current_revision_id}\n---`;
+async function frontmatter(
+  actorStore: ActorStore,
+  projectId: string,
+  usecase: StoredUseCase
+) {
+  return `---\nvspec_format: 1\ntype: usecase\nid: ${usecase.id}\nkey: ${usecase.key}\ntitle: ${usecase.title}\nlevel: ${usecase.level}\nformat: ${usecase.format}\nstatus: ${usecase.status}\npriority: ${usecase.priority}\nscope: ${usecase.scope}\nprimary_actor: ${await actorName(actorStore, projectId, usecase.primary_actor_id)}\nrevision: ${usecase.current_revision_id}\n---`;
 }
 
 function stakeholderSection(state: SignupState, projectId: string, usecaseId: string) {
@@ -115,19 +134,33 @@ function stakeholderSection(state: SignupState, projectId: string, usecaseId: st
     .join("\n\n");
 }
 
-function mainScenarioSection(state: SignupState, projectId: string, usecaseId: string) {
+async function mainScenarioSection(
+  state: SignupState,
+  projectId: string,
+  usecaseId: string,
+  actorStore: ActorStore
+) {
   const scenario = scenarios(state, usecaseId).find((candidate) => candidate.type === "MAIN_SUCCESS");
-  const lines = scenarioSteps(state, scenario?.id).map((step, index) =>
-    `${String(index + 1)}. **${actorName(state, projectId, step.actor_id)}** ${step.action}`);
+  const lines = await Promise.all(
+    scenarioSteps(state, scenario?.id).map((step, index) =>
+      stepLine(actorStore, projectId, step, `${String(index + 1)}.`))
+  );
   return ["## Main Success Scenario", ...(lines.length === 0 ? ["1. **System** Not recorded."] : lines)]
     .join("\n\n");
 }
 
-function extensionSection(state: SignupState, projectId: string, usecaseId: string) {
-  const rendered = scenarios(state, usecaseId)
-    .filter((scenario) => scenario.type === "EXTENSION")
-    .sort(compareExtensions)
-    .map((scenario) => renderExtension(state, projectId, scenario));
+async function extensionSection(
+  state: SignupState,
+  projectId: string,
+  usecaseId: string,
+  actorStore: ActorStore
+) {
+  const rendered = await Promise.all(
+    scenarios(state, usecaseId)
+      .filter((scenario) => scenario.type === "EXTENSION")
+      .sort(compareExtensions)
+      .map((scenario) => renderExtension(state, projectId, scenario, actorStore))
+  );
   return ["## Extensions", ...(rendered.length === 0 ? ["None recorded."] : rendered)].join("\n\n");
 }
 
@@ -145,10 +178,17 @@ function extensionSortKey(point: string) {
   };
 }
 
-function renderExtension(state: SignupState, projectId: string, scenario: StoredScenario) {
+async function renderExtension(
+  state: SignupState,
+  projectId: string,
+  scenario: StoredScenario,
+  actorStore: ActorStore
+) {
   const point = scenario.extension_point ?? "*a";
-  const steps = scenarioSteps(state, scenario.id).map((step, index) =>
-    `- ${point}${String(index + 1)}. **${actorName(state, projectId, step.actor_id)}** ${step.action}`);
+  const steps = await Promise.all(
+    scenarioSteps(state, scenario.id).map((step, index) =>
+      stepLine(actorStore, projectId, step, `- ${point}${String(index + 1)}.`))
+  );
   return [
     `### ${point}. ${scenario.condition ?? "Extension"}`,
     ...steps,
@@ -165,7 +205,15 @@ function scenarioSteps(state: SignupState, scenarioId: string | undefined): Stor
     .sort((left, right) => left.step_number - right.step_number);
 }
 
-function actorName(state: SignupState, projectId: string, actorId: string) {
-  return (state.actorsByProjectId.get(projectId) ?? [])
-    .find((actor) => actor.id === actorId)?.name ?? "System";
+async function stepLine(
+  actorStore: ActorStore,
+  projectId: string,
+  step: StoredStep,
+  label: string
+) {
+  return `${label} **${await actorName(actorStore, projectId, step.actor_id)}** ${step.action}`;
+}
+
+async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {
+  return (await actorStore.findActorById(projectId, actorId))?.name ?? "System";
 }

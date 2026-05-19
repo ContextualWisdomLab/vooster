@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredMembership, StoredProject } from "./signup-types.js";
+import type { SignupStore } from "../ports/signup-store.js";
 
 const keyPattern = /^[A-Z][A-Z0-9]{1,7}$/;
 
@@ -14,19 +15,24 @@ const projectRequestSchema = z.object({
   visibility: z.enum(["PRIVATE", "INTERNAL"]).default("PRIVATE")
 });
 
-export function registerProjectRoutes(app: FastifyInstance, state: SignupState) {
+export function registerProjectRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  store: SignupStore | undefined
+) {
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
-    createProject(request, reply, state)
+    createProject(request, reply, state, store)
   );
   app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
     archiveWorkspace(request, reply, state)
   );
 }
 
-function createProject(
+async function createProject(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  store: SignupStore | undefined
 ) {
   const workspaceId = workspaceIdFrom(request.params);
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
@@ -102,6 +108,7 @@ function createProject(
   };
   project.default_branch_id = branch.id;
 
+  await store?.saveProjectWithDefaultBranch(project, branch);
   state.projectsById.set(project.id, project);
   state.branchesById.set(branch.id, branch);
   recordProjectKey(state, project);

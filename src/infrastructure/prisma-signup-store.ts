@@ -1,6 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
-import type { StoredMembership, StoredUser } from "../http/signup-types.js";
+import type {
+  StoredActor,
+  StoredMembership,
+  StoredProject,
+  StoredSpecBranch,
+  StoredUser
+} from "../http/signup-types.js";
 
 export function createPrismaSignupStore(databaseUrl: string): SignupStore {
   return new PrismaSignupStore(
@@ -29,6 +35,74 @@ class PrismaSignupStore implements SignupStore {
     return user === null ? undefined : storedUser(user);
   }
 
+  async archiveActor(
+    projectId: string,
+    actorId: string,
+    archivedAt: string
+  ): Promise<boolean> {
+    const result = await this.prisma.actor.updateMany({
+      data: { archived_at: new Date(archivedAt) },
+      where: { id: actorId, project_id: projectId }
+    });
+
+    return result.count > 0;
+  }
+
+  async findActorById(
+    projectId: string,
+    actorId: string
+  ): Promise<StoredActor | undefined> {
+    const actor = await this.prisma.actor.findFirst({
+      where: { id: actorId, project_id: projectId }
+    });
+
+    return actor === null ? undefined : storedActor(actor);
+  }
+
+  async findActorByName(
+    projectId: string,
+    name: string
+  ): Promise<StoredActor | undefined> {
+    const actor = await this.prisma.actor.findUnique({
+      where: { project_id_name: { name, project_id: projectId } }
+    });
+
+    return actor === null ? undefined : storedActor(actor);
+  }
+
+  async listActors(projectId: string): Promise<StoredActor[]> {
+    const actors = await this.prisma.actor.findMany({
+      orderBy: { created_at: "asc" },
+      where: { project_id: projectId }
+    });
+
+    return actors.map(storedActor);
+  }
+
+  async membershipForProject(
+    projectId: string,
+    userId: string
+  ): Promise<StoredMembership | undefined> {
+    const project = await this.prisma.project.findUnique({
+      select: { workspace_id: true },
+      where: { id: projectId }
+    });
+    if (project === null) {
+      return undefined;
+    }
+
+    const membership = await this.prisma.membership.findUnique({
+      where: {
+        user_id_workspace_id: {
+          user_id: userId,
+          workspace_id: project.workspace_id
+        }
+      }
+    });
+
+    return membership === null ? undefined : storedMembership(membership);
+  }
+
   async saveSignup(entities: SignupEntities): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.user.create({
@@ -39,6 +113,47 @@ class PrismaSignupStore implements SignupStore {
       }),
       this.prisma.membership.create({
         data: entities.membership
+      })
+    ]);
+  }
+
+  async saveActor(actor: StoredActor): Promise<void> {
+    await this.prisma.actor.create({
+      data: {
+        ...actor,
+        aliases: JSON.stringify(actor.aliases),
+        archived_at: dateOrNull(actor.archived_at)
+      }
+    });
+  }
+
+  async saveProjectWithDefaultBranch(
+    project: StoredProject,
+    branch: StoredSpecBranch
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.project.create({
+        data: {
+          id: project.id,
+          key: project.key,
+          name: project.name,
+          visibility: project.visibility,
+          workspace_id: project.workspace_id
+        }
+      }),
+      this.prisma.specBranch.create({
+        data: {
+          base_branch_id: branch.base_branch_id,
+          id: branch.id,
+          name: branch.name,
+          owner_id: branch.owner_id,
+          owner_type: branch.owner_type,
+          project_id: branch.project_id
+        }
+      }),
+      this.prisma.project.update({
+        data: { default_branch_id: branch.id },
+        where: { id: project.id }
       })
     ]);
   }
@@ -75,6 +190,28 @@ class PrismaSignupStore implements SignupStore {
   }
 }
 
+function storedActor(actor: {
+  aliases: string;
+  archived_at: Date | null;
+  description: null | string;
+  id: string;
+  is_human: boolean;
+  name: string;
+  project_id: string;
+  type: string;
+}): StoredActor {
+  return {
+    aliases: parseAliases(actor.aliases),
+    archived_at: actor.archived_at?.toISOString() ?? null,
+    description: actor.description ?? "",
+    id: actor.id,
+    is_human: actor.is_human,
+    name: actor.name,
+    project_id: actor.project_id,
+    type: storedActorType(actor.type)
+  };
+}
+
 function storedUser(user: {
   avatar_url: null | string;
   email: string;
@@ -105,4 +242,19 @@ function storedMembership(membership: {
     user_id: membership.user_id,
     workspace_id: membership.workspace_id
   };
+}
+
+function dateOrNull(value: null | string): Date | null {
+  return value === null ? null : new Date(value);
+}
+
+function parseAliases(raw: string): string[] {
+  const parsed = JSON.parse(raw) as unknown;
+  return Array.isArray(parsed) && parsed.every((entry) => typeof entry === "string")
+    ? parsed
+    : [];
+}
+
+function storedActorType(type: string): StoredActor["type"] {
+  return type === "OFFSTAGE" || type === "SUPPORTING" ? type : "PRIMARY";
 }

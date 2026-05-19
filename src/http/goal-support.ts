@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { SignupState, StoredActor, StoredGoal } from "./signup-types.js";
+import type { SignupState, StoredGoal } from "./signup-types.js";
 
 export const allowedStatusTransitions = [
   "IDENTIFIED -> IN_DESIGN",
@@ -32,26 +32,6 @@ export function goalWithProjectId(
   }
 
   return undefined;
-}
-
-export function activeActorWithId(
-  state: SignupState,
-  projectId: string,
-  actorId: string
-): StoredActor | undefined {
-  return (state.actorsByProjectId.get(projectId) ?? []).find(
-    (actor) => actor.id === actorId && actor.archived_at === null
-  );
-}
-
-export function activeActorNamed(
-  state: SignupState,
-  projectId: string,
-  name: string
-): StoredActor | undefined {
-  return (state.actorsByProjectId.get(projectId) ?? []).find(
-    (actor) => actor.name === name && actor.archived_at === null
-  );
 }
 
 export function projectWorkspaceArchived(state: SignupState, projectId: string): boolean {

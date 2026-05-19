@@ -5,6 +5,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
@@ -13,13 +14,22 @@ const querySchema = z.object({
   session: z.string().optional()
 });
 
-export function registerUseCaseAgentRoutes(app: FastifyInstance, state: SignupState) {
+export function registerUseCaseAgentRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
-    showUseCase(request, reply, state)
+    showUseCase(request, reply, state, actorStore)
   );
 }
 
-function showUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function showUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
   const found = useCaseWithProjectId(state, usecaseId);
@@ -77,25 +87,27 @@ function showUseCase(request: FastifyRequest, reply: FastifyReply, state: Signup
           message: "Session does not pin this use case; concurrent edits may change future reads."
         }]
     : [];
-  return reply.send(agentEnvelope(
+  return reply.send(await agentEnvelope(
     request,
     state,
     found.projectId,
     found.usecase,
     revision,
     session?.id ?? null,
-    warnings
+    warnings,
+    actorStore
   ));
 }
 
-function agentEnvelope(
+async function agentEnvelope(
   request: FastifyRequest,
   state: SignupState,
   projectId: string,
   usecase: StoredUseCase,
   revision: string,
   sessionId: null | string,
-  warnings: Array<{ message: string; type: string }>
+  warnings: Array<{ message: string; type: string }>,
+  actorStore: ActorStore
 ) {
   const project = state.projectsById.get(projectId);
   return {
@@ -106,7 +118,7 @@ function agentEnvelope(
       revision,
       session_id: sessionId
     },
-    data: agentData(state, projectId, usecase),
+    data: await agentData(state, projectId, usecase, actorStore),
     format_version: 1,
     suggested_next_actions: suggestedActions(usecase, warnings),
     warnings
@@ -155,18 +167,29 @@ function activeSession(state: SignupState, sessionId: string | undefined) {
   return session?.status === "ACTIVE" ? session : undefined;
 }
 
-function agentData(state: SignupState, projectId: string, usecase: StoredUseCase) {
+async function agentData(
+  state: SignupState,
+  projectId: string,
+  usecase: StoredUseCase,
+  actorStore: ActorStore
+) {
   return {
-    primary_actor: { name: actorName(state, projectId, usecase.primary_actor_id) },
-    scenarios: (state.scenariosByUseCaseId.get(usecase.id) ?? []).map((scenario) => ({
-      id: scenario.id,
-      steps: (state.stepsByScenarioId.get(scenario.id) ?? []).map((step) => ({
-        action: step.action,
-        actor: actorName(state, projectId, step.actor_id),
-        step_number: step.step_number
-      })),
-      type: scenario.type
-    })),
+    primary_actor: {
+      name: await actorName(actorStore, projectId, usecase.primary_actor_id)
+    },
+    scenarios: await Promise.all(
+      (state.scenariosByUseCaseId.get(usecase.id) ?? []).map(async (scenario) => ({
+        id: scenario.id,
+        steps: await Promise.all(
+          (state.stepsByScenarioId.get(scenario.id) ?? []).map(async (step) => ({
+            action: step.action,
+            actor: await actorName(actorStore, projectId, step.actor_id),
+            step_number: step.step_number
+          }))
+        ),
+        type: scenario.type
+      }))
+    ),
     stakeholder_interests: (state.stakeholderInterestsByUseCaseId.get(usecase.id) ?? [])
       .map((interest) => ({
         interest: interest.interest,
@@ -177,9 +200,8 @@ function agentData(state: SignupState, projectId: string, usecase: StoredUseCase
   };
 }
 
-function actorName(state: SignupState, projectId: string, actorId: string) {
-  return (state.actorsByProjectId.get(projectId) ?? [])
-    .find((actor) => actor.id === actorId)?.name ?? "System";
+async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {
+  return (await actorStore.findActorById(projectId, actorId))?.name ?? "System";
 }
 
 function stakeholderName(state: SignupState, projectId: string, stakeholderId: string) {

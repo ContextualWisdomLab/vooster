@@ -111,15 +111,11 @@ export function passiveActionProblem(action: string) {
   );
 }
 
-export function unknownStepActorProblem(state: SignupState, projectId: string) {
+export function unknownStepActorProblem(knownActorNames: string[]) {
   return problem(
     422,
     "Step actor is not registered",
-    {
-      known_actors: (state.actorsByProjectId.get(projectId) ?? [])
-        .filter((actor) => actor.archived_at === null)
-        .map((actor) => actor.name)
-    },
+    { known_actors: knownActorNames },
     [
       {
         command: "vspec actor create",

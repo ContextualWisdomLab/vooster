@@ -3,6 +3,7 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredActor, StoredUseCase } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const searchQuerySchema = z.object({
   actor_id: z.string().optional(),
@@ -13,13 +14,22 @@ const searchQuerySchema = z.object({
   status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional()
 });
 
-export function registerUseCaseSearchRoutes(app: FastifyInstance, state: SignupState) {
+export function registerUseCaseSearchRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.get("/v1/projects/:projectId/usecases", (request, reply) =>
-    searchUseCases(request, reply, state)
+    searchUseCases(request, reply, state, actorStore)
   );
 }
 
-function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function searchUseCases(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const projectId = z.object({ projectId: z.string().min(1) }).parse(request.params).projectId;
   if (membershipForProject(request, state, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
@@ -35,7 +45,7 @@ function searchUseCases(request: FastifyRequest, reply: FastifyReply, state: Sig
   if (cursor === false) {
     return reply.code(400).send(problem(400, "cursor is opaque — pass exactly what the previous response returned"));
   }
-  const actors = state.actorsByProjectId.get(projectId) ?? [];
+  const actors = await actorStore.listActors(projectId);
   if (
     parsed.data.actor_id !== undefined &&
     !actors.some((actor) => actor.id === parsed.data.actor_id)

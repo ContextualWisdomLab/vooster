@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  activeActorWithId,
   allowedStatusTransitions,
   canTransition,
   goalCreateResponse,
@@ -20,6 +19,7 @@ import type {
   StoredGoal,
   StoredMembership
 } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -29,17 +29,26 @@ const goalRequestSchema = z.object({
 const goalPatchSchema = z.object({
   status: z.enum(["IDENTIFIED", "IN_DESIGN", "PROMOTED", "REJECTED"]).optional()
 });
-export function registerGoalRoutes(app: FastifyInstance, state: SignupState) {
+export function registerGoalRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
-    createGoal(request, reply, state)
+    createGoal(request, reply, state, actorStore)
   );
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
-    listGoals(request, reply, state)
+    listGoals(request, reply, state, actorStore)
   );
   app.patch("/v1/goals/:goalId", (request, reply) => patchGoal(request, reply, state));
 }
 
-function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createGoal(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
@@ -61,8 +70,8 @@ function createGoal(request: FastifyRequest, reply: FastifyReply, state: SignupS
     return reply.code(409).send(problem(409, "Workspace has been archived"));
   }
 
-  const actor = activeActorWithId(state, projectId, parsed.data.actor_id);
-  if (actor === undefined) {
+  const actor = await actorStore.findActorById(projectId, parsed.data.actor_id);
+  if (actor === undefined || actor.archived_at !== null) {
     return reply.code(422).send(
       problem(
         422,
@@ -156,7 +165,12 @@ function patchGoal(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   return reply.send({ goal: found.goal, revision });
 }
 
-function listGoals(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function listGoals(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
@@ -165,7 +179,7 @@ function listGoals(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   const { actor_id: actorId } = z
     .object({ actor_id: z.string().optional() })
     .parse(request.query);
-  const actors = (state.actorsByProjectId.get(projectId) ?? []).filter(
+  const actors = (await actorStore.listActors(projectId)).filter(
     (actor) =>
       actor.archived_at === null && (actorId === undefined || actor.id === actorId)
   );

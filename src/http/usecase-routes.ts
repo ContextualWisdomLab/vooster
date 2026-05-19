@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { activeActorNamed, projectIdFrom } from "./goal-support.js";
+import { projectIdFrom } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
@@ -17,6 +17,7 @@ import type {
   StoredMembership,
   StoredUseCase
 } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const useCaseRequestSchema = z.object({
   force: z.boolean().default(false),
@@ -32,16 +33,25 @@ const useCasePatchSchema = z.object({
   status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional()
 });
 
-export function registerUseCaseRoutes(app: FastifyInstance, state: SignupState) {
+export function registerUseCaseRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
-    createUseCase(request, reply, state)
+    createUseCase(request, reply, state, actorStore)
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
     patchUseCase(request, reply, state)
   );
 }
 
-function createUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const projectId = projectIdFrom(request.params);
   if (membershipForProject(request, state, projectId) === undefined) {
     return reply.code(403).send(
@@ -84,8 +94,8 @@ function createUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (project === undefined) {
     return reply.code(404).send(problem(404, "Project not found"));
   }
-  const actor = activeActorNamed(state, projectId, parsed.data.primary_actor);
-  if (actor === undefined) {
+  const actor = await actorStore.findActorByName(projectId, parsed.data.primary_actor);
+  if (actor === undefined || actor.archived_at !== null) {
     return reply.code(422).send(
       problem(
         422,

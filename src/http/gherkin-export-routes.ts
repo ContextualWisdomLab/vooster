@@ -11,6 +11,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
@@ -20,13 +21,22 @@ const exportSchema = z.object({
   revision_id: z.string().optional()
 });
 
-export function registerGherkinExportRoutes(app: FastifyInstance, state: SignupState) {
+export function registerGherkinExportRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.post("/v1/usecases/:id/export/gherkin", (request, reply) =>
-    exportGherkin(request, reply, state)
+    exportGherkin(request, reply, state, actorStore)
   );
 }
 
-function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function exportGherkin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
@@ -55,7 +65,7 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  const feature = renderFeature(state, found.projectId, found.usecase);
+  const feature = await renderFeature(state, found.projectId, found.usecase, actorStore);
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(
       found.usecase,
@@ -67,7 +77,12 @@ function exportGherkin(request: FastifyRequest, reply: FastifyReply, state: Sign
   return reply.type("text/plain").send(feature);
 }
 
-function renderFeature(state: SignupState, projectId: string, usecase: StoredUseCase) {
+async function renderFeature(
+  state: SignupState,
+  projectId: string,
+  usecase: StoredUseCase,
+  actorStore: ActorStore
+) {
   const scenarios = state.scenariosByUseCaseId.get(usecase.id) ?? [];
   const main = scenarios.find((scenario) => scenario.type === "MAIN_SUCCESS");
   const extensions = scenarios
@@ -76,28 +91,48 @@ function renderFeature(state: SignupState, projectId: string, usecase: StoredUse
   return [
     `Feature: ${usecase.title}`,
     `Background:\n  Given the use case is in scope ${usecase.scope}`,
-    main === undefined ? "" : renderMainScenario(state, projectId, main),
-    ...extensions.map((scenario) => renderExtensionScenario(state, projectId, scenario))
+    main === undefined ? "" : await renderMainScenario(state, projectId, main, actorStore),
+    ...(await Promise.all(
+      extensions.map((scenario) =>
+        renderExtensionScenario(state, projectId, scenario, actorStore)
+      )
+    ))
   ].filter((section) => section.length > 0).join("\n\n") + "\n";
 }
 
-function renderMainScenario(state: SignupState, projectId: string, scenario: StoredScenario) {
+async function renderMainScenario(
+  state: SignupState,
+  projectId: string,
+  scenario: StoredScenario,
+  actorStore: ActorStore
+) {
+  const steps = await Promise.all(
+    scenarioSteps(state, scenario.id).map(async (step) =>
+      `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
+  );
   return [
     "Scenario: Main success",
-    ...scenarioSteps(state, scenario.id).map((step) =>
-      `  When ${actorName(state, projectId, step.actor_id)} ${step.action}`)
+    ...steps
   ].join("\n");
 }
 
-function renderExtensionScenario(state: SignupState, projectId: string, scenario: StoredScenario) {
+async function renderExtensionScenario(
+  state: SignupState,
+  projectId: string,
+  scenario: StoredScenario,
+  actorStore: ActorStore
+) {
   const condition = scenario.condition ?? "Extension";
   const extensionPoint = scenario.extension_point ?? "*";
   const parentStep = scenario.parent_step_number ?? 0;
+  const steps = await Promise.all(
+    scenarioSteps(state, scenario.id).map(async (step) =>
+      `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
+  );
   return [
     `Scenario: ${extensionPoint} ${condition}`,
     `  Given main success reaches step ${String(parentStep)}`,
-    ...scenarioSteps(state, scenario.id).map((step) =>
-      `  When ${actorName(state, projectId, step.actor_id)} ${step.action}`),
+    ...steps,
     `  Then outcome is ${scenario.outcome}`
   ].join("\n");
 }
@@ -107,7 +142,6 @@ function scenarioSteps(state: SignupState, scenarioId: string): StoredStep[] {
     .sort((left, right) => left.step_number - right.step_number);
 }
 
-function actorName(state: SignupState, projectId: string, actorId: string) {
-  return (state.actorsByProjectId.get(projectId) ?? [])
-    .find((actor) => actor.id === actorId)?.name ?? "System";
+async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {
+  return (await actorStore.findActorById(projectId, actorId))?.name ?? "System";
 }

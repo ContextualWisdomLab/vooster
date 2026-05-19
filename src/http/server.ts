@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -40,6 +41,7 @@ import type { ServerOptions, SignupState } from "./signup-types.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const state = initialState(options);
+  const actorStore = options.signupStore ?? createMemoryActorStore();
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -50,17 +52,17 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state);
   registerSignupRoutes(app, options, state);
-  registerProjectRoutes(app, state);
+  registerProjectRoutes(app, state, options.signupStore);
   registerBranchRoutes(app, state);
   registerBranchTestRoutes(app, state);
   registerLockRoutes(app, state);
-  registerMarkdownExportRoutes(app, state);
+  registerMarkdownExportRoutes(app, state, actorStore);
   registerMergeRoutes(app, state);
   registerMergeResolveRoutes(app, state);
-  registerActorRoutes(app, state);
-  registerActorTestRoutes(app, state);
-  registerGherkinExportRoutes(app, state);
-  registerGoalRoutes(app, state);
+  registerActorRoutes(app, state, actorStore, options.signupStore);
+  registerActorTestRoutes(app, state, actorStore);
+  registerGherkinExportRoutes(app, state, actorStore);
+  registerGoalRoutes(app, state, actorStore);
   registerGoalPromotionRoutes(app, state);
   registerImpactRoutes(app, state);
   registerInvitationRoutes(app, options, state);
@@ -68,16 +70,16 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerChangeCommitRoutes(app, state);
   registerStakeholderRoutes(app, state);
   registerStakeholderInterestRoutes(app, state);
-  registerUseCaseAgentRoutes(app, state);
+  registerUseCaseAgentRoutes(app, state, actorStore);
   registerUseCaseArchiveRoutes(app, state);
-  registerUseCaseRoutes(app, state);
-  registerUseCaseSearchRoutes(app, state);
+  registerUseCaseRoutes(app, state, actorStore);
+  registerUseCaseSearchRoutes(app, state, actorStore);
   registerUseCaseTestRoutes(app, state);
   registerRevisionDiffRoutes(app, state);
   registerRevisionHistoryRoutes(app, state);
   registerRevisionRevertRoutes(app, state);
   registerWhoRoutes(app, state);
-  registerScenarioRoutes(app, state);
+  registerScenarioRoutes(app, state, actorStore);
   registerSessionCompleteRoutes(app, state);
   registerSessionListRoutes(app, state);
   registerSessionRoutes(app, state);
@@ -89,7 +91,6 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
-    actorsByProjectId: new Map(),
     branchesById: new Map(),
     goalsByProjectId: new Map(),
     membershipsByUserId: new Map(),

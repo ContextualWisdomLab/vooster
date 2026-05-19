@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { activeActorNamed } from "./goal-support.js";
 import { createExtensionScenario } from "./scenario-extension-support.js";
 import {
   appendUseCaseRevision,
@@ -22,6 +21,7 @@ import type {
   StoredStep
 } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { ActorStore } from "../ports/actor-store.js";
 
 const scenarioRequestSchema = z.object({
   condition: z.string().optional(),
@@ -35,12 +35,16 @@ const stepRequestSchema = z.object({
   force: z.boolean().default(false)
 });
 
-export function registerScenarioRoutes(app: FastifyInstance, state: SignupState) {
+export function registerScenarioRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
     createScenario(request, reply, state)
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
-    addStep(request, reply, state)
+    addStep(request, reply, state, actorStore)
   );
 }
 
@@ -99,7 +103,12 @@ function createScenario(
   return reply.code(201).send({ scenario, revision, steps: [] });
 }
 
-function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function addStep(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore
+) {
   const found = scenarioWithUseCase(state, scenarioIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Scenario not found"));
@@ -117,9 +126,12 @@ function addStep(request: FastifyRequest, reply: FastifyReply, state: SignupStat
   if (!parsed.data.force && usesPassiveVoice(parsed.data.action)) {
     return reply.code(422).send(passiveActionProblem(parsed.data.action));
   }
-  const actor = activeActorNamed(state, found.projectId, parsed.data.actor);
-  if (actor === undefined) {
-    return reply.code(422).send(unknownStepActorProblem(state, found.projectId));
+  const actor = await actorStore.findActorByName(found.projectId, parsed.data.actor);
+  if (actor === undefined || actor.archived_at !== null) {
+    const knownActors = (await actorStore.listActors(found.projectId))
+      .filter((candidate) => candidate.archived_at === null)
+      .map((candidate) => candidate.name);
+    return reply.code(422).send(unknownStepActorProblem(knownActors));
   }
 
   const steps = state.stepsByScenarioId.get(found.scenario.id) ?? [];

@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
+import {
+  isReadOnlyMembership,
+  membershipForProject as inMemoryMembershipForProject
+} from "./membership-support.js";
+import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredActor } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
+import type { SignupStore } from "../ports/signup-store.js";
 
 const actorRequestSchema = z.object({
   aliases: z.array(z.string()).default([]),
@@ -15,15 +21,26 @@ const actorRequestSchema = z.object({
 
 const actorTypes = ["PRIMARY", "SUPPORTING", "OFFSTAGE"] as const;
 
-export function registerActorRoutes(app: FastifyInstance, state: SignupState) {
+export function registerActorRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  actorStore: ActorStore,
+  store: SignupStore | undefined
+) {
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
-    createActor(request, reply, state)
+    createActor(request, reply, state, actorStore, store)
   );
 }
 
-function createActor(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createActor(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  actorStore: ActorStore,
+  store: SignupStore | undefined
+) {
   const projectId = projectIdFrom(request.params);
-  const membership = membershipForProject(request, state, projectId);
+  const membership = await membershipForProject(request, state, projectId, store);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
@@ -55,13 +72,13 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     );
   }
 
-  const archived = archivedActorNamed(state, projectId, parsed.data.name);
-  if (archived !== undefined) {
+  const existingByName = await actorStore.findActorByName(projectId, parsed.data.name);
+  if (existingByName?.archived_at !== null && existingByName !== undefined) {
     return reply.code(409).send(
       problem(
         409,
         "Name is held by an archived actor",
-        { existing_actor_id: archived.id },
+        { existing_actor_id: existingByName.id },
         [
           { command: "vspec actor restore", reason: "Restore the archived actor." },
           { command: "vspec actor create", reason: "Choose a different name." }
@@ -70,13 +87,12 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     );
   }
 
-  const existing = activeActorNamed(state, projectId, parsed.data.name);
-  if (existing !== undefined) {
+  if (existingByName !== undefined) {
     return reply.code(422).send(
       problem(
         422,
         "Actor name already exists",
-        { existing_actor_id: existing.id },
+        { existing_actor_id: existingByName.id },
         [
           { command: "vspec actor edit", reason: "Amend the existing actor." },
           {
@@ -106,10 +122,7 @@ function createActor(request: FastifyRequest, reply: FastifyReply, state: Signup
     snapshot: actor
   };
 
-  state.actorsByProjectId.set(projectId, [
-    ...(state.actorsByProjectId.get(projectId) ?? []),
-    actor
-  ]);
+  await actorStore.saveActor(actor);
   state.revisionsByEntityId.set(actor.id, [revision]);
 
   return reply.code(201).send({
@@ -131,24 +144,18 @@ function isActorType(type: string): type is StoredActor["type"] {
   return actorTypes.includes(type as StoredActor["type"]);
 }
 
-function activeActorNamed(
+async function membershipForProject(
+  request: FastifyRequest,
   state: SignupState,
   projectId: string,
-  name: string
-): StoredActor | undefined {
-  return (state.actorsByProjectId.get(projectId) ?? []).find(
-    (actor) => actor.name === name && actor.archived_at === null
-  );
-}
+  store: SignupStore | undefined
+) {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (store !== undefined && userId !== undefined) {
+    return store.membershipForProject(projectId, userId);
+  }
 
-function archivedActorNamed(
-  state: SignupState,
-  projectId: string,
-  name: string
-): StoredActor | undefined {
-  return (state.actorsByProjectId.get(projectId) ?? []).find(
-    (actor) => actor.name === name && actor.archived_at !== null
-  );
+  return inMemoryMembershipForProject(request, state, projectId);
 }
 
 function projectIdFrom(params: unknown): string {

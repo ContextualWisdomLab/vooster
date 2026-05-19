@@ -34,16 +34,22 @@ export class VspecCommand extends Command {
   }
 
   private async login(flags: ParsedFlags): Promise<void> {
-    const loginFlags = loginFlagsFrom(flags);
-    const start = await postJson(`${loginFlags.apiUrl}/v1/auth/github/start`, {
-      workspace: {
-        name: loginFlags.workspaceName,
-        slug: loginFlags.workspaceSlug
-      }
-    });
+    const oauthFlags = oauthFlagsFrom(flags);
+    const signupFlags = signupFlagsFrom(flags);
+    const start = await postJson(
+      `${oauthFlags.apiUrl}/v1/auth/github/start`,
+      signupFlags === undefined
+        ? { flow: "login" }
+        : {
+            workspace: {
+              name: signupFlags.workspaceName,
+              slug: signupFlags.workspaceSlug
+            }
+          }
+    );
     const startBody = start.body as OAuthStartResponse;
-    const callbackUrl = new URL("/v1/auth/github/callback", loginFlags.apiUrl);
-    callbackUrl.searchParams.set("code", loginFlags.githubCode);
+    const callbackUrl = new URL("/v1/auth/github/callback", oauthFlags.apiUrl);
+    callbackUrl.searchParams.set("code", oauthFlags.githubCode);
     callbackUrl.searchParams.set("state", startBody.state);
 
     const callback = await fetchJson(callbackUrl, {
@@ -51,17 +57,37 @@ export class VspecCommand extends Command {
         Cookie: start.cookie
       }
     });
-    const callbackBody = callback.body as SignupResponse;
+    if (signupFlags === undefined) {
+      this.printLogin(callback.body as LoginResponse);
+      return;
+    }
 
+    this.printSignup(callback.body as SignupResponse);
+  }
+
+  private printSignup(callbackBody: SignupResponse): void {
     this.log(`Signed up ${callbackBody.user.email}`);
     this.log(`Workspace ${callbackBody.workspace.slug}`);
     this.log(callbackBody.recommended_next_command);
   }
+
+  private printLogin(callbackBody: LoginResponse): void {
+    this.log(`Logged in ${callbackBody.user.github_id}`);
+    for (const workspace of callbackBody.workspaces) {
+      this.log(`Workspace ${workspace.slug} ${workspace.role}`);
+    }
+    if (callbackBody.recommended_next_command !== undefined) {
+      this.log(callbackBody.recommended_next_command);
+    }
+  }
 }
 
-type LoginFlags = {
+type OAuthFlags = {
   apiUrl: string;
   githubCode: string;
+};
+
+type SignupFlags = {
   workspaceName: string;
   workspaceSlug: string;
 };
@@ -87,10 +113,30 @@ type SignupResponse = {
   };
 };
 
-function loginFlagsFrom(flags: ParsedFlags): LoginFlags {
+type LoginResponse = {
+  recommended_next_command?: string;
+  user: {
+    github_id: string;
+  };
+  workspaces: Array<{
+    role: string;
+    slug: string;
+  }>;
+};
+
+function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
-    githubCode: requiredFlag(flags, "github-code"),
+    githubCode: requiredFlag(flags, "github-code")
+  };
+}
+
+function signupFlagsFrom(flags: ParsedFlags): SignupFlags | undefined {
+  if (flags["workspace-name"] === undefined && flags["workspace-slug"] === undefined) {
+    return undefined;
+  }
+
+  return {
     workspaceName: requiredFlag(flags, "workspace-name"),
     workspaceSlug: requiredFlag(flags, "workspace-slug")
   };

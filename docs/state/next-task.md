@@ -1,22 +1,22 @@
 # Next Task
 
-_Auto-generated 2026-05-19T18:01:13Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T18:16:13Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Migrate the next entity to Prisma (gates 2.A1 / 2.A2 / 2.A3 / 2.A4).
 
-  Candidate SignupState field: stakeholderInterestsByUseCaseId
+  Candidate SignupState field: stepsByScenarioId
 
   One TDD cycle:
-  1. Identify the Prisma model that backs stakeholderInterestsByUseCaseId. If absent, add it to
+  1. Identify the Prisma model that backs stepsByScenarioId. If absent, add it to
      prisma/schema.prisma and run npx prisma migrate dev.
   2. RED: extend tests/integration/persistence-matrix.test.ts with a stanza
-     that creates a stakeholderInterestsByUseCaseId entity via the HTTP API, restarts the
+     that creates a stepsByScenarioId entity via the HTTP API, restarts the
      server, and reads it back. Commit:
-         red(persist): stakeholderInterestsByUseCaseId survives restart
+         red(persist): stepsByScenarioId survives restart
   3. GREEN: add src/infrastructure/<entity>-store.ts with Prisma calls,
      expose via a port in src/ports/, consume in src/http/. Delete the
-     'stakeholderInterestsByUseCaseId' field from SignupState in the SAME commit. Commit:
+     'stepsByScenarioId' field from SignupState in the SAME commit. Commit:
          green(persist): <entity> backed by prisma
   4. Verify previous goals still green:
          bash goals/0-init.gates.sh && bash goals/1-runnable.gates.sh

@@ -17,6 +17,8 @@ export class VspecCommand extends Command {
     action: Flags.string(),
     actor: Flags.string(),
     "actor-id": Flags.string(),
+    at: Flags.string(),
+    condition: Flags.string(),
     description: Flags.string(),
     email: Flags.string(),
     "github-code": Flags.string(),
@@ -29,6 +31,7 @@ export class VspecCommand extends Command {
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
     "protection-mechanism": Flags.string(),
+    outcome: Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
@@ -358,6 +361,9 @@ export class VspecCommand extends Command {
     const response = await postJson(
       `${scenarioFlags.apiUrl}/v1/usecases/${scenarioFlags.usecaseId}/scenarios`,
       {
+        condition: scenarioFlags.condition,
+        extension_point: scenarioFlags.extensionPoint,
+        outcome: scenarioFlags.outcome,
         type: scenarioFlags.type
       },
       {
@@ -368,6 +374,12 @@ export class VspecCommand extends Command {
 
     this.log(`Scenario ${body.scenario.id}`);
     this.log(`Type ${body.scenario.type}`);
+    if (body.scenario.extension_point !== null) {
+      this.log(`At ${body.scenario.extension_point}`);
+    }
+    if (body.scenario.condition !== null) {
+      this.log(`Condition ${body.scenario.condition}`);
+    }
     this.log(`Outcome ${body.scenario.outcome}`);
     this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
   }
@@ -482,6 +494,9 @@ type StakeholderInterestFlags = {
 
 type ScenarioCreateFlags = {
   apiUrl: string;
+  condition: string | undefined;
+  extensionPoint: string | undefined;
+  outcome: "FAILURE" | "PARTIAL" | "SUCCESS" | undefined;
   sessionCookie: string;
   type: "EXTENSION" | "MAIN_SUCCESS";
   usecaseId: string;
@@ -501,6 +516,8 @@ type ParsedFlags = {
   actor?: string;
   aliases?: string;
   "actor-id"?: string;
+  at?: string;
+  condition?: string;
   description?: string;
   email?: string;
   "github-code"?: string;
@@ -512,6 +529,7 @@ type ParsedFlags = {
   "primary-actor"?: string;
   "project-id"?: string;
   "protection-mechanism"?: string;
+  outcome?: string;
   role?: string;
   "session-cookie"?: string;
   stakeholder?: string;
@@ -682,6 +700,8 @@ type ScenarioResponse = {
     version_number: number;
   };
   scenario: {
+    condition: string | null;
+    extension_point: string | null;
     id: string;
     outcome: string;
     type: string;
@@ -825,10 +845,14 @@ function scenarioCreateFlagsFrom(
   flags: ParsedFlags,
   usecaseId: string | undefined
 ): ScenarioCreateFlags {
+  const type = scenarioType(requiredFlag(flags, "type"));
   return {
     apiUrl: requiredFlag(flags, "api-url"),
+    condition: scenarioCondition(flags, type),
+    extensionPoint: scenarioExtensionPoint(flags, type),
+    outcome: scenarioOutcome(flags.outcome),
     sessionCookie: requiredFlag(flags, "session-cookie"),
-    type: scenarioType(requiredFlag(flags, "type")),
+    type,
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
@@ -907,6 +931,35 @@ function scenarioType(rawType: string): "EXTENSION" | "MAIN_SUCCESS" {
   }
 
   throw new Error("Scenario type must be MAIN_SUCCESS or EXTENSION.");
+}
+
+function scenarioOutcome(
+  rawOutcome: string | undefined
+): "FAILURE" | "PARTIAL" | "SUCCESS" | undefined {
+  if (rawOutcome === undefined || rawOutcome.trim() === "") {
+    return undefined;
+  }
+
+  const outcome = rawOutcome.toUpperCase();
+  if (outcome === "FAILURE" || outcome === "PARTIAL" || outcome === "SUCCESS") {
+    return outcome;
+  }
+
+  throw new Error("Scenario outcome must be FAILURE, PARTIAL, or SUCCESS.");
+}
+
+function scenarioCondition(
+  flags: ParsedFlags,
+  type: "EXTENSION" | "MAIN_SUCCESS"
+): string | undefined {
+  return type === "EXTENSION" ? requiredFlag(flags, "condition") : undefined;
+}
+
+function scenarioExtensionPoint(
+  flags: ParsedFlags,
+  type: "EXTENSION" | "MAIN_SUCCESS"
+): string | undefined {
+  return type === "EXTENSION" ? requiredFlag(flags, "at") : undefined;
 }
 
 function aliasesFrom(rawAliases: string | undefined): string[] {

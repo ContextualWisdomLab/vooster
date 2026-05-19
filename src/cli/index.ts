@@ -98,6 +98,10 @@ export class VspecCommand extends Command {
       await this.listUseCases(parsed.flags);
       return;
     }
+    if (parsed.args.command === "usecase" && this.argv[1] === "archive") {
+      await this.archiveUseCase(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "scenario" && this.argv[1] === "add") {
       await this.createScenario(parsed.flags);
       return;
@@ -399,6 +403,26 @@ export class VspecCommand extends Command {
     }
   }
 
+  private async archiveUseCase(flags: ParsedFlags): Promise<void> {
+    const archiveFlags = useCaseArchiveFlagsFrom(flags, this.argv[2]);
+    const response = await deleteJson(
+      `${archiveFlags.apiUrl}/v1/usecases/${archiveFlags.usecaseId}`,
+      {
+        Cookie: archiveFlags.sessionCookie
+      }
+    );
+    const body = response.body as UseCaseArchiveResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Archived at ${body.usecase.archived_at}`);
+    this.log(body.revision.change_summary);
+    this.log(`Affected sessions ${String(body.affected_sessions_count)}`);
+    this.log(`Active locks ${String(body.active_locks_count)}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
   private async createScenario(flags: ParsedFlags): Promise<void> {
     const scenarioFlags = scenarioCreateFlagsFrom(flags, this.argv[2]);
     const response = await postJson(
@@ -556,6 +580,12 @@ type UseCaseListFlags = {
   q: string | undefined;
   sessionCookie: string;
   status: string | undefined;
+};
+
+type UseCaseArchiveFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  usecaseId: string;
 };
 
 type StakeholderInterestFlags = {
@@ -777,6 +807,21 @@ type UseCaseListResponse = {
   }>;
 };
 
+type UseCaseArchiveResponse = {
+  active_locks_count: number;
+  affected_sessions_count: number;
+  revision: {
+    change_summary: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  usecase: {
+    archived_at: string;
+    key: string;
+  };
+};
+
 type StakeholderInterestResponse = {
   next_missing_role_hint: string;
   revision: {
@@ -953,6 +998,17 @@ function useCaseListFlagsFrom(flags: ParsedFlags): UseCaseListFlags {
     q: optionalFlag(flags, "q"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status")
+  };
+}
+
+function useCaseArchiveFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined
+): UseCaseArchiveFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
 
@@ -1176,6 +1232,16 @@ async function patchJson(
       ...headers
     },
     method: "PATCH"
+  });
+}
+
+async function deleteJson(
+  url: string,
+  headers: Record<string, string> = {}
+): Promise<JsonResponse> {
+  return fetchJson(url, {
+    headers,
+    method: "DELETE"
   });
 }
 

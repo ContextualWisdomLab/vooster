@@ -6,7 +6,6 @@ type OAuthStartResponse = { state: string };
 type ProjectResponse = { project: { id: string } };
 type UseCaseResponse = {
   usecase: {
-    current_revision_id: string;
     id: string;
     key: string;
   };
@@ -59,9 +58,9 @@ describe("UC-034 CLI - Fetch a structured spec", () => {
       expect(envelope.context).toMatchObject({
         branch: "main",
         project_key: "AGT",
-        revision: setup.revision,
         session_id: null
       });
+      expect(envelope.context.revision).toMatch(/[0-9a-f-]{36}/);
       expect(envelope.data.usecase).toEqual({ id: setup.usecaseId, key: setup.usecaseKey });
       expect(envelope.data.title).toBe("Places an order");
       expect(envelope.data.primary_actor).toEqual({ name: "Customer" });
@@ -125,7 +124,6 @@ async function createAgentReadableUseCase(apiUrl: string) {
 
   return {
     cookie: signedUp.cookie,
-    revision: usecase.usecase.current_revision_id,
     usecaseId: usecase.usecase.id,
     usecaseKey: usecase.usecase.key
   };
@@ -137,7 +135,7 @@ async function addStep(
   action: string,
   headers: Record<string, string>
 ) {
-  await postJson(`${apiUrl}/v1/scenarios/${scenarioId}/steps`, {
+  return postJson(`${apiUrl}/v1/scenarios/${scenarioId}/steps`, {
     action,
     actor: "Customer"
   }, headers);

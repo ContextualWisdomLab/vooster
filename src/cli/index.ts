@@ -218,6 +218,10 @@ export class VspecCommand extends Command {
       await this.listUseCases(parsed.flags);
       return;
     }
+    if (parsed.args.command === "usecase" && this.argv[1] === "show") {
+      await this.showUseCase(parsed.flags);
+      return;
+    }
     if (parsed.args.command === "usecase" && this.argv[1] === "archive") {
       await this.archiveUseCase(parsed.flags);
       return;
@@ -1100,6 +1104,31 @@ export class VspecCommand extends Command {
     }
   }
 
+  private async showUseCase(flags: ParsedFlags): Promise<void> {
+    const showFlags = useCaseShowFlagsFrom(flags, this.argv[2]);
+    const url = new URL(`/v1/usecases/${showFlags.usecaseId}`, showFlags.apiUrl);
+    url.searchParams.set("format", showFlags.format);
+    setSearchParam(url, "revision", showFlags.revision);
+    setSearchParam(url, "session", showFlags.session);
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: showFlags.sessionCookie
+      }
+    });
+
+    if (showFlags.format === "agent" || showFlags.format === "json") {
+      this.log(JSON.stringify(response.body, null, 2));
+      return;
+    }
+
+    const body = response.body as UseCaseShowResponse;
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Title ${body.usecase.title}`);
+    this.log(`Status ${body.usecase.status}`);
+    this.log(`Revision ${body.usecase.current_revision_id}`);
+  }
+
   private async archiveUseCase(flags: ParsedFlags): Promise<void> {
     const archiveFlags = useCaseArchiveFlagsFrom(flags, this.argv[2]);
     const response = await deleteJson(
@@ -1499,6 +1528,15 @@ type UseCaseListFlags = {
   q: string | undefined;
   sessionCookie: string;
   status: string | undefined;
+};
+
+type UseCaseShowFlags = {
+  apiUrl: string;
+  format: "agent" | "human" | "json";
+  revision: string | undefined;
+  session: string | undefined;
+  sessionCookie: string;
+  usecaseId: string;
 };
 
 type UseCaseArchiveFlags = {
@@ -2071,6 +2109,15 @@ type UseCaseListResponse = {
   }>;
 };
 
+type UseCaseShowResponse = {
+  usecase: {
+    current_revision_id: string;
+    key: string;
+    status: string;
+    title: string;
+  };
+};
+
 type UseCaseArchiveResponse = {
   active_locks_count: number;
   affected_sessions_count: number;
@@ -2523,6 +2570,20 @@ function useCaseListFlagsFrom(flags: ParsedFlags): UseCaseListFlags {
     q: optionalFlag(flags, "q"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status")
+  };
+}
+
+function useCaseShowFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined
+): UseCaseShowFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    format: diffFormat(flags.format ?? "human"),
+    revision: optionalFlag(flags, "revision"),
+    session: optionalFlag(flags, "session"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
 

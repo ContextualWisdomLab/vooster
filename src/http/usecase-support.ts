@@ -48,10 +48,12 @@ export function useCaseWithId(
 
 export function useCaseWithProjectId(
   state: SignupState,
-  usecaseId: string
+  usecaseIdOrKey: string
 ): { projectId: string; usecase: StoredUseCase } | undefined {
   for (const [projectId, usecases] of state.usecasesByProjectId) {
-    const usecase = usecases.find((candidate) => candidate.id === usecaseId);
+    const usecase = usecases.find((candidate) =>
+      candidate.id === usecaseIdOrKey || candidate.key === usecaseIdOrKey
+    );
     if (usecase !== undefined) {
       return { projectId, usecase };
     }

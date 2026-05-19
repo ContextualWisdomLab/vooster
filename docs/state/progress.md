@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T00:29:05Z_
+_Last updated: 2026-05-19T00:50:12Z_
 
 ## Overall
 
-- Commits: 515
-- Last commit: 005635e chore: make completion gates runnable
+- Commits: 521
+- Last commit: c41d71e refactor: UC-009 simplify from-goal parsing
 - Use cases complete: 35 / 35
 
 ## By Use Case

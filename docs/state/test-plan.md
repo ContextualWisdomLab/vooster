@@ -347,6 +347,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **MergeRequest**: owner signs up, creates a project and source branch, opens a merge request through `POST /v1/merges` with simulated write failure so it remains OPEN, restarts the server, then creates another branch and asserts the in-flight merge request warning still references the persisted merge request id.
 
+### Goal 2 Persistence - ProjectKey
+
+- **ProjectKey**: owner signs up and creates a project, server restarts, owner logs back in and tries to create another project with the same key in the same workspace, and the public API returns the normal `Project key is already in use` 422 response with existing project details.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

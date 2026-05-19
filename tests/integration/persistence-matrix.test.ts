@@ -175,6 +175,40 @@ describe("Goal 2 persistence matrix", () => {
       type: "IN_FLIGHT_MERGE_REQUEST"
     });
   }, 90_000);
+
+  test("ProjectKey survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "projectkey.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "project-key-owner");
+    const project = await createProject(first.url, signup, "Project Key Matrix", "PKM");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "project-key-owner");
+    const duplicate = await createProjectResponse(
+      second.url,
+      loggedIn.sessionCookie,
+      signup.workspaceId,
+      "Duplicate Project Key Matrix",
+      "PKM"
+    );
+
+    await second.stop();
+
+    expect(duplicate.status).toBe(422);
+    const duplicateBody = (await duplicate.json()) as {
+      existing_project?: { id?: unknown; key?: unknown };
+      title?: unknown;
+    };
+    expect(duplicateBody.title).toEqual(
+      expect.stringMatching(/project key is already in use/i)
+    );
+    expect(duplicateBody.existing_project).toMatchObject({
+      id: project.id,
+      key: "PKM"
+    });
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -278,18 +312,34 @@ async function createProject(
   name: string,
   key: string
 ) {
-  const response = await fetch(`${baseUrl}/v1/workspaces/${signup.workspaceId}/projects`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      cookie: signup.sessionCookie
-    },
-    body: JSON.stringify({ key, name, visibility: "PRIVATE" })
-  });
+  const response = await createProjectResponse(
+    baseUrl,
+    signup.sessionCookie,
+    signup.workspaceId,
+    name,
+    key
+  );
   const body = (await response.json()) as { project: { id: string } };
 
   expect(response.status).toBe(201);
   return body.project;
+}
+
+function createProjectResponse(
+  baseUrl: string,
+  sessionCookie: string,
+  workspaceId: string,
+  name: string,
+  key: string
+) {
+  return fetch(`${baseUrl}/v1/workspaces/${workspaceId}/projects`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ key, name, visibility: "PRIVATE" })
+  });
 }
 
 async function createActor(

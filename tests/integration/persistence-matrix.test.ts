@@ -114,6 +114,31 @@ describe("Goal 2 persistence matrix", () => {
     };
     expect(listedBody.actors?.[0]?.goals?.map((entry) => entry.id)).toContain(goal.id);
   }, 90_000);
+
+  test("Membership survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "membership.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const owner = await signupWorkspace(first.url, "membership-owner");
+    const invitee = await signupWorkspace(first.url, "membership-invitee");
+    const invitation = await createInvitation(
+      first.url,
+      owner.sessionCookie,
+      owner.workspaceId,
+      "membership-invitee@users.noreply.github.com"
+    );
+    await acceptInvitation(first.url, invitation.token, "membership-invitee");
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await loginWithWorkspaces(second.url, "membership-invitee");
+
+    await second.stop();
+
+    expect(loggedIn.workspaces.map((workspace) => workspace.id)).toContain(
+      owner.workspaceId
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -189,6 +214,26 @@ async function login(baseUrl: string, githubCode: string) {
 
   expect(callback.status).toBe(200);
   return { sessionCookie: cookieFrom(callback, "vspec_session") };
+}
+
+async function loginWithWorkspaces(baseUrl: string, githubCode: string) {
+  const start = await fetch(`${baseUrl}/v1/auth/github/start`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ flow: "login" })
+  });
+  const oauthCookie = cookieFrom(start, "vspec_oauth_state");
+  const { state } = (await start.json()) as { state: string };
+  const callback = await fetch(
+    `${baseUrl}/v1/auth/github/callback?code=${githubCode}&state=${state}`,
+    { headers: { cookie: oauthCookie } }
+  );
+  const body = (await callback.json()) as {
+    workspaces: Array<{ id: string }>;
+  };
+
+  expect(callback.status).toBe(200);
+  return body;
 }
 
 async function createProject(
@@ -295,6 +340,36 @@ async function createGoal(
 
   expect(response.status).toBe(201);
   return body.goal;
+}
+
+async function createInvitation(
+  baseUrl: string,
+  sessionCookie: string,
+  workspaceId: string,
+  email: string
+) {
+  const response = await fetch(`${baseUrl}/v1/workspaces/${workspaceId}/invitations`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: sessionCookie
+    },
+    body: JSON.stringify({ email, role: "EDITOR" })
+  });
+  const body = (await response.json()) as { invitation: { token: string } };
+
+  expect(response.status).toBe(201);
+  return body.invitation;
+}
+
+async function acceptInvitation(baseUrl: string, token: string, githubCode: string) {
+  const response = await fetch(`${baseUrl}/v1/invitations/${token}/accept`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code: githubCode })
+  });
+
+  expect(response.status).toBe(200);
 }
 
 function listGoals(

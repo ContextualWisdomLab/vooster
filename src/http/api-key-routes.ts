@@ -19,10 +19,11 @@ type StoredApiKey = {
 const apiKeysByState = new WeakMap<SignupState, Map<string, StoredApiKey>>();
 const createSchema = z.object({
   name: z.string().min(1),
-  scopes: z.array(z.enum(["read", "write"])).min(1),
+  scopes: z.array(z.string()).min(1),
   workspace_id: z.string().min(1)
 });
 const listSchema = z.object({ workspace_id: z.string().min(1) });
+const allowedScopes = ["read", "write"] as const;
 
 export function registerApiKeyRoutes(app: FastifyInstance, state: SignupState) {
   app.post("/v1/api-keys", (request, reply) => createApiKey(request, reply, state));
@@ -35,6 +36,15 @@ function createApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid API key request"));
   }
+  const offendingScope = parsed.data.scopes.find((scope) => !isAllowedScope(scope));
+  if (offendingScope !== undefined) {
+    return reply.code(422).send(
+      problem(422, "Unsupported API key scope", {
+        allowed_scopes: [...allowedScopes],
+        offending_scope: offendingScope
+      })
+    );
+  }
   const membership = ownerMembership(request, state, parsed.data.workspace_id);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Workspace owner role required"));
@@ -46,7 +56,7 @@ function createApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
     id: randomUUID(),
     name: parsed.data.name,
     revoked_at: null,
-    scopes: parsed.data.scopes,
+    scopes: parsed.data.scopes.filter(isAllowedScope),
     token_hash: `$argon2id$${randomUUID()}`,
     workspace_id: parsed.data.workspace_id
   };
@@ -114,6 +124,10 @@ function publicApiKey(apiKey: StoredApiKey) {
     scopes: apiKey.scopes,
     workspace_id: apiKey.workspace_id
   };
+}
+
+function isAllowedScope(scope: string): scope is "read" | "write" {
+  return allowedScopes.includes(scope as "read" | "write");
 }
 
 function apiKeys(state: SignupState) {

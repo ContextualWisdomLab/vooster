@@ -18,6 +18,7 @@ import type {
   StoredUseCase
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const useCaseRequestSchema = z.object({
   force: z.boolean().default(false),
@@ -36,13 +37,14 @@ const useCasePatchSchema = z.object({
 export function registerUseCaseRoutes(
   app: FastifyInstance,
   state: SignupState,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  branchStore: BranchStore
 ) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
     createUseCase(request, reply, state, actorStore)
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
-    patchUseCase(request, reply, state)
+    patchUseCase(request, reply, state, branchStore)
   );
 }
 
@@ -148,7 +150,12 @@ async function createUseCase(
   });
 }
 
-function patchUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+function patchUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
@@ -161,7 +168,7 @@ function patchUseCase(request: FastifyRequest, reply: FastifyReply, state: Signu
     return reply.code(400).send(problem(400, "Invalid use case update"));
   }
   if (parsed.data.archived_at === null) {
-    return restoreArchivedUseCase(reply, state, found);
+    return restoreArchivedUseCase(reply, state, branchStore, found);
   }
   if (
     parsed.data.status !== undefined &&

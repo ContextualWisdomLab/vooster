@@ -13,7 +13,8 @@ import {
   uncoveredConflicts
 } from "./merge-resolve-validation.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
+import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const resolutionSchema = z.object({
   entity_id: z.string().min(1),
@@ -27,13 +28,22 @@ const resolveSchema = z.object({
   simulate_write_failure: z.boolean().default(false)
 });
 
-export function registerMergeResolveRoutes(app: FastifyInstance, state: SignupState) {
+export function registerMergeResolveRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.post("/v1/merges/:mergeId/resolve", (request, reply) =>
-    resolveMerge(request, reply, state)
+    resolveMerge(request, reply, state, branchStore)
   );
 }
 
-function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function resolveMerge(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const merge = state.mergeRequestsById.get(mergeIdFrom(request.params));
   const parsed = resolveSchema.safeParse(request.body);
   if (merge === undefined) {
@@ -42,8 +52,8 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid merge resolution request"));
   }
-  const source = branchById(state, merge.source_branch_id);
-  const target = branchById(state, merge.target_branch_id);
+  const source = await branchById(branchStore, merge.source_branch_id);
+  const target = await branchById(branchStore, merge.target_branch_id);
   if (source === undefined || target === undefined) {
     return reply.code(404).send(problem(404, "Merge branch not found"));
   }
@@ -88,6 +98,8 @@ function resolveMerge(request: FastifyRequest, reply: FastifyReply, state: Signu
   merge.resolved_at = new Date().toISOString();
   source.status = "MERGED";
   source.merged_at = merge.resolved_at;
+  await branchStore.updateBranch(target);
+  await branchStore.updateBranch(source);
   return reply.send({
     main_head_revision_ids: target.head_revision_ids,
     merge_request: merge,
@@ -156,8 +168,8 @@ function nextActions(state: SignupState, revisions: StoredRevision[]) {
   }));
 }
 
-function branchById(state: SignupState, branchId: null | string): StoredSpecBranch | undefined {
-  return branchId === null ? undefined : state.branchesById.get(branchId);
+function branchById(branchStore: BranchStore, branchId: null | string) {
+  return branchId === null ? Promise.resolve(undefined) : branchStore.findBranchById(branchId);
 }
 
 function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {

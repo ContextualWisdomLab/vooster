@@ -18,6 +18,7 @@ import {
   type SyncResult
 } from "./sync-result-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const pullSchema = z.object({
   branch: z.string().default("main"),
@@ -36,12 +37,16 @@ const pushSchema = z.object({
 
 type PushFile = z.infer<typeof pushSchema>["files"][number];
 
-export function registerSyncRoutes(app: FastifyInstance, state: SignupState) {
+export function registerSyncRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
     pullFiles(request, reply, state)
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
-    pushFiles(request, reply, state)
+    pushFiles(request, reply, state, branchStore)
   );
 }
 
@@ -65,7 +70,12 @@ function pullFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   });
 }
 
-function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function pushFiles(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const projectId = projectIdFrom(request.params);
   const parsed = pushSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -83,7 +93,9 @@ function pushFiles(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   }
   const results = parsed.data.dry_run
     ? parsed.data.files.map((file) => previewFile(state, projectId, file))
-    : parsed.data.files.map((file) => pushFile(state, projectId, file));
+    : await Promise.all(
+        parsed.data.files.map((file) => pushFile(state, branchStore, projectId, file))
+      );
   return reply.send({
     cache: { entries: parsed.data.dry_run ? [] : cacheEntries(results) },
     results,
@@ -111,11 +123,12 @@ function previewFile(
   };
 }
 
-function pushFile(
+async function pushFile(
   state: SignupState,
+  branchStore: BranchStore,
   projectId: string,
   file: PushFile
-): SyncResult {
+): Promise<SyncResult> {
   const usecase = usecaseForFile(state, projectId, file.path);
   if (usecase === undefined) {
     return { current_revision: "", path: file.path, status: "SKIPPED" };
@@ -131,7 +144,7 @@ function pushFile(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
-  advanceMainHead(state, projectId, usecase.id, revision.id);
+  await advanceMainHead(state, branchStore, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
 }
 
@@ -185,15 +198,19 @@ function activeUseCases(state: SignupState, projectId: string) {
     .filter((usecase) => usecase.archived_at === null);
 }
 
-function advanceMainHead(
+async function advanceMainHead(
   state: SignupState,
+  branchStore: BranchStore,
   projectId: string,
   usecaseId: string,
   revisionId: string
 ) {
   const project = state.projectsById.get(projectId);
-  const branch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const branch = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (branch !== undefined) {
     branch.head_revision_ids = { ...(branch.head_revision_ids ?? {}), [usecaseId]: revisionId };
+    await branchStore.updateBranch(branch);
   }
 }

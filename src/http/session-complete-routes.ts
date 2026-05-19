@@ -5,6 +5,7 @@ import type { StoredMergeRequest } from "./merge-request-types.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredWorkSession } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const completeSchema = z.object({
   no_merge: z.boolean().default(false),
@@ -18,16 +19,21 @@ type MergeRequestResponse = {
   id: string;
 };
 
-export function registerSessionCompleteRoutes(app: FastifyInstance, state: SignupState) {
+export function registerSessionCompleteRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.post("/v1/sessions/:sessionId/complete", (request, reply) =>
-    completeSession(request, reply, state)
+    completeSession(request, reply, state, branchStore)
   );
 }
 
-function completeSession(
+async function completeSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const session = state.workSessionsById.get(sessionIdFrom(request.params));
   const parsed = completeSchema.safeParse(request.body);
@@ -72,7 +78,9 @@ function completeSession(
   const mergeRequest = session.branch_id === null || parsed.data.no_merge
     ? undefined
     : openMergeRequest(state, session, parsed.data.simulate_conflicts);
-  const noMergeBranch = parsed.data.no_merge ? branchName(state, session) : undefined;
+  const noMergeBranch = parsed.data.no_merge
+    ? await branchName(branchStore, session)
+    : undefined;
 
   return reply.send({
     session,
@@ -173,10 +181,13 @@ function nextActions(mergeRequest: MergeRequestResponse | undefined, branch?: st
     : [{ command: `vspec merge open ${branch}`, reason: "Open a merge request for the completed branch later." }];
 }
 
-function branchName(state: SignupState, session: StoredWorkSession): string | undefined {
+async function branchName(
+  branchStore: BranchStore,
+  session: StoredWorkSession
+): Promise<string | undefined> {
   return session.branch_id === null || session.branch_id === undefined
     ? undefined
-    : state.branchesById.get(session.branch_id)?.name;
+    : (await branchStore.findBranchById(session.branch_id))?.name;
 }
 
 function sessionIdFrom(params: unknown): string {

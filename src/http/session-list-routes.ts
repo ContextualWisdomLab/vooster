@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredWorkSession } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const sessionListSchema = z.object({
   project_id: z.string().optional(),
@@ -12,21 +13,39 @@ const sessionListSchema = z.object({
 });
 const heartbeatSchema = z.object({ last_activity_at: z.iso.datetime() });
 
-export function registerSessionListRoutes(app: FastifyInstance, state: SignupState) {
-  app.get("/v1/sessions", (request, reply) => listSessions(request, reply, state));
-  app.get("/v1/sessions/watch", (request, reply) => watchSessions(request, reply, state));
+export function registerSessionListRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  app.get("/v1/sessions", (request, reply) =>
+    listSessions(request, reply, state, branchStore)
+  );
+  app.get("/v1/sessions/watch", (request, reply) =>
+    watchSessions(request, reply, state, branchStore)
+  );
   app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
     ageSessionHeartbeat(request, reply, state)
   );
 }
 
-function listSessions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const snapshot = sessionSnapshot(request, reply, state);
+async function listSessions(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  const snapshot = await sessionSnapshot(request, reply, state, branchStore);
   return snapshot === undefined ? undefined : reply.send(snapshot);
 }
 
-function watchSessions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
-  const snapshot = sessionSnapshot(request, reply, state);
+async function watchSessions(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  const snapshot = await sessionSnapshot(request, reply, state, branchStore);
   if (snapshot === undefined) {
     return undefined;
   }
@@ -35,10 +54,11 @@ function watchSessions(request: FastifyRequest, reply: FastifyReply, state: Sign
     .send(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`);
 }
 
-function sessionSnapshot(
+async function sessionSnapshot(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const parsed = sessionListSchema.safeParse(request.query);
   if (!parsed.success) {
@@ -56,10 +76,10 @@ function sessionSnapshot(
   }
 
   const projects = projectsForWorkspace(state, parsed.data.workspace_id);
-  const sessions = [...state.workSessionsById.values()]
+  const sessions = await Promise.all([...state.workSessionsById.values()]
     .filter((session) => sessionMatches(session, projects, parsed.data))
     .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""))
-    .map((session) => sessionRow(state, session));
+    .map((session) => sessionRow(state, session, branchStore)));
 
   return {
     total: sessions.length,
@@ -114,7 +134,11 @@ function sessionMatches(
   );
 }
 
-function sessionRow(state: SignupState, session: StoredWorkSession) {
+async function sessionRow(
+  state: SignupState,
+  session: StoredWorkSession,
+  branchStore: BranchStore
+) {
   return {
     id: session.id,
     project_id: session.project_id,
@@ -123,7 +147,7 @@ function sessionRow(state: SignupState, session: StoredWorkSession) {
     agent_identifier: session.agent_identifier,
     intent: session.intent,
     pinned_keys: pinnedKeys(state, session),
-    branch_name: branchName(state, session),
+    branch_name: await branchName(branchStore, session),
     idle_seconds: idleSeconds(session.last_activity_at ?? session.started_at),
     lock_count: lockCount(state, session),
     conflict_markers: conflictMarkers(state, session),
@@ -141,10 +165,13 @@ function pinnedKeys(state: SignupState, session: StoredWorkSession): string[] {
   });
 }
 
-function branchName(state: SignupState, session: StoredWorkSession): null | string {
+async function branchName(
+  branchStore: BranchStore,
+  session: StoredWorkSession
+): Promise<null | string> {
   return session.branch_id === null || session.branch_id === undefined
     ? null
-    : state.branchesById.get(session.branch_id)?.name ?? null;
+    : (await branchStore.findBranchById(session.branch_id))?.name ?? null;
 }
 
 function idleSeconds(startedAt: string | undefined): number {

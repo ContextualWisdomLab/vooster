@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
+import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -42,6 +43,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const app = Fastify({ logger: false });
   const state = initialState(options);
   const actorStore = options.signupStore ?? createMemoryActorStore();
+  const branchStore = options.signupStore ?? createMemoryBranchStore();
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -52,13 +54,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state);
   registerSignupRoutes(app, options, state);
-  registerProjectRoutes(app, state, options.signupStore);
-  registerBranchRoutes(app, state);
-  registerBranchTestRoutes(app, state);
+  registerProjectRoutes(app, state, options.signupStore, branchStore);
+  registerBranchRoutes(app, state, branchStore, options.signupStore);
+  registerBranchTestRoutes(app, state, branchStore);
   registerLockRoutes(app, state);
   registerMarkdownExportRoutes(app, state, actorStore);
-  registerMergeRoutes(app, state);
-  registerMergeResolveRoutes(app, state);
+  registerMergeRoutes(app, state, branchStore);
+  registerMergeResolveRoutes(app, state, branchStore);
   registerActorRoutes(app, state, actorStore, options.signupStore);
   registerActorTestRoutes(app, state, actorStore);
   registerGherkinExportRoutes(app, state, actorStore);
@@ -67,31 +69,30 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerImpactRoutes(app, state);
   registerInvitationRoutes(app, options, state);
   registerCommentRoutes(app, state);
-  registerChangeCommitRoutes(app, state);
+  registerChangeCommitRoutes(app, state, branchStore);
   registerStakeholderRoutes(app, state);
   registerStakeholderInterestRoutes(app, state);
   registerUseCaseAgentRoutes(app, state, actorStore);
-  registerUseCaseArchiveRoutes(app, state);
-  registerUseCaseRoutes(app, state, actorStore);
+  registerUseCaseArchiveRoutes(app, state, branchStore);
+  registerUseCaseRoutes(app, state, actorStore, branchStore);
   registerUseCaseSearchRoutes(app, state, actorStore);
   registerUseCaseTestRoutes(app, state);
-  registerRevisionDiffRoutes(app, state);
+  registerRevisionDiffRoutes(app, state, branchStore);
   registerRevisionHistoryRoutes(app, state);
-  registerRevisionRevertRoutes(app, state);
-  registerWhoRoutes(app, state);
+  registerRevisionRevertRoutes(app, state, branchStore);
+  registerWhoRoutes(app, state, branchStore);
   registerScenarioRoutes(app, state, actorStore);
-  registerSessionCompleteRoutes(app, state);
-  registerSessionListRoutes(app, state);
-  registerSessionRoutes(app, state);
+  registerSessionCompleteRoutes(app, state, branchStore);
+  registerSessionListRoutes(app, state, branchStore);
+  registerSessionRoutes(app, state, branchStore);
   registerStepRoutes(app, state);
-  registerSyncRoutes(app, state);
+  registerSyncRoutes(app, state, branchStore);
 
   return app;
 }
 
 function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
-    branchesById: new Map(),
     goalsByProjectId: new Map(),
     membershipsByUserId: new Map(),
     mergeRequestsById: new Map(),

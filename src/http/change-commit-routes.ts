@@ -4,14 +4,21 @@ import { z } from "zod";
 import { previewProblem, previews } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const commitSchema = z.object({
   confirmed: z.boolean().optional(),
   preview_id: z.string().min(1)
 });
 
-export function registerChangeCommitRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/changes/commit", (request, reply) => commitSpecChange(request, reply, state));
+export function registerChangeCommitRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  app.post("/v1/changes/commit", (request, reply) =>
+    commitSpecChange(request, reply, state, branchStore)
+  );
   app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
     const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
     const preview = previews(state).get(params.previewId);
@@ -23,7 +30,12 @@ export function registerChangeCommitRoutes(app: FastifyInstance, state: SignupSt
   });
 }
 
-function commitSpecChange(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function commitSpecChange(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const parsed = commitSchema.safeParse(request.body);
   const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
   if (preview === undefined) {
@@ -44,7 +56,13 @@ function commitSpecChange(request: FastifyRequest, reply: FastifyReply, state: S
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  const revision = appendPreviewRevision(state, usecase, preview.id, preview.diff[0]?.after ?? usecase.title);
+  const revision = await appendPreviewRevision(
+    state,
+    branchStore,
+    usecase,
+    preview.id,
+    preview.diff[0]?.after ?? usecase.title
+  );
   previews(state).delete(preview.id);
   return reply.send({
     revisions: [{ entity_id: usecase.id, revision_id: revision.id }],
@@ -54,8 +72,9 @@ function commitSpecChange(request: FastifyRequest, reply: FastifyReply, state: S
   });
 }
 
-function appendPreviewRevision(
+async function appendPreviewRevision(
   state: SignupState,
+  branchStore: BranchStore,
   usecase: StoredUseCase,
   previewId: string,
   title: string
@@ -76,9 +95,12 @@ function appendPreviewRevision(
     revision
   ]);
   const project = state.projectsById.get(usecase.project_id);
-  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const main = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
     main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+    await branchStore.updateBranch(main);
   }
   return revision;
 }

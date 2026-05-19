@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { isReadOnlyMembership, membershipForProject } from "./membership-support.js";
+import {
+  isReadOnlyMembership,
+  membershipForProject as inMemoryMembershipForProject
+} from "./membership-support.js";
+import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
+import type { SignupStore } from "../ports/signup-store.js";
 
 const branchCreateSchema = z.object({
   from: z.string().default("main"),
@@ -11,15 +17,26 @@ const branchCreateSchema = z.object({
   simulate_snapshot_failure: z.boolean().default(false)
 });
 
-export function registerBranchRoutes(app: FastifyInstance, state: SignupState) {
+export function registerBranchRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore,
+  store: SignupStore | undefined
+) {
   app.post("/v1/projects/:projectId/branches", (request, reply) =>
-    createBranch(request, reply, state)
+    createBranch(request, reply, state, branchStore, store)
   );
 }
 
-function createBranch(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function createBranch(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore,
+  store: SignupStore | undefined
+) {
   const projectId = projectIdFrom(request.params);
-  const membership = membershipForProject(request, state, projectId);
+  const membership = await membershipForProject(request, state, projectId, store);
   if (membership === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
@@ -40,8 +57,8 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
       ])
     );
   }
-  if (branchNameExists(state, projectId, parsed.data.name)) {
-    const suggestedName = nextBranchName(state, projectId, parsed.data.name);
+  if (await branchNameExists(branchStore, projectId, parsed.data.name)) {
+    const suggestedName = await nextBranchName(branchStore, projectId, parsed.data.name);
     return reply.code(422).send(
       problem(
         422,
@@ -57,8 +74,9 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
     );
   }
 
-  const project = state.projectsById.get(projectId);
-  const baseBranch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const project = await projectById(state, projectId, store);
+  const baseBranch =
+    project === undefined ? undefined : await branchStore.findBranchById(project.default_branch_id);
   if (project === undefined || baseBranch === undefined) {
     return reply.code(404).send(problem(404, "Project branch not found"));
   }
@@ -84,7 +102,7 @@ function createBranch(request: FastifyRequest, reply: FastifyReply, state: Signu
     head_revision_ids: snapshot,
     status: "ACTIVE"
   };
-  state.branchesById.set(branch.id, branch);
+  await branchStore.saveBranch(branch);
   const warnings = inFlightMergeRequestWarnings(state, baseBranch.id);
 
   return reply.code(201).send({
@@ -140,20 +158,48 @@ function firstUseCaseKey(state: SignupState, projectId: string): string {
   return state.usecasesByProjectId.get(projectId)?.[0]?.key ?? "<KEY>";
 }
 
-function branchNameExists(state: SignupState, projectId: string, name: string): boolean {
-  return [...state.branchesById.values()].some(
-    (branch) => branch.project_id === projectId && branch.name === name
-  );
+async function branchNameExists(
+  branchStore: BranchStore,
+  projectId: string,
+  name: string
+): Promise<boolean> {
+  return (await branchStore.findBranchByProjectAndName(projectId, name)) !== undefined;
 }
 
-function nextBranchName(state: SignupState, projectId: string, name: string): string {
+async function nextBranchName(
+  branchStore: BranchStore,
+  projectId: string,
+  name: string
+): Promise<string> {
   let suffix = 2;
   let candidate = `${name}-${String(suffix)}`;
-  while (branchNameExists(state, projectId, candidate)) {
+  while (await branchNameExists(branchStore, projectId, candidate)) {
     suffix += 1;
     candidate = `${name}-${String(suffix)}`;
   }
   return candidate;
+}
+
+async function membershipForProject(
+  request: FastifyRequest,
+  state: SignupState,
+  projectId: string,
+  store: SignupStore | undefined
+) {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (store !== undefined && userId !== undefined) {
+    return store.membershipForProject(projectId, userId);
+  }
+
+  return inMemoryMembershipForProject(request, state, projectId);
+}
+
+function projectById(
+  state: SignupState,
+  projectId: string,
+  store: SignupStore | undefined
+) {
+  return store === undefined ? Promise.resolve(state.projectsById.get(projectId)) : store.findProjectById(projectId);
 }
 
 function projectIdFrom(params: unknown): string {

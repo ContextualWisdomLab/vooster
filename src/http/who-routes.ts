@@ -6,18 +6,27 @@ import { problem } from "./signup-support.js";
 import type {
   SignupState,
   StoredLock,
-  StoredSpecBranch,
   StoredUseCase,
   StoredWorkSession
 } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
-export function registerWhoRoutes(app: FastifyInstance, state: SignupState) {
+export function registerWhoRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.get("/v1/usecases/:usecaseId/who", (request, reply) =>
-    showWho(request, reply, state)
+    showWho(request, reply, state, branchStore)
   );
 }
 
-function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function showWho(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const usecaseId = usecaseIdFrom(request.params);
   const usecase = useCaseById(state, usecaseId);
   if (usecase === undefined) {
@@ -29,7 +38,7 @@ function showWho(request: FastifyRequest, reply: FastifyReply, state: SignupStat
 
   const sessions = activeSessions(state, usecase.id).map(sessionRow);
   const locks = activeLocks(state, usecase.id).map(lockRow);
-  const mergeRequests = openMergeRequests(state, usecase.id).map(mergeRow);
+  const mergeRequests = (await openMergeRequests(state, branchStore, usecase.id)).map(mergeRow);
   const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
   return reply.send({
     ...(usecase.archived_at === null ? {} : { archived: true }),
@@ -80,11 +89,19 @@ function activeLocks(state: SignupState, usecaseId: string) {
   return lock === undefined || Date.parse(lock.expires_at) <= Date.now() ? [] : [lock];
 }
 
-function openMergeRequests(state: SignupState, usecaseId: string) {
-  return [...state.mergeRequestsById.values()]
+async function openMergeRequests(
+  state: SignupState,
+  branchStore: BranchStore,
+  usecaseId: string
+) {
+  const matches = await Promise.all([...state.mergeRequestsById.values()]
     .filter((merge) => merge.status === "OPEN")
-    .filter((merge) => branchTouches(state, merge.source_branch_id, usecaseId) ||
-      branchTouches(state, merge.target_branch_id, usecaseId));
+    .map(async (merge) => ({
+      merge,
+      touches: await branchTouches(branchStore, merge.source_branch_id, usecaseId) ||
+        await branchTouches(branchStore, merge.target_branch_id, usecaseId)
+    })));
+  return matches.filter((match) => match.touches).map((match) => match.merge);
 }
 
 function sessionRow(session: StoredWorkSession) {
@@ -167,12 +184,13 @@ function idleSeconds(startedAt: string | undefined): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(startedAt ?? "")) / 1000));
 }
 
-function branchTouches(state: SignupState, branchId: null | string, usecaseId: string): boolean {
-  return branchById(state, branchId)?.head_revision_ids?.[usecaseId] !== undefined;
-}
-
-function branchById(state: SignupState, branchId: null | string): StoredSpecBranch | undefined {
-  return branchId === null ? undefined : state.branchesById.get(branchId);
+async function branchTouches(
+  branchStore: BranchStore,
+  branchId: null | string,
+  usecaseId: string
+): Promise<boolean> {
+  return branchId !== null &&
+    (await branchStore.findBranchById(branchId))?.head_revision_ids?.[usecaseId] !== undefined;
 }
 
 function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {

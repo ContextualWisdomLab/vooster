@@ -4,6 +4,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 type DiffChange = {
   change_type: "ADD" | "CHANGE";
@@ -20,13 +21,22 @@ const diffQuerySchema = z.object({
   to: z.string().min(1)
 });
 
-export function registerRevisionDiffRoutes(app: FastifyInstance, state: SignupState) {
+export function registerRevisionDiffRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.get("/v1/usecases/:usecaseId/diff", (request, reply) =>
-    compareRevisions(request, reply, state)
+    compareRevisions(request, reply, state, branchStore)
   );
 }
 
-function compareRevisions(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function compareRevisions(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = diffQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -48,15 +58,19 @@ function compareRevisions(request: FastifyRequest, reply: FastifyReply, state: S
     return reply.code(404).send(missingRevisionProblem(found.usecase, missingRevision));
   }
 
-  const fromBranch = branchForRevision(state, found.projectId, from.id);
-  const toBranch = branchForRevision(state, found.projectId, to.id);
+  const fromBranch = await branchForRevision(branchStore, found.projectId, from.id);
+  const toBranch = await branchForRevision(branchStore, found.projectId, to.id);
   const crossBranch = fromBranch !== undefined &&
     toBranch !== undefined &&
     fromBranch.id !== toBranch.id;
-  const changes = revisionsBetween(revisions, from, to)
-    .map((revision) =>
-      diffChange(revision, branchForRevision(state, found.projectId, revision.id)?.name)
-    );
+  const changes = await Promise.all(
+    revisionsBetween(revisions, from, to).map(async (revision) =>
+      diffChange(
+        revision,
+        (await branchForRevision(branchStore, found.projectId, revision.id))?.name
+      )
+    )
+  );
   return reply.send({
     changes,
     ...(crossBranch ? crossBranchWarning(fromBranch, toBranch) : {}),
@@ -107,8 +121,12 @@ function diffChange(revision: StoredRevision, sourceBranch?: string): DiffChange
   };
 }
 
-function branchForRevision(state: SignupState, projectId: string, revisionId: string) {
-  return [...state.branchesById.values()].find(
+async function branchForRevision(
+  branchStore: BranchStore,
+  projectId: string,
+  revisionId: string
+) {
+  return (await branchStore.listBranches(projectId)).find(
     (branch) =>
       branch.project_id === projectId &&
       Object.values(branch.head_revision_ids ?? {}).includes(revisionId)

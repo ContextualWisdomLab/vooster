@@ -5,6 +5,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
@@ -14,11 +15,22 @@ const revertBodySchema = z.object({
   summary: z.string().optional()
 });
 
-export function registerRevisionRevertRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/usecases/:usecaseId/revert", (request, reply) => revertUseCase(request, reply, state));
+export function registerRevisionRevertRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
+    revertUseCase(request, reply, state, branchStore)
+  );
 }
 
-function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function revertUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = revertBodySchema.safeParse(request.body);
   if (!parsed.success) {
@@ -59,7 +71,7 @@ function revertUseCase(request: FastifyRequest, reply: FastifyReply, state: Sign
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
   Object.assign(found.usecase, target.snapshot, { current_revision_id: revision.id });
   state.revisionsByEntityId.set(found.usecase.id, [...revisions, revision]);
-  advanceMainHead(state, found.projectId, found.usecase.id, revision.id);
+  await advanceMainHead(state, branchStore, found.projectId, found.usecase.id, revision.id);
 
   return reply.code(201).send({
     impact: {
@@ -92,16 +104,20 @@ function revertRevision(
   };
 }
 
-function advanceMainHead(
+async function advanceMainHead(
   state: SignupState,
+  branchStore: BranchStore,
   projectId: string,
   usecaseId: string,
   revisionId: string
 ) {
   const project = state.projectsById.get(projectId);
-  const branch = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const branch = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (branch !== undefined) {
     branch.head_revision_ids = { ...(branch.head_revision_ids ?? {}), [usecaseId]: revisionId };
+    await branchStore.updateBranch(branch);
   }
 }
 

@@ -5,14 +5,24 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import { useCaseWithProjectId } from "./usecase-support.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
-export function registerUseCaseArchiveRoutes(app: FastifyInstance, state: SignupState) {
+export function registerUseCaseArchiveRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.delete("/v1/usecases/:usecaseId", (request, reply) =>
-    archiveUseCase(request, reply, state)
+    archiveUseCase(request, reply, state, branchStore)
   );
 }
 
-function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function archiveUseCase(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
@@ -44,7 +54,7 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
     ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
     revision
   ]);
-  advanceMainHead(state, found.usecase, revision.id);
+  await advanceMainHead(state, branchStore, found.usecase, revision.id);
   const affectedSessions = affectedSessionsFor(state, found.usecase.id);
 
   return reply.send({
@@ -66,9 +76,10 @@ function archiveUseCase(request: FastifyRequest, reply: FastifyReply, state: Sig
   });
 }
 
-export function restoreArchivedUseCase(
+export async function restoreArchivedUseCase(
   reply: FastifyReply,
   state: SignupState,
+  branchStore: BranchStore,
   found: { projectId: string; usecase: StoredUseCase }
 ) {
   if (found.usecase.archived_at === null) {
@@ -81,7 +92,7 @@ export function restoreArchivedUseCase(
     ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
     revision
   ]);
-  advanceMainHead(state, found.usecase, revision.id);
+  await advanceMainHead(state, branchStore, found.usecase, revision.id);
   return reply.send({
     revision: { change_summary: revision.change_summary, id: revision.id },
     usecase: { archived_at: null, id: found.usecase.id, key: found.usecase.key }
@@ -146,11 +157,19 @@ function hardDeleteRequested(query: unknown): boolean {
   return parsed.success && (parsed.data.hard === "true" || parsed.data.purge === "true");
 }
 
-function advanceMainHead(state: SignupState, usecase: StoredUseCase, revisionId: string) {
+async function advanceMainHead(
+  state: SignupState,
+  branchStore: BranchStore,
+  usecase: StoredUseCase,
+  revisionId: string
+) {
   const project = state.projectsById.get(usecase.project_id);
-  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const main = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
     main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revisionId };
+    await branchStore.updateBranch(main);
   }
 }
 

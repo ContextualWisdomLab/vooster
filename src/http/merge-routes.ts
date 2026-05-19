@@ -6,6 +6,7 @@ import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
 import type { SignupState, StoredProject, StoredSpecBranch } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const mergeOpenSchema = z.object({
   simulate_write_failure: z.boolean().default(false),
@@ -14,16 +15,27 @@ const mergeOpenSchema = z.object({
   target: z.literal("main").default("main")
 });
 
-export function registerMergeRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/merges", (request, reply) => openMerge(request, reply, state));
+export function registerMergeRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  app.post("/v1/merges", (request, reply) =>
+    openMerge(request, reply, state, branchStore)
+  );
 }
 
-function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+async function openMerge(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   const parsed = mergeOpenSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid merge request"));
   }
-  const source = state.branchesById.get(parsed.data.source_branch_id);
+  const source = await branchStore.findBranchById(parsed.data.source_branch_id);
   const project = source === undefined ? undefined : state.projectsById.get(source.project_id);
   if (source === undefined || project === undefined) {
     return reply.code(404).send(problem(404, "Source branch not found"));
@@ -31,7 +43,7 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   if (membershipForProject(request, state, project.id) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  const target = state.branchesById.get(project.default_branch_id);
+  const target = await branchStore.findBranchById(project.default_branch_id);
   if (target === undefined || source.status !== "ACTIVE") {
     return reply.code(409).send(problem(409, "Source branch is not active"));
   }
@@ -109,6 +121,8 @@ function openMerge(request: FastifyRequest, reply: FastifyReply, state: SignupSt
   };
   source.status = "MERGED";
   source.merged_at = new Date().toISOString();
+  await branchStore.updateBranch(target);
+  await branchStore.updateBranch(source);
   mergeRequest.status = "MERGED";
   mergeRequest.resolved_at = new Date().toISOString();
   return reply.code(201).send({

@@ -19,6 +19,7 @@ import type {
   StoredMembership,
   StoredWorkSession
 } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
   "CLAUDE_CODE",
@@ -38,14 +39,21 @@ const sessionStartSchema = z.object({
   simulate_write_failure: z.boolean().default(false)
 });
 
-export function registerSessionRoutes(app: FastifyInstance, state: SignupState) {
-  app.post("/v1/sessions", (request, reply) => startSession(request, reply, state));
+export function registerSessionRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
+  app.post("/v1/sessions", (request, reply) =>
+    startSession(request, reply, state, branchStore)
+  );
 }
 
 function startSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -77,20 +85,35 @@ function startSession(
   if (parsed.data.simulate_write_failure) {
     return reply.code(500).send(problem(500, "Session creation failed", { created_branch: false, created_session: false }, [{ command: "vspec session start --retry", reason: "Retry after the failed transaction." }]));
   }
-  return createPinnedSession(request, reply, state, parsed.data, pinned, userId ?? "");
+  return createPinnedSession(
+    request,
+    reply,
+    state,
+    branchStore,
+    parsed.data,
+    pinned,
+    userId ?? ""
+  );
 }
 
-function createPinnedSession(
+async function createPinnedSession(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  branchStore: BranchStore,
   data: z.infer<typeof sessionStartSchema>,
   pinned: PinnedUseCases,
   userId: string
 ) {
   const session = workSession(data, pinned, userId, agentIdentifier(request, data.agent_type));
   const branch = data.auto_branch
-    ? createAutoBranch(state, data.project_id, data.branch_name ?? `agent/${session.id}`, session)
+    ? await createAutoBranch(
+        state,
+        branchStore,
+        data.project_id,
+        data.branch_name ?? `agent/${session.id}`,
+        session
+      )
     : undefined;
   if (branch === undefined && data.auto_branch) {
     return reply.code(409).send(problem(409, "Auto branch name is already in use"));

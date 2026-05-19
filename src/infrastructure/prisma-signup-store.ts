@@ -70,6 +70,38 @@ class PrismaSignupStore implements SignupStore {
     return actor === null ? undefined : storedActor(actor);
   }
 
+  async findBranchById(branchId: string): Promise<StoredSpecBranch | undefined> {
+    const branch = await this.prisma.specBranch.findUnique({
+      where: { id: branchId }
+    });
+
+    return branch === null ? undefined : storedBranch(branch);
+  }
+
+  async findBranchByProjectAndName(
+    projectId: string,
+    name: string
+  ): Promise<StoredSpecBranch | undefined> {
+    const branch = await this.prisma.specBranch.findUnique({
+      where: {
+        project_id_name: {
+          name,
+          project_id: projectId
+        }
+      }
+    });
+
+    return branch === null ? undefined : storedBranch(branch);
+  }
+
+  async findProjectById(projectId: string): Promise<StoredProject | undefined> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId }
+    });
+
+    return project === null ? undefined : storedProject(project);
+  }
+
   async listActors(projectId: string): Promise<StoredActor[]> {
     const actors = await this.prisma.actor.findMany({
       orderBy: { created_at: "asc" },
@@ -77,6 +109,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return actors.map(storedActor);
+  }
+
+  async listBranches(projectId: string): Promise<StoredSpecBranch[]> {
+    const branches = await this.prisma.specBranch.findMany({
+      orderBy: { created_at: "asc" },
+      where: { project_id: projectId }
+    });
+
+    return branches.map(storedBranch);
   }
 
   async membershipForProject(
@@ -127,6 +168,10 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async saveBranch(branch: StoredSpecBranch): Promise<void> {
+    await this.prisma.specBranch.create({ data: specBranchData(branch) });
+  }
+
   async saveProjectWithDefaultBranch(
     project: StoredProject,
     branch: StoredSpecBranch
@@ -156,6 +201,13 @@ class PrismaSignupStore implements SignupStore {
         where: { id: project.id }
       })
     ]);
+  }
+
+  async updateBranch(branch: StoredSpecBranch): Promise<void> {
+    await this.prisma.specBranch.update({
+      data: specBranchUpdate(branch),
+      where: { id: branch.id }
+    });
   }
 
   async updateLastLoginAt(userId: string, lastLoginAt: string): Promise<void> {
@@ -188,6 +240,50 @@ class PrismaSignupStore implements SignupStore {
       slug: membership.workspace.slug
     }));
   }
+}
+
+function storedBranch(branch: {
+  base_branch_id: null | string;
+  base_revision_ids: string;
+  head_revision_ids: string;
+  id: string;
+  merged_at: Date | null;
+  name: string;
+  owner_id: string;
+  owner_type: string;
+  project_id: string;
+  status: string;
+}): StoredSpecBranch {
+  return {
+    base_branch_id: branch.base_branch_id,
+    base_revision_ids: parseRecord(branch.base_revision_ids),
+    head_revision_ids: parseRecord(branch.head_revision_ids),
+    id: branch.id,
+    merged_at: branch.merged_at?.toISOString(),
+    name: branch.name,
+    owner_id: branch.owner_id,
+    owner_type: storedOwnerType(branch.owner_type),
+    project_id: branch.project_id,
+    status: storedBranchStatus(branch.status)
+  };
+}
+
+function storedProject(project: {
+  default_branch_id: null | string;
+  id: string;
+  key: string;
+  name: string;
+  visibility: string;
+  workspace_id: string;
+}): StoredProject {
+  return {
+    default_branch_id: project.default_branch_id ?? "",
+    id: project.id,
+    key: project.key,
+    name: project.name,
+    visibility: project.visibility === "INTERNAL" ? "INTERNAL" : "PRIVATE",
+    workspace_id: project.workspace_id
+  };
 }
 
 function storedActor(actor: {
@@ -248,11 +344,60 @@ function dateOrNull(value: null | string): Date | null {
   return value === null ? null : new Date(value);
 }
 
+function dateOrUndefined(value: string | undefined): Date | undefined {
+  return value === undefined ? undefined : new Date(value);
+}
+
 function parseAliases(raw: string): string[] {
   const parsed = JSON.parse(raw) as unknown;
   return Array.isArray(parsed) && parsed.every((entry) => typeof entry === "string")
     ? parsed
     : [];
+}
+
+function parseRecord(raw: string): Record<string, string> {
+  const parsed = JSON.parse(raw) as unknown;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(parsed).filter((entry): entry is [string, string] =>
+      typeof entry[1] === "string"
+    )
+  );
+}
+
+function specBranchData(branch: StoredSpecBranch) {
+  return {
+    base_branch_id: branch.base_branch_id,
+    base_revision_ids: JSON.stringify(branch.base_revision_ids ?? {}),
+    head_revision_ids: JSON.stringify(branch.head_revision_ids ?? {}),
+    id: branch.id,
+    merged_at: dateOrUndefined(branch.merged_at),
+    name: branch.name,
+    owner_id: branch.owner_id,
+    owner_type: branch.owner_type,
+    project_id: branch.project_id,
+    status: branch.status ?? "ACTIVE"
+  };
+}
+
+function specBranchUpdate(branch: StoredSpecBranch) {
+  return {
+    base_revision_ids: JSON.stringify(branch.base_revision_ids ?? {}),
+    head_revision_ids: JSON.stringify(branch.head_revision_ids ?? {}),
+    merged_at: dateOrUndefined(branch.merged_at),
+    status: branch.status ?? "ACTIVE"
+  };
+}
+
+function storedBranchStatus(status: string): StoredSpecBranch["status"] {
+  return status === "ABANDONED" || status === "MERGED" ? status : "ACTIVE";
+}
+
+function storedOwnerType(ownerType: string): StoredSpecBranch["owner_type"] {
+  return ownerType === "AGENT" ? "AGENT" : "HUMAN";
 }
 
 function storedActorType(type: string): StoredActor["type"] {

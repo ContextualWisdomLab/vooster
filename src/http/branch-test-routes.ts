@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
 const branchRevisionSchema = z.object({
   severity: z.enum(["BREAKING", "COSMETIC", "NON_BREAKING"]),
@@ -13,31 +14,36 @@ const extensionRevisionSchema = z.object({
   extension_point: z.string().min(1)
 });
 
-export function registerBranchTestRoutes(app: FastifyInstance, state: SignupState) {
+export function registerBranchTestRoutes(
+  app: FastifyInstance,
+  state: SignupState,
+  branchStore: BranchStore
+) {
   app.post("/__test/branches/:branchId/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceBranchUseCase(request, reply, state)
+    advanceBranchUseCase(request, reply, state, branchStore)
   );
   app.post("/__test/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceMainUseCase(request, reply, state)
+    advanceMainUseCase(request, reply, state, branchStore)
   );
   app.post("/__test/branches/:branchId/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceBranchExtension(request, reply, state)
+    advanceBranchExtension(request, reply, state, branchStore)
   );
   app.post("/__test/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceMainExtension(request, reply, state)
+    advanceMainExtension(request, reply, state, branchStore)
   );
 }
 
-function advanceBranchUseCase(
+async function advanceBranchUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const params = z
     .object({ branchId: z.string().min(1), usecaseId: z.string().min(1) })
     .parse(request.params);
   const parsed = branchRevisionSchema.safeParse(request.body);
-  const branch = state.branchesById.get(params.branchId);
+  const branch = await branchStore.findBranchById(params.branchId);
   const usecase = [...state.usecasesByProjectId.values()]
     .flat()
     .find((candidate) => candidate.id === params.usecaseId);
@@ -56,19 +62,21 @@ function advanceBranchUseCase(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
+  await branchStore.updateBranch(branch);
   return reply.send({ revision_id: revision.id });
 }
 
-function advanceBranchExtension(
+async function advanceBranchExtension(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const params = z
     .object({ branchId: z.string().min(1), usecaseId: z.string().min(1) })
     .parse(request.params);
   const parsed = extensionRevisionSchema.safeParse(request.body);
-  const branch = state.branchesById.get(params.branchId);
+  const branch = await branchStore.findBranchById(params.branchId);
   const usecase = useCaseById(state, params.usecaseId);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch extension request"));
@@ -82,13 +90,15 @@ function advanceBranchExtension(
     [usecase.id]: revision.id
   };
   appendRevision(state, usecase.id, revision);
+  await branchStore.updateBranch(branch);
   return reply.send({ revision_id: revision.id });
 }
 
-function advanceMainUseCase(
+async function advanceMainUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = branchRevisionSchema.safeParse(request.body);
@@ -109,17 +119,21 @@ function advanceMainUseCase(
     revision
   ]);
   const project = state.projectsById.get(usecase.project_id);
-  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const main = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
     main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+    await branchStore.updateBranch(main);
   }
   return reply.send({ revision_id: revision.id });
 }
 
-function advanceMainExtension(
+async function advanceMainExtension(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState
+  state: SignupState,
+  branchStore: BranchStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = extensionRevisionSchema.safeParse(request.body);
@@ -134,9 +148,12 @@ function advanceMainExtension(
   usecase.current_revision_id = revision.id;
   appendRevision(state, usecase.id, revision);
   const project = state.projectsById.get(usecase.project_id);
-  const main = project === undefined ? undefined : state.branchesById.get(project.default_branch_id);
+  const main = project === undefined
+    ? undefined
+    : await branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
     main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+    await branchStore.updateBranch(main);
   }
   return reply.send({ revision_id: revision.id });
 }

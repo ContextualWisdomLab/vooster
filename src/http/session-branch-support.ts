@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { SignupState, StoredSpecBranch, StoredWorkSession } from "./signup-types.js";
+import type { BranchStore } from "../ports/branch-store.js";
 
-export function createAutoBranch(
+export async function createAutoBranch(
   state: SignupState,
+  branchStore: BranchStore,
   projectId: string,
   requestedName: string,
   session: StoredWorkSession
-): StoredSpecBranch | undefined {
+): Promise<StoredSpecBranch | undefined> {
   const project = state.projectsById.get(projectId);
-  const name = uniqueBranchName(state, projectId, requestedName);
+  const name = await uniqueBranchName(branchStore, projectId, requestedName);
   if (project === undefined || name === undefined) {
     return undefined;
   }
@@ -20,19 +22,17 @@ export function createAutoBranch(
     owner_id: session.id,
     base_branch_id: project.default_branch_id
   };
-  state.branchesById.set(branch.id, branch);
+  await branchStore.saveBranch(branch);
   return branch;
 }
 
-function uniqueBranchName(
-  state: SignupState,
+async function uniqueBranchName(
+  branchStore: BranchStore,
   projectId: string,
   requestedName: string
-): string | undefined {
+): Promise<string | undefined> {
   const existing = new Set(
-    [...state.branchesById.values()]
-      .filter((branch) => branch.project_id === projectId)
-      .map((branch) => branch.name)
+    (await branchStore.listBranches(projectId)).map((branch) => branch.name)
   );
   if (!existing.has(requestedName)) {
     return requestedName;

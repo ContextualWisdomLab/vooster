@@ -28,6 +28,7 @@ export class VspecCommand extends Command {
     email: Flags.string(),
     "entity-id": Flags.string(),
     field: Flags.string(),
+    format: Flags.string(),
     from: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
@@ -103,6 +104,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "history") {
       await this.listHistory(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "diff") {
+      await this.compareRevisions(parsed.flags);
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -437,6 +442,51 @@ export class VspecCommand extends Command {
       if (revision.change_summary !== undefined) {
         this.log(revision.change_summary);
       }
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async compareRevisions(flags: ParsedFlags): Promise<void> {
+    const diffFlags = diffFlagsFrom(flags, this.argv[1], this.argv[2], this.argv[3]);
+    const url = new URL(`/v1/usecases/${diffFlags.usecaseId}/diff`, diffFlags.apiUrl);
+    url.searchParams.set("from", diffFlags.fromRevision);
+    url.searchParams.set("to", diffFlags.toRevision);
+    url.searchParams.set("format", diffFlags.format);
+
+    const response = await fetchJson(url, {
+      headers: {
+        Cookie: diffFlags.sessionCookie
+      }
+    });
+    const body = response.body as DiffResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Format ${body.format}`);
+    this.log(`From ${body.from_revision}`);
+    this.log(`To ${body.to_revision}`);
+    this.log(
+      `Summary breaking ${String(body.summary.breaking)} ` +
+        `non_breaking ${String(body.summary.non_breaking)} ` +
+        `cosmetic ${String(body.summary.cosmetic)}`
+    );
+    if (body.cross_branch === true) {
+      this.log("Cross branch true");
+    }
+    for (const warning of body.warnings ?? []) {
+      this.log(`Warning ${warning.type} ${warning.from_branch} ${warning.to_branch}`);
+    }
+    for (const change of body.changes) {
+      this.log(`Change ${change.change_type} ${change.entity_type} ${change.path}`);
+      this.log(`Revision ${change.revision}`);
+      this.log(`Severity ${change.severity}`);
+      if (change.source_branch !== undefined) {
+        this.log(`Source branch ${change.source_branch}`);
+      }
+    }
+    if (body.note !== undefined) {
+      this.log(body.note);
     }
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
@@ -903,6 +953,15 @@ type HistoryFlags = {
   usecaseId: string;
 };
 
+type DiffFlags = {
+  apiUrl: string;
+  format: "agent" | "human" | "json";
+  fromRevision: string;
+  sessionCookie: string;
+  toRevision: string;
+  usecaseId: string;
+};
+
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1050,6 +1109,7 @@ type ParsedFlags = {
   email?: string;
   "entity-id"?: string;
   field?: string;
+  format?: string;
   from?: string;
   "github-code"?: string;
   intent?: string;
@@ -1248,6 +1308,38 @@ type HistoryResponse = {
   usecase: {
     key: string;
   };
+};
+
+type DiffResponse = {
+  changes: Array<{
+    change_type: string;
+    entity_type: string;
+    path: string;
+    revision: string;
+    severity: string;
+    source_branch?: string;
+  }>;
+  cross_branch?: boolean;
+  format: string;
+  from_revision: string;
+  note?: string;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  summary: {
+    breaking: number;
+    cosmetic: number;
+    non_breaking: number;
+  };
+  to_revision: string;
+  usecase: {
+    key: string;
+  };
+  warnings?: Array<{
+    from_branch: string;
+    to_branch: string;
+    type: string;
+  }>;
 };
 
 type ActorResponse = {
@@ -1602,6 +1694,22 @@ function historyFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Hi
   };
 }
 
+function diffFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined,
+  fromRevision: string | undefined,
+  toRevision: string | undefined
+): DiffFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    format: diffFormat(flags.format ?? "human"),
+    fromRevision: requiredArgument(fromRevision, "from-revision"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    toRevision: requiredArgument(toRevision, "to-revision"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
 function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
   return {
     aliases: aliasesFrom(flags.aliases),
@@ -1886,6 +1994,15 @@ function mergeTarget(rawTarget: string): "main" {
   }
 
   throw new Error("Merge target must be main.");
+}
+
+function diffFormat(rawFormat: string): "agent" | "human" | "json" {
+  const format = rawFormat.toLowerCase();
+  if (format === "agent" || format === "human" || format === "json") {
+    return format;
+  }
+
+  throw new Error("Diff format must be human, json, or agent.");
 }
 
 function scenarioType(rawType: string): "EXTENSION" | "MAIN_SUCCESS" {

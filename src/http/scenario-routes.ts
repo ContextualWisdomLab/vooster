@@ -23,6 +23,7 @@ import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const scenarioRequestSchema = z.object({
@@ -44,6 +45,7 @@ export function registerScenarioRoutes(
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
@@ -54,11 +56,21 @@ export function registerScenarioRoutes(
       membershipStore,
       scenarioStore,
       stakeholderInterestStore,
+      stepStore,
       useCaseStore
     )
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
-    addStep(request, reply, state, actorStore, membershipStore, scenarioStore, useCaseStore)
+    addStep(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      scenarioStore,
+      stepStore,
+      useCaseStore
+    )
   );
 }
 
@@ -69,6 +81,7 @@ async function createScenario(
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -83,7 +96,7 @@ async function createScenario(
     return reply.code(400).send(problem(400, "Invalid scenario request"));
   }
   if (parsed.data.type === "EXTENSION") {
-    return createExtensionScenario(reply, state, scenarioStore, found, {
+    return createExtensionScenario(reply, state, scenarioStore, stepStore, found, {
       ...parsed.data,
       type: "EXTENSION"
     });
@@ -125,6 +138,7 @@ async function addStep(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await scenarioWithUseCase(
@@ -156,7 +170,7 @@ async function addStep(
     return reply.code(422).send(unknownStepActorProblem(knownActors));
   }
 
-  const steps = state.stepsByScenarioId.get(found.scenario.id) ?? [];
+  const steps = await stepStore.listSteps(found.scenario.id);
   const step: StoredStep = {
     id: randomUUID(),
     scenario_id: found.scenario.id,
@@ -168,7 +182,7 @@ async function addStep(
     order_index: steps.length
   };
   const scenarioSteps = [...steps, step];
-  state.stepsByScenarioId.set(found.scenario.id, scenarioSteps);
+  await stepStore.saveStep(step);
   const revision = appendUseCaseRevision(
     state,
     found.usecase,

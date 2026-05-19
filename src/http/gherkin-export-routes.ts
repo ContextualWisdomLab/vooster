@@ -13,6 +13,7 @@ import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./s
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
@@ -29,7 +30,8 @@ export function registerGherkinExportRoutes(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore
 ) {
   app.post("/v1/usecases/:id/export/gherkin", (request, reply) =>
     exportGherkin(
@@ -39,7 +41,8 @@ export function registerGherkinExportRoutes(
       actorStore,
       membershipStore,
       useCaseStore,
-      scenarioStore
+      scenarioStore,
+      stepStore
     )
   );
 }
@@ -51,7 +54,8 @@ async function exportGherkin(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
@@ -76,6 +80,7 @@ async function exportGherkin(
   const prerequisiteProblem = await gherkinPrerequisiteProblem(
     state,
     scenarioStore,
+    stepStore,
     found.usecase
   );
   if (prerequisiteProblem !== undefined) {
@@ -90,7 +95,8 @@ async function exportGherkin(
     found.projectId,
     found.usecase,
     actorStore,
-    scenarioStore
+    scenarioStore,
+    stepStore
   );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(
@@ -108,7 +114,8 @@ async function renderFeature(
   projectId: string,
   usecase: StoredUseCase,
   actorStore: ActorStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore
 ) {
   const scenarios = await scenarioStore.listScenarios(usecase.id);
   const main = scenarios.find((scenario) => scenario.type === "MAIN_SUCCESS");
@@ -118,23 +125,23 @@ async function renderFeature(
   return [
     `Feature: ${usecase.title}`,
     `Background:\n  Given the use case is in scope ${usecase.scope}`,
-    main === undefined ? "" : await renderMainScenario(state, projectId, main, actorStore),
+    main === undefined ? "" : await renderMainScenario(projectId, main, actorStore, stepStore),
     ...(await Promise.all(
       extensions.map((scenario) =>
-        renderExtensionScenario(state, projectId, scenario, actorStore)
+        renderExtensionScenario(projectId, scenario, actorStore, stepStore)
       )
     ))
   ].filter((section) => section.length > 0).join("\n\n") + "\n";
 }
 
 async function renderMainScenario(
-  state: SignupState,
   projectId: string,
   scenario: StoredScenario,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  stepStore: StepStore
 ) {
   const steps = await Promise.all(
-    scenarioSteps(state, scenario.id).map(async (step) =>
+    (await scenarioSteps(stepStore, scenario.id)).map(async (step) =>
       `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
   );
   return [
@@ -144,16 +151,16 @@ async function renderMainScenario(
 }
 
 async function renderExtensionScenario(
-  state: SignupState,
   projectId: string,
   scenario: StoredScenario,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  stepStore: StepStore
 ) {
   const condition = scenario.condition ?? "Extension";
   const extensionPoint = scenario.extension_point ?? "*";
   const parentStep = scenario.parent_step_number ?? 0;
   const steps = await Promise.all(
-    scenarioSteps(state, scenario.id).map(async (step) =>
+    (await scenarioSteps(stepStore, scenario.id)).map(async (step) =>
       `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
   );
   return [
@@ -164,8 +171,8 @@ async function renderExtensionScenario(
   ].join("\n");
 }
 
-function scenarioSteps(state: SignupState, scenarioId: string): StoredStep[] {
-  return [...(state.stepsByScenarioId.get(scenarioId) ?? [])]
+async function scenarioSteps(stepStore: StepStore, scenarioId: string): Promise<StoredStep[]> {
+  return [...(await stepStore.listSteps(scenarioId))]
     .sort((left, right) => left.step_number - right.step_number);
 }
 

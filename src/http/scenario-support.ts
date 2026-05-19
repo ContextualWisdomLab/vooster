@@ -7,6 +7,7 @@ import type {
   StoredUseCase
 } from "./signup-types.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type UseCaseRevisionResponse = {
@@ -31,12 +32,12 @@ export function extensionPointParentStep(extensionPoint: string): number | null 
   return match?.groups?.step === undefined ? null : Number.parseInt(match.groups.step, 10);
 }
 
-export function mainScenarioHasStep(
-  state: SignupState,
+export async function mainScenarioHasStep(
+  stepStore: StepStore,
   mainScenario: StoredScenario,
   stepNumber: number
-): boolean {
-  return (state.stepsByScenarioId.get(mainScenario.id) ?? []).some(
+): Promise<boolean> {
+  return (await stepStore.listSteps(mainScenario.id)).some(
     (step) => step.step_number === stepNumber
   );
 }

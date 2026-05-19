@@ -16,6 +16,7 @@ import type {
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const stepPatchSchema = z.object({
@@ -31,10 +32,20 @@ export function registerStepRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   app.patch("/v1/steps/:stepId", (request, reply) =>
-    patchStep(request, reply, state, lockStore, membershipStore, scenarioStore, useCaseStore)
+    patchStep(
+      request,
+      reply,
+      state,
+      lockStore,
+      membershipStore,
+      scenarioStore,
+      stepStore,
+      useCaseStore
+    )
   );
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
     createTestLock(request, reply, lockStore)
@@ -51,11 +62,12 @@ async function patchStep(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await stepWithUseCase(
-    state,
     scenarioStore,
+    stepStore,
     useCaseStore,
     stepIdFrom(request.params)
   );
@@ -98,10 +110,7 @@ async function patchStep(
     action: parsed.data.action ?? found.step.action,
     notes: parsed.data.notes ?? found.step.notes
   };
-  state.stepsByScenarioId.set(
-    found.step.scenario_id,
-    found.steps.map((step) => (step.id === updated.id ? updated : step))
-  );
+  await stepStore.updateStep(updated);
   const revision = appendUseCaseRevision(
     state,
     found.usecase,
@@ -119,8 +128,8 @@ async function patchStep(
 }
 
 async function stepWithUseCase(
-  state: SignupState,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore,
   stepId: string
 ): Promise<
@@ -132,14 +141,18 @@ async function stepWithUseCase(
     }
   | undefined
 > {
-  for (const [scenarioId, steps] of state.stepsByScenarioId) {
-    const step = steps.find((candidate) => candidate.id === stepId);
-    const found = step === undefined
-      ? undefined
-      : await scenarioWithUseCase(scenarioStore, useCaseStore, scenarioId);
-    if (step !== undefined && found !== undefined) {
-      return { projectId: found.projectId, step, steps, usecase: found.usecase };
-    }
+  const step = await stepStore.findStepById(stepId);
+  if (step === undefined) {
+    return undefined;
+  }
+  const found = await scenarioWithUseCase(scenarioStore, useCaseStore, step.scenario_id);
+  if (found !== undefined) {
+    return {
+      projectId: found.projectId,
+      step,
+      steps: await stepStore.listSteps(step.scenario_id),
+      usecase: found.usecase
+    };
   }
 
   return undefined;

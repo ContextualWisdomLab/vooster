@@ -10,6 +10,7 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
@@ -28,7 +29,8 @@ export function registerUseCaseAgentRoutes(
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
     showUseCase(
@@ -41,7 +43,8 @@ export function registerUseCaseAgentRoutes(
       useCaseStore,
       scenarioStore,
       stakeholderInterestStore,
-      stakeholderStore
+      stakeholderStore,
+      stepStore
     )
   );
 }
@@ -56,7 +59,8 @@ async function showUseCase(
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
@@ -127,7 +131,8 @@ async function showUseCase(
     projectStore,
     scenarioStore,
     stakeholderInterestStore,
-    stakeholderStore
+    stakeholderStore,
+    stepStore
   ));
 }
 
@@ -143,7 +148,8 @@ async function agentEnvelope(
   projectStore: ProjectStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   const project = await projectStore.findProjectById(projectId);
   return {
@@ -161,7 +167,8 @@ async function agentEnvelope(
       actorStore,
       scenarioStore,
       stakeholderInterestStore,
-      stakeholderStore
+      stakeholderStore,
+      stepStore
     ),
     format_version: 1,
     suggested_next_actions: suggestedActions(usecase, warnings),
@@ -218,7 +225,8 @@ async function agentData(
   actorStore: ActorStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   return {
     primary_actor: {
@@ -228,7 +236,7 @@ async function agentData(
       (await scenarioStore.listScenarios(usecase.id)).map(async (scenario) => ({
         id: scenario.id,
         steps: await Promise.all(
-          (state.stepsByScenarioId.get(scenario.id) ?? []).map(async (step) => ({
+          (await stepStore.listSteps(scenario.id)).map(async (step) => ({
             action: step.action,
             actor: await actorName(actorStore, projectId, step.actor_id),
             step_number: step.step_number

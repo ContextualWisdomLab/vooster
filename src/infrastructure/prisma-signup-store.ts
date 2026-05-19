@@ -11,6 +11,7 @@ import type {
   StoredSpecBranch,
   StoredStakeholder,
   StoredStakeholderInterest,
+  StoredStep,
   StoredUser,
   StoredUseCase
 } from "../http/signup-types.js";
@@ -259,6 +260,14 @@ class PrismaSignupStore implements SignupStore {
     return interest === null ? undefined : storedStakeholderInterest(interest);
   }
 
+  async findStepById(stepId: string): Promise<StoredStep | undefined> {
+    const step = await this.prisma.step.findUnique({
+      where: { id: stepId }
+    });
+
+    return step === null ? undefined : storedStep(step);
+  }
+
   async listActors(projectId: string): Promise<StoredActor[]> {
     const actors = await this.prisma.actor.findMany({
       orderBy: { created_at: "asc" },
@@ -331,6 +340,15 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return interests.map(storedStakeholderInterest);
+  }
+
+  async listSteps(scenarioId: string): Promise<StoredStep[]> {
+    const steps = await this.prisma.step.findMany({
+      orderBy: [{ order_index: "asc" }, { step_number: "asc" }],
+      where: { scenario_id: scenarioId }
+    });
+
+    return steps.map(storedStep);
   }
 
   async listUseCases(projectId: string): Promise<StoredUseCase[]> {
@@ -487,6 +505,12 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async saveStep(step: StoredStep): Promise<void> {
+    await this.prisma.step.create({
+      data: stepData(step)
+    });
+  }
+
   async saveUseCase(usecase: StoredUseCase): Promise<void> {
     await this.prisma.useCase.create({
       data: useCaseData(usecase)
@@ -569,6 +593,13 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.mergeRequest.update({
       data: mergeRequestUpdate(mergeRequest),
       where: { id: mergeRequest.id }
+    });
+  }
+
+  async updateStep(step: StoredStep): Promise<void> {
+    await this.prisma.step.update({
+      data: stepUpdate(step),
+      where: { id: step.id }
     });
   }
 
@@ -870,6 +901,28 @@ function storedStakeholderInterest(interest: {
   };
 }
 
+function storedStep(step: {
+  action: string;
+  actor_id: string;
+  id: string;
+  is_system_step: boolean;
+  notes: null | string;
+  order_index: number;
+  scenario_id: string;
+  step_number: number;
+}): StoredStep {
+  return {
+    action: step.action,
+    actor_id: step.actor_id,
+    id: step.id,
+    is_system_step: step.is_system_step,
+    notes: step.notes,
+    order_index: step.order_index,
+    scenario_id: step.scenario_id,
+    step_number: step.step_number
+  };
+}
+
 function storedUseCase(usecase: {
   archived_at: Date | null;
   current_revision_id: null | string;
@@ -1062,6 +1115,30 @@ function stakeholderInterestData(interest: StoredStakeholderInterest) {
       interest.protection_mechanism === "" ? null : interest.protection_mechanism,
     stakeholder_id: interest.stakeholder_id,
     usecase_id: interest.usecase_id
+  };
+}
+
+function stepData(step: StoredStep) {
+  return {
+    action: step.action,
+    actor_id: step.actor_id,
+    id: step.id,
+    is_system_step: step.is_system_step,
+    notes: step.notes,
+    order_index: step.order_index,
+    scenario_id: step.scenario_id,
+    step_number: step.step_number
+  };
+}
+
+function stepUpdate(step: StoredStep) {
+  return {
+    action: step.action,
+    actor_id: step.actor_id,
+    is_system_step: step.is_system_step,
+    notes: step.notes,
+    order_index: step.order_index,
+    step_number: step.step_number
   };
 }
 

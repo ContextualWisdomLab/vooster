@@ -421,18 +421,13 @@ describe("Goal 2 persistence matrix", () => {
         }>;
       };
     };
-    expect(shownBody.data?.scenarios ?? []).toContainEqual(
-      expect.objectContaining({
-        id: scenario.id,
-        steps: expect.arrayContaining([
-          expect.objectContaining({
-            action: step.action,
-            actor: "Customer",
-            step_number: 1
-          })
-        ])
-      })
-    );
+    const persistedScenario = (shownBody.data?.scenarios ?? [])
+      .find((entry) => entry.id === scenario.id);
+    expect(persistedScenario?.steps ?? []).toContainEqual({
+      action: step.action,
+      actor: "Customer",
+      step_number: 1
+    });
   }, 90_000);
 });
 

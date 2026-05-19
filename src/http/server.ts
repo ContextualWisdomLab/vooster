@@ -9,6 +9,7 @@ import { createMemoryProjectStore } from "../infrastructure/memory-project-store
 import { createMemoryScenarioStore } from "../infrastructure/memory-scenario-store.js";
 import { createMemoryStakeholderInterestStore } from "../infrastructure/memory-stakeholder-interest-store.js";
 import { createMemoryStakeholderStore } from "../infrastructure/memory-stakeholder-store.js";
+import { createMemoryStepStore } from "../infrastructure/memory-step-store.js";
 import { createMemoryUseCaseStore } from "../infrastructure/memory-usecase-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
@@ -66,6 +67,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const stakeholderInterestStore =
     options.signupStore ?? createMemoryStakeholderInterestStore();
   const stakeholderStore = options.signupStore ?? createMemoryStakeholderStore();
+  const stepStore = options.signupStore ?? createMemoryStepStore();
   const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
@@ -104,7 +106,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore,
     scenarioStore,
     stakeholderInterestStore,
-    stakeholderStore
+    stakeholderStore,
+    stepStore
   );
   registerMergeRoutes(
     app,
@@ -133,7 +136,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     actorStore,
     membershipStore,
     useCaseStore,
-    scenarioStore
+    scenarioStore,
+    stepStore
   );
   registerGoalRoutes(app, state, actorStore, goalStore, membershipStore, projectStore);
   registerGoalPromotionRoutes(
@@ -166,7 +170,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore,
     scenarioStore,
     stakeholderInterestStore,
-    stakeholderStore
+    stakeholderStore,
+    stepStore
   );
   registerUseCaseArchiveRoutes(
     app,
@@ -209,6 +214,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     scenarioStore,
     stakeholderInterestStore,
+    stepStore,
     useCaseStore
   );
   registerSessionCompleteRoutes(
@@ -230,7 +236,15 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore
   );
   registerSessionRoutes(app, state, branchStore, lockStore, membershipStore, projectStore, useCaseStore);
-  registerStepRoutes(app, state, lockStore, membershipStore, scenarioStore, useCaseStore);
+  registerStepRoutes(
+    app,
+    state,
+    lockStore,
+    membershipStore,
+    scenarioStore,
+    stepStore,
+    useCaseStore
+  );
   registerSyncRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
 
   return app;
@@ -242,7 +256,6 @@ function initialState(options: ServerOptions): SignupState {
     readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
-    stepsByScenarioId: new Map(),
     usersByGithubId: new Map(),
     workSessionsById: new Map(),
     workSessionsByUseCaseId: new Map(),

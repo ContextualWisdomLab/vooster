@@ -15,6 +15,7 @@ import type { ProjectStore } from "./project-store.js";
 import type { ScenarioStore } from "./scenario-store.js";
 import type { StakeholderInterestStore } from "./stakeholder-interest-store.js";
 import type { StakeholderStore } from "./stakeholder-store.js";
+import type { StepStore } from "./step-store.js";
 import type { UseCaseStore } from "./usecase-store.js";
 
 export type SignupEntities = {
@@ -39,6 +40,7 @@ export type SignupStore = ActorStore &
   ScenarioStore &
   StakeholderInterestStore &
   StakeholderStore &
+  StepStore &
   UseCaseStore & {
   close: () => Promise<void>;
   findUserByGithubId: (githubId: string) => Promise<StoredUser | undefined>;

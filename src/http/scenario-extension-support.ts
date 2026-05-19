@@ -9,11 +9,13 @@ import {
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredUseCase } from "./signup-types.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 
 export async function createExtensionScenario(
   reply: FastifyReply,
   state: SignupState,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   found: { projectId: string; usecase: StoredUseCase },
   data: {
     condition?: string;
@@ -38,7 +40,7 @@ export async function createExtensionScenario(
   if (
     mainScenario === undefined ||
     (parentStepNumber !== null &&
-      !mainScenarioHasStep(state, mainScenario, parentStepNumber))
+      !(await mainScenarioHasStep(stepStore, mainScenario, parentStepNumber)))
   ) {
     return reply
       .code(422)

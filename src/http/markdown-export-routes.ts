@@ -13,6 +13,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
@@ -31,7 +32,8 @@ export function registerMarkdownExportRoutes(
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   app.post("/v1/usecases/:id/export/markdown", (request, reply) =>
     exportMarkdown(
@@ -43,7 +45,8 @@ export function registerMarkdownExportRoutes(
       useCaseStore,
       scenarioStore,
       stakeholderInterestStore,
-      stakeholderStore
+      stakeholderStore,
+      stepStore
     )
   );
 }
@@ -57,7 +60,8 @@ async function exportMarkdown(
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
@@ -80,6 +84,7 @@ async function exportMarkdown(
   const prerequisiteProblem = await markdownPrerequisiteProblem(
     state,
     scenarioStore,
+    stepStore,
     found.usecase
   );
   if (prerequisiteProblem !== undefined) {
@@ -96,7 +101,8 @@ async function exportMarkdown(
     actorStore,
     scenarioStore,
     stakeholderInterestStore,
-    stakeholderStore
+    stakeholderStore,
+    stepStore
   );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
@@ -114,7 +120,8 @@ async function renderMarkdown(
   actorStore: ActorStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore
 ) {
   return [
     await frontmatter(actorStore, projectId, usecase),
@@ -127,8 +134,8 @@ async function renderMarkdown(
     ),
     "## Preconditions\n\n- None recorded.",
     "## Trigger\n\nNot recorded.",
-    await mainScenarioSection(state, projectId, usecase.id, actorStore, scenarioStore),
-    await extensionSection(state, projectId, usecase.id, actorStore, scenarioStore),
+    await mainScenarioSection(projectId, usecase.id, actorStore, scenarioStore, stepStore),
+    await extensionSection(projectId, usecase.id, actorStore, scenarioStore, stepStore),
     "## Success Guarantee\n\nNot recorded.",
     "## Minimal Guarantee\n\nNot recorded.",
     "## Notes\n"
@@ -138,10 +145,11 @@ async function renderMarkdown(
 async function markdownPrerequisiteProblem(
   state: SignupState,
   scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   usecase: StoredUseCase
 ) {
   const main = await scenarioStore.findMainScenario(usecase.id);
-  if (scenarioSteps(state, main?.id).length > 0) {
+  if ((await scenarioSteps(stepStore, main?.id)).length > 0) {
     return undefined;
   }
   return problem(
@@ -192,15 +200,15 @@ async function stakeholderSection(
 }
 
 async function mainScenarioSection(
-  state: SignupState,
   projectId: string,
   usecaseId: string,
   actorStore: ActorStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore
 ) {
   const scenario = await scenarioStore.findMainScenario(usecaseId);
   const lines = await Promise.all(
-    scenarioSteps(state, scenario?.id).map((step, index) =>
+    (await scenarioSteps(stepStore, scenario?.id)).map((step, index) =>
       stepLine(actorStore, projectId, step, `${String(index + 1)}.`))
   );
   return ["## Main Success Scenario", ...(lines.length === 0 ? ["1. **System** Not recorded."] : lines)]
@@ -208,17 +216,17 @@ async function mainScenarioSection(
 }
 
 async function extensionSection(
-  state: SignupState,
   projectId: string,
   usecaseId: string,
   actorStore: ActorStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore
 ) {
   const rendered = await Promise.all(
     (await scenarioStore.listScenarios(usecaseId))
       .filter((scenario) => scenario.type === "EXTENSION")
       .sort(compareExtensions)
-      .map((scenario) => renderExtension(state, projectId, scenario, actorStore))
+      .map((scenario) => renderExtension(projectId, scenario, actorStore, stepStore))
   );
   return ["## Extensions", ...(rendered.length === 0 ? ["None recorded."] : rendered)].join("\n\n");
 }
@@ -238,14 +246,14 @@ function extensionSortKey(point: string) {
 }
 
 async function renderExtension(
-  state: SignupState,
   projectId: string,
   scenario: StoredScenario,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  stepStore: StepStore
 ) {
   const point = scenario.extension_point ?? "*a";
   const steps = await Promise.all(
-    scenarioSteps(state, scenario.id).map((step, index) =>
+    (await scenarioSteps(stepStore, scenario.id)).map((step, index) =>
       stepLine(actorStore, projectId, step, `- ${point}${String(index + 1)}.`))
   );
   return [
@@ -255,8 +263,11 @@ async function renderExtension(
   ].join("\n\n");
 }
 
-function scenarioSteps(state: SignupState, scenarioId: string | undefined): StoredStep[] {
-  return [...(state.stepsByScenarioId.get(scenarioId ?? "") ?? [])]
+async function scenarioSteps(
+  stepStore: StepStore,
+  scenarioId: string | undefined
+): Promise<StoredStep[]> {
+  return [...(await stepStore.listSteps(scenarioId ?? ""))]
     .sort((left, right) => left.step_number - right.step_number);
 }
 

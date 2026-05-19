@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T09:07:11Z_
+_Last updated: 2026-05-19T09:12:37Z_
 
 ## Overall
 
-- Commits: 543
-- Last commit: 0c8f22a green(cli): UC-003 CLI E2E
+- Commits: 546
+- Last commit: a09460e green(cli): UC-004 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -25,7 +25,7 @@ _Last updated: 2026-05-19T09:07:11Z_
 | UC-001 | Sign up for a workspace | ✓ DONE | 5/5 | ✓ |
 | UC-002 | Log in | ✓ DONE | 5/5 | ✓ |
 | UC-003 | Invite a member | ✓ DONE | 7/7 | ✓ |
-| UC-004 | Create a project | ✓ DONE | 6/6 | ○ |
+| UC-004 | Create a project | ✓ DONE | 6/6 | ✓ |
 | UC-005 | Define an actor | ✓ DONE | 6/6 | ○ |
 | UC-006 | Define a stakeholder | ✓ DONE | 5/5 | ○ |
 | UC-007 | Manage the actor-goal list | ✓ DONE | 7/7 | ○ |

@@ -13,9 +13,13 @@ export class VspecCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    email: Flags.string(),
     "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
+    role: Flags.string(),
+    "session-cookie": Flags.string(),
     version: Flags.version({ char: "v" }),
+    "workspace-id": Flags.string(),
     "workspace-name": Flags.string(),
     "workspace-slug": Flags.string()
   };
@@ -27,6 +31,10 @@ export class VspecCommand extends Command {
 
     if (parsed.args.command === "login") {
       await this.login(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "member" && this.argv[1] === "invite") {
+      await this.inviteMember(parsed.flags);
       return;
     }
 
@@ -80,6 +88,27 @@ export class VspecCommand extends Command {
       this.log(callbackBody.recommended_next_command);
     }
   }
+
+  private async inviteMember(flags: ParsedFlags): Promise<void> {
+    const inviteFlags = inviteFlagsFrom(flags);
+    const response = await postJson(
+      `${inviteFlags.apiUrl}/v1/workspaces/${inviteFlags.workspaceId}/invitations`,
+      {
+        email: inviteFlags.email,
+        role: inviteFlags.role
+      },
+      {
+        Cookie: inviteFlags.sessionCookie
+      }
+    );
+    const body = response.body as InvitationResponse;
+
+    this.log(`Invited ${body.invitation.email}`);
+    this.log(`Role ${body.invitation.role}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -92,9 +121,21 @@ type SignupFlags = {
   workspaceSlug: string;
 };
 
+type InviteFlags = {
+  apiUrl: string;
+  email: string;
+  role: "EDITOR" | "OWNER";
+  sessionCookie: string;
+  workspaceId: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
+  email?: string;
   "github-code"?: string;
+  role?: string;
+  "session-cookie"?: string;
+  "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
 };
@@ -124,6 +165,16 @@ type LoginResponse = {
   }>;
 };
 
+type InvitationResponse = {
+  invitation: {
+    email: string;
+    role: string;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -142,6 +193,25 @@ function signupFlagsFrom(flags: ParsedFlags): SignupFlags | undefined {
   };
 }
 
+function inviteFlagsFrom(flags: ParsedFlags): InviteFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    email: requiredFlag(flags, "email"),
+    role: invitationRole(requiredFlag(flags, "role")),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
+  const role = rawRole.toUpperCase();
+  if (role === "EDITOR" || role === "OWNER") {
+    return role;
+  }
+
+  throw new Error("Role must be EDITOR or OWNER.");
+}
+
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {
   const value = values[name];
   if (value === undefined || value.trim() === "") {
@@ -156,11 +226,16 @@ type JsonResponse = {
   cookie: string;
 };
 
-async function postJson(url: string, body: unknown): Promise<JsonResponse> {
+async function postJson(
+  url: string,
+  body: unknown,
+  headers: Record<string, string> = {}
+): Promise<JsonResponse> {
   return fetchJson(url, {
     body: JSON.stringify(body),
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...headers
     },
     method: "POST"
   });

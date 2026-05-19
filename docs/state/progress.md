@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T08:17:17Z_
+_Last updated: 2026-05-19T08:29:24Z_
 
 ## Overall
 
-- Commits: 526
-- Last commit: 0d8747e fix(boot): boot fastify on PORT with healthz
+- Commits: 529
+- Last commit: 2b420e5 green(persist): signup backed by prisma
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -14,7 +14,7 @@ _Last updated: 2026-05-19T08:17:17Z_
 | Gate | Status |
 | --- | --- |
 | Bootable (npm start, /healthz) | ✓ |
-| Persistence (restart survival) | ✗ |
+| Persistence (restart survival) | ✓ |
 | CLI binary + subcommands | ✗ |
 | Layered architecture | ✗ |
 

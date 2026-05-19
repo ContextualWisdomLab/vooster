@@ -351,6 +351,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **ProjectKey**: owner signs up and creates a project, server restarts, owner logs back in and tries to create another project with the same key in the same workspace, and the public API returns the normal `Project key is already in use` 422 response with existing project details.
 
+### Goal 2 Persistence - Project
+
+- **Project**: owner signs up, creates a project, actor, and goal through public APIs, server restarts, owner logs back in and promotes the persisted goal, and the response still uses the persisted project instead of failing `Project not found`.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

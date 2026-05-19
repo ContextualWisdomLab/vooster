@@ -209,6 +209,35 @@ describe("Goal 2 persistence matrix", () => {
       key: "PKM"
     });
   }, 90_000);
+
+  test("Project survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "project.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "project-owner");
+    const project = await createProject(first.url, signup, "Project Matrix", "PROJ");
+    const actor = await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const goal = await createGoal(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      actor.id,
+      "Completes a project workflow"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "project-owner");
+    const promoted = await promoteGoal(second.url, loggedIn.sessionCookie, goal.id);
+
+    await second.stop();
+
+    expect(promoted.status).toBe(201);
+    const promotedBody = (await promoted.json()) as {
+      usecase?: { project_id?: unknown };
+    };
+    expect(promotedBody.usecase?.project_id).toBe(project.id);
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -489,6 +518,13 @@ function listGoals(
   actorId: string
 ) {
   return fetch(`${baseUrl}/v1/projects/${projectId}/goals?actor_id=${actorId}`, {
+    headers: { cookie: sessionCookie }
+  });
+}
+
+function promoteGoal(baseUrl: string, sessionCookie: string, goalId: string) {
+  return fetch(`${baseUrl}/v1/goals/${goalId}/promote`, {
+    method: "POST",
     headers: { cookie: sessionCookie }
   });
 }

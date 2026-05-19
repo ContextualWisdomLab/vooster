@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T20:20:20Z_
+_Last updated: 2026-05-19T20:39:56Z_
 
 ## Overall
 
-- Commits: 695
-- Last commit: ad7c8d5 green(persist): workspace slugs backed by prisma
+- Commits: 698
+- Last commit: 2534eec green(persist): Comment adapter
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

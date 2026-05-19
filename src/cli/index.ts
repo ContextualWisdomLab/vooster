@@ -46,6 +46,7 @@ export class VspecCommand extends Command {
     limit: Flags.string(),
     name: Flags.string(),
     "no-merge": Flags.boolean(),
+    output: Flags.string(),
     priority: Flags.string(),
     "primary-actor": Flags.string(),
     "project-id": Flags.string(),
@@ -137,6 +138,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "sync") {
       await this.pullFiles(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "export" && this.argv[1] === "gherkin") {
+      await this.exportGherkin(parsed.flags);
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "add") {
@@ -658,6 +663,29 @@ export class VspecCommand extends Command {
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
+  }
+
+  private async exportGherkin(flags: ParsedFlags): Promise<void> {
+    const exportFlags = exportFlagsFrom(flags, this.argv[2]);
+    const response = await postText(
+      `${exportFlags.apiUrl}/v1/usecases/${exportFlags.usecaseId}/export/gherkin?format=feature`,
+      {
+        force: exportFlags.force,
+        ...(exportFlags.output === undefined ? {} : { output_path: exportFlags.output }),
+        ...(exportFlags.revision === undefined ? {} : { revision_id: exportFlags.revision })
+      },
+      {
+        Cookie: exportFlags.sessionCookie
+      }
+    );
+
+    if (exportFlags.output === undefined) {
+      this.log(response.body);
+      return;
+    }
+    await writeSyncFile(process.cwd(), exportFlags.output, response.body);
+    this.log(`Exported ${exportFlags.output}`);
+    this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
   private async addComment(flags: ParsedFlags): Promise<void> {
@@ -1237,6 +1265,15 @@ type SyncFlags = {
   sessionCookie: string;
 };
 
+type ExportGherkinFlags = {
+  apiUrl: string;
+  force: boolean;
+  output: string | undefined;
+  revision: string | undefined;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
 type CommentTargetFlags = {
   apiUrl: string;
   sessionCookie: string;
@@ -1409,6 +1446,7 @@ type ParsedFlags = {
   limit?: string;
   name?: string;
   "no-merge"?: boolean;
+  output?: string;
   priority?: string;
   "primary-actor"?: string;
   "project-id"?: string;
@@ -1418,6 +1456,7 @@ type ParsedFlags = {
   pin?: string;
   q?: string;
   reason?: string;
+  revision?: string;
   role?: string;
   root?: string;
   session?: string;
@@ -2139,6 +2178,20 @@ function syncFlagsFrom(flags: ParsedFlags): SyncFlags {
   };
 }
 
+function exportFlagsFrom(
+  flags: ParsedFlags,
+  usecaseId: string | undefined
+): ExportGherkinFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    force: flags.force ?? false,
+    output: optionalFlag(flags, "output"),
+    revision: optionalFlag(flags, "revision"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
 function commentTargetFlagsFrom(
   flags: ParsedFlags,
   targetId: string | undefined,
@@ -2730,6 +2783,31 @@ async function fetchJson(
     body,
     cookie: response.headers.get("set-cookie") ?? ""
   };
+}
+
+type TextResponse = {
+  body: string;
+};
+
+async function postText(
+  url: string,
+  body: unknown,
+  headers: Record<string, string> = {}
+): Promise<TextResponse> {
+  const response = await fetch(url, {
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      ...headers
+    },
+    method: "POST"
+  });
+  const responseBody = await response.text();
+  if (!response.ok) {
+    throw new Error(`API request failed with ${String(response.status)}.`);
+  }
+
+  return { body: responseBody };
 }
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {

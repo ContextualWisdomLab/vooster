@@ -39,6 +39,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Work session application extraction**: test `startWorkSession` without Fastify by faking the required stores; assert it creates an active session pinned to latest revisions, preserves unknown-agent warnings, and rejects semantic-lock auto-branch starts without writing a branch or session.
 
+### Goal 2 Layers - Revision Diff
+
+- **Revision diff application extraction**: test `compareUseCaseRevisions` without Fastify by faking use case, revision, branch, and membership stores; assert it returns structural change summaries with branch warnings, hides revision existence from non-members, and returns missing-revision guidance data without mutating stores.
+
 ## Example
 
 ### UC-009

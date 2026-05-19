@@ -23,9 +23,11 @@ export class VspecCommand extends Command {
     level: Flags.string(),
     name: Flags.string(),
     priority: Flags.string(),
+    "primary-actor": Flags.string(),
     "project-id": Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
+    title: Flags.string(),
     type: Flags.string(),
     version: Flags.version({ char: "v" }),
     visibility: Flags.string(),
@@ -69,6 +71,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "goal" && this.argv[1] === "promote") {
       await this.promoteGoal(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "usecase" && this.argv[1] === "create") {
+      await this.createUseCase(parsed.flags);
       return;
     }
 
@@ -276,6 +282,32 @@ export class VspecCommand extends Command {
       this.log(action.command);
     }
   }
+
+  private async createUseCase(flags: ParsedFlags): Promise<void> {
+    const useCaseFlags = useCaseCreateFlagsFrom(flags);
+    const response = await postJson(
+      `${useCaseFlags.apiUrl}/v1/projects/${useCaseFlags.projectId}/usecases`,
+      {
+        primary_actor: useCaseFlags.primaryActor,
+        title: useCaseFlags.title
+      },
+      {
+        Cookie: useCaseFlags.sessionCookie
+      }
+    );
+    const body = response.body as UseCaseResponse;
+
+    this.log(`UseCase ${body.usecase.key}`);
+    this.log(`Title ${body.usecase.title}`);
+    this.log(`Level ${body.usecase.level}`);
+    this.log(`Format ${body.usecase.format}`);
+    this.log(`Status ${body.usecase.status}`);
+    this.log(`Priority ${body.usecase.priority}`);
+    this.log(`Revision version ${String(body.revision.version_number)}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
 }
 
 type OAuthFlags = {
@@ -347,6 +379,14 @@ type GoalPromoteFlags = {
   sessionCookie: string;
 };
 
+type UseCaseCreateFlags = {
+  apiUrl: string;
+  primaryActor: string;
+  projectId: string;
+  sessionCookie: string;
+  title: string;
+};
+
 type ParsedFlags = {
   "api-url"?: string;
   aliases?: string;
@@ -358,9 +398,11 @@ type ParsedFlags = {
   level?: string;
   name?: string;
   priority?: string;
+  "primary-actor"?: string;
   "project-id"?: string;
   role?: string;
   "session-cookie"?: string;
+  title?: string;
   type?: string;
   visibility?: string;
   "workspace-id"?: string;
@@ -484,6 +526,23 @@ type GoalPromotionResponse = {
   }>;
 };
 
+type UseCaseResponse = {
+  revision: {
+    version_number: number;
+  };
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  usecase: {
+    format: string;
+    key: string;
+    level: string;
+    priority: string;
+    status: string;
+    title: string;
+  };
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -575,6 +634,16 @@ function goalPromoteFlagsFrom(
     apiUrl: requiredFlag(flags, "api-url"),
     goalId: requiredArgument(goalId, "goal-id"),
     sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
+function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    primaryActor: requiredFlag(flags, "primary-actor"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    title: requiredFlag(flags, "title")
   };
 }
 

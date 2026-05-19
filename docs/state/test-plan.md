@@ -283,6 +283,15 @@ write. This guides your TDD cycles within an iteration._
 - **5a**: multiple extensions share one parent step -> markdown orders `1a` before `1b`, then any-step `*a`, and response marks round-trip self-check passed.
 - ***a**: requested revision id is missing -> 404 with `vspec history <KEY-NNN>` guidance and no markdown payload.
 
+### UC-032
+
+- **MAIN**: workspace owner creates a read/write API key, sees plaintext token once, list returns metadata only, bearer auth succeeds before revocation, revoke sets `revoked_at`, and bearer auth fails afterward.
+- **2a**: create request includes unsupported `admin` scope -> 422 with offending scope and allowed `{read, write}`, leaving no key.
+- **5a**: caller simulates dropped create response -> persisted metadata remains listable without plaintext token, admin revokes it, and a fresh create returns a different token.
+- **5b**: revoking an already-revoked key -> returns 200 with unchanged `revoked_at` and idempotent marker.
+- **2b**: EDITOR member attempts API key create -> 403 with `vspec member set-role` owner guidance and no key.
+- ***a**: revoke key id from another workspace -> 404 without leaking the other workspace key.
+
 ### UC-033
 
 - **MAIN**: unauthenticated caller requests the AI guide for the current CLI version -> 200 markdown covering sessions, pin/fetch/propose/commit workflow, `--format=agent`, forbidden actions, worked example, cache metadata, and suggested next actions for login/project list/session start.

@@ -20,6 +20,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const useCaseRequestSchema = z.object({
@@ -44,6 +45,7 @@ export function registerUseCaseRoutes(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/usecases", (request, reply) =>
@@ -59,7 +61,16 @@ export function registerUseCaseRoutes(
     )
   );
   app.patch("/v1/usecases/:usecaseId", (request, reply) =>
-    patchUseCase(request, reply, state, branchStore, membershipStore, projectStore, useCaseStore)
+    patchUseCase(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      stakeholderInterestStore,
+      useCaseStore
+    )
   );
 }
 
@@ -180,6 +191,7 @@ async function patchUseCase(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -206,7 +218,7 @@ async function patchUseCase(
   if (
     parsed.data.status !== undefined &&
     parsed.data.status !== "DRAFT" &&
-    (state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? []).length === 0
+    (await stakeholderInterestStore.listStakeholderInterests(found.usecase.id)).length === 0
   ) {
     return reply
       .code(422)

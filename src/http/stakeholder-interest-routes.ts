@@ -7,6 +7,7 @@ import {
   existingInterestForStakeholder,
   interestsWithStakeholders,
   missingRoleHint,
+  stakeholderNameCandidates,
   unresolvedStakeholderProblem,
   usecaseIdFrom
 } from "./stakeholder-interest-support.js";
@@ -16,6 +17,8 @@ import type {
   StoredStakeholderInterest
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const interestRequestSchema = z.object({
@@ -28,15 +31,33 @@ export function registerStakeholderInterestRoutes(
   app: FastifyInstance,
   state: SignupState,
   membershipStore: MembershipStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/stakeholder-interests", (request, reply) =>
-    addStakeholderInterest(request, reply, state, membershipStore, useCaseStore)
+    addStakeholderInterest(
+      request,
+      reply,
+      state,
+      membershipStore,
+      stakeholderInterestStore,
+      stakeholderStore,
+      useCaseStore
+    )
   );
   app.delete(
     "/v1/usecases/:usecaseId/stakeholder-interests/:stakeholderInterestId",
     (request, reply) =>
-      removeStakeholderInterest(request, reply, state, membershipStore, useCaseStore)
+      removeStakeholderInterest(
+        request,
+        reply,
+        state,
+        membershipStore,
+        stakeholderInterestStore,
+        stakeholderStore,
+        useCaseStore
+      )
   );
 }
 
@@ -45,6 +66,8 @@ async function addStakeholderInterest(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -59,17 +82,28 @@ async function addStakeholderInterest(
     return reply.code(400).send(problem(400, "Invalid stakeholder interest request"));
   }
 
-  const stakeholder = activeStakeholderNamed(
-    state,
+  const stakeholder = await activeStakeholderNamed(
+    stakeholderStore,
     found.projectId,
     parsed.data.stakeholder
   );
   if (stakeholder === undefined) {
     return reply.code(422).send(
-      unresolvedStakeholderProblem(state, found.projectId, parsed.data.stakeholder)
+      unresolvedStakeholderProblem(
+        await stakeholderNameCandidates(
+          stakeholderStore,
+          found.projectId,
+          parsed.data.stakeholder
+        ),
+        parsed.data.stakeholder
+      )
     );
   }
-  const existing = existingInterestForStakeholder(state, found.usecase.id, stakeholder.id);
+  const existing = await existingInterestForStakeholder(
+    stakeholderInterestStore,
+    found.usecase.id,
+    stakeholder.id
+  );
   if (existing !== undefined) {
     return reply.code(409).send(
       problem(
@@ -93,10 +127,7 @@ async function addStakeholderInterest(
     interest: parsed.data.interest,
     protection_mechanism: parsed.data.protection_mechanism
   };
-  state.stakeholderInterestsByUseCaseId.set(found.usecase.id, [
-    ...(state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? []),
-    stakeholderInterest
-  ]);
+  await stakeholderInterestStore.saveStakeholderInterest(stakeholderInterest);
   const revision = {
     id: randomUUID(),
     entity_type: "USECASE" as const,
@@ -114,8 +145,18 @@ async function addStakeholderInterest(
   return reply.code(201).send({
     stakeholder_interest: stakeholderInterest,
     revision,
-    stakeholder_interests: interestsWithStakeholders(state, found.usecase.id, found.projectId),
-    next_missing_role_hint: missingRoleHint(state, found.usecase.id, found.projectId)
+    stakeholder_interests: await interestsWithStakeholders(
+      stakeholderInterestStore,
+      stakeholderStore,
+      found.usecase.id,
+      found.projectId
+    ),
+    next_missing_role_hint: await missingRoleHint(
+      stakeholderInterestStore,
+      stakeholderStore,
+      found.usecase.id,
+      found.projectId
+    )
   });
 }
 
@@ -124,6 +165,8 @@ async function removeStakeholderInterest(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
 ) {
   const params = z
@@ -139,15 +182,14 @@ async function removeStakeholderInterest(
   if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  const interests = state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? [];
-  const removed = interests.find((interest) => interest.id === params.stakeholderInterestId);
+  const removed = await stakeholderInterestStore.findStakeholderInterestById(
+    found.usecase.id,
+    params.stakeholderInterestId
+  );
   if (removed === undefined) {
     return reply.code(404).send(problem(404, "Stakeholder interest not found"));
   }
-  state.stakeholderInterestsByUseCaseId.set(
-    found.usecase.id,
-    interests.filter((interest) => interest.id !== removed.id)
-  );
+  await stakeholderInterestStore.deleteStakeholderInterest(removed.id);
   const revision = {
     id: randomUUID(),
     entity_type: "USECASE" as const,
@@ -162,7 +204,12 @@ async function removeStakeholderInterest(
     revision
   ]);
 
-  const remaining = interestsWithStakeholders(state, found.usecase.id, found.projectId);
+  const remaining = await interestsWithStakeholders(
+    stakeholderInterestStore,
+    stakeholderStore,
+    found.usecase.id,
+    found.projectId
+  );
   return reply.send({
     removed_stakeholder_interest_id: removed.id,
     revision,

@@ -11,6 +11,8 @@ import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./s
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
@@ -27,7 +29,9 @@ export function registerMarkdownExportRoutes(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   app.post("/v1/usecases/:id/export/markdown", (request, reply) =>
     exportMarkdown(
@@ -37,7 +41,9 @@ export function registerMarkdownExportRoutes(
       actorStore,
       membershipStore,
       useCaseStore,
-      scenarioStore
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore
     )
   );
 }
@@ -49,7 +55,9 @@ async function exportMarkdown(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
@@ -86,7 +94,9 @@ async function exportMarkdown(
     found.projectId,
     found.usecase,
     actorStore,
-    scenarioStore
+    scenarioStore,
+    stakeholderInterestStore,
+    stakeholderStore
   );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
@@ -102,12 +112,19 @@ async function renderMarkdown(
   projectId: string,
   usecase: StoredUseCase,
   actorStore: ActorStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   return [
     await frontmatter(actorStore, projectId, usecase),
     `# ${usecase.title}`,
-    stakeholderSection(state, projectId, usecase.id),
+    await stakeholderSection(
+      stakeholderInterestStore,
+      stakeholderStore,
+      projectId,
+      usecase.id
+    ),
     "## Preconditions\n\n- None recorded.",
     "## Trigger\n\nNot recorded.",
     await mainScenarioSection(state, projectId, usecase.id, actorStore, scenarioStore),
@@ -154,13 +171,22 @@ async function frontmatter(
   return `---\nvspec_format: 1\ntype: usecase\nid: ${usecase.id}\nkey: ${usecase.key}\ntitle: ${usecase.title}\nlevel: ${usecase.level}\nformat: ${usecase.format}\nstatus: ${usecase.status}\npriority: ${usecase.priority}\nscope: ${usecase.scope}\nprimary_actor: ${await actorName(actorStore, projectId, usecase.primary_actor_id)}\nrevision: ${usecase.current_revision_id}\n---`;
 }
 
-function stakeholderSection(state: SignupState, projectId: string, usecaseId: string) {
-  const lines = (state.stakeholderInterestsByUseCaseId.get(usecaseId) ?? [])
-    .map((interest) => {
-      const stakeholder = (state.stakeholdersByProjectId.get(projectId) ?? [])
-        .find((candidate) => candidate.id === interest.stakeholder_id);
+async function stakeholderSection(
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
+  projectId: string,
+  usecaseId: string
+) {
+  const lines = await Promise.all(
+    (await stakeholderInterestStore.listStakeholderInterests(usecaseId))
+      .map(async (interest) => {
+      const stakeholder = await stakeholderStore.findStakeholderById(
+        projectId,
+        interest.stakeholder_id
+      );
       return `- **${stakeholder?.name ?? "Stakeholder"}**: ${interest.interest}`;
-    });
+    })
+  );
   return ["## Stakeholders and Interests", ...(lines.length === 0 ? ["- None recorded."] : lines)]
     .join("\n\n");
 }

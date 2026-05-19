@@ -8,6 +8,8 @@ import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
@@ -24,7 +26,9 @@ export function registerUseCaseAgentRoutes(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
     showUseCase(
@@ -35,7 +39,9 @@ export function registerUseCaseAgentRoutes(
       membershipStore,
       projectStore,
       useCaseStore,
-      scenarioStore
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore
     )
   );
 }
@@ -48,7 +54,9 @@ async function showUseCase(
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
@@ -117,7 +125,9 @@ async function showUseCase(
     warnings,
     actorStore,
     projectStore,
-    scenarioStore
+    scenarioStore,
+    stakeholderInterestStore,
+    stakeholderStore
   ));
 }
 
@@ -131,7 +141,9 @@ async function agentEnvelope(
   warnings: Array<{ message: string; type: string }>,
   actorStore: ActorStore,
   projectStore: ProjectStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   const project = await projectStore.findProjectById(projectId);
   return {
@@ -142,7 +154,15 @@ async function agentEnvelope(
       revision,
       session_id: sessionId
     },
-    data: await agentData(state, projectId, usecase, actorStore, scenarioStore),
+    data: await agentData(
+      state,
+      projectId,
+      usecase,
+      actorStore,
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore
+    ),
     format_version: 1,
     suggested_next_actions: suggestedActions(usecase, warnings),
     warnings
@@ -196,7 +216,9 @@ async function agentData(
   projectId: string,
   usecase: StoredUseCase,
   actorStore: ActorStore,
-  scenarioStore: ScenarioStore
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore
 ) {
   return {
     primary_actor: {
@@ -215,11 +237,12 @@ async function agentData(
         type: scenario.type
       }))
     ),
-    stakeholder_interests: (state.stakeholderInterestsByUseCaseId.get(usecase.id) ?? [])
-      .map((interest) => ({
+    stakeholder_interests: await Promise.all(
+      (await stakeholderInterestStore.listStakeholderInterests(usecase.id)).map(async (interest) => ({
         interest: interest.interest,
-        stakeholder: stakeholderName(state, projectId, interest.stakeholder_id)
-      })),
+        stakeholder: await stakeholderName(stakeholderStore, projectId, interest.stakeholder_id)
+      }))
+    ),
     title: usecase.title,
     usecase: { id: usecase.id, key: usecase.key }
   };
@@ -229,9 +252,12 @@ async function actorName(actorStore: ActorStore, projectId: string, actorId: str
   return (await actorStore.findActorById(projectId, actorId))?.name ?? "System";
 }
 
-function stakeholderName(state: SignupState, projectId: string, stakeholderId: string) {
-  return (state.stakeholdersByProjectId.get(projectId) ?? [])
-    .find((stakeholder) => stakeholder.id === stakeholderId)?.name ?? "";
+async function stakeholderName(
+  stakeholderStore: StakeholderStore,
+  projectId: string,
+  stakeholderId: string
+) {
+  return (await stakeholderStore.findStakeholderById(projectId, stakeholderId))?.name ?? "";
 }
 
 function requestId(request: FastifyRequest) {

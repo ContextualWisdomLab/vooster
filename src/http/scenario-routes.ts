@@ -22,6 +22,7 @@ import type {
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const scenarioRequestSchema = z.object({
@@ -42,10 +43,19 @@ export function registerScenarioRoutes(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
-    createScenario(request, reply, state, membershipStore, scenarioStore, useCaseStore)
+    createScenario(
+      request,
+      reply,
+      state,
+      membershipStore,
+      scenarioStore,
+      stakeholderInterestStore,
+      useCaseStore
+    )
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
     addStep(request, reply, state, actorStore, membershipStore, scenarioStore, useCaseStore)
@@ -58,6 +68,7 @@ async function createScenario(
   state: SignupState,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -81,7 +92,7 @@ async function createScenario(
   if (existing !== undefined) {
     return reply.code(409).send(duplicateMainSuccessProblem(existing));
   }
-  if ((state.stakeholderInterestsByUseCaseId.get(found.usecase.id) ?? []).length === 0) {
+  if ((await stakeholderInterestStore.listStakeholderInterests(found.usecase.id)).length === 0) {
     return reply
       .code(422)
       .send(problem(422, "Use case needs at least one stakeholder interest"));

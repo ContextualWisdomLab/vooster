@@ -9,6 +9,7 @@ import type {
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
 
 const stakeholderRequestSchema = z.object({
   attach_to_step: z.boolean().optional(),
@@ -23,10 +24,11 @@ export function registerStakeholderRoutes(
   app: FastifyInstance,
   state: SignupState,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  stakeholderStore: StakeholderStore
 ) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
-    createStakeholder(request, reply, state, membershipStore, projectStore)
+    createStakeholder(request, reply, state, membershipStore, projectStore, stakeholderStore)
   );
 }
 
@@ -35,7 +37,8 @@ async function createStakeholder(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  stakeholderStore: StakeholderStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -67,7 +70,7 @@ async function createStakeholder(
     );
   }
 
-  const existing = activeStakeholderNamed(state, projectId, parsed.data.name);
+  const existing = await activeStakeholderNamed(stakeholderStore, projectId, parsed.data.name);
   if (existing !== undefined) {
     return reply.code(422).send(
       problem(
@@ -100,10 +103,7 @@ async function createStakeholder(
     snapshot: stakeholder
   };
 
-  state.stakeholdersByProjectId.set(projectId, [
-    ...(state.stakeholdersByProjectId.get(projectId) ?? []),
-    stakeholder
-  ]);
+  await stakeholderStore.saveStakeholder(stakeholder);
   state.revisionsByEntityId.set(stakeholder.id, [revision]);
 
   return reply.code(201).send({
@@ -117,14 +117,13 @@ function isStakeholderType(type: string): type is StoredStakeholder["type"] {
   return stakeholderTypes.includes(type as StoredStakeholder["type"]);
 }
 
-function activeStakeholderNamed(
-  state: SignupState,
+async function activeStakeholderNamed(
+  stakeholderStore: StakeholderStore,
   projectId: string,
   name: string
-): StoredStakeholder | undefined {
-  return (state.stakeholdersByProjectId.get(projectId) ?? []).find(
-    (stakeholder) => stakeholder.name === name && stakeholder.archived_at === null
-  );
+) {
+  const stakeholder = await stakeholderStore.findStakeholderByName(projectId, name);
+  return stakeholder?.archived_at === null ? stakeholder : undefined;
 }
 
 async function projectWorkspaceArchived(

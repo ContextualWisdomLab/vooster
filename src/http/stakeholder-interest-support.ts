@@ -1,62 +1,76 @@
 import { z } from "zod";
-import type {
-  SignupState,
-  StoredStakeholder,
-  StoredStakeholderInterest
-} from "./signup-types.js";
+import type { StoredStakeholder, StoredStakeholderInterest } from "./signup-types.js";
 import { problem } from "./signup-support.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
 
-export function interestsWithStakeholders(
-  state: SignupState,
+export async function interestsWithStakeholders(
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
   usecaseId: string,
   projectId: string
-) {
-  return (state.stakeholderInterestsByUseCaseId.get(usecaseId) ?? []).flatMap(
-    (interest) => {
-      const stakeholder = stakeholderWithId(state, projectId, interest.stakeholder_id);
-      return stakeholder === undefined ? [] : [{ interest, stakeholder }];
-    }
+): Promise<Array<{ interest: StoredStakeholderInterest; stakeholder: StoredStakeholder }>> {
+  const rows = await Promise.all(
+    (await stakeholderInterestStore.listStakeholderInterests(usecaseId)).map(
+      async (interest) => ({
+        interest,
+        stakeholder: await stakeholderStore.findStakeholderById(
+          projectId,
+          interest.stakeholder_id
+        )
+      })
+    )
+  );
+
+  return rows.flatMap((row) =>
+    row.stakeholder === undefined ? [] : [{ interest: row.interest, stakeholder: row.stakeholder }]
   );
 }
 
-export function missingRoleHint(
-  state: SignupState,
+export async function missingRoleHint(
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
   usecaseId: string,
   projectId: string
-): string {
-  const hasRegulatory = interestsWithStakeholders(state, usecaseId, projectId).some(
+): Promise<string> {
+  const hasRegulatory = (await interestsWithStakeholders(
+    stakeholderInterestStore,
+    stakeholderStore,
+    usecaseId,
+    projectId
+  )).some(
     ({ stakeholder }) => stakeholder.type === "REGULATORY"
   );
   return hasRegulatory ? "" : "No regulatory stakeholder yet.";
 }
 
 export function existingInterestForStakeholder(
-  state: SignupState,
+  stakeholderInterestStore: StakeholderInterestStore,
   usecaseId: string,
   stakeholderId: string
-): StoredStakeholderInterest | undefined {
-  return (state.stakeholderInterestsByUseCaseId.get(usecaseId) ?? []).find(
-    (interest) => interest.stakeholder_id === stakeholderId
+): Promise<StoredStakeholderInterest | undefined> {
+  return stakeholderInterestStore.findStakeholderInterestForStakeholder(
+    usecaseId,
+    stakeholderId
   );
 }
 
-export function activeStakeholderNamed(
-  state: SignupState,
+export async function activeStakeholderNamed(
+  stakeholderStore: StakeholderStore,
   projectId: string,
   name: string
-): StoredStakeholder | undefined {
-  return (state.stakeholdersByProjectId.get(projectId) ?? []).find(
-    (stakeholder) => stakeholder.name === name && stakeholder.archived_at === null
-  );
+) {
+  const stakeholder = await stakeholderStore.findStakeholderByName(projectId, name);
+  return stakeholder?.archived_at === null ? stakeholder : undefined;
 }
 
-export function stakeholderNameCandidates(
-  state: SignupState,
+export async function stakeholderNameCandidates(
+  stakeholderStore: StakeholderStore,
   projectId: string,
   name: string
-): string[] {
+): Promise<string[]> {
   const requested = normalized(name);
-  return (state.stakeholdersByProjectId.get(projectId) ?? [])
+  return (await stakeholderStore.listStakeholders(projectId))
     .filter((stakeholder) => stakeholder.archived_at === null)
     .filter((stakeholder) => {
       const candidate = normalized(stakeholder.name);
@@ -66,15 +80,14 @@ export function stakeholderNameCandidates(
 }
 
 export function unresolvedStakeholderProblem(
-  state: SignupState,
-  projectId: string,
+  candidateStakeholders: string[],
   name: string
 ) {
   return problem(
     422,
     "Stakeholder name does not resolve",
     {
-      candidate_stakeholders: stakeholderNameCandidates(state, projectId, name),
+      candidate_stakeholders: candidateStakeholders,
       stakeholder_name: name
     },
     [
@@ -92,14 +105,4 @@ export function usecaseIdFrom(params: unknown): string {
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase();
-}
-
-function stakeholderWithId(
-  state: SignupState,
-  projectId: string,
-  stakeholderId: string
-): StoredStakeholder | undefined {
-  return (state.stakeholdersByProjectId.get(projectId) ?? []).find(
-    (stakeholder) => stakeholder.id === stakeholderId
-  );
 }

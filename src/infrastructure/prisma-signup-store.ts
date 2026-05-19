@@ -9,6 +9,8 @@ import type {
   StoredProject,
   StoredScenario,
   StoredSpecBranch,
+  StoredStakeholder,
+  StoredStakeholderInterest,
   StoredUser,
   StoredUseCase
 } from "../http/signup-types.js";
@@ -213,6 +215,50 @@ class PrismaSignupStore implements SignupStore {
     return scenario === null ? undefined : storedScenario(scenario);
   }
 
+  async findStakeholderById(
+    projectId: string,
+    stakeholderId: string
+  ): Promise<StoredStakeholder | undefined> {
+    const stakeholder = await this.prisma.stakeholder.findFirst({
+      where: { id: stakeholderId, project_id: projectId }
+    });
+
+    return stakeholder === null ? undefined : storedStakeholder(stakeholder);
+  }
+
+  async findStakeholderByName(
+    projectId: string,
+    name: string
+  ): Promise<StoredStakeholder | undefined> {
+    const stakeholder = await this.prisma.stakeholder.findUnique({
+      where: { project_id_name: { name, project_id: projectId } }
+    });
+
+    return stakeholder === null ? undefined : storedStakeholder(stakeholder);
+  }
+
+  async findStakeholderInterestById(
+    usecaseId: string,
+    interestId: string
+  ): Promise<StoredStakeholderInterest | undefined> {
+    const interest = await this.prisma.stakeholderInterest.findFirst({
+      where: { id: interestId, usecase_id: usecaseId }
+    });
+
+    return interest === null ? undefined : storedStakeholderInterest(interest);
+  }
+
+  async findStakeholderInterestForStakeholder(
+    usecaseId: string,
+    stakeholderId: string
+  ): Promise<StoredStakeholderInterest | undefined> {
+    const interest = await this.prisma.stakeholderInterest.findUnique({
+      where: { usecase_id_stakeholder_id: { stakeholder_id: stakeholderId, usecase_id: usecaseId } }
+    });
+
+    return interest === null ? undefined : storedStakeholderInterest(interest);
+  }
+
   async listActors(projectId: string): Promise<StoredActor[]> {
     const actors = await this.prisma.actor.findMany({
       orderBy: { created_at: "asc" },
@@ -265,6 +311,26 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return scenarios.map(storedScenario);
+  }
+
+  async listStakeholders(projectId: string): Promise<StoredStakeholder[]> {
+    const stakeholders = await this.prisma.stakeholder.findMany({
+      orderBy: { created_at: "asc" },
+      where: { project_id: projectId }
+    });
+
+    return stakeholders.map(storedStakeholder);
+  }
+
+  async listStakeholderInterests(
+    usecaseId: string
+  ): Promise<StoredStakeholderInterest[]> {
+    const interests = await this.prisma.stakeholderInterest.findMany({
+      orderBy: { created_at: "asc" },
+      where: { usecase_id: usecaseId }
+    });
+
+    return interests.map(storedStakeholderInterest);
   }
 
   async listUseCases(projectId: string): Promise<StoredUseCase[]> {
@@ -407,6 +473,20 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async saveStakeholder(stakeholder: StoredStakeholder): Promise<void> {
+    await this.prisma.stakeholder.create({
+      data: stakeholderData(stakeholder)
+    });
+  }
+
+  async saveStakeholderInterest(
+    interest: StoredStakeholderInterest
+  ): Promise<void> {
+    await this.prisma.stakeholderInterest.create({
+      data: stakeholderInterestData(interest)
+    });
+  }
+
   async saveUseCase(usecase: StoredUseCase): Promise<void> {
     await this.prisma.useCase.create({
       data: useCaseData(usecase)
@@ -429,6 +509,12 @@ class PrismaSignupStore implements SignupStore {
   async deleteLockForUseCase(usecaseId: string): Promise<void> {
     await this.prisma.lock.deleteMany({
       where: { target_id: usecaseId, target_type: "USECASE" }
+    });
+  }
+
+  async deleteStakeholderInterest(interestId: string): Promise<void> {
+    await this.prisma.stakeholderInterest.deleteMany({
+      where: { id: interestId }
     });
   }
 
@@ -750,6 +836,40 @@ function storedScenario(scenario: {
   };
 }
 
+function storedStakeholder(stakeholder: {
+  archived_at: Date | null;
+  description: null | string;
+  id: string;
+  name: string;
+  project_id: string;
+  type: string;
+}): StoredStakeholder {
+  return {
+    archived_at: stakeholder.archived_at?.toISOString() ?? null,
+    description: stakeholder.description ?? "",
+    id: stakeholder.id,
+    name: stakeholder.name,
+    project_id: stakeholder.project_id,
+    type: storedStakeholderType(stakeholder.type)
+  };
+}
+
+function storedStakeholderInterest(interest: {
+  id: string;
+  interest: string;
+  protection_mechanism: null | string;
+  stakeholder_id: string;
+  usecase_id: string;
+}): StoredStakeholderInterest {
+  return {
+    id: interest.id,
+    interest: interest.interest,
+    protection_mechanism: interest.protection_mechanism ?? "",
+    stakeholder_id: interest.stakeholder_id,
+    usecase_id: interest.usecase_id
+  };
+}
+
 function storedUseCase(usecase: {
   archived_at: Date | null;
   current_revision_id: null | string;
@@ -923,6 +1043,28 @@ function scenarioData(scenario: StoredScenario) {
   };
 }
 
+function stakeholderData(stakeholder: StoredStakeholder) {
+  return {
+    archived_at: dateOrNull(stakeholder.archived_at),
+    description: stakeholder.description,
+    id: stakeholder.id,
+    name: stakeholder.name,
+    project_id: stakeholder.project_id,
+    type: stakeholder.type
+  };
+}
+
+function stakeholderInterestData(interest: StoredStakeholderInterest) {
+  return {
+    id: interest.id,
+    interest: interest.interest,
+    protection_mechanism:
+      interest.protection_mechanism === "" ? null : interest.protection_mechanism,
+    stakeholder_id: interest.stakeholder_id,
+    usecase_id: interest.usecase_id
+  };
+}
+
 function useCaseData(usecase: StoredUseCase) {
   return {
     archived_at: dateOrNull(usecase.archived_at),
@@ -1057,6 +1199,10 @@ function storedOwnerType(ownerType: string): StoredSpecBranch["owner_type"] {
 
 function storedActorType(type: string): StoredActor["type"] {
   return type === "OFFSTAGE" || type === "SUPPORTING" ? type : "PRIMARY";
+}
+
+function storedStakeholderType(type: string): StoredStakeholder["type"] {
+  return type === "EXTERNAL" || type === "REGULATORY" ? type : "INTERNAL";
 }
 
 function storedGoalStatus(status: string): StoredGoal["status"] {

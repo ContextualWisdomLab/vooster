@@ -335,3 +335,4 @@ write. This guides your TDD cycles within an iteration._
 - **UC-003 MAIN**: after owner signup, `vspec member invite --email <addr> --role EDITOR` calls the real API and prints the pending invitation plus `vspec member list`.
 - **UC-004 MAIN**: after signup, `vspec project create --name <n> --key <KEY>` calls the real API and prints the project, main branch, and `vspec actor define`.
 - **UC-005 MAIN**: after project setup, `vspec actor create --name <n> --type PRIMARY` calls the real API and prints the actor, revision version, and `vspec stakeholder create`.
+- **UC-006 MAIN**: after project setup, `vspec stakeholder create --name <n> --type INTERNAL` calls the real API and prints the stakeholder, revision version, and `vspec usecase add-stakeholder`.

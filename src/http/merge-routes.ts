@@ -11,6 +11,7 @@ import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const mergeOpenSchema = z.object({
@@ -28,6 +29,7 @@ export function registerMergeRoutes(
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/merges", (request, reply) =>
@@ -40,6 +42,7 @@ export function registerMergeRoutes(
       membershipStore,
       mergeRequestStore,
       projectStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -54,6 +57,7 @@ async function openMerge(
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = mergeOpenSchema.safeParse(request.body);
@@ -77,7 +81,7 @@ async function openMerge(
   const targetHeads = await mainHeadRevisions(state, project, target, useCaseStore);
   const touched = touchedEntityIds(source, targetHeads);
   const hardLock = await hardLockConflict(lockStore, touched);
-  const conflicts = mergeConflicts(state, source, targetHeads, touched);
+  const conflicts = await mergeConflicts(revisionStore, source, targetHeads, touched);
   const canFastForward = isFastForward(source, targetHeads, touched);
   if (parsed.data.strategy === "FAST_FORWARD" && !canFastForward) {
     return reply.code(422).send(
@@ -95,12 +99,12 @@ async function openMerge(
     );
   }
   const strategy = conflicts.length === 0 && canFastForward ? "FAST_FORWARD" : "SQUASH";
+  const severityByEntity = await severityByEntityFor(revisionStore, touched);
   const mergeRequest = mergeRequestFor(
     membership.user_id,
     source,
     target.id,
-    touched,
-    state,
+    severityByEntity,
     strategy,
     conflicts
   );
@@ -175,8 +179,7 @@ function mergeRequestFor(
   createdBy: string,
   source: StoredSpecBranch,
   targetBranchId: string,
-  touched: string[],
-  state: SignupState,
+  severityByEntity: Record<string, string>,
   strategy: "FAST_FORWARD" | "SQUASH",
   conflicts: Array<Record<string, unknown>>
 ): StoredMergeRequest {
@@ -191,7 +194,7 @@ function mergeRequestFor(
     impact: {
       affected_branches: [],
       affected_sessions: [],
-      severity_by_entity: Object.fromEntries(touched.map((entityId) => [entityId, severityFor(state, entityId)]))
+      severity_by_entity: severityByEntity
     },
     conflicts
   };
@@ -228,6 +231,14 @@ function touchedEntityIds(source: StoredSpecBranch, targetHeads: Record<string, 
     .map(([entityId]) => entityId);
 }
 
-function severityFor(state: SignupState, entityId: string): string {
-  return state.revisionsByEntityId.get(entityId)?.at(-1)?.severity ?? "NON_BREAKING";
+async function severityByEntityFor(
+  revisionStore: RevisionStore,
+  entityIds: string[]
+): Promise<Record<string, string>> {
+  const severities: Record<string, string> = {};
+  for (const entityId of entityIds) {
+    severities[entityId] =
+      (await revisionStore.latestRevision(entityId))?.severity ?? "NON_BREAKING";
+  }
+  return severities;
 }

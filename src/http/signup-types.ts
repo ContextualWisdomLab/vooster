@@ -14,7 +14,6 @@ export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
-  revisionsByEntityId: Map<string, StoredRevision[]>;
   usersByGithubId: Map<string, StoredUser>;
   workSessionsById: Map<string, StoredWorkSession>;
   workSessionsByUseCaseId: Map<string, StoredWorkSession[]>;
@@ -90,7 +89,9 @@ export type StoredRevision = {
   entity_id: string;
   version_number: number;
   snapshot: StoredActor | StoredGoal | StoredStakeholder | StoredUseCase;
-  change_summary?: string; parent_revision_id?: string;
+  change_summary?: string;
+  branch_id?: string;
+  parent_revision_id?: string;
   severity?: "BREAKING" | "COSMETIC" | "NON_BREAKING";
 };
 

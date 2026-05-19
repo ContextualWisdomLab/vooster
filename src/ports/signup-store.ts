@@ -12,6 +12,7 @@ import type { LockStore } from "./lock-store.js";
 import type { MembershipStore } from "./membership-store.js";
 import type { MergeRequestStore } from "./merge-request-store.js";
 import type { ProjectStore } from "./project-store.js";
+import type { RevisionStore } from "./revision-store.js";
 import type { ScenarioStore } from "./scenario-store.js";
 import type { StakeholderInterestStore } from "./stakeholder-interest-store.js";
 import type { StakeholderStore } from "./stakeholder-store.js";
@@ -37,6 +38,7 @@ export type SignupStore = ActorStore &
   MembershipStore &
   MergeRequestStore &
   ProjectStore &
+  RevisionStore &
   ScenarioStore &
   StakeholderInterestStore &
   StakeholderStore &

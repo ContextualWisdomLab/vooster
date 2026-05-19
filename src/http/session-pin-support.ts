@@ -1,6 +1,7 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export type PinnedUseCases = {
@@ -17,6 +18,7 @@ export type PinResolution =
 export async function resolvePins(
   state: SignupState,
   lockStore: LockStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   projectId: string,
   keys: string[]
@@ -41,11 +43,20 @@ export async function resolvePins(
   return {
     status: "OK",
     keys,
-    revisions: Object.fromEntries(
-      resolved.map((usecase) => [usecase.id, latestRevisionId(state, usecase)])
-    ),
+    revisions: await pinnedRevisions(revisionStore, resolved),
     usecases: resolved
   };
+}
+
+async function pinnedRevisions(
+  revisionStore: RevisionStore,
+  usecases: StoredUseCase[]
+): Promise<Record<string, string>> {
+  const revisions: Record<string, string> = {};
+  for (const usecase of usecases) {
+    revisions[usecase.id] = await latestRevisionId(revisionStore, usecase);
+  }
+  return revisions;
 }
 
 export function archivedPinProblem(key: string) {
@@ -104,7 +115,9 @@ export function semanticLockProblem(key: string, holder: string) {
   );
 }
 
-function latestRevisionId(state: SignupState, usecase: StoredUseCase): string {
-  const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
-  return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
+async function latestRevisionId(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase
+): Promise<string> {
+  return (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id;
 }

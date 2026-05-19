@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { problem } from "./signup-support.js";
 import type {
-  SignupState,
   StoredScenario,
   StoredStep,
   StoredUseCase
 } from "./signup-types.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -58,8 +58,8 @@ export function scenarioWithUseCase(
   });
 }
 
-export function appendUseCaseRevision(
-  state: SignupState,
+export async function appendUseCaseRevision(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
   changeSummary: string,
   severity: "BREAKING" | "COSMETIC" | "NON_BREAKING" = "NON_BREAKING"
@@ -68,15 +68,12 @@ export function appendUseCaseRevision(
     id: randomUUID(),
     entity_type: "USECASE" as const,
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase },
     change_summary: changeSummary,
     severity
   };
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
   return revision;
 }
 

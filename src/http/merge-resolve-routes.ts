@@ -18,6 +18,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const resolutionSchema = z.object({
@@ -39,6 +40,7 @@ export function registerMergeResolveRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/merges/:mergeId/resolve", (request, reply) =>
@@ -50,6 +52,7 @@ export function registerMergeResolveRoutes(
       lockStore,
       membershipStore,
       mergeRequestStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -63,6 +66,7 @@ async function resolveMerge(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const merge = await mergeRequestStore.findMergeRequestById(mergeIdFrom(request.params));
@@ -116,13 +120,13 @@ async function resolveMerge(
       .send(resolutionWriteFailureProblem(merge, source, target.head_revision_ids ?? {}));
   }
   const newRevisions = await resolvedRevisions(
-    state,
+    revisionStore,
     useCaseStore,
     merge.conflicts,
     parsed.data.resolutions
   );
   for (const revision of newRevisions) {
-    appendRevision(state, revision);
+    await revisionStore.saveRevision(revision);
   }
   target.head_revision_ids = {
     ...(target.head_revision_ids ?? {}),
@@ -146,7 +150,7 @@ async function resolveMerge(
 }
 
 async function resolvedRevisions(
-  state: SignupState,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   conflicts: Array<Record<string, unknown>>,
   resolutions: Array<z.infer<typeof resolutionSchema>>
@@ -160,7 +164,7 @@ async function resolvedRevisions(
       throw new Error("Unsupported conflict resolution");
     }
     usecase.title = title;
-    const revision = useCaseRevision(state, usecase);
+    const revision = await useCaseRevision(revisionStore, usecase);
     usecase.current_revision_id = revision.id;
     await useCaseStore.updateUseCase(usecase);
     return revision;
@@ -180,23 +184,19 @@ function resolvedTitle(
   return typeof resolution?.value === "string" ? resolution.value : undefined;
 }
 
-function useCaseRevision(state: SignupState, usecase: StoredUseCase): StoredRevision {
+async function useCaseRevision(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase
+): Promise<StoredRevision> {
   return {
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase },
     change_summary: "Resolved merge conflict",
     severity: "BREAKING"
   };
-}
-
-function appendRevision(state: SignupState, revision: StoredRevision) {
-  state.revisionsByEntityId.set(revision.entity_id, [
-    ...(state.revisionsByEntityId.get(revision.entity_id) ?? []),
-    revision
-  ]);
 }
 
 async function nextActions(useCaseStore: UseCaseStore, revisions: StoredRevision[]) {

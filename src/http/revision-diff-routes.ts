@@ -5,6 +5,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredSpecBranch, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type DiffChange = {
@@ -27,10 +28,19 @@ export function registerRevisionDiffRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/diff", (request, reply) =>
-    compareRevisions(request, reply, state, branchStore, membershipStore, useCaseStore)
+    compareRevisions(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      revisionStore,
+      useCaseStore
+    )
   );
 }
 
@@ -40,6 +50,7 @@ async function compareRevisions(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
@@ -55,7 +66,7 @@ async function compareRevisions(
     return reply.code(403).send(diffAccessProblem());
   }
 
-  const revisions = state.revisionsByEntityId.get(found.usecase.id) ?? [];
+  const revisions = await revisionStore.listRevisions(found.usecase.id);
   const from = revisionById(revisions, parsed.data.from);
   const to = revisionById(revisions, parsed.data.to);
   if (from === undefined || to === undefined) {

@@ -8,6 +8,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const revertBodySchema = z.object({
@@ -25,6 +26,7 @@ export function registerRevisionRevertRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
@@ -36,6 +38,7 @@ export function registerRevisionRevertRoutes(
       lockStore,
       membershipStore,
       projectStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -49,6 +52,7 @@ async function revertUseCase(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
@@ -68,7 +72,7 @@ async function revertUseCase(
     return reply.code(409).send(hardLockProblem(found.usecase, lock));
   }
 
-  const revisions = state.revisionsByEntityId.get(found.usecase.id) ?? [];
+  const revisions = await revisionStore.listRevisions(found.usecase.id);
   const target = revisions.find((revision) => revision.id === parsed.data.revision_id);
   if (target === undefined) {
     return reply
@@ -90,8 +94,8 @@ async function revertUseCase(
 
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
   Object.assign(found.usecase, target.snapshot, { current_revision_id: revision.id });
-  state.revisionsByEntityId.set(found.usecase.id, [...revisions, revision]);
   await useCaseStore.updateUseCase(found.usecase);
+  await revisionStore.saveRevision(revision);
   await advanceMainHead(projectStore, branchStore, found.projectId, found.usecase.id, revision.id);
 
   return reply.code(201).send({

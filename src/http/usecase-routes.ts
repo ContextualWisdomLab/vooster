@@ -20,6 +20,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
@@ -45,6 +46,7 @@ export function registerUseCaseRoutes(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
@@ -57,6 +59,7 @@ export function registerUseCaseRoutes(
       goalStore,
       membershipStore,
       projectStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -68,6 +71,7 @@ export function registerUseCaseRoutes(
       branchStore,
       membershipStore,
       projectStore,
+      revisionStore,
       stakeholderInterestStore,
       useCaseStore
     )
@@ -82,6 +86,7 @@ async function createUseCase(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -105,6 +110,7 @@ async function createUseCase(
     state,
     goalStore,
     projectStore,
+    revisionStore,
     useCaseStore,
     projectId
   )) {
@@ -174,8 +180,8 @@ async function createUseCase(
   usecase.current_revision_id = revision.id;
   revision.snapshot = { ...usecase };
 
-  state.revisionsByEntityId.set(usecase.id, [revision]);
   await useCaseStore.saveUseCase(usecase);
+  await revisionStore.saveRevision(revision);
 
   return reply.code(201).send({
     usecase,
@@ -191,6 +197,7 @@ async function patchUseCase(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
@@ -211,6 +218,7 @@ async function patchUseCase(
       state,
       branchStore,
       projectStore,
+      revisionStore,
       useCaseStore,
       found
     );

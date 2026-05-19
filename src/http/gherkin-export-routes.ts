@@ -12,6 +12,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -29,6 +30,7 @@ export function registerGherkinExportRoutes(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stepStore: StepStore
@@ -40,6 +42,7 @@ export function registerGherkinExportRoutes(
       state,
       actorStore,
       membershipStore,
+      revisionStore,
       useCaseStore,
       scenarioStore,
       stepStore
@@ -53,6 +56,7 @@ async function exportGherkin(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stepStore: StepStore
@@ -73,7 +77,11 @@ async function exportGherkin(
   if (archivedProblem !== undefined) {
     return reply.code(409).send(archivedProblem);
   }
-  const revisionProblem = missingRevisionProblem(state, found.usecase, parsed.data.revision_id);
+  const revisionProblem = await missingRevisionProblem(
+    revisionStore,
+    found.usecase,
+    parsed.data.revision_id
+  );
   if (revisionProblem !== undefined) {
     return reply.code(404).send(revisionProblem);
   }

@@ -21,6 +21,7 @@ import type {
 } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StepStore } from "../ports/step-store.js";
@@ -44,6 +45,7 @@ export function registerScenarioRoutes(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   stepStore: StepStore,
   useCaseStore: UseCaseStore
@@ -55,6 +57,7 @@ export function registerScenarioRoutes(
       state,
       membershipStore,
       scenarioStore,
+      revisionStore,
       stakeholderInterestStore,
       stepStore,
       useCaseStore
@@ -68,6 +71,7 @@ export function registerScenarioRoutes(
       actorStore,
       membershipStore,
       scenarioStore,
+      revisionStore,
       stepStore,
       useCaseStore
     )
@@ -80,6 +84,7 @@ async function createScenario(
   state: SignupState,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   stepStore: StepStore,
   useCaseStore: UseCaseStore
@@ -96,7 +101,7 @@ async function createScenario(
     return reply.code(400).send(problem(400, "Invalid scenario request"));
   }
   if (parsed.data.type === "EXTENSION") {
-    return createExtensionScenario(reply, state, scenarioStore, stepStore, found, {
+    return createExtensionScenario(reply, revisionStore, scenarioStore, stepStore, found, {
       ...parsed.data,
       type: "EXTENSION"
     });
@@ -122,8 +127,8 @@ async function createScenario(
     order_index: 0
   };
   await scenarioStore.saveScenario(scenario);
-  const revision = appendUseCaseRevision(
-    state,
+  const revision = await appendUseCaseRevision(
+    revisionStore,
     found.usecase,
     `Created main success scenario ${scenario.id}`
   );
@@ -138,6 +143,7 @@ async function addStep(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
   stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
@@ -183,8 +189,8 @@ async function addStep(
   };
   const scenarioSteps = [...steps, step];
   await stepStore.saveStep(step);
-  const revision = appendUseCaseRevision(
-    state,
+  const revision = await appendUseCaseRevision(
+    revisionStore,
     found.usecase,
     `Added step ${String(step.step_number)} to main success scenario`
   );

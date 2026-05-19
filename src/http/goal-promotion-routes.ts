@@ -15,6 +15,7 @@ import type {
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const promoteRequestSchema = z.object({
@@ -27,10 +28,20 @@ export function registerGoalPromotionRoutes(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
-    promoteGoal(request, reply, state, goalStore, membershipStore, projectStore, useCaseStore)
+    promoteGoal(
+      request,
+      reply,
+      state,
+      goalStore,
+      membershipStore,
+      projectStore,
+      revisionStore,
+      useCaseStore
+    )
   );
 }
 
@@ -41,6 +52,7 @@ async function promoteGoal(
   goalStore: GoalStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
@@ -55,7 +67,7 @@ async function promoteGoal(
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
-  return promoteGoalToUseCase(reply, state, goalStore, projectStore, useCaseStore, { goal, projectId: goal.project_id }, {
+  return promoteGoalToUseCase(reply, state, goalStore, projectStore, revisionStore, useCaseStore, { goal, projectId: goal.project_id }, {
     simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true
   });
 }
@@ -65,6 +77,7 @@ export async function promoteGoalToUseCase(
   state: SignupState,
   goalStore: GoalStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   found: { goal: StoredGoal; projectId: string },
   options: { simulateUseCaseInsertFailure?: boolean } = {}
@@ -123,10 +136,10 @@ export async function promoteGoalToUseCase(
   usecase.current_revision_id = revision.id;
   revision.snapshot = { ...usecase };
 
-  state.revisionsByEntityId.set(usecase.id, [revision]);
   found.goal.status = "PROMOTED";
   found.goal.linked_usecase_id = usecase.id;
   await useCaseStore.saveUseCase(usecase);
+  await revisionStore.saveRevision(revision);
   await goalStore.updateGoal(found.goal);
   const titleWarning = titleLooksLikeVerbPhrase(usecase.title)
     ? undefined

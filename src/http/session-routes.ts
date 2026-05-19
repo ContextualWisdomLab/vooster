@@ -23,6 +23,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
@@ -50,10 +51,21 @@ export function registerSessionRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, state, branchStore, lockStore, membershipStore, projectStore, useCaseStore)
+    startSession(
+      request,
+      reply,
+      state,
+      branchStore,
+      lockStore,
+      membershipStore,
+      projectStore,
+      revisionStore,
+      useCaseStore
+    )
   );
 }
 
@@ -65,6 +77,7 @@ async function startSession(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
@@ -79,6 +92,7 @@ async function startSession(
   const pinned = await resolvePins(
     state,
     lockStore,
+    revisionStore,
     useCaseStore,
     parsed.data.project_id,
     parsed.data.pins

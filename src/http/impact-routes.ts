@@ -7,6 +7,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type ImpactPayload = {
@@ -32,13 +33,24 @@ export function registerImpactRoutes(
   state: SignupState,
   lockStore: LockStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/preview", async (request, reply) => {
-    if (await previewSpecChange(request, reply, state, lockStore, membershipStore, useCaseStore)) {
+    if (
+      await previewSpecChange(
+        request,
+        reply,
+        state,
+        lockStore,
+        membershipStore,
+        revisionStore,
+        useCaseStore
+      )
+    ) {
       return undefined;
     }
-    return previewImpact(request, reply, state, membershipStore, useCaseStore);
+    return previewImpact(request, reply, state, membershipStore, revisionStore, useCaseStore);
   });
 }
 
@@ -47,6 +59,7 @@ async function previewImpact(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = previewSchema.safeParse(request.body);
@@ -70,7 +83,7 @@ async function previewImpact(
       .code(400)
       .send(missingProposedChangeProblem(found.usecase, parsed.data.proposed_change_path));
   }
-  const revision = revisionById(state, found.usecase.id, parsed.data.base_revision);
+  const revision = await revisionById(revisionStore, found.usecase.id, parsed.data.base_revision);
   if (revision === undefined) {
     return reply.code(404).send(problem(404, "Revision not found"));
   }
@@ -98,12 +111,12 @@ async function previewImpact(
 }
 
 function revisionById(
-  state: SignupState,
+  revisionStore: RevisionStore,
   usecaseId: string,
   revisionId: string
-): StoredRevision | undefined {
-  return (state.revisionsByEntityId.get(usecaseId) ?? [])
-    .find((revision) => revision.id === revisionId);
+): Promise<StoredRevision | undefined> {
+  return revisionStore.listRevisions(usecaseId)
+    .then((revisions) => revisions.find((revision) => revision.id === revisionId));
 }
 
 function cacheFor(state: SignupState) {

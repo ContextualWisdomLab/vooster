@@ -10,6 +10,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
@@ -29,6 +30,7 @@ export function registerMarkdownExportRoutes(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -42,6 +44,7 @@ export function registerMarkdownExportRoutes(
       state,
       actorStore,
       membershipStore,
+      revisionStore,
       useCaseStore,
       scenarioStore,
       stakeholderInterestStore,
@@ -57,6 +60,7 @@ async function exportMarkdown(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -77,7 +81,7 @@ async function exportMarkdown(
   }
   if (
     parsed.data.revision_id !== undefined &&
-    !hasRevision(state, found.usecase, parsed.data.revision_id)
+    !(await hasRevision(revisionStore, found.usecase, parsed.data.revision_id))
   ) {
     return reply.code(404).send(missingMarkdownRevisionProblem(found.usecase, parsed.data.revision_id));
   }
@@ -165,8 +169,12 @@ async function markdownPrerequisiteProblem(
   );
 }
 
-function hasRevision(state: SignupState, usecase: StoredUseCase, revisionId: string) {
-  return (state.revisionsByEntityId.get(usecase.id) ?? []).some(
+async function hasRevision(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase,
+  revisionId: string
+) {
+  return (await revisionStore.listRevisions(usecase.id)).some(
     (revision) => revision.id === revisionId
   );
 }

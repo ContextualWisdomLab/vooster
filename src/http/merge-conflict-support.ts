@@ -1,18 +1,19 @@
-import type { SignupState, StoredSpecBranch } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import type { StoredSpecBranch } from "./signup-types.js";
 
 type ExtensionChange = { condition: string; extension_point: string };
 
-export function mergeConflicts(
-  state: SignupState,
+export async function mergeConflicts(
+  revisionStore: RevisionStore,
   source: StoredSpecBranch,
   targetHeads: Record<string, string>,
   touched: string[]
-) {
+): Promise<Array<Record<string, unknown>>> {
   return [
-    ...structuralConflicts(state, source, targetHeads, touched),
-    ...semanticConflicts(state, source, targetHeads, touched)
+    ...await structuralConflicts(revisionStore, source, targetHeads, touched),
+    ...await semanticConflicts(revisionStore, source, targetHeads, touched)
   ];
 }
 
@@ -34,17 +35,20 @@ export async function useCaseKey(
   return (await useCaseStore.findUseCaseWithProject(usecaseId))?.usecase.key ?? usecaseId;
 }
 
-function structuralConflicts(
-  state: SignupState,
+async function structuralConflicts(
+  revisionStore: RevisionStore,
   source: StoredSpecBranch,
   targetHeads: Record<string, string>,
   touched: string[]
 ) {
-  return touched
+  const candidates = touched
     .filter((entityId) => source.base_revision_ids?.[entityId] !== targetHeads[entityId])
-    .flatMap((entityId) => {
-      const mine = titleAtRevision(state, source.head_revision_ids?.[entityId] ?? "");
-      const theirs = titleAtRevision(state, targetHeads[entityId] ?? "");
+    .map(async (entityId) => {
+      const mine = await titleAtRevision(
+        revisionStore,
+        source.head_revision_ids?.[entityId] ?? ""
+      );
+      const theirs = await titleAtRevision(revisionStore, targetHeads[entityId] ?? "");
       return mine !== undefined && theirs !== undefined && mine !== theirs
         ? [{
             entity_id: entityId,
@@ -56,19 +60,23 @@ function structuralConflicts(
           }]
         : [];
     });
+  return (await Promise.all(candidates)).flat();
 }
 
-function semanticConflicts(
-  state: SignupState,
+async function semanticConflicts(
+  revisionStore: RevisionStore,
   source: StoredSpecBranch,
   targetHeads: Record<string, string>,
   touched: string[]
 ) {
-  return touched
+  const candidates = touched
     .filter((entityId) => source.base_revision_ids?.[entityId] !== targetHeads[entityId])
-    .flatMap((entityId) => {
-      const mine = extensionAtRevision(state, source.head_revision_ids?.[entityId] ?? "");
-      const theirs = extensionAtRevision(state, targetHeads[entityId] ?? "");
+    .map(async (entityId) => {
+      const mine = await extensionAtRevision(
+        revisionStore,
+        source.head_revision_ids?.[entityId] ?? ""
+      );
+      const theirs = await extensionAtRevision(revisionStore, targetHeads[entityId] ?? "");
       return mine !== undefined &&
         theirs !== undefined &&
         mine.extension_point === theirs.extension_point &&
@@ -82,24 +90,25 @@ function semanticConflicts(
           }]
         : [];
     });
+  return (await Promise.all(candidates)).flat();
 }
 
-function titleAtRevision(state: SignupState, revisionId: string): string | undefined {
-  const snapshot = revisionById(state, revisionId)?.snapshot;
+async function titleAtRevision(
+  revisionStore: RevisionStore,
+  revisionId: string
+): Promise<string | undefined> {
+  const snapshot = (await revisionStore.findRevisionById(revisionId))?.snapshot;
   return snapshot !== undefined && "title" in snapshot ? snapshot.title : undefined;
 }
 
-function extensionAtRevision(state: SignupState, revisionId: string): ExtensionChange | undefined {
-  const summary = revisionById(state, revisionId)?.change_summary;
+async function extensionAtRevision(
+  revisionStore: RevisionStore,
+  revisionId: string
+): Promise<ExtensionChange | undefined> {
+  const summary = (await revisionStore.findRevisionById(revisionId))?.change_summary;
   if (summary === undefined || !summary.startsWith("extension:")) {
     return undefined;
   }
   const [, extensionPoint, ...condition] = summary.split(":");
   return { extension_point: extensionPoint ?? "", condition: condition.join(":") };
-}
-
-function revisionById(state: SignupState, revisionId: string) {
-  return [...state.revisionsByEntityId.values()]
-    .flat()
-    .find((revision) => revision.id === revisionId);
 }

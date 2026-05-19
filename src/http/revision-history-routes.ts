@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const historyQuerySchema = z.object({
@@ -19,10 +20,11 @@ export function registerRevisionHistoryRoutes(
   state: SignupState,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/revisions", (request, reply) =>
-    listHistory(request, reply, state, membershipStore, projectStore, useCaseStore)
+    listHistory(request, reply, state, membershipStore, projectStore, revisionStore, useCaseStore)
   );
 }
 
@@ -32,6 +34,7 @@ async function listHistory(
   state: SignupState,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
@@ -55,7 +58,7 @@ async function listHistory(
     return reply.code(500).send(historyReadFailureProblem(found.usecase));
   }
 
-  const allRows = revisionsFor(state, found.usecase)
+  const allRows = (await revisionsFor(revisionStore, found.usecase))
     .sort((left, right) => right.version_number - left.version_number)
     .map((revision) => revisionRow(revision, userId));
   const revisions = allRows.slice(0, parsed.data.limit);
@@ -126,8 +129,8 @@ async function projectKeyFor(
   return (await projectStore.findProjectById(projectId))?.key ?? "unknown";
 }
 
-function revisionsFor(state: SignupState, usecase: StoredUseCase) {
-  return state.revisionsByEntityId.get(usecase.id) ?? [];
+function revisionsFor(revisionStore: RevisionStore, usecase: StoredUseCase) {
+  return revisionStore.listRevisions(usecase.id);
 }
 
 function revisionRow(revision: StoredRevision, userId: string) {

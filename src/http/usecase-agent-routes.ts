@@ -7,6 +7,7 @@ import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
@@ -26,6 +27,7 @@ export function registerUseCaseAgentRoutes(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -40,6 +42,7 @@ export function registerUseCaseAgentRoutes(
       actorStore,
       membershipStore,
       projectStore,
+      revisionStore,
       useCaseStore,
       scenarioStore,
       stakeholderInterestStore,
@@ -56,6 +59,7 @@ async function showUseCase(
   actorStore: ActorStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   scenarioStore: ScenarioStore,
   stakeholderInterestStore: StakeholderInterestStore,
@@ -97,7 +101,7 @@ async function showUseCase(
   }
   const session = activeSession(state, query.session);
   const pinned = session?.pinned_revisions?.[found.usecase.id];
-  const revision = pinned ?? resolveRevision(state, found.usecase, query.revision);
+  const revision = pinned ?? await resolveRevision(revisionStore, found.usecase, query.revision);
   if (revision === undefined) {
     return reply.code(404).send(
       problem(404, "Revision not found", { revision: query.revision }, [
@@ -197,15 +201,15 @@ function suggestedActions(usecase: StoredUseCase, warnings: Array<{ type: string
   ];
 }
 
-function resolveRevision(
-  state: SignupState,
+async function resolveRevision(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
   requestedRevision: string | undefined
-) {
+): Promise<string | undefined> {
   if (requestedRevision === undefined) {
     return usecase.current_revision_id;
   }
-  const exists = (state.revisionsByEntityId.get(usecase.id) ?? [])
+  const exists = (await revisionStore.listRevisions(usecase.id))
     .some((revision) => revision.id === requestedRevision);
   return exists ? requestedRevision : undefined;
 }

@@ -21,6 +21,7 @@ import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const pullSchema = z.object({
@@ -46,6 +47,7 @@ export function registerSyncRoutes(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
@@ -59,6 +61,7 @@ export function registerSyncRoutes(
       branchStore,
       membershipStore,
       projectStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -97,6 +100,7 @@ async function pushFiles(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -120,7 +124,7 @@ async function pushFiles(
       )
     : await Promise.all(
         parsed.data.files.map((file) =>
-          pushFile(state, branchStore, projectStore, useCaseStore, projectId, file)
+          pushFile(branchStore, projectStore, revisionStore, useCaseStore, projectId, file)
         )
       );
   return reply.send({
@@ -151,9 +155,9 @@ async function previewFile(
 }
 
 async function pushFile(
-  state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   projectId: string,
   file: PushFile
@@ -166,14 +170,11 @@ async function pushFile(
     return staleFileConflict(usecase, file);
   }
   const title = titleFrom(file.content);
-  const revision = syncRevision(state, usecase, title);
+  const revision = await syncRevision(revisionStore, usecase, title);
   usecase.title = title;
   usecase.current_revision_id = revision.id;
   await useCaseStore.updateUseCase(usecase);
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
   await advanceMainHead(projectStore, branchStore, projectId, usecase.id, revision.id);
   return { current_revision: revision.id, path: file.path, status: "OK" };
 }
@@ -206,16 +207,16 @@ function syncAccessProblem() {
   );
 }
 
-function syncRevision(
-  state: SignupState,
+async function syncRevision(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
   title: string
-): StoredRevision {
+): Promise<StoredRevision> {
   return {
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase, title },
     change_summary: `Synced ${usecase.key} from file`,
     parent_revision_id: usecase.current_revision_id,

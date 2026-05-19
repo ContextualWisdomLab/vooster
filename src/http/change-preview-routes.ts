@@ -7,6 +7,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
@@ -26,6 +27,7 @@ export async function previewSpecChange(
   state: SignupState,
   lockStore: LockStore,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ): Promise<boolean> {
   if (!proposalMarkerSchema.safeParse(request.body).success) {
@@ -63,7 +65,7 @@ export async function previewSpecChange(
     return true;
   }
   if (parsed.data.base_revision !== usecase.current_revision_id) {
-    reply.code(409).send(staleBaseProblem(state, usecase));
+    reply.code(409).send(await staleBaseProblem(revisionStore, usecase));
     return true;
   }
 
@@ -147,9 +149,8 @@ async function accessibleUseCaseByKey(
   return membership === undefined ? undefined : { membership, usecase };
 }
 
-function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {
-  const current = (state.revisionsByEntityId.get(usecase.id) ?? [])
-    .find((revision) => revision.id === usecase.current_revision_id);
+async function staleBaseProblem(revisionStore: RevisionStore, usecase: StoredUseCase) {
+  const current = await revisionStore.findRevisionById(usecase.current_revision_id);
   return problem(
     409,
     "Stale base revision",

@@ -9,6 +9,7 @@ import type {
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 
 const stakeholderRequestSchema = z.object({
@@ -25,10 +26,19 @@ export function registerStakeholderRoutes(
   state: SignupState,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   stakeholderStore: StakeholderStore
 ) {
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
-    createStakeholder(request, reply, state, membershipStore, projectStore, stakeholderStore)
+    createStakeholder(
+      request,
+      reply,
+      state,
+      membershipStore,
+      projectStore,
+      revisionStore,
+      stakeholderStore
+    )
   );
 }
 
@@ -38,6 +48,7 @@ async function createStakeholder(
   state: SignupState,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   stakeholderStore: StakeholderStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -104,7 +115,7 @@ async function createStakeholder(
   };
 
   await stakeholderStore.saveStakeholder(stakeholder);
-  state.revisionsByEntityId.set(stakeholder.id, [revision]);
+  await revisionStore.saveRevision(revision);
 
   return reply.code(201).send({
     stakeholder,

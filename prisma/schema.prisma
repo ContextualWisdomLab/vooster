@@ -241,6 +241,7 @@ model Revision {
   change_summary      String?
   author_id           String
   parent_revision_id  String?
+  severity            String?
   created_at          DateTime       @default(now())
 
   branch          SpecBranch @relation(fields: [branch_id], references: [id])

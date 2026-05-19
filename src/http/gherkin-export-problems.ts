@@ -1,5 +1,6 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 
@@ -79,15 +80,15 @@ export async function gherkinPrerequisiteProblem(
   );
 }
 
-export function missingRevisionProblem(
-  state: SignupState,
+export async function missingRevisionProblem(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
   revisionId: string | undefined
-) {
+): Promise<ReturnType<typeof problem> | undefined> {
   if (revisionId === undefined) {
     return undefined;
   }
-  const exists = (state.revisionsByEntityId.get(usecase.id) ?? [])
+  const exists = (await revisionStore.listRevisions(usecase.id))
     .some((revision) => revision.id === revisionId);
   if (exists) {
     return undefined;

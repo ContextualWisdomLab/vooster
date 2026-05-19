@@ -8,6 +8,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export function registerUseCaseArchiveRoutes(
@@ -17,6 +18,7 @@ export function registerUseCaseArchiveRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.delete("/v1/usecases/:usecaseId", (request, reply) =>
@@ -28,6 +30,7 @@ export function registerUseCaseArchiveRoutes(
       lockStore,
       membershipStore,
       projectStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -41,6 +44,7 @@ async function archiveUseCase(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
@@ -68,13 +72,10 @@ async function archiveUseCase(
 
   const archivedAt = new Date().toISOString();
   found.usecase.archived_at = archivedAt;
-  const revision = archiveRevision(state, found.usecase);
+  const revision = await archiveRevision(revisionStore, found.usecase);
   found.usecase.current_revision_id = revision.id;
   await useCaseStore.updateUseCase(found.usecase);
-  state.revisionsByEntityId.set(found.usecase.id, [
-    ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
   await advanceMainHead(projectStore, branchStore, found.usecase, revision.id);
   const affectedSessions = affectedSessionsFor(state, found.usecase.id);
 
@@ -102,6 +103,7 @@ export async function restoreArchivedUseCase(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   found: { projectId: string; usecase: StoredUseCase }
 ) {
@@ -109,13 +111,10 @@ export async function restoreArchivedUseCase(
     return reply.code(409).send(problem(409, "Use case is not archived"));
   }
   found.usecase.archived_at = null;
-  const revision = restoreRevision(state, found.usecase);
+  const revision = await restoreRevision(revisionStore, found.usecase);
   found.usecase.current_revision_id = revision.id;
   await useCaseStore.updateUseCase(found.usecase);
-  state.revisionsByEntityId.set(found.usecase.id, [
-    ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
   await advanceMainHead(projectStore, branchStore, found.usecase, revision.id);
   return reply.send({
     revision: { change_summary: revision.change_summary, id: revision.id },
@@ -123,23 +122,29 @@ export async function restoreArchivedUseCase(
   });
 }
 
-function archiveRevision(state: SignupState, usecase: StoredUseCase): StoredRevision {
+async function archiveRevision(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase
+): Promise<StoredRevision> {
   return {
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase },
     change_summary: `Archived use case ${usecase.key}`
   };
 }
 
-function restoreRevision(state: SignupState, usecase: StoredUseCase): StoredRevision {
+async function restoreRevision(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase
+): Promise<StoredRevision> {
   return {
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase },
     change_summary: `Restored use case ${usecase.key}`
   };

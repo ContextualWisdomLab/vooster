@@ -6,6 +6,7 @@ import { createMemoryLockStore } from "../infrastructure/memory-lock-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
 import { createMemoryMergeRequestStore } from "../infrastructure/memory-merge-request-store.js";
 import { createMemoryProjectStore } from "../infrastructure/memory-project-store.js";
+import { createMemoryRevisionStore } from "../infrastructure/memory-revision-store.js";
 import { createMemoryScenarioStore } from "../infrastructure/memory-scenario-store.js";
 import { createMemoryStakeholderInterestStore } from "../infrastructure/memory-stakeholder-interest-store.js";
 import { createMemoryStakeholderStore } from "../infrastructure/memory-stakeholder-store.js";
@@ -63,6 +64,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
       (await projectStore.findProjectById(projectId))?.workspace_id
     );
   const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
+  const revisionStore = options.signupStore ?? createMemoryRevisionStore();
   const scenarioStore = options.signupStore ?? createMemoryScenarioStore();
   const stakeholderInterestStore =
     options.signupStore ?? createMemoryStakeholderInterestStore();
@@ -94,15 +96,17 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     projectStore,
     membershipStore,
     mergeRequestStore,
+    revisionStore,
     useCaseStore
   );
-  registerBranchTestRoutes(app, state, branchStore, projectStore, useCaseStore);
+  registerBranchTestRoutes(app, state, branchStore, projectStore, revisionStore, useCaseStore);
   registerLockRoutes(app, state, lockStore, membershipStore, useCaseStore);
   registerMarkdownExportRoutes(
     app,
     state,
     actorStore,
     membershipStore,
+    revisionStore,
     useCaseStore,
     scenarioStore,
     stakeholderInterestStore,
@@ -117,6 +121,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     membershipStore,
     mergeRequestStore,
     projectStore,
+    revisionStore,
     useCaseStore
   );
   registerMergeResolveRoutes(
@@ -126,37 +131,63 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     mergeRequestStore,
+    revisionStore,
     useCaseStore
   );
-  registerActorRoutes(app, state, actorStore, membershipStore);
+  registerActorRoutes(app, state, actorStore, membershipStore, revisionStore);
   registerActorTestRoutes(app, state, actorStore, membershipStore);
   registerGherkinExportRoutes(
     app,
     state,
     actorStore,
     membershipStore,
+    revisionStore,
     useCaseStore,
     scenarioStore,
     stepStore
   );
-  registerGoalRoutes(app, state, actorStore, goalStore, membershipStore, projectStore);
+  registerGoalRoutes(
+    app,
+    state,
+    actorStore,
+    goalStore,
+    membershipStore,
+    projectStore,
+    revisionStore
+  );
   registerGoalPromotionRoutes(
     app,
     state,
     goalStore,
     membershipStore,
     projectStore,
+    revisionStore,
     useCaseStore
   );
-  registerImpactRoutes(app, state, lockStore, membershipStore, useCaseStore);
+  registerImpactRoutes(app, state, lockStore, membershipStore, revisionStore, useCaseStore);
   registerInvitationRoutes(app, options, state, membershipStore);
   registerCommentRoutes(app, state, membershipStore, useCaseStore);
-  registerChangeCommitRoutes(app, state, branchStore, projectStore, useCaseStore);
-  registerStakeholderRoutes(app, state, membershipStore, projectStore, stakeholderStore);
+  registerChangeCommitRoutes(
+    app,
+    state,
+    branchStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
+  registerStakeholderRoutes(
+    app,
+    state,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    stakeholderStore
+  );
   registerStakeholderInterestRoutes(
     app,
     state,
     membershipStore,
+    revisionStore,
     stakeholderInterestStore,
     stakeholderStore,
     useCaseStore
@@ -167,6 +198,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     actorStore,
     membershipStore,
     projectStore,
+    revisionStore,
     useCaseStore,
     scenarioStore,
     stakeholderInterestStore,
@@ -180,6 +212,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     projectStore,
+    revisionStore,
     useCaseStore
   );
   registerUseCaseRoutes(
@@ -190,13 +223,21 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     goalStore,
     membershipStore,
     projectStore,
+    revisionStore,
     stakeholderInterestStore,
     useCaseStore
   );
   registerUseCaseSearchRoutes(app, state, actorStore, membershipStore, useCaseStore);
   registerUseCaseTestRoutes(app, state, useCaseStore);
-  registerRevisionDiffRoutes(app, state, branchStore, membershipStore, useCaseStore);
-  registerRevisionHistoryRoutes(app, state, membershipStore, projectStore, useCaseStore);
+  registerRevisionDiffRoutes(app, state, branchStore, membershipStore, revisionStore, useCaseStore);
+  registerRevisionHistoryRoutes(
+    app,
+    state,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
   registerRevisionRevertRoutes(
     app,
     state,
@@ -204,6 +245,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     projectStore,
+    revisionStore,
     useCaseStore
   );
   registerWhoRoutes(app, state, branchStore, lockStore, membershipStore, mergeRequestStore, useCaseStore);
@@ -213,6 +255,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     actorStore,
     membershipStore,
     scenarioStore,
+    revisionStore,
     stakeholderInterestStore,
     stepStore,
     useCaseStore
@@ -235,17 +278,35 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     projectStore,
     useCaseStore
   );
-  registerSessionRoutes(app, state, branchStore, lockStore, membershipStore, projectStore, useCaseStore);
+  registerSessionRoutes(
+    app,
+    state,
+    branchStore,
+    lockStore,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
   registerStepRoutes(
     app,
     state,
     lockStore,
     membershipStore,
     scenarioStore,
+    revisionStore,
     stepStore,
     useCaseStore
   );
-  registerSyncRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
+  registerSyncRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
 
   return app;
 }
@@ -254,7 +315,6 @@ function initialState(options: ServerOptions): SignupState {
   const state: SignupState = {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
-    revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
     usersByGithubId: new Map(),
     workSessionsById: new Map(),

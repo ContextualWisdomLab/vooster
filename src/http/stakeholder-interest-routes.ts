@@ -17,6 +17,7 @@ import type {
   StoredStakeholderInterest
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -31,6 +32,7 @@ export function registerStakeholderInterestRoutes(
   app: FastifyInstance,
   state: SignupState,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
@@ -41,6 +43,7 @@ export function registerStakeholderInterestRoutes(
       reply,
       state,
       membershipStore,
+      revisionStore,
       stakeholderInterestStore,
       stakeholderStore,
       useCaseStore
@@ -54,6 +57,7 @@ export function registerStakeholderInterestRoutes(
         reply,
         state,
         membershipStore,
+        revisionStore,
         stakeholderInterestStore,
         stakeholderStore,
         useCaseStore
@@ -66,6 +70,7 @@ async function addStakeholderInterest(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
@@ -132,15 +137,12 @@ async function addStakeholderInterest(
     id: randomUUID(),
     entity_type: "USECASE" as const,
     entity_id: found.usecase.id,
-    version_number: (state.revisionsByEntityId.get(found.usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(found.usecase.id),
     snapshot: { ...found.usecase },
     change_summary: `Added stakeholder interest ${stakeholderInterest.id}`,
     severity: "NON_BREAKING" as const
   };
-  state.revisionsByEntityId.set(found.usecase.id, [
-    ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
 
   return reply.code(201).send({
     stakeholder_interest: stakeholderInterest,
@@ -165,6 +167,7 @@ async function removeStakeholderInterest(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
+  revisionStore: RevisionStore,
   stakeholderInterestStore: StakeholderInterestStore,
   stakeholderStore: StakeholderStore,
   useCaseStore: UseCaseStore
@@ -194,15 +197,12 @@ async function removeStakeholderInterest(
     id: randomUUID(),
     entity_type: "USECASE" as const,
     entity_id: found.usecase.id,
-    version_number: (state.revisionsByEntityId.get(found.usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(found.usecase.id),
     snapshot: { ...found.usecase },
     change_summary: `Removed stakeholder interest ${removed.id}`,
     severity: "BREAKING" as const
   };
-  state.revisionsByEntityId.set(found.usecase.id, [
-    ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
 
   const remaining = await interestsWithStakeholders(
     stakeholderInterestStore,

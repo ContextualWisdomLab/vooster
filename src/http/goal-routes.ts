@@ -20,6 +20,7 @@ import type { ActorStore } from "../ports/actor-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 const goalRequestSchema = z.object({
   actor_id: z.string().min(1),
   description: z.string(),
@@ -35,16 +36,26 @@ export function registerGoalRoutes(
   actorStore: ActorStore,
   goalStore: GoalStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  revisionStore: RevisionStore
 ) {
   app.post("/v1/projects/:projectId/goals", (request, reply) =>
-    createGoal(request, reply, state, actorStore, goalStore, membershipStore, projectStore)
+    createGoal(
+      request,
+      reply,
+      state,
+      actorStore,
+      goalStore,
+      membershipStore,
+      projectStore,
+      revisionStore
+    )
   );
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
     listGoals(request, reply, state, actorStore, goalStore, membershipStore)
   );
   app.patch("/v1/goals/:goalId", (request, reply) =>
-    patchGoal(request, reply, state, goalStore, membershipStore, projectStore)
+    patchGoal(request, reply, state, goalStore, membershipStore, projectStore, revisionStore)
   );
 }
 
@@ -55,7 +66,8 @@ async function createGoal(
   actorStore: ActorStore,
   goalStore: GoalStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  revisionStore: RevisionStore
 ) {
   const projectId = projectIdFrom(request.params);
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -115,7 +127,7 @@ async function createGoal(
   const revision = goalRevision(goal, 1);
 
   await goalStore.saveGoal(goal);
-  state.revisionsByEntityId.set(goal.id, [revision]);
+  await revisionStore.saveRevision(revision);
 
   return reply.code(201).send(goalCreateResponse(goal, revision, duplicateGoal));
 }
@@ -126,7 +138,8 @@ async function patchGoal(
   state: SignupState,
   goalStore: GoalStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  revisionStore: RevisionStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
@@ -169,14 +182,8 @@ async function patchGoal(
   if (parsed.data.status !== undefined) {
     goal.status = parsed.data.status;
   }
-  const revision = goalRevision(
-    goal,
-    (state.revisionsByEntityId.get(goal.id) ?? []).length + 1
-  );
-  state.revisionsByEntityId.set(goal.id, [
-    ...(state.revisionsByEntityId.get(goal.id) ?? []),
-    revision
-  ]);
+  const revision = goalRevision(goal, await revisionStore.nextVersionNumber(goal.id));
+  await revisionStore.saveRevision(revision);
   await goalStore.updateGoal(goal);
 
   return reply.send({ goal, revision });

@@ -11,6 +11,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const branchCreateSchema = z.object({
@@ -26,6 +27,7 @@ export function registerBranchRoutes(
   projectStore: ProjectStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/branches", (request, reply) =>
@@ -37,6 +39,7 @@ export function registerBranchRoutes(
       projectStore,
       membershipStore,
       mergeRequestStore,
+      revisionStore,
       useCaseStore
     )
   );
@@ -50,6 +53,7 @@ async function createBranch(
   projectStore: ProjectStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -107,7 +111,7 @@ async function createBranch(
       ])
     );
   }
-  const snapshot = await mainHeadSnapshot(state, project, useCaseStore);
+  const snapshot = await mainHeadSnapshot(revisionStore, project, useCaseStore);
   const branch: StoredSpecBranch = {
     id: randomUUID(),
     project_id: projectId,
@@ -158,21 +162,16 @@ function readOnly(reply: FastifyReply) {
 }
 
 async function mainHeadSnapshot(
-  state: SignupState,
+  revisionStore: RevisionStore,
   project: StoredProject,
   useCaseStore: UseCaseStore
 ): Promise<Record<string, string>> {
-  return Object.fromEntries(
-    (await useCaseStore.listUseCases(project.id)).map((usecase) => [
-      usecase.id,
-      latestRevisionId(state, usecase.id) ?? usecase.current_revision_id
-    ])
-  );
-}
-
-function latestRevisionId(state: SignupState, entityId: string): string | undefined {
-  const revisions = state.revisionsByEntityId.get(entityId) ?? [];
-  return revisions[revisions.length - 1]?.id;
+  const snapshot: Record<string, string> = {};
+  for (const usecase of await useCaseStore.listUseCases(project.id)) {
+    snapshot[usecase.id] =
+      (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id;
+  }
+  return snapshot;
 }
 
 async function firstUseCaseKey(

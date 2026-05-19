@@ -9,6 +9,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredActor } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 
 const actorRequestSchema = z.object({
   aliases: z.array(z.string()).default([]),
@@ -24,10 +25,11 @@ export function registerActorRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  revisionStore: RevisionStore
 ) {
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
-    createActor(request, reply, state, actorStore, membershipStore)
+    createActor(request, reply, state, actorStore, membershipStore, revisionStore)
   );
 }
 
@@ -36,7 +38,8 @@ async function createActor(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  revisionStore: RevisionStore
 ) {
   const projectId = projectIdFrom(request.params);
   const membership = await membershipForProject(request, state, membershipStore, projectId);
@@ -122,7 +125,7 @@ async function createActor(
   };
 
   await actorStore.saveActor(actor);
-  state.revisionsByEntityId.set(actor.id, [revision]);
+  await revisionStore.saveRevision(revision);
 
   return reply.code(201).send({
     actor,

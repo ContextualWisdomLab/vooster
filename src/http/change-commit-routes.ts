@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const commitSchema = z.object({
@@ -18,10 +19,19 @@ export function registerChangeCommitRoutes(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/commit", (request, reply) =>
-    commitSpecChange(request, reply, state, branchStore, projectStore, useCaseStore)
+    commitSpecChange(
+      request,
+      reply,
+      state,
+      branchStore,
+      projectStore,
+      revisionStore,
+      useCaseStore
+    )
   );
   app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
     const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
@@ -40,6 +50,7 @@ async function commitSpecChange(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   const parsed = commitSchema.safeParse(request.body);
@@ -66,6 +77,7 @@ async function commitSpecChange(
     state,
     branchStore,
     projectStore,
+    revisionStore,
     useCaseStore,
     usecase,
     preview.id,
@@ -84,6 +96,7 @@ async function appendPreviewRevision(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
   usecase: StoredUseCase,
   previewId: string,
@@ -93,18 +106,15 @@ async function appendPreviewRevision(
     id: randomUUID(),
     entity_type: "USECASE" as const,
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase, title },
     change_summary: `Committed preview ${previewId}`,
     severity: "NON_BREAKING" as const
   };
   usecase.title = title;
   usecase.current_revision_id = revision.id;
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
   await useCaseStore.updateUseCase(usecase);
+  await revisionStore.saveRevision(revision);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined

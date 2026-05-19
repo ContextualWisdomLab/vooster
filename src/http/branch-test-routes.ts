@@ -5,6 +5,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const branchRevisionSchema = z.object({
@@ -21,26 +22,27 @@ export function registerBranchTestRoutes(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/__test/branches/:branchId/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceBranchUseCase(request, reply, state, branchStore, useCaseStore)
+    advanceBranchUseCase(request, reply, revisionStore, branchStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceMainUseCase(request, reply, state, branchStore, projectStore, useCaseStore)
+    advanceMainUseCase(request, reply, revisionStore, branchStore, projectStore, useCaseStore)
   );
   app.post("/__test/branches/:branchId/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceBranchExtension(request, reply, state, branchStore, useCaseStore)
+    advanceBranchExtension(request, reply, revisionStore, branchStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceMainExtension(request, reply, state, branchStore, projectStore, useCaseStore)
+    advanceMainExtension(request, reply, revisionStore, branchStore, projectStore, useCaseStore)
   );
 }
 
 async function advanceBranchUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
+  revisionStore: RevisionStore,
   branchStore: BranchStore,
   useCaseStore: UseCaseStore
 ) {
@@ -56,15 +58,12 @@ async function advanceBranchUseCase(
   if (branch === undefined || usecase === undefined) {
     return reply.code(404).send(problem(404, "Branch use case not found"));
   }
-  const revision = useCaseRevision(state, usecase, parsed.data);
+  const revision = await useCaseRevision(revisionStore, usecase, parsed.data, branch.id);
   branch.head_revision_ids = {
     ...(branch.head_revision_ids ?? branch.base_revision_ids ?? {}),
     [usecase.id]: revision.id
   };
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
+  await revisionStore.saveRevision(revision);
   await branchStore.updateBranch(branch);
   await useCaseStore.updateUseCase(usecase);
   return reply.send({ revision_id: revision.id });
@@ -73,7 +72,7 @@ async function advanceBranchUseCase(
 async function advanceBranchExtension(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
+  revisionStore: RevisionStore,
   branchStore: BranchStore,
   useCaseStore: UseCaseStore
 ) {
@@ -89,12 +88,12 @@ async function advanceBranchExtension(
   if (branch === undefined || usecase === undefined) {
     return reply.code(404).send(problem(404, "Branch use case not found"));
   }
-  const revision = extensionRevision(state, usecase, parsed.data);
+  const revision = await extensionRevision(revisionStore, usecase, parsed.data, branch.id);
   branch.head_revision_ids = {
     ...(branch.head_revision_ids ?? branch.base_revision_ids ?? {}),
     [usecase.id]: revision.id
   };
-  appendRevision(state, usecase.id, revision);
+  await revisionStore.saveRevision(revision);
   await branchStore.updateBranch(branch);
   await useCaseStore.updateUseCase(usecase);
   return reply.send({ revision_id: revision.id });
@@ -103,7 +102,7 @@ async function advanceBranchExtension(
 async function advanceMainUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
+  revisionStore: RevisionStore,
   branchStore: BranchStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -117,14 +116,11 @@ async function advanceMainUseCase(
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  const revision = useCaseRevision(state, usecase, parsed.data);
+  const revision = await useCaseRevision(revisionStore, usecase, parsed.data);
   usecase.title = parsed.data.title;
   usecase.current_revision_id = revision.id;
-  state.revisionsByEntityId.set(usecase.id, [
-    ...(state.revisionsByEntityId.get(usecase.id) ?? []),
-    revision
-  ]);
   await useCaseStore.updateUseCase(usecase);
+  await revisionStore.saveRevision(revision);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
@@ -139,7 +135,7 @@ async function advanceMainUseCase(
 async function advanceMainExtension(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
+  revisionStore: RevisionStore,
   branchStore: BranchStore,
   projectStore: ProjectStore,
   useCaseStore: UseCaseStore
@@ -153,10 +149,10 @@ async function advanceMainExtension(
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
-  const revision = extensionRevision(state, usecase, parsed.data);
+  const revision = await extensionRevision(revisionStore, usecase, parsed.data);
   usecase.current_revision_id = revision.id;
-  appendRevision(state, usecase.id, revision);
   await useCaseStore.updateUseCase(usecase);
+  await revisionStore.saveRevision(revision);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
@@ -168,40 +164,37 @@ async function advanceMainExtension(
   return reply.send({ revision_id: revision.id });
 }
 
-function useCaseRevision(
-  state: SignupState,
+async function useCaseRevision(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
-  data: { severity: "BREAKING" | "COSMETIC" | "NON_BREAKING"; title: string }
-): StoredRevision {
+  data: { severity: "BREAKING" | "COSMETIC" | "NON_BREAKING"; title: string },
+  branchId?: string
+): Promise<StoredRevision> {
   return {
+    ...(branchId === undefined ? {} : { branch_id: branchId }),
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase, title: data.title },
     severity: data.severity
   };
 }
 
-function extensionRevision(
-  state: SignupState,
+async function extensionRevision(
+  revisionStore: RevisionStore,
   usecase: StoredUseCase,
-  data: { condition: string; extension_point: string }
-): StoredRevision {
+  data: { condition: string; extension_point: string },
+  branchId?: string
+): Promise<StoredRevision> {
   return {
+    ...(branchId === undefined ? {} : { branch_id: branchId }),
     id: randomUUID(),
     entity_type: "USECASE",
     entity_id: usecase.id,
-    version_number: (state.revisionsByEntityId.get(usecase.id) ?? []).length + 1,
+    version_number: await revisionStore.nextVersionNumber(usecase.id),
     snapshot: { ...usecase },
     change_summary: `extension:${data.extension_point}:${data.condition}`,
     severity: "NON_BREAKING"
   };
-}
-
-function appendRevision(state: SignupState, usecaseId: string, revision: StoredRevision) {
-  state.revisionsByEntityId.set(usecaseId, [
-    ...(state.revisionsByEntityId.get(usecaseId) ?? []),
-    revision
-  ]);
 }

@@ -15,6 +15,7 @@ import type {
 } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -32,6 +33,7 @@ export function registerStepRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
   stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
@@ -43,6 +45,7 @@ export function registerStepRoutes(
       lockStore,
       membershipStore,
       scenarioStore,
+      revisionStore,
       stepStore,
       useCaseStore
     )
@@ -62,6 +65,7 @@ async function patchStep(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
   stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
@@ -81,7 +85,7 @@ async function patchStep(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step update"));
   }
-  const currentRevision = currentRevisionId(state, found.usecase);
+  const currentRevision = await currentRevisionId(revisionStore, found.usecase);
   if (parsed.data.base_revision !== currentRevision) {
     return reply
       .code(409)
@@ -111,8 +115,8 @@ async function patchStep(
     notes: parsed.data.notes ?? found.step.notes
   };
   await stepStore.updateStep(updated);
-  const revision = appendUseCaseRevision(
-    state,
+  const revision = await appendUseCaseRevision(
+    revisionStore,
     found.usecase,
     `Edited step ${updated.id}`,
     parsed.data.action === undefined && parsed.data.notes !== undefined
@@ -158,9 +162,11 @@ async function stepWithUseCase(
   return undefined;
 }
 
-function currentRevisionId(state: SignupState, usecase: StoredUseCase): string {
-  const revisions = state.revisionsByEntityId.get(usecase.id) ?? [];
-  return revisions[revisions.length - 1]?.id ?? usecase.current_revision_id;
+async function currentRevisionId(
+  revisionStore: RevisionStore,
+  usecase: StoredUseCase
+): Promise<string> {
+  return (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id;
 }
 
 function staleBaseRevisionProblem(

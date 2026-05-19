@@ -30,6 +30,21 @@ afterEach(() => {
 });
 
 describe("UC-001 real GitHub OAuth", () => {
+  test("*a: missing GitHub credentials do not prevent server boot", async () => {
+    restoreEnv("GITHUB_CLIENT_ID", undefined);
+    restoreEnv("GITHUB_CLIENT_SECRET", undefined);
+
+    const app = await createServer({ authStub: false });
+
+    try {
+      const health = await app.inject({ method: "GET", url: "/healthz" });
+
+      expect(health.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
   test("MAIN: exchanges code for token, fetches profile, creates workspace and session", async () => {
     process.env.GITHUB_CLIENT_ID = "fixture-client-id";
     process.env.GITHUB_CLIENT_SECRET = "fixture-client-secret";

@@ -52,6 +52,10 @@ export class VspecCommand extends Command {
       await this.createActor(parsed.flags);
       return;
     }
+    if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
+      await this.createStakeholder(parsed.flags);
+      return;
+    }
 
     this.log("vspec CLI");
   }
@@ -166,6 +170,26 @@ export class VspecCommand extends Command {
     this.log(`Revision version ${String(body.revision.version_number)}`);
     this.log(body.recommended_next_command);
   }
+
+  private async createStakeholder(flags: ParsedFlags): Promise<void> {
+    const stakeholderFlags = stakeholderFlagsFrom(flags);
+    const response = await postJson(
+      `${stakeholderFlags.apiUrl}/v1/projects/${stakeholderFlags.projectId}/stakeholders`,
+      {
+        description: stakeholderFlags.description,
+        name: stakeholderFlags.name,
+        type: stakeholderFlags.type
+      },
+      {
+        Cookie: stakeholderFlags.sessionCookie
+      }
+    );
+    const body = response.body as StakeholderResponse;
+
+    this.log(`Stakeholder ${body.stakeholder.name} ${body.stakeholder.type}`);
+    this.log(`Revision version ${String(body.revision.version_number)}`);
+    this.log(body.recommended_next_command);
+  }
 }
 
 type OAuthFlags = {
@@ -203,6 +227,15 @@ type ActorFlags = {
   projectId: string;
   sessionCookie: string;
   type: "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
+};
+
+type StakeholderFlags = {
+  apiUrl: string;
+  description: string;
+  name: string;
+  projectId: string;
+  sessionCookie: string;
+  type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
 };
 
 type ParsedFlags = {
@@ -280,6 +313,17 @@ type ActorResponse = {
   };
 };
 
+type StakeholderResponse = {
+  recommended_next_command: string;
+  revision: {
+    version_number: number;
+  };
+  stakeholder: {
+    name: string;
+    type: string;
+  };
+};
+
 function oauthFlagsFrom(flags: ParsedFlags): OAuthFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -331,6 +375,17 @@ function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
   };
 }
 
+function stakeholderFlagsFrom(flags: ParsedFlags): StakeholderFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    description: flags.description ?? "",
+    name: requiredFlag(flags, "name"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    type: stakeholderType(requiredFlag(flags, "type"))
+  };
+}
+
 function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
@@ -356,6 +411,15 @@ function actorType(rawType: string): "OFFSTAGE" | "PRIMARY" | "SUPPORTING" {
   }
 
   throw new Error("Actor type must be PRIMARY, SUPPORTING, or OFFSTAGE.");
+}
+
+function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY" {
+  const type = rawType.toUpperCase();
+  if (type === "EXTERNAL" || type === "INTERNAL" || type === "REGULATORY") {
+    return type;
+  }
+
+  throw new Error("Stakeholder type must be INTERNAL, EXTERNAL, or REGULATORY.");
 }
 
 function aliasesFrom(rawAliases: string | undefined): string[] {

@@ -66,7 +66,7 @@ describe("actor goal application", () => {
     const savedRevisions: StoredRevision[] = [];
 
     const result = await createGoal(
-      depsFor({ actor: undefined, savedGoals, savedRevisions }),
+      depsFor({ actor: null, savedGoals, savedRevisions }),
       {
         actorId: "missing-actor",
         description: "Reviews checkout exceptions",
@@ -140,7 +140,7 @@ describe("actor goal application", () => {
 });
 
 function depsFor(options: {
-  actor?: StoredActor;
+  actor?: StoredActor | null;
   actors?: StoredActor[];
   existingGoals?: StoredGoal[];
   savedGoals?: StoredGoal[];
@@ -165,12 +165,12 @@ function depsFor(options: {
 }
 
 function actorStore(
-  actorOverride: StoredActor | undefined,
+  actorOverride: StoredActor | null | undefined,
   actorsOverride: StoredActor[] | undefined
 ): ActorStore {
   const availableActor = actorOverride === undefined && actorsOverride === undefined
     ? actor()
-    : actorOverride;
+    : actorOverride ?? undefined;
   return {
     archiveActor: () => Promise.resolve(false),
     findActorById: () => Promise.resolve(availableActor),

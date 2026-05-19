@@ -14,7 +14,6 @@ export type SignupState = {
   pendingOAuth: Map<string, PendingOAuth>;
   readOnlyMemberships: Set<string>;
   sessionsByToken: Map<string, string>;
-  usersByGithubId: Map<string, StoredUser>;
   workSessionsById: Map<string, StoredWorkSession>;
   workSessionsByUseCaseId: Map<string, StoredWorkSession[]>;
   workspaceArchivedAt: Map<string, string>;

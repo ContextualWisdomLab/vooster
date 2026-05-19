@@ -1,5 +1,6 @@
 import type { SignupState } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UserStore } from "../ports/user-store.js";
 
 export type StoredInvitation = {
   accepted_at: null | string;
@@ -25,12 +26,12 @@ export function invitations(state: SignupState) {
 }
 
 export async function activeMembershipForEmail(
-  state: SignupState,
+  userStore: UserStore,
   membershipStore: MembershipStore,
   workspaceId: string,
   email: string
 ) {
-  const user = [...state.usersByGithubId.values()].find((candidate) => candidate.email === email);
+  const user = await userStore.findUserByEmail(email);
   return user === undefined
     ? undefined
     : membershipStore.membershipForWorkspace(workspaceId, user.id);

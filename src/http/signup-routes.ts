@@ -17,6 +17,7 @@ import {
 import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore } from "../ports/signup-store.js";
+import type { UserStore } from "../ports/user-store.js";
 
 const startSignupSchema = z.union([
   z.object({
@@ -47,13 +48,14 @@ export function registerSignupRoutes(
   app: FastifyInstance,
   options: ServerOptions,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  userStore: UserStore
 ) {
   app.post("/v1/auth/github/start", (request, reply) =>
     startSignup(request, reply, state)
   );
   app.get("/v1/auth/github/callback", async (request, reply) => {
-    return completeSignup(request, reply, options, state, membershipStore);
+    return completeSignup(request, reply, options, state, membershipStore, userStore);
   });
 }
 
@@ -82,7 +84,8 @@ async function completeSignup(
   reply: FastifyReply,
   options: ServerOptions,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  userStore: UserStore
 ) {
   const parsed = callbackQuerySchema.safeParse(request.query);
   if (!parsed.success) {
@@ -122,7 +125,7 @@ async function completeSignup(
   }
 
   if (pending.flow === "login") {
-    return completeLogin(reply, state, options.signupStore, membershipStore, profile);
+    return completeLogin(reply, state, membershipStore, userStore, profile);
   }
 
   return completeVerifiedSignup(
@@ -130,6 +133,7 @@ async function completeSignup(
     state,
     options.signupStore,
     membershipStore,
+    userStore,
     profile,
     pending.workspace
   );
@@ -144,6 +148,7 @@ async function completeVerifiedSignup(
   state: SignupState,
   store: SignupStore | undefined,
   membershipStore: MembershipStore,
+  userStore: UserStore,
   profile: GithubProfile,
   pending: PendingSignup
 ) {
@@ -158,11 +163,11 @@ async function completeVerifiedSignup(
   state.workspaceSlugs.add(pending.slug);
   const entities = signupEntities(profile, pending);
   if (store === undefined) {
+    await userStore.saveUser(entities.user);
     await membershipStore.saveMembership(entities.membership);
   } else {
     await store.saveSignup(entities);
   }
-  state.usersByGithubId.set(entities.user.github_id, entities.user);
   state.workspacesById.set(entities.workspace.id, entities.workspace);
 
   establishSession(reply, state.sessionsByToken, entities.user.id);
@@ -174,11 +179,11 @@ async function completeVerifiedSignup(
 async function completeLogin(
   reply: FastifyReply,
   state: SignupState,
-  store: SignupStore | undefined,
   membershipStore: MembershipStore,
+  userStore: UserStore,
   profile: GithubProfile
 ) {
-  const user = state.usersByGithubId.get(profile.githubId) ?? await store?.findUserByGithubId(profile.githubId);
+  const user = await userStore.findUserByGithubId(profile.githubId);
   if (user === undefined) {
     return reply.code(404).send(
       problem(404, "No vspec user exists for GitHub identity", {}, [
@@ -188,14 +193,14 @@ async function completeLogin(
   }
 
   user.last_login_at = new Date().toISOString();
-  await store?.updateLastLoginAt(user.id, user.last_login_at);
+  await userStore.updateLastLoginAt(user.id, user.last_login_at);
   establishSession(reply, state.sessionsByToken, user.id);
-  const workspaces = store === undefined
+  const workspaces = !isSignupStore(userStore)
     ? workspacesForUser(
         await membershipStore.membershipsForUser(user.id),
         state.workspacesById
       )
-    : await store.workspaceSummariesForUser(user.id);
+    : await userStore.workspaceSummariesForUser(user.id);
 
   return reply.code(200).send({
     user,
@@ -204,6 +209,10 @@ async function completeLogin(
       ? { recommended_next_command: "vspec workspace create" }
       : {})
   });
+}
+
+function isSignupStore(userStore: UserStore): userStore is SignupStore {
+  return "workspaceSummariesForUser" in userStore;
 }
 
 async function workspaceSlugExists(

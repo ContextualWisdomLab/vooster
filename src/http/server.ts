@@ -12,6 +12,7 @@ import { createMemoryStakeholderInterestStore } from "../infrastructure/memory-s
 import { createMemoryStakeholderStore } from "../infrastructure/memory-stakeholder-store.js";
 import { createMemoryStepStore } from "../infrastructure/memory-step-store.js";
 import { createMemoryUseCaseStore } from "../infrastructure/memory-usecase-store.js";
+import { createMemoryUserStore } from "../infrastructure/memory-user-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -49,10 +50,11 @@ import { registerUseCaseRoutes } from "./usecase-routes.js";
 import { registerUseCaseSearchRoutes } from "./usecase-search-routes.js";
 import { registerWhoRoutes } from "./who-routes.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
+import type { UserStore } from "../ports/user-store.js";
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  const state = initialState(options);
+  const state = initialState();
   const actorStore = options.signupStore ?? createMemoryActorStore();
   const branchStore = options.signupStore ?? createMemoryBranchStore();
   const goalStore = options.signupStore ?? createMemoryGoalStore();
@@ -71,6 +73,10 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const stakeholderStore = options.signupStore ?? createMemoryStakeholderStore();
   const stepStore = options.signupStore ?? createMemoryStepStore();
   const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
+  const userStore = options.signupStore ?? createMemoryUserStore();
+  if (options.authStub) {
+    await seedStubZeroWorkspaceUser(userStore);
+  }
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -80,7 +86,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore);
-  registerSignupRoutes(app, options, state, membershipStore);
+  registerSignupRoutes(app, options, state, membershipStore, userStore);
   registerProjectRoutes(
     app,
     state,
@@ -165,7 +171,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     useCaseStore
   );
   registerImpactRoutes(app, state, lockStore, membershipStore, revisionStore, useCaseStore);
-  registerInvitationRoutes(app, options, state, membershipStore);
+  registerInvitationRoutes(app, options, state, membershipStore, userStore);
   registerCommentRoutes(app, state, membershipStore, useCaseStore);
   registerChangeCommitRoutes(
     app,
@@ -311,12 +317,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   return app;
 }
 
-function initialState(options: ServerOptions): SignupState {
+function initialState(): SignupState {
   const state: SignupState = {
     pendingOAuth: new Map(),
     readOnlyMemberships: new Set(),
     sessionsByToken: new Map(),
-    usersByGithubId: new Map(),
     workSessionsById: new Map(),
     workSessionsByUseCaseId: new Map(),
     workspaceArchivedAt: new Map(),
@@ -324,15 +329,19 @@ function initialState(options: ServerOptions): SignupState {
     workspaceSlugs: new Set()
   };
 
-  if (options.authStub) {
-    state.usersByGithubId.set("stub-zero-workspace-user", {
-      id: "stub-zero-workspace-user-id",
-      github_id: "stub-zero-workspace-user",
-      email: "stub-zero-workspace-user@users.noreply.github.com",
-      name: "Stub Zero Workspace User",
-      avatar_url: "https://github.com/identicons/stub-zero-workspace-user.png"
-    });
+  return state;
+}
+
+async function seedStubZeroWorkspaceUser(userStore: UserStore) {
+  if (await userStore.findUserByGithubId("stub-zero-workspace-user") !== undefined) {
+    return;
   }
 
-  return state;
+  await userStore.saveUser({
+    id: "stub-zero-workspace-user-id",
+    github_id: "stub-zero-workspace-user",
+    email: "stub-zero-workspace-user@users.noreply.github.com",
+    name: "Stub Zero Workspace User",
+    avatar_url: "https://github.com/identicons/stub-zero-workspace-user.png"
+  });
 }

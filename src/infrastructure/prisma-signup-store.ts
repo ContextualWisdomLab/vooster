@@ -45,6 +45,14 @@ class PrismaSignupStore implements SignupStore {
     return user === null ? undefined : storedUser(user);
   }
 
+  async findUserByEmail(email: string): Promise<StoredUser | undefined> {
+    const user = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    return user === null ? undefined : storedUser(user);
+  }
+
   async archiveActor(
     projectId: string,
     actorId: string,
@@ -599,6 +607,10 @@ class PrismaSignupStore implements SignupStore {
         where: { id: revision.entity_id }
       });
     }
+  }
+
+  async saveUser(user: StoredUser): Promise<void> {
+    await this.prisma.user.create({ data: user });
   }
 
   async updateBranch(branch: StoredSpecBranch): Promise<void> {

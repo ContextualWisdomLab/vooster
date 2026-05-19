@@ -18,6 +18,7 @@ import { authenticatedUserId, establishSession } from "./session-support.js";
 import { githubProfile, problem } from "./signup-support.js";
 import type { ServerOptions, SignupState, StoredUser } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UserStore } from "../ports/user-store.js";
 const inviteSchema = z.object({
   email: z.email(),
   role: z.enum(["EDITOR", "OWNER"]),
@@ -30,13 +31,14 @@ export function registerInvitationRoutes(
   app: FastifyInstance,
   options: ServerOptions,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  userStore: UserStore
 ) {
   app.post("/v1/workspaces/:workspaceId/invitations", (request, reply) =>
-    createInvitation(request, reply, state, membershipStore)
+    createInvitation(request, reply, state, membershipStore, userStore)
   );
   app.post("/v1/invitations/:token/accept", (request, reply) =>
-    acceptInvitation(request, reply, options, state, membershipStore)
+    acceptInvitation(request, reply, options, state, membershipStore, userStore)
   );
 }
 
@@ -44,7 +46,8 @@ async function createInvitation(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  userStore: UserStore
 ) {
   const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
   const parsed = inviteSchema.safeParse(request.body);
@@ -64,7 +67,7 @@ async function createInvitation(
   }
   if (
     await activeMembershipForEmail(
-      state,
+      userStore,
       membershipStore,
       params.workspaceId,
       parsed.data.email
@@ -95,7 +98,8 @@ async function acceptInvitation(
   reply: FastifyReply,
   options: ServerOptions,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  userStore: UserStore
 ) {
   const token = z.object({ token: z.string().min(1) }).parse(request.params).token;
   const parsed = acceptSchema.safeParse(request.body);
@@ -110,7 +114,7 @@ async function acceptInvitation(
   if (profile.email !== invitation.email) {
     return reply.code(422).send(emailMismatchProblem());
   }
-  const user = userForProfile(state, profile);
+  const user = await userForProfile(userStore, profile);
   const membership = {
     id: randomUUID(),
     role: invitation.role,
@@ -123,11 +127,11 @@ async function acceptInvitation(
   return reply.send({ invitation, membership, user });
 }
 
-function userForProfile(
-  state: SignupState,
+async function userForProfile(
+  userStore: UserStore,
   profile: { avatarUrl: string; email: string; githubId: string; name: string }
-): StoredUser {
-  const existing = state.usersByGithubId.get(profile.githubId);
+): Promise<StoredUser> {
+  const existing = await userStore.findUserByGithubId(profile.githubId);
   if (existing !== undefined) {
     return existing;
   }
@@ -138,7 +142,7 @@ function userForProfile(
     id: randomUUID(),
     name: profile.name
   };
-  state.usersByGithubId.set(user.github_id, user);
+  await userStore.saveUser(user);
   return user;
 }
 

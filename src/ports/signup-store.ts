@@ -18,6 +18,7 @@ import type { StakeholderInterestStore } from "./stakeholder-interest-store.js";
 import type { StakeholderStore } from "./stakeholder-store.js";
 import type { StepStore } from "./step-store.js";
 import type { UseCaseStore } from "./usecase-store.js";
+import type { UserStore } from "./user-store.js";
 
 export type SignupEntities = {
   membership: StoredMembership;
@@ -43,15 +44,14 @@ export type SignupStore = ActorStore &
   StakeholderInterestStore &
   StakeholderStore &
   StepStore &
-  UseCaseStore & {
+  UseCaseStore &
+  UserStore & {
   close: () => Promise<void>;
-  findUserByGithubId: (githubId: string) => Promise<StoredUser | undefined>;
   saveSignup: (entities: SignupEntities) => Promise<void>;
   saveProjectWithDefaultBranch: (
     project: StoredProject,
     branch: StoredSpecBranch
   ) => Promise<void>;
-  updateLastLoginAt: (userId: string, lastLoginAt: string) => Promise<void>;
   workspaceSlugExists: (slug: string) => Promise<boolean>;
   workspaceSummariesForUser: (userId: string) => Promise<WorkspaceSummary[]>;
 };

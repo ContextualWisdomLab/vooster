@@ -103,7 +103,7 @@ function revokeApiKey(request: FastifyRequest, reply: FastifyReply, state: Signu
   const id = z.object({ id: z.string().min(1) }).parse(request.params).id;
   const apiKey = apiKeys(state).get(id);
   if (apiKey === undefined || ownerMembership(request, state, apiKey.workspace_id) === undefined) {
-    return reply.code(404).send(problem(404, "API key not found"));
+    return reply.code(404).send(apiKeyNotFoundProblem());
   }
   const idempotent = apiKey.revoked_at !== null;
   apiKey.revoked_at = apiKey.revoked_at ?? new Date().toISOString();
@@ -150,6 +150,10 @@ function ownerRequiredProblem() {
       }
     ]
   );
+}
+
+function apiKeyNotFoundProblem() {
+  return problem(404, "API key not found", { code: "api_key_not_found" }, []);
 }
 
 function publicApiKey(apiKey: StoredApiKey) {

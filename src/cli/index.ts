@@ -24,6 +24,7 @@ export class VspecCommand extends Command {
     "base-revision": Flags.string(),
     "agent-type": Flags.string(),
     "auto-branch": Flags.boolean(),
+    "auto-commit": Flags.boolean(),
     body: Flags.string(),
     branch: Flags.string(),
     "branch-name": Flags.string(),
@@ -54,7 +55,9 @@ export class VspecCommand extends Command {
     "proposed-change": Flags.string(),
     "protection-mechanism": Flags.string(),
     outcome: Flags.string(),
+    patch: Flags.string(),
     pin: Flags.string(),
+    "preview-id": Flags.string(),
     q: Flags.string(),
     reason: Flags.string(),
     role: Flags.string(),
@@ -70,6 +73,7 @@ export class VspecCommand extends Command {
     to: Flags.string(),
     ttl: Flags.string(),
     type: Flags.string(),
+    usecase: Flags.string(),
     version: Flags.version({ char: "v" }),
     visibility: Flags.string(),
     "workspace-id": Flags.string(),
@@ -144,6 +148,14 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "impact") {
       await this.previewImpact(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "change" && this.argv[1] === "propose") {
+      await this.proposeChange(parsed.flags);
+      return;
+    }
+    if (parsed.args.command === "change" && this.argv[1] === "commit") {
+      await this.commitChange(parsed.flags);
       return;
     }
     if (parsed.args.command === "pull") {
@@ -721,6 +733,63 @@ export class VspecCommand extends Command {
     this.log(`Affected branches ${body.impact.affected_branches.join(", ") || "none"}`);
     this.log(`Affected tests ${body.impact.affected_tests.join(", ") || "none"}`);
     this.log(`Input hash ${body.impact.input_hash}`);
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async proposeChange(flags: ParsedFlags): Promise<void> {
+    const changeFlags = changeProposeFlagsFrom(flags);
+    const patch = await readJsonFile(changeFlags.patchPath);
+    const response = await postJson(
+      `${changeFlags.apiUrl}/v1/changes/preview`,
+      {
+        auto_commit: changeFlags.autoCommit,
+        base_revision: changeFlags.baseRevision,
+        patch,
+        usecase_key: changeFlags.usecaseKey
+      },
+      {
+        Cookie: changeFlags.sessionCookie
+      }
+    );
+    const body = response.body as ChangePreviewResponse;
+
+    this.log(`Preview ${body.preview_id}`);
+    this.log(`Severity ${body.severity}`);
+    this.log(`Expires ${body.expires_at}`);
+    this.log(`Affected sessions ${formatPreviewAffectedSessions(body.impact.affected_sessions)}`);
+    for (const diff of body.diff) {
+      this.log(`Diff ${diff.entity_type} ${diff.path} ${diff.severity}`);
+      this.log(`Before ${diff.before}`);
+      this.log(`After ${diff.after}`);
+    }
+    for (const warning of body.warnings) {
+      this.log(`Warning ${warning.type} ${warning.message}`);
+    }
+    for (const action of body.suggested_next_actions) {
+      this.log(action.command);
+    }
+  }
+
+  private async commitChange(flags: ParsedFlags): Promise<void> {
+    const changeFlags = changeCommitFlagsFrom(flags);
+    const response = await postJson(
+      `${changeFlags.apiUrl}/v1/changes/commit`,
+      {
+        confirmed: true,
+        preview_id: changeFlags.previewId
+      },
+      {
+        Cookie: changeFlags.sessionCookie
+      }
+    );
+    const body = response.body as ChangeCommitResponse;
+
+    for (const revision of body.revisions) {
+      this.log(`Entity ${revision.entity_id}`);
+      this.log(`Revision ${revision.revision_id}`);
+    }
     for (const action of body.suggested_next_actions) {
       this.log(action.command);
     }
@@ -1440,6 +1509,21 @@ type ImpactFlags = {
   usecaseId: string;
 };
 
+type ChangeProposeFlags = {
+  apiUrl: string;
+  autoCommit: boolean;
+  baseRevision: string;
+  patchPath: string;
+  sessionCookie: string;
+  usecaseKey: string;
+};
+
+type ChangeCommitFlags = {
+  apiUrl: string;
+  previewId: string;
+  sessionCookie: string;
+};
+
 type SyncFlags = {
   apiUrl: string;
   branch: string;
@@ -1611,6 +1695,7 @@ type ParsedFlags = {
   "api-url"?: string;
   "agent-type"?: string;
   "auto-branch"?: boolean;
+  "auto-commit"?: boolean;
   action?: string;
   actor?: string;
   aliases?: string;
@@ -1646,7 +1731,9 @@ type ParsedFlags = {
   "proposed-change"?: string;
   "protection-mechanism"?: string;
   outcome?: string;
+  patch?: string;
   pin?: string;
+  "preview-id"?: string;
   q?: string;
   reason?: string;
   revision?: string;
@@ -1663,6 +1750,7 @@ type ParsedFlags = {
   to?: string;
   ttl?: string;
   type?: string;
+  usecase?: string;
   value?: string;
   visibility?: string;
   "workspace-id"?: string;
@@ -1944,6 +2032,43 @@ type ImpactResponse = {
     severity: string;
   };
   preview_id: string;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+};
+
+type ChangePreviewResponse = {
+  diff: Array<{
+    after: string;
+    before: string;
+    entity_type: string;
+    path: string;
+    severity: string;
+  }>;
+  expires_at: string;
+  impact: {
+    affected_sessions: Array<{
+      id: string;
+      pinned_usecase_keys: string[];
+    }>;
+    severity: string;
+  };
+  preview_id: string;
+  severity: string;
+  suggested_next_actions: Array<{
+    command: string;
+  }>;
+  warnings: Array<{
+    message: string;
+    type: string;
+  }>;
+};
+
+type ChangeCommitResponse = {
+  revisions: Array<{
+    entity_id: string;
+    revision_id: string;
+  }>;
   suggested_next_actions: Array<{
     command: string;
   }>;
@@ -2446,6 +2571,25 @@ function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Imp
   };
 }
 
+function changeProposeFlagsFrom(flags: ParsedFlags): ChangeProposeFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    autoCommit: flags["auto-commit"] ?? false,
+    baseRevision: requiredFlag(flags, "base-revision"),
+    patchPath: requiredFlag(flags, "patch"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseKey: requiredFlag(flags, "usecase")
+  };
+}
+
+function changeCommitFlagsFrom(flags: ParsedFlags): ChangeCommitFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    previewId: requiredFlag(flags, "preview-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
 function syncFlagsFrom(flags: ParsedFlags): SyncFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -2917,6 +3061,22 @@ async function proposedChangePayload(path: string | undefined): Promise<Record<s
     proposed_change_content: await readFile(path, "utf8"),
     proposed_change_path: path
   };
+}
+
+async function readJsonFile(path: string): Promise<unknown> {
+  return JSON.parse(await readFile(path, "utf8")) as unknown;
+}
+
+function formatPreviewAffectedSessions(
+  sessions: ChangePreviewResponse["impact"]["affected_sessions"]
+): string {
+  if (sessions.length === 0) {
+    return "none";
+  }
+
+  return sessions
+    .map((session) => `${session.id} ${session.pinned_usecase_keys.join(",")}`)
+    .join("; ");
 }
 
 function formatAffectedSessions(sessions: ImpactResponse["impact"]["affected_sessions"]): string {

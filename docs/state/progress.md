@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T11:59:43Z_
+_Last updated: 2026-05-19T12:06:56Z_
 
 ## Overall
 
-- Commits: 622
-- Last commit: 1693392 green(cli): UC-029 CLI E2E
+- Commits: 625
+- Last commit: 270316a green(cli): UC-030 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -51,7 +51,7 @@ _Last updated: 2026-05-19T11:59:43Z_
 | UC-027 | Analyze the impact of a proposed change | ✓ DONE | 6/6 | ✓ |
 | UC-028 | Comment on a use case | ✓ DONE | 7/7 | ✓ |
 | UC-029 | Sync local files with the server | ✓ DONE | 6/6 | ✓ |
-| UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 | ○ |
+| UC-030 | Export a use case to Gherkin | ✓ DONE | 6/6 | ✓ |
 | UC-031 | Export a use case to markdown | ✓ DONE | 6/6 | ○ |
 | UC-032 | Issue and manage API keys | ✓ DONE | 6/6 | ○ |
 | UC-033 | Learn how to use vspec (AI agent) | ✓ DONE | 5/5 | ○ |

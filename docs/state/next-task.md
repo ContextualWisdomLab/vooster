@@ -1,16 +1,19 @@
 # Next Task
 
-_Auto-generated 2026-05-19T21:52:29Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-19T22:03:06Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Make vspec deployable via Docker (gate 2.B3).
+TASK: Rewrite README.md for end users (gate 2.B4).
 
-  - Add Dockerfile (multi-stage: deps → build → runtime, node:20-alpine).
-    Final stage runs `node dist/src/index.js` and exposes 3000.
-  - Add docker-compose.prod.yml with:
-      app:    builds the Dockerfile, depends_on db, exposes ${VSPEC_DEPLOY_HOST_PORT:-4400}:3000
-      db:     postgres:16-alpine with a healthcheck
-    Pass DATABASE_URL via environment in the app service.
-  - Verify:
-        bash scripts/check-deployable.sh
+  1. Move the current "autonomous-build harness" content from README.md
+     into docs/build-harness.md (keep the loop instructions intact).
+  2. Replace README.md with a user-facing layout:
+        # vspec
+        <one-paragraph description>
+        ## Install            # npm install -g vspec  (or  npx vspec --help)
+        ## Run                # local dev: docker compose up -d db && npm run dev
+        ## Deploy             # docker compose -f docker-compose.prod.yml up -d
+        ## Documentation      # links to docs/ and to docs/build-harness.md
+  3. Each section's commands must work on a clean clone — no implicit env
+     setup.
 ```

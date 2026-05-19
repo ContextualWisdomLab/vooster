@@ -429,6 +429,62 @@ describe("Goal 2 persistence matrix", () => {
       step_number: 1
     });
   }, 90_000);
+
+  test("Revision survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "revision.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "revision-owner");
+    const project = await createProject(first.url, signup, "Revision Matrix", "REV");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    await createStakeholder(first.url, signup.sessionCookie, project.id, "Operations");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews a revised workflow",
+      "Customer"
+    );
+    await addStakeholderInterest(
+      first.url,
+      signup.sessionCookie,
+      usecase.id,
+      "Operations"
+    );
+    const scenario = await createMainScenario(first.url, signup.sessionCookie, usecase.id);
+    await createStep(
+      first.url,
+      signup.sessionCookie,
+      scenario.id,
+      "Customer",
+      "Submit the support request."
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "revision-owner");
+    const history = await listRevisionHistory(second.url, loggedIn.sessionCookie, usecase.id);
+
+    await second.stop();
+
+    expect(history.status).toBe(200);
+    const historyBody = (await history.json()) as {
+      revisions?: Array<{
+        change_summary?: unknown;
+        entity_id?: unknown;
+        entity_type?: unknown;
+        version_number?: unknown;
+      }>;
+    };
+    expect(historyBody.revisions ?? []).toContainEqual(
+      expect.objectContaining({
+        change_summary: "Added step 1 to main success scenario",
+        entity_id: usecase.id,
+        entity_type: "USECASE",
+        version_number: 4
+      })
+    );
+  }, 90_000);
 });
 
 async function bootServer(databaseUrl: string) {
@@ -808,6 +864,12 @@ function whoIsWorking(baseUrl: string, sessionCookie: string, usecaseId: string)
 
 function showUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}?format=agent`, {
+    headers: { cookie: sessionCookie }
+  });
+}
+
+function listRevisionHistory(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  return fetch(`${baseUrl}/v1/usecases/${usecaseId}/revisions`, {
     headers: { cookie: sessionCookie }
   });
 }

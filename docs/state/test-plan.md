@@ -371,6 +371,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Step**: owner creates a project, actor, stakeholder interest, use case, main scenario, and step through public APIs, restarts the server, logs back in, then fetches the use case in agent format and asserts the persisted step action and actor are listed under the scenario.
 
+### Goal 2 Persistence - Revision
+
+- **Revision**: owner creates a project, actor, stakeholder interest, use case, main scenario, and step through public APIs, restarts the server, logs back in, then calls `GET /v1/usecases/:id/revisions` and asserts the persisted step-add revision row is listed.
+
 ### Goal 1 CLI
 
 - **SCAFFOLD**: `node bin/run.js --help` exits 0 through an oclif root command exposed by package `bin.vspec`.

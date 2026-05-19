@@ -6,6 +6,7 @@ import { hardLockProblem, previews, type ChangePreview } from "./change-preview-
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const proposalMarkerSchema = z.object({ patch: z.unknown(), usecase_key: z.string().min(1) });
 const proposalSchema = z.object({
@@ -22,7 +23,8 @@ export async function previewSpecChange(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ): Promise<boolean> {
   if (!proposalMarkerSchema.safeParse(request.body).success) {
     return false;
@@ -36,6 +38,7 @@ export async function previewSpecChange(
     request,
     state,
     membershipStore,
+    useCaseStore,
     parsed.data.usecase_key
   );
   if (access === undefined) {
@@ -116,9 +119,10 @@ async function accessibleUseCaseByKey(
   request: FastifyRequest,
   state: SignupState,
   membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore,
   key: string
 ) {
-  const candidates = useCasesByKey(state, key);
+  const candidates = await useCaseStore.findUseCasesByKey(key);
   let usecase: StoredUseCase | undefined;
   for (const candidate of candidates) {
     if (
@@ -139,14 +143,6 @@ async function accessibleUseCaseByKey(
     usecase.project_id
   );
   return membership === undefined ? undefined : { membership, usecase };
-}
-
-function useCasesByKey(state: SignupState, key: string): StoredUseCase[] {
-  const matches = [];
-  for (const usecases of state.usecasesByProjectId.values()) {
-    matches.push(...usecases.filter((candidate) => candidate.key === key));
-  }
-  return matches;
 }
 
 function staleBaseProblem(state: SignupState, usecase: StoredUseCase) {

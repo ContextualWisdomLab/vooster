@@ -11,12 +11,12 @@ import {
   usecaseIdFrom
 } from "./stakeholder-interest-support.js";
 import { problem } from "./signup-support.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type {
   SignupState,
   StoredStakeholderInterest
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const interestRequestSchema = z.object({
   interest: z.string().min(1),
@@ -27,14 +27,16 @@ const interestRequestSchema = z.object({
 export function registerStakeholderInterestRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/stakeholder-interests", (request, reply) =>
-    addStakeholderInterest(request, reply, state, membershipStore)
+    addStakeholderInterest(request, reply, state, membershipStore, useCaseStore)
   );
   app.delete(
     "/v1/usecases/:usecaseId/stakeholder-interests/:stakeholderInterestId",
-    (request, reply) => removeStakeholderInterest(request, reply, state, membershipStore)
+    (request, reply) =>
+      removeStakeholderInterest(request, reply, state, membershipStore, useCaseStore)
   );
 }
 
@@ -42,9 +44,10 @@ async function addStakeholderInterest(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
+  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -120,7 +123,8 @@ async function removeStakeholderInterest(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z
     .object({
@@ -128,7 +132,7 @@ async function removeStakeholderInterest(
       usecaseId: z.string().min(1)
     })
     .parse(request.params);
-  const found = useCaseWithProjectId(state, params.usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(params.usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }

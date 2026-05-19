@@ -6,7 +6,8 @@ import type {
   StoredStep,
   StoredUseCase
 } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type UseCaseRevisionResponse = {
   change_summary: string;
@@ -19,12 +20,10 @@ type UseCaseRevisionResponse = {
 };
 
 export function mainSuccessScenario(
-  state: SignupState,
+  scenarioStore: ScenarioStore,
   usecaseId: string
-): StoredScenario | undefined {
-  return (state.scenariosByUseCaseId.get(usecaseId) ?? []).find(
-    (scenario) => scenario.type === "MAIN_SUCCESS"
-  );
+): Promise<StoredScenario | undefined> {
+  return scenarioStore.findMainScenario(usecaseId);
 }
 
 export function extensionPointParentStep(extensionPoint: string): number | null {
@@ -43,18 +42,19 @@ export function mainScenarioHasStep(
 }
 
 export function scenarioWithUseCase(
-  state: SignupState,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore,
   scenarioId: string
-): { projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined {
-  for (const [usecaseId, scenarios] of state.scenariosByUseCaseId) {
-    const scenario = scenarios.find((candidate) => candidate.id === scenarioId);
-    const found = scenario === undefined ? undefined : useCaseWithProjectId(state, usecaseId);
-    if (scenario !== undefined && found !== undefined) {
-      return { projectId: found.projectId, scenario, usecase: found.usecase };
+): Promise<{ projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined> {
+  return scenarioStore.findScenarioById(scenarioId).then(async (scenario) => {
+    if (scenario === undefined) {
+      return undefined;
     }
-  }
-
-  return undefined;
+    const found = await useCaseStore.findUseCaseWithProject(scenario.usecase_id);
+    return found === undefined
+      ? undefined
+      : { projectId: found.projectId, scenario, usecase: found.usecase };
+  });
 }
 
 export function appendUseCaseRevision(

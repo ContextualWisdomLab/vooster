@@ -5,6 +5,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredActor, StoredUseCase } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const searchQuerySchema = z.object({
   actor_id: z.string().optional(),
@@ -19,10 +20,11 @@ export function registerUseCaseSearchRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   app.get("/v1/projects/:projectId/usecases", (request, reply) =>
-    searchUseCases(request, reply, state, actorStore, membershipStore)
+    searchUseCases(request, reply, state, actorStore, membershipStore, useCaseStore)
   );
 }
 
@@ -31,7 +33,8 @@ async function searchUseCases(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const projectId = z.object({ projectId: z.string().min(1) }).parse(request.params).projectId;
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
@@ -61,7 +64,7 @@ async function searchUseCases(
       ]
     });
   }
-  const sorted = filteredUseCases(state, projectId, parsed.data, cursor)
+  const sorted = (await filteredUseCases(useCaseStore, projectId, parsed.data, cursor))
     .sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);
   const emptyActions = items.length === 0 && cursor === null ? {
@@ -85,14 +88,14 @@ async function searchUseCases(
   });
 }
 
-function filteredUseCases(
-  state: SignupState,
+async function filteredUseCases(
+  useCaseStore: UseCaseStore,
   projectId: string,
   query: z.infer<typeof searchQuerySchema>,
   cursor: null | string
 ) {
   const text = query.q?.toLowerCase();
-  return (state.usecasesByProjectId.get(projectId) ?? []).filter((usecase) =>
+  return (await useCaseStore.listUseCases(projectId)).filter((usecase) =>
     usecase.archived_at === null &&
     (query.status === undefined || usecase.status === query.status) &&
     (query.level === undefined || usecase.level === query.level) &&

@@ -3,10 +3,10 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const historyQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
@@ -18,10 +18,11 @@ export function registerRevisionHistoryRoutes(
   app: FastifyInstance,
   state: SignupState,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/revisions", (request, reply) =>
-    listHistory(request, reply, state, membershipStore, projectStore)
+    listHistory(request, reply, state, membershipStore, projectStore, useCaseStore)
   );
 }
 
@@ -30,14 +31,15 @@ async function listHistory(
   reply: FastifyReply,
   state: SignupState,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = historyQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid history request"));
   }
-  const found = useCaseWithProjectId(state, params.usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(params.usecaseId);
   if (found === undefined) {
     const projectKey = await projectKeyFor(projectStore, parsed.data.project_id);
     return reply.code(404).send(missingHistoryProblem(projectKey));

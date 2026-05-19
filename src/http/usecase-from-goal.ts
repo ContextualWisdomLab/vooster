@@ -4,6 +4,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export async function createUseCaseFromGoal(
   request: FastifyRequest,
@@ -11,6 +12,7 @@ export async function createUseCaseFromGoal(
   state: SignupState,
   goalStore: GoalStore,
   projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
   projectId: string
 ): Promise<boolean> {
   const fromGoalId = fromGoalIdFrom(request.body);
@@ -24,7 +26,7 @@ export async function createUseCaseFromGoal(
     return true;
   }
 
-  await promoteGoalToUseCase(reply, state, goalStore, projectStore, { goal, projectId });
+  await promoteGoalToUseCase(reply, state, goalStore, projectStore, useCaseStore, { goal, projectId });
   return true;
 }
 

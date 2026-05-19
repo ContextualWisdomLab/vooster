@@ -4,10 +4,10 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const revertBodySchema = z.object({
   force: z.boolean().default(false),
@@ -22,10 +22,19 @@ export function registerRevisionRevertRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/revert", (request, reply) =>
-    revertUseCase(request, reply, state, branchStore, membershipStore, projectStore)
+    revertUseCase(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      useCaseStore
+    )
   );
 }
 
@@ -35,14 +44,15 @@ async function revertUseCase(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = revertBodySchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid revert request"));
   }
-  const found = useCaseWithProjectId(state, params.usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(params.usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -77,6 +87,7 @@ async function revertUseCase(
   const revision = revertRevision(found.usecase, target, current, revisions.length + 1);
   Object.assign(found.usecase, target.snapshot, { current_revision_id: revision.id });
   state.revisionsByEntityId.set(found.usecase.id, [...revisions, revision]);
+  await useCaseStore.updateUseCase(found.usecase);
   await advanceMainHead(projectStore, branchStore, found.projectId, found.usecase.id, revision.id);
 
   return reply.code(201).send({

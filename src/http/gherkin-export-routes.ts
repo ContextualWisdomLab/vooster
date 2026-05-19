@@ -10,9 +10,10 @@ import {
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
@@ -26,10 +27,20 @@ export function registerGherkinExportRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   app.post("/v1/usecases/:id/export/gherkin", (request, reply) =>
-    exportGherkin(request, reply, state, actorStore, membershipStore)
+    exportGherkin(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      useCaseStore,
+      scenarioStore
+    )
   );
 }
 
@@ -38,14 +49,16 @@ async function exportGherkin(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid Gherkin export request"));
   }
-  const found = useCaseWithProjectId(state, usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -60,7 +73,11 @@ async function exportGherkin(
   if (revisionProblem !== undefined) {
     return reply.code(404).send(revisionProblem);
   }
-  const prerequisiteProblem = gherkinPrerequisiteProblem(state, found.usecase);
+  const prerequisiteProblem = await gherkinPrerequisiteProblem(
+    state,
+    scenarioStore,
+    found.usecase
+  );
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
   }
@@ -68,7 +85,13 @@ async function exportGherkin(
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  const feature = await renderFeature(state, found.projectId, found.usecase, actorStore);
+  const feature = await renderFeature(
+    state,
+    found.projectId,
+    found.usecase,
+    actorStore,
+    scenarioStore
+  );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(
       found.usecase,
@@ -84,9 +107,10 @@ async function renderFeature(
   state: SignupState,
   projectId: string,
   usecase: StoredUseCase,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  scenarioStore: ScenarioStore
 ) {
-  const scenarios = state.scenariosByUseCaseId.get(usecase.id) ?? [];
+  const scenarios = await scenarioStore.listScenarios(usecase.id);
   const main = scenarios.find((scenario) => scenario.type === "MAIN_SUCCESS");
   const extensions = scenarios
     .filter((scenario) => scenario.type === "EXTENSION")

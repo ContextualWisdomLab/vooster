@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { StoredUseCase } from "./signup-types.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
-export function nextUseCaseKey(
-  state: SignupState,
+export async function nextUseCaseKey(
+  useCaseStore: UseCaseStore,
   projectId: string,
   projectKey: string,
   skipCount = 0
-): string {
-  const nextNumber = (state.usecasesByProjectId.get(projectId) ?? []).length + 1 + skipCount;
+): Promise<string> {
+  const nextNumber = (await useCaseStore.listUseCases(projectId)).length + 1 + skipCount;
   return `${projectKey}-${String(nextNumber).padStart(3, "0")}`;
 }
 
@@ -34,30 +35,4 @@ export function useCaseNextActions(key: string) {
     },
     { command: "vspec scenario add", reason: "Write the main success scenario." }
   ];
-}
-
-export function useCaseWithId(
-  state: SignupState,
-  projectId: string,
-  usecaseId: string
-): StoredUseCase | undefined {
-  return (state.usecasesByProjectId.get(projectId) ?? []).find(
-    (usecase) => usecase.id === usecaseId
-  );
-}
-
-export function useCaseWithProjectId(
-  state: SignupState,
-  usecaseIdOrKey: string
-): { projectId: string; usecase: StoredUseCase } | undefined {
-  for (const [projectId, usecases] of state.usecasesByProjectId) {
-    const usecase = usecases.find((candidate) =>
-      candidate.id === usecaseIdOrKey || candidate.key === usecaseIdOrKey
-    );
-    if (usecase !== undefined) {
-      return { projectId, usecase };
-    }
-  }
-
-  return undefined;
 }

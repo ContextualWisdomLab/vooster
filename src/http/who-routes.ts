@@ -12,16 +12,26 @@ import type {
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export function registerWhoRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/who", (request, reply) =>
-    showWho(request, reply, state, branchStore, membershipStore, mergeRequestStore)
+    showWho(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      mergeRequestStore,
+      useCaseStore
+    )
   );
 }
 
@@ -31,10 +41,11 @@ async function showWho(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   const usecaseId = usecaseIdFrom(request.params);
-  const usecase = useCaseById(state, usecaseId);
+  const usecase = (await useCaseStore.findUseCaseWithProject(usecaseId))?.usecase;
   if (usecase === undefined) {
     return reply.code(404).send(missingUseCaseProblem(usecaseId));
   }
@@ -198,12 +209,6 @@ async function branchTouches(
 ): Promise<boolean> {
   return branchId !== null &&
     (await branchStore.findBranchById(branchId))?.head_revision_ids?.[usecaseId] !== undefined;
-}
-
-function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId);
 }
 
 function usecaseIdFrom(params: unknown): string {

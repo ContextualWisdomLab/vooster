@@ -5,6 +5,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const branchRevisionSchema = z.object({
   severity: z.enum(["BREAKING", "COSMETIC", "NON_BREAKING"]),
@@ -19,19 +20,20 @@ export function registerBranchTestRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/__test/branches/:branchId/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceBranchUseCase(request, reply, state, branchStore)
+    advanceBranchUseCase(request, reply, state, branchStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceMainUseCase(request, reply, state, branchStore, projectStore)
+    advanceMainUseCase(request, reply, state, branchStore, projectStore, useCaseStore)
   );
   app.post("/__test/branches/:branchId/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceBranchExtension(request, reply, state, branchStore)
+    advanceBranchExtension(request, reply, state, branchStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceMainExtension(request, reply, state, branchStore, projectStore)
+    advanceMainExtension(request, reply, state, branchStore, projectStore, useCaseStore)
   );
 }
 
@@ -39,16 +41,15 @@ async function advanceBranchUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z
     .object({ branchId: z.string().min(1), usecaseId: z.string().min(1) })
     .parse(request.params);
   const parsed = branchRevisionSchema.safeParse(request.body);
   const branch = await branchStore.findBranchById(params.branchId);
-  const usecase = [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((candidate) => candidate.id === params.usecaseId);
+  const usecase = (await useCaseStore.findUseCaseWithProject(params.usecaseId))?.usecase;
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch revision request"));
   }
@@ -65,6 +66,7 @@ async function advanceBranchUseCase(
     revision
   ]);
   await branchStore.updateBranch(branch);
+  await useCaseStore.updateUseCase(usecase);
   return reply.send({ revision_id: revision.id });
 }
 
@@ -72,14 +74,15 @@ async function advanceBranchExtension(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z
     .object({ branchId: z.string().min(1), usecaseId: z.string().min(1) })
     .parse(request.params);
   const parsed = extensionRevisionSchema.safeParse(request.body);
   const branch = await branchStore.findBranchById(params.branchId);
-  const usecase = useCaseById(state, params.usecaseId);
+  const usecase = (await useCaseStore.findUseCaseWithProject(params.usecaseId))?.usecase;
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch extension request"));
   }
@@ -93,6 +96,7 @@ async function advanceBranchExtension(
   };
   appendRevision(state, usecase.id, revision);
   await branchStore.updateBranch(branch);
+  await useCaseStore.updateUseCase(usecase);
   return reply.send({ revision_id: revision.id });
 }
 
@@ -101,13 +105,12 @@ async function advanceMainUseCase(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = branchRevisionSchema.safeParse(request.body);
-  const usecase = [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((candidate) => candidate.id === params.usecaseId);
+  const usecase = (await useCaseStore.findUseCaseWithProject(params.usecaseId))?.usecase;
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid main revision request"));
   }
@@ -121,6 +124,7 @@ async function advanceMainUseCase(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
+  await useCaseStore.updateUseCase(usecase);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
@@ -137,11 +141,12 @@ async function advanceMainExtension(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
   const parsed = extensionRevisionSchema.safeParse(request.body);
-  const usecase = useCaseById(state, params.usecaseId);
+  const usecase = (await useCaseStore.findUseCaseWithProject(params.usecaseId))?.usecase;
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid main extension request"));
   }
@@ -151,6 +156,7 @@ async function advanceMainExtension(
   const revision = extensionRevision(state, usecase, parsed.data);
   usecase.current_revision_id = revision.id;
   appendRevision(state, usecase.id, revision);
+  await useCaseStore.updateUseCase(usecase);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
@@ -198,10 +204,4 @@ function appendRevision(state: SignupState, usecaseId: string, revision: StoredR
     ...(state.revisionsByEntityId.get(usecaseId) ?? []),
     revision
   ]);
-}
-
-function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((candidate) => candidate.id === usecaseId);
 }

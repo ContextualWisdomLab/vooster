@@ -6,6 +6,7 @@ import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const commitSchema = z.object({
   confirmed: z.boolean().optional(),
@@ -16,10 +17,11 @@ export function registerChangeCommitRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/commit", (request, reply) =>
-    commitSpecChange(request, reply, state, branchStore, projectStore)
+    commitSpecChange(request, reply, state, branchStore, projectStore, useCaseStore)
   );
   app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
     const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
@@ -37,7 +39,8 @@ async function commitSpecChange(
   reply: FastifyReply,
   state: SignupState,
   branchStore: BranchStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = commitSchema.safeParse(request.body);
   const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
@@ -55,7 +58,7 @@ async function commitSpecChange(
       "Regenerate the preview before committing."
     ));
   }
-  const usecase = useCaseById(state, preview.usecase_id);
+  const usecase = (await useCaseStore.findUseCaseWithProject(preview.usecase_id))?.usecase;
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -63,6 +66,7 @@ async function commitSpecChange(
     state,
     branchStore,
     projectStore,
+    useCaseStore,
     usecase,
     preview.id,
     preview.diff[0]?.after ?? usecase.title
@@ -80,6 +84,7 @@ async function appendPreviewRevision(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
   usecase: StoredUseCase,
   previewId: string,
   title: string
@@ -99,6 +104,7 @@ async function appendPreviewRevision(
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
   ]);
+  await useCaseStore.updateUseCase(usecase);
   const project = await projectStore.findProjectById(usecase.project_id);
   const main = project === undefined
     ? undefined
@@ -108,10 +114,4 @@ async function appendPreviewRevision(
     await branchStore.updateBranch(main);
   }
   return revision;
-}
-
-function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId);
 }

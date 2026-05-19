@@ -6,6 +6,7 @@ import type { SignupState, StoredProject, StoredWorkSession } from "./signup-typ
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const sessionListSchema = z.object({
   project_id: z.string().optional(),
@@ -20,13 +21,30 @@ export function registerSessionListRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.get("/v1/sessions", (request, reply) =>
-    listSessions(request, reply, state, branchStore, membershipStore, projectStore)
+    listSessions(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      useCaseStore
+    )
   );
   app.get("/v1/sessions/watch", (request, reply) =>
-    watchSessions(request, reply, state, branchStore, membershipStore, projectStore)
+    watchSessions(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      useCaseStore
+    )
   );
   app.post("/__test/sessions/:sessionId/heartbeat", (request, reply) =>
     ageSessionHeartbeat(request, reply, state)
@@ -39,7 +57,8 @@ async function listSessions(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const snapshot = await sessionSnapshot(
     request,
@@ -47,7 +66,8 @@ async function listSessions(
     state,
     branchStore,
     membershipStore,
-    projectStore
+    projectStore,
+    useCaseStore
   );
   return snapshot === undefined ? undefined : reply.send(snapshot);
 }
@@ -58,7 +78,8 @@ async function watchSessions(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const snapshot = await sessionSnapshot(
     request,
@@ -66,7 +87,8 @@ async function watchSessions(
     state,
     branchStore,
     membershipStore,
-    projectStore
+    projectStore,
+    useCaseStore
   );
   if (snapshot === undefined) {
     return undefined;
@@ -82,7 +104,8 @@ async function sessionSnapshot(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = sessionListSchema.safeParse(request.query);
   if (!parsed.success) {
@@ -103,7 +126,7 @@ async function sessionSnapshot(
   const sessions = await Promise.all([...state.workSessionsById.values()]
     .filter((session) => sessionMatches(session, projects, parsed.data))
     .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""))
-    .map((session) => sessionRow(state, session, branchStore)));
+    .map((session) => sessionRow(state, session, branchStore, useCaseStore)));
 
   return {
     total: sessions.length,
@@ -159,7 +182,8 @@ function sessionMatches(
 async function sessionRow(
   state: SignupState,
   session: StoredWorkSession,
-  branchStore: BranchStore
+  branchStore: BranchStore,
+  useCaseStore: UseCaseStore
 ) {
   return {
     id: session.id,
@@ -168,7 +192,7 @@ async function sessionRow(
     agent_type: session.agent_type,
     agent_identifier: session.agent_identifier,
     intent: session.intent,
-    pinned_keys: pinnedKeys(state, session),
+    pinned_keys: await pinnedKeys(session, useCaseStore),
     branch_name: await branchName(branchStore, session),
     idle_seconds: idleSeconds(session.last_activity_at ?? session.started_at),
     lock_count: lockCount(state, session),
@@ -179,8 +203,14 @@ async function sessionRow(
   };
 }
 
-function pinnedKeys(state: SignupState, session: StoredWorkSession): string[] {
-  const usecases = state.usecasesByProjectId.get(session.project_id ?? "") ?? [];
+async function pinnedKeys(
+  session: StoredWorkSession,
+  useCaseStore: UseCaseStore
+): Promise<string[]> {
+  const usecases =
+    session.project_id === undefined
+      ? []
+      : await useCaseStore.listUseCases(session.project_id);
   return Object.keys(session.pinned_revisions ?? {}).flatMap((usecaseId) => {
     const usecase = usecases.find((candidate) => candidate.id === usecaseId);
     return usecase === undefined ? [] : [usecase.key];

@@ -6,7 +6,6 @@ import { problem } from "./signup-support.js";
 import {
   nextUseCaseKey,
   useCaseRevision,
-  useCaseWithId
 } from "./usecase-support.js";
 import type {
   SignupState,
@@ -16,6 +15,7 @@ import type {
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const promoteRequestSchema = z.object({
   simulate_usecase_insert_failure: z.boolean().optional()
@@ -26,10 +26,11 @@ export function registerGoalPromotionRoutes(
   state: SignupState,
   goalStore: GoalStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/goals/:goalId/promote", (request, reply) =>
-    promoteGoal(request, reply, state, goalStore, membershipStore, projectStore)
+    promoteGoal(request, reply, state, goalStore, membershipStore, projectStore, useCaseStore)
   );
 }
 
@@ -39,7 +40,8 @@ async function promoteGoal(
   state: SignupState,
   goalStore: GoalStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const goal = await goalStore.findGoalById(goalIdFrom(request.params));
   if (goal === undefined) {
@@ -53,7 +55,7 @@ async function promoteGoal(
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
 
-  return promoteGoalToUseCase(reply, state, goalStore, projectStore, { goal, projectId: goal.project_id }, {
+  return promoteGoalToUseCase(reply, state, goalStore, projectStore, useCaseStore, { goal, projectId: goal.project_id }, {
     simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true
   });
 }
@@ -63,6 +65,7 @@ export async function promoteGoalToUseCase(
   state: SignupState,
   goalStore: GoalStore,
   projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
   found: { goal: StoredGoal; projectId: string },
   options: { simulateUseCaseInsertFailure?: boolean } = {}
 ) {
@@ -74,7 +77,10 @@ export async function promoteGoalToUseCase(
     return reply.code(409).send(
       problem(409, "Goal is already promoted", {
         existing_usecase_key:
-          useCaseWithId(state, found.projectId, found.goal.linked_usecase_id)?.key
+          (await useCaseStore.findUseCaseById(
+            found.projectId,
+            found.goal.linked_usecase_id
+          ))?.key
       })
     );
   }
@@ -102,7 +108,7 @@ export async function promoteGoalToUseCase(
   const usecase: StoredUseCase = {
     id: randomUUID(),
     project_id: found.projectId,
-    key: nextUseCaseKey(state, found.projectId, project.key),
+    key: await nextUseCaseKey(useCaseStore, found.projectId, project.key),
     title: found.goal.description,
     level: found.goal.level,
     format: "BRIEF",
@@ -117,13 +123,10 @@ export async function promoteGoalToUseCase(
   usecase.current_revision_id = revision.id;
   revision.snapshot = { ...usecase };
 
-  state.usecasesByProjectId.set(found.projectId, [
-    ...(state.usecasesByProjectId.get(found.projectId) ?? []),
-    usecase
-  ]);
   state.revisionsByEntityId.set(usecase.id, [revision]);
   found.goal.status = "PROMOTED";
   found.goal.linked_usecase_id = usecase.id;
+  await useCaseStore.saveUseCase(usecase);
   await goalStore.updateGoal(found.goal);
   const titleWarning = titleLooksLikeVerbPhrase(usecase.title)
     ? undefined

@@ -5,6 +5,8 @@ import { createMemoryGoalStore } from "../infrastructure/memory-goal-store.js";
 import { createMemoryMembershipStore } from "../infrastructure/memory-membership-store.js";
 import { createMemoryMergeRequestStore } from "../infrastructure/memory-merge-request-store.js";
 import { createMemoryProjectStore } from "../infrastructure/memory-project-store.js";
+import { createMemoryScenarioStore } from "../infrastructure/memory-scenario-store.js";
+import { createMemoryUseCaseStore } from "../infrastructure/memory-usecase-store.js";
 import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
@@ -56,6 +58,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
       (await projectStore.findProjectById(projectId))?.workspace_id
     );
   const mergeRequestStore = options.signupStore ?? createMemoryMergeRequestStore();
+  const scenarioStore = options.signupStore ?? createMemoryScenarioStore();
+  const useCaseStore = options.signupStore ?? createMemoryUseCaseStore();
   app.get("/healthz", () => ({ status: "ok" }));
   if (options.signupStore !== undefined) {
     app.addHook("onClose", async () => {
@@ -80,40 +84,102 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     branchStore,
     projectStore,
     membershipStore,
-    mergeRequestStore
+    mergeRequestStore,
+    useCaseStore
   );
-  registerBranchTestRoutes(app, state, branchStore, projectStore);
-  registerLockRoutes(app, state, membershipStore);
-  registerMarkdownExportRoutes(app, state, actorStore, membershipStore);
-  registerMergeRoutes(app, state, branchStore, membershipStore, mergeRequestStore, projectStore);
+  registerBranchTestRoutes(app, state, branchStore, projectStore, useCaseStore);
+  registerLockRoutes(app, state, membershipStore, useCaseStore);
+  registerMarkdownExportRoutes(
+    app,
+    state,
+    actorStore,
+    membershipStore,
+    useCaseStore,
+    scenarioStore
+  );
+  registerMergeRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    mergeRequestStore,
+    projectStore,
+    useCaseStore
+  );
   registerMergeResolveRoutes(
     app,
     state,
     branchStore,
     membershipStore,
-    mergeRequestStore
+    mergeRequestStore,
+    useCaseStore
   );
   registerActorRoutes(app, state, actorStore, membershipStore);
   registerActorTestRoutes(app, state, actorStore, membershipStore);
-  registerGherkinExportRoutes(app, state, actorStore, membershipStore);
+  registerGherkinExportRoutes(
+    app,
+    state,
+    actorStore,
+    membershipStore,
+    useCaseStore,
+    scenarioStore
+  );
   registerGoalRoutes(app, state, actorStore, goalStore, membershipStore, projectStore);
-  registerGoalPromotionRoutes(app, state, goalStore, membershipStore, projectStore);
-  registerImpactRoutes(app, state, membershipStore);
+  registerGoalPromotionRoutes(
+    app,
+    state,
+    goalStore,
+    membershipStore,
+    projectStore,
+    useCaseStore
+  );
+  registerImpactRoutes(app, state, membershipStore, useCaseStore);
   registerInvitationRoutes(app, options, state, membershipStore);
-  registerCommentRoutes(app, state, membershipStore);
-  registerChangeCommitRoutes(app, state, branchStore, projectStore);
+  registerCommentRoutes(app, state, membershipStore, useCaseStore);
+  registerChangeCommitRoutes(app, state, branchStore, projectStore, useCaseStore);
   registerStakeholderRoutes(app, state, membershipStore, projectStore);
-  registerStakeholderInterestRoutes(app, state, membershipStore);
-  registerUseCaseAgentRoutes(app, state, actorStore, membershipStore, projectStore);
-  registerUseCaseArchiveRoutes(app, state, branchStore, membershipStore, projectStore);
-  registerUseCaseRoutes(app, state, actorStore, branchStore, goalStore, membershipStore, projectStore);
-  registerUseCaseSearchRoutes(app, state, actorStore, membershipStore);
-  registerUseCaseTestRoutes(app, state);
-  registerRevisionDiffRoutes(app, state, branchStore, membershipStore);
-  registerRevisionHistoryRoutes(app, state, membershipStore, projectStore);
-  registerRevisionRevertRoutes(app, state, branchStore, membershipStore, projectStore);
-  registerWhoRoutes(app, state, branchStore, membershipStore, mergeRequestStore);
-  registerScenarioRoutes(app, state, actorStore, membershipStore);
+  registerStakeholderInterestRoutes(app, state, membershipStore, useCaseStore);
+  registerUseCaseAgentRoutes(
+    app,
+    state,
+    actorStore,
+    membershipStore,
+    projectStore,
+    useCaseStore,
+    scenarioStore
+  );
+  registerUseCaseArchiveRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    projectStore,
+    useCaseStore
+  );
+  registerUseCaseRoutes(
+    app,
+    state,
+    actorStore,
+    branchStore,
+    goalStore,
+    membershipStore,
+    projectStore,
+    useCaseStore
+  );
+  registerUseCaseSearchRoutes(app, state, actorStore, membershipStore, useCaseStore);
+  registerUseCaseTestRoutes(app, state, useCaseStore);
+  registerRevisionDiffRoutes(app, state, branchStore, membershipStore, useCaseStore);
+  registerRevisionHistoryRoutes(app, state, membershipStore, projectStore, useCaseStore);
+  registerRevisionRevertRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    projectStore,
+    useCaseStore
+  );
+  registerWhoRoutes(app, state, branchStore, membershipStore, mergeRequestStore, useCaseStore);
+  registerScenarioRoutes(app, state, actorStore, membershipStore, scenarioStore, useCaseStore);
   registerSessionCompleteRoutes(
     app,
     state,
@@ -122,10 +188,17 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     mergeRequestStore,
     projectStore
   );
-  registerSessionListRoutes(app, state, branchStore, membershipStore, projectStore);
-  registerSessionRoutes(app, state, branchStore, membershipStore, projectStore);
-  registerStepRoutes(app, state, membershipStore);
-  registerSyncRoutes(app, state, branchStore, membershipStore, projectStore);
+  registerSessionListRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    projectStore,
+    useCaseStore
+  );
+  registerSessionRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
+  registerStepRoutes(app, state, membershipStore, scenarioStore, useCaseStore);
+  registerSyncRoutes(app, state, branchStore, membershipStore, projectStore, useCaseStore);
 
   return app;
 }
@@ -136,12 +209,10 @@ function initialState(options: ServerOptions): SignupState {
     readOnlyMemberships: new Set(),
     revisionsByEntityId: new Map(),
     sessionsByToken: new Map(),
-    scenariosByUseCaseId: new Map(),
     stepLocksByUseCaseId: new Map(),
     stakeholderInterestsByUseCaseId: new Map(),
     stepsByScenarioId: new Map(),
     stakeholdersByProjectId: new Map(),
-    usecasesByProjectId: new Map(),
     usersByGithubId: new Map(),
     workSessionsById: new Map(),
     workSessionsByUseCaseId: new Map(),

@@ -8,10 +8,12 @@ import {
 } from "./scenario-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredUseCase } from "./signup-types.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
 
-export function createExtensionScenario(
+export async function createExtensionScenario(
   reply: FastifyReply,
   state: SignupState,
+  scenarioStore: ScenarioStore,
   found: { projectId: string; usecase: StoredUseCase },
   data: {
     condition?: string;
@@ -32,7 +34,7 @@ export function createExtensionScenario(
     );
   }
   const parentStepNumber = extensionPointParentStep(data.extension_point);
-  const mainScenario = mainSuccessScenario(state, found.usecase.id);
+  const mainScenario = await mainSuccessScenario(scenarioStore, found.usecase.id);
   if (
     mainScenario === undefined ||
     (parentStepNumber !== null &&
@@ -42,7 +44,7 @@ export function createExtensionScenario(
       .code(422)
       .send(parentStepOutOfRangeProblem(found.usecase.key, parentStepNumber));
   }
-  const existing = extensionAtPoint(state, found.usecase.id, data.extension_point);
+  const existing = await extensionAtPoint(scenarioStore, found.usecase.id, data.extension_point);
   if (existing !== undefined) {
     return reply.code(409).send(
       problem(
@@ -50,8 +52,8 @@ export function createExtensionScenario(
         "Extension point is already taken",
         {
           existing_condition: existing.condition,
-          suggested_extension_point: nextExtensionPoint(
-            state,
+          suggested_extension_point: await nextExtensionPoint(
+            scenarioStore,
             found.usecase.id,
             data.extension_point
           )
@@ -68,12 +70,9 @@ export function createExtensionScenario(
     parent_step_number: parentStepNumber,
     condition: data.condition,
     outcome: data.outcome ?? "FAILURE",
-    order_index: (state.scenariosByUseCaseId.get(found.usecase.id) ?? []).length
+    order_index: (await scenarioStore.listScenarios(found.usecase.id)).length
   };
-  state.scenariosByUseCaseId.set(found.usecase.id, [
-    ...(state.scenariosByUseCaseId.get(found.usecase.id) ?? []),
-    scenario
-  ]);
+  await scenarioStore.saveScenario(scenario);
   const revision = appendUseCaseRevision(
     state,
     found.usecase,
@@ -116,26 +115,26 @@ function parentStepOutOfRangeProblem(usecaseKey: string, parentStepNumber: numbe
   );
 }
 
-function extensionAtPoint(
-  state: SignupState,
+async function extensionAtPoint(
+  scenarioStore: ScenarioStore,
   usecaseId: string,
   extensionPoint: string
-): StoredScenario | undefined {
-  return (state.scenariosByUseCaseId.get(usecaseId) ?? []).find(
+): Promise<StoredScenario | undefined> {
+  return (await scenarioStore.listScenarios(usecaseId)).find(
     (scenario) => scenario.extension_point === extensionPoint
   );
 }
 
-function nextExtensionPoint(
-  state: SignupState,
+async function nextExtensionPoint(
+  scenarioStore: ScenarioStore,
   usecaseId: string,
   extensionPoint: string
-): string {
+): Promise<string> {
   const prefix = extensionPoint.slice(0, -1);
   let letterCode = extensionPoint.charCodeAt(extensionPoint.length - 1) + 1;
   let candidate = `${prefix}${String.fromCharCode(letterCode)}`;
 
-  while (extensionAtPoint(state, usecaseId, candidate) !== undefined) {
+  while (await extensionAtPoint(scenarioStore, usecaseId, candidate) !== undefined) {
     letterCode += 1;
     candidate = `${prefix}${String.fromCharCode(letterCode)}`;
   }

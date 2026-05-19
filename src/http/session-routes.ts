@@ -22,6 +22,7 @@ import type {
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const knownAgentTypes = new Set<StoredAgentType>([
   "CLAUDE_CODE",
@@ -46,10 +47,11 @@ export function registerSessionRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, state, branchStore, membershipStore, projectStore)
+    startSession(request, reply, state, branchStore, membershipStore, projectStore, useCaseStore)
   );
 }
 
@@ -59,7 +61,8 @@ async function startSession(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = sessionStartSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -70,7 +73,7 @@ async function startSession(
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
-  const pinned = resolvePins(state, parsed.data.project_id, parsed.data.pins);
+  const pinned = await resolvePins(state, useCaseStore, parsed.data.project_id, parsed.data.pins);
   if (pinned.status === "ARCHIVED") {
     return reply.code(422).send(archivedPinProblem(pinned.key));
   }

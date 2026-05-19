@@ -5,8 +5,8 @@ import { previewSpecChange } from "./change-preview-routes.js";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type ImpactPayload = {
   affected_branches: string[];
@@ -29,13 +29,14 @@ const previewSchema = z.object({
 export function registerImpactRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/changes/preview", async (request, reply) => {
-    if (await previewSpecChange(request, reply, state, membershipStore)) {
+    if (await previewSpecChange(request, reply, state, membershipStore, useCaseStore)) {
       return undefined;
     }
-    return previewImpact(request, reply, state, membershipStore);
+    return previewImpact(request, reply, state, membershipStore, useCaseStore);
   });
 }
 
@@ -43,13 +44,14 @@ async function previewImpact(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = previewSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid impact preview request"));
   }
-  const found = useCaseWithProjectId(state, parsed.data.entity_id);
+  const found = await useCaseStore.findUseCaseWithProject(parsed.data.entity_id);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }

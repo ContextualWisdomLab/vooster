@@ -1,5 +1,6 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
 
 export function archivedUseCaseProblem(usecase: StoredUseCase) {
   if (usecase.archived_at === null) {
@@ -47,9 +48,12 @@ export function existingOutputProblem(
   );
 }
 
-export function gherkinPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
-  const main = (state.scenariosByUseCaseId.get(usecase.id) ?? [])
-    .find((scenario) => scenario.type === "MAIN_SUCCESS");
+export async function gherkinPrerequisiteProblem(
+  state: SignupState,
+  scenarioStore: ScenarioStore,
+  usecase: StoredUseCase
+) {
+  const main = await scenarioStore.findMainScenario(usecase.id);
   const stepCount = main === undefined
     ? 0
     : (state.stepsByScenarioId.get(main.id) ?? []).length;

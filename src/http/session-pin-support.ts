@@ -1,5 +1,6 @@
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export type PinnedUseCases = {
   status: "OK";
@@ -12,12 +13,13 @@ export type PinResolution =
   | { holder: string; key: string; status: "HARD_LOCKED" }
   | { key: string; status: "ARCHIVED" | "MISSING" };
 
-export function resolvePins(
+export async function resolvePins(
   state: SignupState,
+  useCaseStore: UseCaseStore,
   projectId: string,
   keys: string[]
-): PinResolution {
-  const usecases = state.usecasesByProjectId.get(projectId) ?? [];
+): Promise<PinResolution> {
+  const usecases = await useCaseStore.listUseCases(projectId);
   const resolved: StoredUseCase[] = [];
   for (const key of keys) {
     const usecase = usecases.find((candidate) => candidate.key === key);

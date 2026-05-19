@@ -13,6 +13,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredUseCase } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const lockSchema = z.object({
   lock_type: z.enum(["SOFT", "SEMANTIC", "HARD"]),
@@ -28,13 +29,14 @@ const renewSchema = z.object({
 export function registerLockRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/locks", (request, reply) =>
-    createLock(request, reply, state, membershipStore)
+    createLock(request, reply, state, membershipStore, useCaseStore)
   );
   app.post("/v1/locks/:lockId/renew", (request, reply) =>
-    renewLock(request, reply, state, membershipStore)
+    renewLock(request, reply, state, membershipStore, useCaseStore)
   );
 }
 
@@ -42,13 +44,14 @@ async function createLock(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = lockSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid lock request"));
   }
-  const usecase = useCaseById(state, parsed.data.target_id);
+  const usecase = (await useCaseStore.findUseCaseWithProject(parsed.data.target_id))?.usecase;
   if (usecase === undefined || usecase.archived_at !== null) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -87,7 +90,8 @@ async function renewLock(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
   const parsed = renewSchema.safeParse(request.body);
@@ -98,7 +102,7 @@ async function renewLock(
   if (lock === undefined) {
     return reply.code(404).send(problem(404, "Lock not found"));
   }
-  const usecase = useCaseById(state, lock.usecase_id);
+  const usecase = (await useCaseStore.findUseCaseWithProject(lock.usecase_id))?.usecase;
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -147,12 +151,6 @@ function useCaseLock(
     target_type: data.target_type,
     usecase_id: usecase.id
   };
-}
-
-function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId);
 }
 
 function sessionIdFrom(request: FastifyRequest): null | string {

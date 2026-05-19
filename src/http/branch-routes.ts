@@ -11,6 +11,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const branchCreateSchema = z.object({
   from: z.string().default("main"),
@@ -24,7 +25,8 @@ export function registerBranchRoutes(
   branchStore: BranchStore,
   projectStore: ProjectStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/branches", (request, reply) =>
     createBranch(
@@ -34,7 +36,8 @@ export function registerBranchRoutes(
       branchStore,
       projectStore,
       membershipStore,
-      mergeRequestStore
+      mergeRequestStore,
+      useCaseStore
     )
   );
 }
@@ -46,7 +49,8 @@ async function createBranch(
   branchStore: BranchStore,
   projectStore: ProjectStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
   const membership = await membershipForProject(request, state, membershipStore, projectId);
@@ -103,7 +107,7 @@ async function createBranch(
       ])
     );
   }
-  const snapshot = mainHeadSnapshot(state, project);
+  const snapshot = await mainHeadSnapshot(state, project, useCaseStore);
   const branch: StoredSpecBranch = {
     id: randomUUID(),
     project_id: projectId,
@@ -124,7 +128,7 @@ async function createBranch(
     suggested_next_actions: [
       { command: `vspec branch checkout ${branch.name}`, reason: "Switch to the isolated branch." },
       {
-        command: `vspec usecase edit ${firstUseCaseKey(state, projectId)}`,
+        command: `vspec usecase edit ${await firstUseCaseKey(projectId, useCaseStore)}`,
         reason: "Start editing a use case on the branch."
       }
     ]
@@ -153,9 +157,13 @@ function readOnly(reply: FastifyReply) {
   );
 }
 
-function mainHeadSnapshot(state: SignupState, project: StoredProject): Record<string, string> {
+async function mainHeadSnapshot(
+  state: SignupState,
+  project: StoredProject,
+  useCaseStore: UseCaseStore
+): Promise<Record<string, string>> {
   return Object.fromEntries(
-    (state.usecasesByProjectId.get(project.id) ?? []).map((usecase) => [
+    (await useCaseStore.listUseCases(project.id)).map((usecase) => [
       usecase.id,
       latestRevisionId(state, usecase.id) ?? usecase.current_revision_id
     ])
@@ -167,8 +175,11 @@ function latestRevisionId(state: SignupState, entityId: string): string | undefi
   return revisions[revisions.length - 1]?.id;
 }
 
-function firstUseCaseKey(state: SignupState, projectId: string): string {
-  return state.usecasesByProjectId.get(projectId)?.[0]?.key ?? "<KEY>";
+async function firstUseCaseKey(
+  projectId: string,
+  useCaseStore: UseCaseStore
+): Promise<string> {
+  return (await useCaseStore.listUseCases(projectId))[0]?.key ?? "<KEY>";
 }
 
 async function branchNameExists(

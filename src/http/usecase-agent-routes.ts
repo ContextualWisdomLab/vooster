@@ -4,10 +4,11 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ usecaseId: z.string().min(1) });
 const querySchema = z.object({
@@ -21,10 +22,21 @@ export function registerUseCaseAgentRoutes(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   app.get("/v1/usecases/:usecaseId", (request, reply) =>
-    showUseCase(request, reply, state, actorStore, membershipStore, projectStore)
+    showUseCase(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      projectStore,
+      useCaseStore,
+      scenarioStore
+    )
   );
 }
 
@@ -34,11 +46,13 @@ async function showUseCase(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).usecaseId;
   const query = querySchema.parse(request.query);
-  const found = useCaseWithProjectId(state, usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -102,7 +116,8 @@ async function showUseCase(
     session?.id ?? null,
     warnings,
     actorStore,
-    projectStore
+    projectStore,
+    scenarioStore
   ));
 }
 
@@ -115,7 +130,8 @@ async function agentEnvelope(
   sessionId: null | string,
   warnings: Array<{ message: string; type: string }>,
   actorStore: ActorStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  scenarioStore: ScenarioStore
 ) {
   const project = await projectStore.findProjectById(projectId);
   return {
@@ -126,7 +142,7 @@ async function agentEnvelope(
       revision,
       session_id: sessionId
     },
-    data: await agentData(state, projectId, usecase, actorStore),
+    data: await agentData(state, projectId, usecase, actorStore, scenarioStore),
     format_version: 1,
     suggested_next_actions: suggestedActions(usecase, warnings),
     warnings
@@ -179,14 +195,15 @@ async function agentData(
   state: SignupState,
   projectId: string,
   usecase: StoredUseCase,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  scenarioStore: ScenarioStore
 ) {
   return {
     primary_actor: {
       name: await actorName(actorStore, projectId, usecase.primary_actor_id)
     },
     scenarios: await Promise.all(
-      (state.scenariosByUseCaseId.get(usecase.id) ?? []).map(async (scenario) => ({
+      (await scenarioStore.listScenarios(usecase.id)).map(async (scenario) => ({
         id: scenario.id,
         steps: await Promise.all(
           (state.stepsByScenarioId.get(scenario.id) ?? []).map(async (step) => ({

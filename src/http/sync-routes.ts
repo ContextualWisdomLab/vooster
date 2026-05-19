@@ -21,6 +21,7 @@ import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const pullSchema = z.object({
   branch: z.string().default("main"),
@@ -44,13 +45,22 @@ export function registerSyncRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
-    pullFiles(request, reply, state, membershipStore)
+    pullFiles(request, reply, state, membershipStore, useCaseStore)
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
-    pushFiles(request, reply, state, branchStore, membershipStore, projectStore)
+    pushFiles(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      useCaseStore
+    )
   );
 }
 
@@ -58,7 +68,8 @@ async function pullFiles(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pullSchema.safeParse(request.body);
@@ -68,7 +79,7 @@ async function pullFiles(
   if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
     return reply.code(403).send(syncAccessProblem());
   }
-  const files = activeUseCases(state, projectId).map((usecase) => ({
+  const files = (await activeUseCases(useCaseStore, projectId)).map((usecase) => ({
     content: usecaseMarkdown(usecase),
     path: usecasePath(usecase),
     revision: usecase.current_revision_id
@@ -85,7 +96,8 @@ async function pushFiles(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pushSchema.safeParse(request.body);
@@ -103,10 +115,12 @@ async function pushFiles(
     return reply.code(503).send(networkFailureProblem(parsed.data.files));
   }
   const results = parsed.data.dry_run
-    ? parsed.data.files.map((file) => previewFile(state, projectId, file))
+    ? await Promise.all(
+        parsed.data.files.map((file) => previewFile(useCaseStore, projectId, file))
+      )
     : await Promise.all(
         parsed.data.files.map((file) =>
-          pushFile(state, branchStore, projectStore, projectId, file)
+          pushFile(state, branchStore, projectStore, useCaseStore, projectId, file)
         )
       );
   return reply.send({
@@ -116,12 +130,12 @@ async function pushFiles(
   });
 }
 
-function previewFile(
-  state: SignupState,
+async function previewFile(
+  useCaseStore: UseCaseStore,
   projectId: string,
   file: PushFile
-): SyncResult {
-  const usecase = usecaseForFile(state, projectId, file.path);
+): Promise<SyncResult> {
+  const usecase = await usecaseForFile(useCaseStore, projectId, file.path);
   if (usecase === undefined) {
     return { current_revision: "", dry_run: true, path: file.path, status: "SKIPPED" };
   }
@@ -140,10 +154,11 @@ async function pushFile(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
   projectId: string,
   file: PushFile
 ): Promise<SyncResult> {
-  const usecase = usecaseForFile(state, projectId, file.path);
+  const usecase = await usecaseForFile(useCaseStore, projectId, file.path);
   if (usecase === undefined) {
     return { current_revision: "", path: file.path, status: "SKIPPED" };
   }
@@ -154,6 +169,7 @@ async function pushFile(
   const revision = syncRevision(state, usecase, title);
   usecase.title = title;
   usecase.current_revision_id = revision.id;
+  await useCaseStore.updateUseCase(usecase);
   state.revisionsByEntityId.set(usecase.id, [
     ...(state.revisionsByEntityId.get(usecase.id) ?? []),
     revision
@@ -162,8 +178,12 @@ async function pushFile(
   return { current_revision: revision.id, path: file.path, status: "OK" };
 }
 
-function usecaseForFile(state: SignupState, projectId: string, path: string) {
-  return activeUseCases(state, projectId).find(
+async function usecaseForFile(
+  useCaseStore: UseCaseStore,
+  projectId: string,
+  path: string
+) {
+  return (await activeUseCases(useCaseStore, projectId)).find(
     (candidate) => usecasePath(candidate) === path
   );
 }
@@ -207,8 +227,8 @@ function projectIdFrom(params: unknown) {
   return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
 }
 
-function activeUseCases(state: SignupState, projectId: string) {
-  return (state.usecasesByProjectId.get(projectId) ?? [])
+async function activeUseCases(useCaseStore: UseCaseStore, projectId: string) {
+  return (await useCaseStore.listUseCases(projectId))
     .filter((usecase) => usecase.archived_at === null);
 }
 

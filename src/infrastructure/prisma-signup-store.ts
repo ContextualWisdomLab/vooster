@@ -6,8 +6,10 @@ import type {
   StoredGoal,
   StoredMembership,
   StoredProject,
+  StoredScenario,
   StoredSpecBranch,
-  StoredUser
+  StoredUser,
+  StoredUseCase
 } from "../http/signup-types.js";
 
 export function createPrismaSignupStore(databaseUrl: string): SignupStore {
@@ -23,6 +25,8 @@ export function createPrismaSignupStore(databaseUrl: string): SignupStore {
 }
 
 class PrismaSignupStore implements SignupStore {
+  private readonly useCaseCurrentRevisionIds = new Map<string, string>();
+
   constructor(private readonly prisma: PrismaClient) {}
 
   async close(): Promise<void> {
@@ -138,6 +142,59 @@ class PrismaSignupStore implements SignupStore {
     return project === null ? undefined : storedProject(project);
   }
 
+  async findUseCaseById(
+    projectId: string,
+    usecaseId: string
+  ): Promise<StoredUseCase | undefined> {
+    const usecase = await this.prisma.useCase.findFirst({
+      where: { id: usecaseId, project_id: projectId }
+    });
+
+    return usecase === null ? undefined : this.storedUseCase(usecase);
+  }
+
+  async findUseCaseWithProject(
+    usecaseIdOrKey: string
+  ): Promise<{ projectId: string; usecase: StoredUseCase } | undefined> {
+    const usecase = await this.prisma.useCase.findFirst({
+      where: {
+        OR: [
+          { id: usecaseIdOrKey },
+          { key: usecaseIdOrKey }
+        ]
+      }
+    });
+
+    return usecase === null
+      ? undefined
+      : { projectId: usecase.project_id, usecase: this.storedUseCase(usecase) };
+  }
+
+  async findUseCasesByKey(key: string): Promise<StoredUseCase[]> {
+    const usecases = await this.prisma.useCase.findMany({
+      orderBy: { created_at: "asc" },
+      where: { key }
+    });
+
+    return usecases.map((usecase) => this.storedUseCase(usecase));
+  }
+
+  async findMainScenario(usecaseId: string): Promise<StoredScenario | undefined> {
+    const scenario = await this.prisma.scenario.findFirst({
+      where: { type: "MAIN_SUCCESS", usecase_id: usecaseId }
+    });
+
+    return scenario === null ? undefined : storedScenario(scenario);
+  }
+
+  async findScenarioById(scenarioId: string): Promise<StoredScenario | undefined> {
+    const scenario = await this.prisma.scenario.findUnique({
+      where: { id: scenarioId }
+    });
+
+    return scenario === null ? undefined : storedScenario(scenario);
+  }
+
   async listActors(projectId: string): Promise<StoredActor[]> {
     const actors = await this.prisma.actor.findMany({
       orderBy: { created_at: "asc" },
@@ -163,6 +220,24 @@ class PrismaSignupStore implements SignupStore {
     });
 
     return goals.map(storedGoal);
+  }
+
+  async listScenarios(usecaseId: string): Promise<StoredScenario[]> {
+    const scenarios = await this.prisma.scenario.findMany({
+      orderBy: { order_index: "asc" },
+      where: { usecase_id: usecaseId }
+    });
+
+    return scenarios.map(storedScenario);
+  }
+
+  async listUseCases(projectId: string): Promise<StoredUseCase[]> {
+    const usecases = await this.prisma.useCase.findMany({
+      orderBy: { created_at: "asc" },
+      where: { project_id: projectId }
+    });
+
+    return usecases.map((usecase) => this.storedUseCase(usecase));
   }
 
   async listOpenMergeRequests(): Promise<StoredMergeRequest[]> {
@@ -285,6 +360,19 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async saveScenario(scenario: StoredScenario): Promise<void> {
+    await this.prisma.scenario.create({
+      data: scenarioData(scenario)
+    });
+  }
+
+  async saveUseCase(usecase: StoredUseCase): Promise<void> {
+    await this.prisma.useCase.create({
+      data: useCaseData(usecase)
+    });
+    this.rememberUseCaseCurrentRevision(usecase);
+  }
+
   async saveMergeRequest(mergeRequest: StoredMergeRequest): Promise<void> {
     await this.prisma.mergeRequest.create({
       data: mergeRequestData(mergeRequest)
@@ -337,6 +425,14 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async updateUseCase(usecase: StoredUseCase): Promise<void> {
+    await this.prisma.useCase.update({
+      data: useCaseUpdate(usecase),
+      where: { id: usecase.id }
+    });
+    this.rememberUseCaseCurrentRevision(usecase);
+  }
+
   async updateLastLoginAt(userId: string, lastLoginAt: string): Promise<void> {
     await this.prisma.user.update({
       data: { last_login_at: new Date(lastLoginAt) },
@@ -366,6 +462,21 @@ class PrismaSignupStore implements SignupStore {
       role: storedMembership(membership).role,
       slug: membership.workspace.slug
     }));
+  }
+
+  private rememberUseCaseCurrentRevision(usecase: StoredUseCase): void {
+    if (usecase.current_revision_id !== "") {
+      this.useCaseCurrentRevisionIds.set(usecase.id, usecase.current_revision_id);
+    }
+  }
+
+  private storedUseCase(usecase: Parameters<typeof storedUseCase>[0]): StoredUseCase {
+    const stored = storedUseCase(usecase);
+    return {
+      ...stored,
+      current_revision_id:
+        this.useCaseCurrentRevisionIds.get(stored.id) ?? stored.current_revision_id
+    };
   }
 }
 
@@ -503,6 +614,58 @@ function storedProject(project: {
   };
 }
 
+function storedScenario(scenario: {
+  condition: null | string;
+  extension_point: null | string;
+  id: string;
+  order_index: number;
+  outcome: string;
+  parent_step_number: null | number;
+  type: string;
+  usecase_id: string;
+}): StoredScenario {
+  return {
+    condition: scenario.condition,
+    extension_point: scenario.extension_point,
+    id: scenario.id,
+    order_index: scenario.order_index,
+    outcome: storedScenarioOutcome(scenario.outcome),
+    parent_step_number: scenario.parent_step_number,
+    type: scenario.type === "EXTENSION" ? "EXTENSION" : "MAIN_SUCCESS",
+    usecase_id: scenario.usecase_id
+  };
+}
+
+function storedUseCase(usecase: {
+  archived_at: Date | null;
+  current_revision_id: null | string;
+  format: string;
+  id: string;
+  key: string;
+  level: string;
+  primary_actor_id: string;
+  priority: string;
+  project_id: string;
+  scope: string;
+  status: string;
+  title: string;
+}): StoredUseCase {
+  return {
+    archived_at: usecase.archived_at?.toISOString() ?? null,
+    current_revision_id: usecase.current_revision_id ?? "",
+    format: "BRIEF",
+    id: usecase.id,
+    key: usecase.key,
+    level: storedUseCaseLevel(usecase.level),
+    primary_actor_id: usecase.primary_actor_id,
+    priority: storedPriority(usecase.priority),
+    project_id: usecase.project_id,
+    scope: usecase.scope,
+    status: "DRAFT",
+    title: usecase.title
+  };
+}
+
 function storedActor(actor: {
   aliases: string;
   archived_at: Date | null;
@@ -633,6 +796,52 @@ function projectData(project: StoredProject) {
   };
 }
 
+function scenarioData(scenario: StoredScenario) {
+  return {
+    condition: scenario.condition,
+    extension_point: scenario.extension_point,
+    id: scenario.id,
+    order_index: scenario.order_index,
+    outcome: scenario.outcome,
+    parent_step_number: scenario.parent_step_number,
+    type: scenario.type,
+    usecase_id: scenario.usecase_id
+  };
+}
+
+function useCaseData(usecase: StoredUseCase) {
+  return {
+    archived_at: dateOrNull(usecase.archived_at),
+    current_revision_id: null,
+    format: usecase.format,
+    id: usecase.id,
+    key: usecase.key,
+    level: usecase.level,
+    minimal_guarantee: "",
+    preconditions: "[]",
+    primary_actor_id: usecase.primary_actor_id,
+    priority: usecase.priority,
+    project_id: usecase.project_id,
+    scope: usecase.scope,
+    status: usecase.status,
+    success_guarantee: "",
+    title: usecase.title,
+    trigger: ""
+  };
+}
+
+function useCaseUpdate(usecase: StoredUseCase) {
+  return {
+    archived_at: dateOrNull(usecase.archived_at),
+    format: usecase.format,
+    level: usecase.level,
+    priority: usecase.priority,
+    scope: usecase.scope,
+    status: usecase.status,
+    title: usecase.title
+  };
+}
+
 function specBranchUpdate(branch: StoredSpecBranch) {
   return {
     base_revision_ids: JSON.stringify(branch.base_revision_ids ?? {}),
@@ -725,6 +934,10 @@ function storedPriority(priority: string): StoredGoal["priority"] {
 
 function storedUseCaseLevel(level: string): StoredGoal["level"] {
   return level === "SUMMARY" || level === "SUBFUNCTION" ? level : "USER_GOAL";
+}
+
+function storedScenarioOutcome(outcome: string): StoredScenario["outcome"] {
+  return outcome === "FAILURE" || outcome === "PARTIAL" ? outcome : "SUCCESS";
 }
 
 function storedMergeRequestStatus(status: string): StoredMergeRequest["status"] {

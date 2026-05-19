@@ -19,9 +19,10 @@ import type {
   StoredScenario,
   StoredStep
 } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const scenarioRequestSchema = z.object({
   condition: z.string().optional(),
@@ -39,13 +40,15 @@ export function registerScenarioRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
-    createScenario(request, reply, state, membershipStore)
+    createScenario(request, reply, state, membershipStore, scenarioStore, useCaseStore)
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
-    addStep(request, reply, state, actorStore, membershipStore)
+    addStep(request, reply, state, actorStore, membershipStore, scenarioStore, useCaseStore)
   );
 }
 
@@ -53,9 +56,11 @@ async function createScenario(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
+  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -67,12 +72,12 @@ async function createScenario(
     return reply.code(400).send(problem(400, "Invalid scenario request"));
   }
   if (parsed.data.type === "EXTENSION") {
-    return createExtensionScenario(reply, state, found, {
+    return createExtensionScenario(reply, state, scenarioStore, found, {
       ...parsed.data,
       type: "EXTENSION"
     });
   }
-  const existing = mainSuccessScenario(state, found.usecase.id);
+  const existing = await mainSuccessScenario(scenarioStore, found.usecase.id);
   if (existing !== undefined) {
     return reply.code(409).send(duplicateMainSuccessProblem(existing));
   }
@@ -92,10 +97,7 @@ async function createScenario(
     outcome: "SUCCESS",
     order_index: 0
   };
-  state.scenariosByUseCaseId.set(found.usecase.id, [
-    ...(state.scenariosByUseCaseId.get(found.usecase.id) ?? []),
-    scenario
-  ]);
+  await scenarioStore.saveScenario(scenario);
   const revision = appendUseCaseRevision(
     state,
     found.usecase,
@@ -110,9 +112,15 @@ async function addStep(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = scenarioWithUseCase(state, scenarioIdFrom(request.params));
+  const found = await scenarioWithUseCase(
+    scenarioStore,
+    useCaseStore,
+    scenarioIdFrom(request.params)
+  );
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Scenario not found"));
   }

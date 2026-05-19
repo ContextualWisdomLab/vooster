@@ -11,8 +11,8 @@ import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type StoredComment = {
   author_id: string;
@@ -39,19 +39,20 @@ const patchSchema = z.object({
 export function registerCommentRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    addComment(request, reply, state, membershipStore)
+    addComment(request, reply, state, membershipStore, useCaseStore)
   );
   app.get("/v1/usecases/:usecaseId/comments", (request, reply) =>
-    listComments(request, reply, state, membershipStore)
+    listComments(request, reply, state, membershipStore, useCaseStore)
   );
   app.patch("/v1/comments/:commentId", (request, reply) =>
-    patchComment(request, reply, state, membershipStore)
+    patchComment(request, reply, state, membershipStore, useCaseStore)
   );
   app.delete("/v1/comments/:commentId", (request, reply) =>
-    deleteComment(request, reply, state, membershipStore)
+    deleteComment(request, reply, state, membershipStore, useCaseStore)
   );
 }
 
@@ -59,9 +60,10 @@ async function addComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedUseCase(request, reply, state, membershipStore);
+  const found = await authorizedUseCase(request, reply, state, membershipStore, useCaseStore);
   if (found === undefined) {
     return;
   }
@@ -92,9 +94,10 @@ async function listComments(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedUseCase(request, reply, state, membershipStore);
+  const found = await authorizedUseCase(request, reply, state, membershipStore, useCaseStore);
   if (found === undefined) {
     return;
   }
@@ -107,9 +110,10 @@ async function patchComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(request, reply, state, membershipStore);
+  const found = await authorizedComment(request, reply, state, membershipStore, useCaseStore);
   if (found === undefined) {
     return;
   }
@@ -135,9 +139,10 @@ async function deleteComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(request, reply, state, membershipStore);
+  const found = await authorizedComment(request, reply, state, membershipStore, useCaseStore);
   if (found === undefined) {
     return;
   }
@@ -152,10 +157,11 @@ async function authorizedUseCase(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const found = useCaseWithProjectId(state, params.usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(params.usecaseId);
   if (found === undefined || found.usecase.archived_at !== null) {
     reply.code(404).send(missingUseCaseProblem());
     return undefined;
@@ -175,11 +181,15 @@ async function authorizedComment(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
 ) {
   const id = z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
   const comment = comments(state).get(id);
-  const found = comment === undefined ? undefined : useCaseWithProjectId(state, comment.target_id);
+  const found =
+    comment === undefined
+      ? undefined
+      : await useCaseStore.findUseCaseWithProject(comment.target_id);
   if (comment === undefined || found === undefined) {
     reply.code(404).send(problem(404, "Comment not found"));
     return undefined;

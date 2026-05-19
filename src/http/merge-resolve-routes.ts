@@ -17,6 +17,7 @@ import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const resolutionSchema = z.object({
   entity_id: z.string().min(1),
@@ -35,10 +36,19 @@ export function registerMergeResolveRoutes(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/merges/:mergeId/resolve", (request, reply) =>
-    resolveMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore)
+    resolveMerge(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      mergeRequestStore,
+      useCaseStore
+    )
   );
 }
 
@@ -48,7 +58,8 @@ async function resolveMerge(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  mergeRequestStore: MergeRequestStore
+  mergeRequestStore: MergeRequestStore,
+  useCaseStore: UseCaseStore
 ) {
   const merge = await mergeRequestStore.findMergeRequestById(mergeIdFrom(request.params));
   const parsed = resolveSchema.safeParse(request.body);
@@ -84,14 +95,25 @@ async function resolveMerge(
   if (hardLock !== undefined) {
     return reply
       .code(409)
-      .send(hardLockResolutionProblem(state, merge, target.head_revision_ids ?? {}, hardLock));
+      .send(await hardLockResolutionProblem(
+        state,
+        useCaseStore,
+        merge,
+        target.head_revision_ids ?? {},
+        hardLock
+      ));
   }
   if (parsed.data.simulate_write_failure) {
     return reply
       .code(500)
       .send(resolutionWriteFailureProblem(merge, source, target.head_revision_ids ?? {}));
   }
-  const newRevisions = resolvedRevisions(state, merge.conflicts, parsed.data.resolutions);
+  const newRevisions = await resolvedRevisions(
+    state,
+    useCaseStore,
+    merge.conflicts,
+    parsed.data.resolutions
+  );
   for (const revision of newRevisions) {
     appendRevision(state, revision);
   }
@@ -112,18 +134,19 @@ async function resolveMerge(
     merge_request: merge,
     new_revisions: newRevisions,
     source_branch: source,
-    suggested_next_actions: nextActions(state, newRevisions)
+    suggested_next_actions: await nextActions(useCaseStore, newRevisions)
   });
 }
 
-function resolvedRevisions(
+async function resolvedRevisions(
   state: SignupState,
+  useCaseStore: UseCaseStore,
   conflicts: Array<Record<string, unknown>>,
   resolutions: Array<z.infer<typeof resolutionSchema>>
-) {
-  return conflicts.map((conflict) => {
+): Promise<StoredRevision[]> {
+  return Promise.all(conflicts.map(async (conflict) => {
     const entityId = String(conflict.entity_id);
-    const usecase = useCaseById(state, entityId);
+    const usecase = (await useCaseStore.findUseCaseWithProject(entityId))?.usecase;
     const resolution = resolutions.find((candidate) => candidate.entity_id === entityId);
     const title = resolvedTitle(conflict, resolution);
     if (usecase === undefined || title === undefined) {
@@ -132,8 +155,9 @@ function resolvedRevisions(
     usecase.title = title;
     const revision = useCaseRevision(state, usecase);
     usecase.current_revision_id = revision.id;
+    await useCaseStore.updateUseCase(usecase);
     return revision;
-  });
+  }));
 }
 
 function resolvedTitle(
@@ -168,21 +192,18 @@ function appendRevision(state: SignupState, revision: StoredRevision) {
   ]);
 }
 
-function nextActions(state: SignupState, revisions: StoredRevision[]) {
-  return revisions.map((revision) => ({
-    command: `vspec usecase show ${useCaseById(state, revision.entity_id)?.key ?? revision.entity_id}`,
+async function nextActions(useCaseStore: UseCaseStore, revisions: StoredRevision[]) {
+  return Promise.all(revisions.map(async (revision) => ({
+    command: `vspec usecase show ${
+      (await useCaseStore.findUseCaseWithProject(revision.entity_id))?.usecase.key ??
+        revision.entity_id
+    }`,
     reason: "Review the resolved use case on main."
-  }));
+  })));
 }
 
 function branchById(branchStore: BranchStore, branchId: null | string) {
   return branchId === null ? Promise.resolve(undefined) : branchStore.findBranchById(branchId);
-}
-
-function useCaseById(state: SignupState, usecaseId: string): StoredUseCase | undefined {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId);
 }
 
 function mergeIdFrom(params: unknown): string {

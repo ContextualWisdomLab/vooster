@@ -8,9 +8,10 @@ import {
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const paramsSchema = z.object({ id: z.string().min(1) });
 const exportSchema = z.object({
@@ -24,10 +25,20 @@ export function registerMarkdownExportRoutes(
   app: FastifyInstance,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   app.post("/v1/usecases/:id/export/markdown", (request, reply) =>
-    exportMarkdown(request, reply, state, actorStore, membershipStore)
+    exportMarkdown(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      useCaseStore,
+      scenarioStore
+    )
   );
 }
 
@@ -36,14 +47,16 @@ async function exportMarkdown(
   reply: FastifyReply,
   state: SignupState,
   actorStore: ActorStore,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore,
+  scenarioStore: ScenarioStore
 ) {
   const usecaseId = paramsSchema.parse(request.params).id;
   const parsed = exportSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid markdown export request"));
   }
-  const found = useCaseWithProjectId(state, usecaseId);
+  const found = await useCaseStore.findUseCaseWithProject(usecaseId);
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -56,7 +69,11 @@ async function exportMarkdown(
   ) {
     return reply.code(404).send(missingMarkdownRevisionProblem(found.usecase, parsed.data.revision_id));
   }
-  const prerequisiteProblem = markdownPrerequisiteProblem(state, found.usecase);
+  const prerequisiteProblem = await markdownPrerequisiteProblem(
+    state,
+    scenarioStore,
+    found.usecase
+  );
   if (prerequisiteProblem !== undefined) {
     return reply.code(422).send(prerequisiteProblem);
   }
@@ -64,7 +81,13 @@ async function exportMarkdown(
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  const markdown = await renderMarkdown(state, found.projectId, found.usecase, actorStore);
+  const markdown = await renderMarkdown(
+    state,
+    found.projectId,
+    found.usecase,
+    actorStore,
+    scenarioStore
+  );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
     return reply.code(409).send(existingOutputProblem(parsed.data.existing_file_content, markdown));
   }
@@ -78,7 +101,8 @@ async function renderMarkdown(
   state: SignupState,
   projectId: string,
   usecase: StoredUseCase,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  scenarioStore: ScenarioStore
 ) {
   return [
     await frontmatter(actorStore, projectId, usecase),
@@ -86,16 +110,20 @@ async function renderMarkdown(
     stakeholderSection(state, projectId, usecase.id),
     "## Preconditions\n\n- None recorded.",
     "## Trigger\n\nNot recorded.",
-    await mainScenarioSection(state, projectId, usecase.id, actorStore),
-    await extensionSection(state, projectId, usecase.id, actorStore),
+    await mainScenarioSection(state, projectId, usecase.id, actorStore, scenarioStore),
+    await extensionSection(state, projectId, usecase.id, actorStore, scenarioStore),
     "## Success Guarantee\n\nNot recorded.",
     "## Minimal Guarantee\n\nNot recorded.",
     "## Notes\n"
   ].join("\n\n");
 }
 
-function markdownPrerequisiteProblem(state: SignupState, usecase: StoredUseCase) {
-  const main = scenarios(state, usecase.id).find((scenario) => scenario.type === "MAIN_SUCCESS");
+async function markdownPrerequisiteProblem(
+  state: SignupState,
+  scenarioStore: ScenarioStore,
+  usecase: StoredUseCase
+) {
+  const main = await scenarioStore.findMainScenario(usecase.id);
   if (scenarioSteps(state, main?.id).length > 0) {
     return undefined;
   }
@@ -141,9 +169,10 @@ async function mainScenarioSection(
   state: SignupState,
   projectId: string,
   usecaseId: string,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  scenarioStore: ScenarioStore
 ) {
-  const scenario = scenarios(state, usecaseId).find((candidate) => candidate.type === "MAIN_SUCCESS");
+  const scenario = await scenarioStore.findMainScenario(usecaseId);
   const lines = await Promise.all(
     scenarioSteps(state, scenario?.id).map((step, index) =>
       stepLine(actorStore, projectId, step, `${String(index + 1)}.`))
@@ -156,10 +185,11 @@ async function extensionSection(
   state: SignupState,
   projectId: string,
   usecaseId: string,
-  actorStore: ActorStore
+  actorStore: ActorStore,
+  scenarioStore: ScenarioStore
 ) {
   const rendered = await Promise.all(
-    scenarios(state, usecaseId)
+    (await scenarioStore.listScenarios(usecaseId))
       .filter((scenario) => scenario.type === "EXTENSION")
       .sort(compareExtensions)
       .map((scenario) => renderExtension(state, projectId, scenario, actorStore))
@@ -197,10 +227,6 @@ async function renderExtension(
     ...steps,
     `- (Outcome: ${scenario.outcome} — use case ends.)`
   ].join("\n\n");
-}
-
-function scenarios(state: SignupState, usecaseId: string): StoredScenario[] {
-  return state.scenariosByUseCaseId.get(usecaseId) ?? [];
 }
 
 function scenarioSteps(state: SignupState, scenarioId: string | undefined): StoredStep[] {

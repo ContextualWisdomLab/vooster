@@ -14,6 +14,8 @@ import type {
   StoredUseCase
 } from "./signup-types.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const stepPatchSchema = z.object({
   action: z.string().optional(),
@@ -25,10 +27,12 @@ const stepPatchSchema = z.object({
 export function registerStepRoutes(
   app: FastifyInstance,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore
 ) {
   app.patch("/v1/steps/:stepId", (request, reply) =>
-    patchStep(request, reply, state, membershipStore)
+    patchStep(request, reply, state, membershipStore, scenarioStore, useCaseStore)
   );
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
     createTestLock(request, reply, state)
@@ -42,9 +46,16 @@ async function patchStep(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = stepWithUseCase(state, stepIdFrom(request.params));
+  const found = await stepWithUseCase(
+    state,
+    scenarioStore,
+    useCaseStore,
+    stepIdFrom(request.params)
+  );
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Step not found"));
   }
@@ -104,20 +115,25 @@ async function patchStep(
   });
 }
 
-function stepWithUseCase(
+async function stepWithUseCase(
   state: SignupState,
+  scenarioStore: ScenarioStore,
+  useCaseStore: UseCaseStore,
   stepId: string
-):
+): Promise<
   | {
       projectId: string;
       step: StoredStep;
       steps: StoredStep[];
       usecase: StoredUseCase;
     }
-  | undefined {
+  | undefined
+> {
   for (const [scenarioId, steps] of state.stepsByScenarioId) {
     const step = steps.find((candidate) => candidate.id === stepId);
-    const found = step === undefined ? undefined : scenarioWithUseCase(state, scenarioId);
+    const found = step === undefined
+      ? undefined
+      : await scenarioWithUseCase(scenarioStore, useCaseStore, scenarioId);
     if (step !== undefined && found !== undefined) {
       return { projectId: found.projectId, step, steps, usecase: found.usecase };
     }

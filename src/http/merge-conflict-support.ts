@@ -1,4 +1,5 @@
 import type { SignupState, StoredSpecBranch } from "./signup-types.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type ExtensionChange = { condition: string; extension_point: string };
 
@@ -20,10 +21,11 @@ export function hardLockConflict(state: SignupState, touched: string[]) {
     .find((lock) => lock?.mode === "HARD");
 }
 
-export function useCaseKey(state: SignupState, usecaseId: string): string {
-  return [...state.usecasesByProjectId.values()]
-    .flat()
-    .find((usecase) => usecase.id === usecaseId)?.key ?? usecaseId;
+export async function useCaseKey(
+  useCaseStore: UseCaseStore,
+  usecaseId: string
+): Promise<string> {
+  return (await useCaseStore.findUseCaseWithProject(usecaseId))?.usecase.key ?? usecaseId;
 }
 
 function structuralConflicts(

@@ -1,7 +1,7 @@
-import { useCaseKey } from "./merge-conflict-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredLock, StoredSpecBranch } from "./signup-types.js";
 import type { StoredMergeRequest } from "./merge-request-types.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type MergeResolution = {
   entity_id: string;
@@ -70,8 +70,9 @@ export function uncoveredConflictsProblem(
   );
 }
 
-export function hardLockResolutionProblem(
+export async function hardLockResolutionProblem(
   state: SignupState,
+  useCaseStore: UseCaseStore,
   merge: StoredMergeRequest,
   mainHeadRevisionIds: Record<string, string>,
   lock: StoredLock
@@ -86,7 +87,10 @@ export function hardLockResolutionProblem(
     },
     [
       {
-        command: `vspec who ${useCaseKey(state, lock.usecase_id)}`,
+        command: `vspec who ${
+          (await useCaseStore.findUseCaseWithProject(lock.usecase_id))?.usecase.key ??
+            lock.usecase_id
+        }`,
         reason: "Inspect the session holding the hard lock."
       }
     ]

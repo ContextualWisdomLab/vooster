@@ -10,6 +10,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const mergeOpenSchema = z.object({
   simulate_write_failure: z.boolean().default(false),
@@ -24,10 +25,20 @@ export function registerMergeRoutes(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.post("/v1/merges", (request, reply) =>
-    openMerge(request, reply, state, branchStore, membershipStore, mergeRequestStore, projectStore)
+    openMerge(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      mergeRequestStore,
+      projectStore,
+      useCaseStore
+    )
   );
 }
 
@@ -38,7 +49,8 @@ async function openMerge(
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   mergeRequestStore: MergeRequestStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   const parsed = mergeOpenSchema.safeParse(request.body);
   if (!parsed.success) {
@@ -58,7 +70,7 @@ async function openMerge(
   if (target === undefined || source.status !== "ACTIVE") {
     return reply.code(409).send(problem(409, "Source branch is not active"));
   }
-  const targetHeads = mainHeadRevisions(state, project, target);
+  const targetHeads = await mainHeadRevisions(state, project, target, useCaseStore);
   const touched = touchedEntityIds(source, targetHeads);
   const hardLock = hardLockConflict(state, touched);
   const conflicts = mergeConflicts(state, source, targetHeads, touched);
@@ -97,7 +109,7 @@ async function openMerge(
         { holding_session: hardLock.holder, merge_request: mergeRequest },
         [
           {
-            command: `vspec who ${useCaseKey(state, hardLock.usecase_id)}`,
+            command: `vspec who ${await useCaseKey(useCaseStore, hardLock.usecase_id)}`,
             reason: "Inspect the session holding the hard lock."
           }
         ]
@@ -189,14 +201,15 @@ function isFastForward(
   return touched.every((entityId) => source.base_revision_ids?.[entityId] === targetHeads[entityId]);
 }
 
-function mainHeadRevisions(
+async function mainHeadRevisions(
   state: SignupState,
   project: StoredProject,
-  target: StoredSpecBranch
-): Record<string, string> {
+  target: StoredSpecBranch,
+  useCaseStore: UseCaseStore
+): Promise<Record<string, string>> {
   return {
     ...Object.fromEntries(
-      (state.usecasesByProjectId.get(project.id) ?? []).map((usecase) => [
+      (await useCaseStore.listUseCases(project.id)).map((usecase) => [
         usecase.id,
         usecase.current_revision_id
       ])

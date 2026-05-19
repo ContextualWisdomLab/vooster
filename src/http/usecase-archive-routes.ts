@@ -4,20 +4,29 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
-import { useCaseWithProjectId } from "./usecase-support.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export function registerUseCaseArchiveRoutes(
   app: FastifyInstance,
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
   app.delete("/v1/usecases/:usecaseId", (request, reply) =>
-    archiveUseCase(request, reply, state, branchStore, membershipStore, projectStore)
+    archiveUseCase(
+      request,
+      reply,
+      state,
+      branchStore,
+      membershipStore,
+      projectStore,
+      useCaseStore
+    )
   );
 }
 
@@ -27,9 +36,10 @@ async function archiveUseCase(
   state: SignupState,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
-  projectStore: ProjectStore
+  projectStore: ProjectStore,
+  useCaseStore: UseCaseStore
 ) {
-  const found = useCaseWithProjectId(state, usecaseIdFrom(request.params));
+  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -56,6 +66,7 @@ async function archiveUseCase(
   found.usecase.archived_at = archivedAt;
   const revision = archiveRevision(state, found.usecase);
   found.usecase.current_revision_id = revision.id;
+  await useCaseStore.updateUseCase(found.usecase);
   state.revisionsByEntityId.set(found.usecase.id, [
     ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
     revision
@@ -87,6 +98,7 @@ export async function restoreArchivedUseCase(
   state: SignupState,
   branchStore: BranchStore,
   projectStore: ProjectStore,
+  useCaseStore: UseCaseStore,
   found: { projectId: string; usecase: StoredUseCase }
 ) {
   if (found.usecase.archived_at === null) {
@@ -95,6 +107,7 @@ export async function restoreArchivedUseCase(
   found.usecase.archived_at = null;
   const revision = restoreRevision(state, found.usecase);
   found.usecase.current_revision_id = revision.id;
+  await useCaseStore.updateUseCase(found.usecase);
   state.revisionsByEntityId.set(found.usecase.id, [
     ...(state.revisionsByEntityId.get(found.usecase.id) ?? []),
     revision

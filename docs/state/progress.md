@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T08:39:08Z_
+_Last updated: 2026-05-19T08:54:37Z_
 
 ## Overall
 
-- Commits: 532
-- Last commit: e4dbdfd fix(cli): handle oclif help exit
+- Commits: 536
+- Last commit: 520a933 fix(tdd): prefer scoped green matching
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -22,7 +22,7 @@ _Last updated: 2026-05-19T08:39:08Z_
 
 | ID | Title | E2E Status | API Tests | CLI E2E |
 | --- | --- | --- | --- | --- |
-| UC-001 | Sign up for a workspace | ✓ DONE | 5/5 | ○ |
+| UC-001 | Sign up for a workspace | ✓ DONE | 5/5 | ✓ |
 | UC-002 | Log in | ✓ DONE | 5/5 | ○ |
 | UC-003 | Invite a member | ✓ DONE | 7/7 | ○ |
 | UC-004 | Create a project | ✓ DONE | 6/6 | ○ |

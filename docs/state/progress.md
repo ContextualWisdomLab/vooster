@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-19T09:47:32Z_
+_Last updated: 2026-05-19T09:54:27Z_
 
 ## Overall
 
-- Commits: 564
-- Last commit: 7e914f2 green(cli): UC-010 CLI E2E
+- Commits: 567
+- Last commit: 60492f2 green(cli): UC-011 CLI E2E
 - Use cases complete: 35 / 35
 - Active goal: goals/1-runnable.md
 
@@ -26,13 +26,13 @@ _Last updated: 2026-05-19T09:47:32Z_
 | UC-002 | Log in | ✓ DONE | 5/5 | ✓ |
 | UC-003 | Invite a member | ✓ DONE | 7/7 | ✓ |
 | UC-004 | Create a project | ✓ DONE | 6/6 | ✓ |
-| UC-005 | Define an actor | ✓ DONE | 6/6 | ⚙ |
+| UC-005 | Define an actor | ✓ DONE | 6/6 | ✓ |
 | UC-006 | Define a stakeholder | ✓ DONE | 5/5 | ✓ |
 | UC-007 | Manage the actor-goal list | ✓ DONE | 7/7 | ✓ |
 | UC-008 | Promote a goal to a use case | ✓ DONE | 5/5 | ✓ |
 | UC-009 | Author a use case from scratch | ✓ DONE | 5/5 | ✓ |
 | UC-010 | Define stakeholder interests | ✓ DONE | 5/5 | ✓ |
-| UC-011 | Write the main success scenario | ✓ DONE | 5/5 | ○ |
+| UC-011 | Write the main success scenario | ✓ DONE | 5/5 | ✓ |
 | UC-012 | Add an extension flow | ✓ DONE | 5/5 | ○ |
 | UC-013 | Edit a use case step | ✓ DONE | 6/6 | ○ |
 | UC-014 | Search and filter use cases | ✓ DONE | 5/5 | ○ |

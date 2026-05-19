@@ -120,6 +120,24 @@ describe("UC-031 - Export a use case to markdown", () => {
     expect(oneA).toBeLessThan(oneB);
     expect(oneB).toBeLessThan(starA);
   });
+
+  test("*a: missing requested revision returns history guidance", async () => {
+    const { setup, usecase } =
+      await createUseCaseWithMainStep(server, "Markdown Revision", "markdown-revision", "stub-markdown-revision");
+
+    const response = await exportMarkdown(usecase.id, setup.cookie, { revision_id: "revision-missing" });
+
+    expect(response.status).toBe(404);
+    const problem = (await response.json()) as {
+      requested_revision_id: string;
+      suggested_next_actions: Array<{ command: string; reason: string }>;
+    };
+    expect(problem.requested_revision_id).toBe("revision-missing");
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec history ${usecase.key}`,
+      reason: "Find an available revision for markdown export."
+    });
+  });
 });
 
 async function addExtensionStep(

@@ -1,13 +1,13 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T09:58:02Z_
+_Last updated: 2026-05-20T10:40:59Z_
 
 ## Overall
 
-- Commits: 817
-- Last commit: a7876e0 green(layers): extract branch test helper workflow
+- Commits: 822
+- Last commit: 9f763f0 green(persist): prove UseCase restart survival
 - Use cases complete: 35 / 35
-- Active goal: goals/2-shippable.md
+- Active goal: ALL_DONE
 
 ## Runnability (goal 1)
 

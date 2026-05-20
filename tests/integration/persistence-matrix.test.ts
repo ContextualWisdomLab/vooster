@@ -1,31 +1,32 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { spawn, type ChildProcess } from "node:child_process";
 
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test } from "vitest";
+
+import { withTestDatabase, type TestDatabase } from "../helpers/postgres-db.js";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "../..");
+const testDatabases: TestDatabase[] = [];
 
 describe("Goal 2 persistence matrix", () => {
-  let tempDir = "";
-
   beforeAll(async () => {
-    tempDir = await mkdtemp(path.join(tmpdir(), "vspec-persist-"));
     await execFileAsync("npm", ["run", "build"], { cwd: root });
   }, 60_000);
 
-  afterAll(async () => {
-    if (tempDir !== "") {
-      await rm(tempDir, { force: true, recursive: true });
+  afterEach(async () => {
+    while (testDatabases.length > 0) {
+      const database = testDatabases.pop();
+      if (database !== undefined) {
+        await database.teardown();
+      }
     }
   });
 
   test("Actor survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "actor.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "actor-owner");
     const project = await createProject(first.url, signup, "Actor Matrix", "ACTOR");
@@ -56,7 +57,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("SpecBranch survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "specbranch.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "branch-owner");
     const project = await createProject(first.url, signup, "Branch Matrix", "BRANCH");
@@ -87,7 +88,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Goal survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "goal.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "goal-owner");
     const project = await createProject(first.url, signup, "Goal Matrix", "GOAL");
@@ -116,7 +117,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Membership survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "membership.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const owner = await signupWorkspace(first.url, "membership-owner");
     await signupWorkspace(first.url, "membership-invitee");
@@ -141,7 +142,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("User survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "user.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const owner = await signupWorkspace(first.url, "user-owner");
     const invitation = await createInvitation(
@@ -165,7 +166,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("UseCase survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "usecase.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "usecase-owner");
     const project = await createProject(first.url, signup, "UseCase Matrix", "UCASE");
@@ -193,7 +194,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("WorkSession survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "worksession.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "work-session-owner");
     const project = await createProject(first.url, signup, "Work Session Matrix", "WS");
@@ -230,7 +231,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Workspace archive survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "workspace-archive.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "workspace-archive-owner");
     await archiveWorkspace(first.url, signup.workspaceId);
@@ -255,7 +256,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Workspace lookup survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "workspace-lookup.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "workspace-lookup-owner");
 
@@ -280,7 +281,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Workspace slug namespace survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "workspace-slug.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     await signupWorkspaceWithSlug(first.url, "workspace-slug-owner", "persisted-slug");
     await signupWorkspaceWithSlug(first.url, "workspace-slug-owner-2", "persisted-slug-2");
@@ -317,7 +318,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Comment survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "comment.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "comment-owner");
     const project = await createProject(first.url, signup, "Comment Matrix", "CMT");
@@ -357,7 +358,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("ApiKey survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "apikey.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "api-key-owner");
     const apiKey = await createApiKey(
@@ -400,7 +401,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("MergeRequest survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "mergerequest.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "merge-owner");
     const project = await createProject(first.url, signup, "Merge Matrix", "MERGE");
@@ -436,7 +437,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("ProjectKey survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "projectkey.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "project-key-owner");
     const project = await createProject(first.url, signup, "Project Key Matrix", "PKM");
@@ -470,7 +471,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Project survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "project.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "project-owner");
     const project = await createProject(first.url, signup, "Project Matrix", "PROJ");
@@ -499,7 +500,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Scenario survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "scenario.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "scenario-owner");
     const project = await createProject(first.url, signup, "Scenario Matrix", "SCEN");
@@ -553,7 +554,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Lock survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "lock.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "lock-owner");
     const project = await createProject(first.url, signup, "Lock Matrix", "LOCK");
@@ -585,7 +586,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("StakeholderInterest survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "stakeholderinterest.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "stakeholder-interest-owner");
     const project = await createProject(
@@ -635,7 +636,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Step survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "step.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "step-owner");
     const project = await createProject(first.url, signup, "Step Matrix", "STEP");
@@ -690,7 +691,7 @@ describe("Goal 2 persistence matrix", () => {
   }, 90_000);
 
   test("Revision survives a server restart", async () => {
-    const databaseUrl = `file:${path.join(tempDir, "revision.sqlite")}`;
+    const databaseUrl = await testDatabaseUrl();
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "revision-owner");
     const project = await createProject(first.url, signup, "Revision Matrix", "REV");
@@ -745,6 +746,12 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 });
+
+async function testDatabaseUrl(): Promise<string> {
+  const database = await withTestDatabase();
+  testDatabases.push(database);
+  return database.databaseUrl;
+}
 
 async function bootServer(databaseUrl: string) {
   const port = 42_000 + Math.floor(Math.random() * 1_000);

@@ -10,13 +10,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Enum-like fields are stored as strings because the goal-1 persistence gate
-// runs against SQLite, whose Prisma connector does not support enums.
+// Enum-like fields are stored as strings to keep the MVP schema simple while
+// the domain language is still moving.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────

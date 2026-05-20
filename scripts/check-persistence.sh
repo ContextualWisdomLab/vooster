@@ -2,7 +2,7 @@
 # check-persistence.sh — Goal 1 gate: data survives a server restart.
 #
 # Strategy:
-#   1. Boot the server with a temp SQLite DB.
+#   1. Boot the server with a unique Postgres schema.
 #   2. Sign up a workspace via /v1/auth/github/start + /callback (authStub).
 #   3. Capture the workspace slug.
 #   4. SIGTERM the server, wait for exit.
@@ -23,8 +23,10 @@ fi
 
 mkdir -p .state
 DB_DIR=$(mktemp -d)
-DB_FILE="$DB_DIR/persist.sqlite"
-export DATABASE_URL="file:${DB_FILE}"
+BASE_DATABASE_URL="${TEST_DATABASE_URL:-postgresql://vspec:vspec@127.0.0.1:5433/vspec_test}"
+SCHEMA="test_persist_$(date +%s)_$$"
+ADMIN_DATABASE_URL="${BASE_DATABASE_URL%%\?*}?schema=public"
+export DATABASE_URL="${BASE_DATABASE_URL%%\?*}?schema=${SCHEMA}"
 export VSPEC_AUTH_STUB=1
 PORT=${VSPEC_BOOT_TEST_PORT:-3918}
 export PORT
@@ -39,11 +41,17 @@ cleanup() {
       wait "$pid" 2>/dev/null || true
     fi
   done
+  printf 'DROP SCHEMA IF EXISTS "%s" CASCADE;\n' "$SCHEMA" \
+    | npx --no-install prisma db execute --stdin --url "$ADMIN_DATABASE_URL" >/dev/null 2>&1 || true
   rm -rf "$DB_DIR" "$LOG1" "$LOG2"
 }
 trap cleanup EXIT
 
 npm run --silent build >/dev/null 2>&1 || true
+npx --no-install prisma db push --skip-generate >/dev/null 2>&1 || {
+  echo "✗ check-persistence: schema setup failed."
+  exit 1
+}
 
 boot() {
   local log="$1"

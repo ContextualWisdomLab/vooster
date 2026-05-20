@@ -24,4 +24,4 @@ COPY prisma ./prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 EXPOSE 3000
-CMD ["node", "dist/src/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/index.js"]

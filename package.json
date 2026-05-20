@@ -17,8 +17,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "postinstall": "prisma generate",
-    "prestart": "mkdir -p .state && DATABASE_URL=${DATABASE_URL:-file:.state/dev.sqlite} prisma db push --skip-generate",
-    "start": "DATABASE_URL=${DATABASE_URL:-file:.state/dev.sqlite} node dist/src/index.js",
+    "prestart": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --skip-generate; fi",
+    "start": "node dist/src/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

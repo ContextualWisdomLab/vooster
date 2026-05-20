@@ -14,6 +14,7 @@ export default defineConfig({
     },
     exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/_template.test.ts"],
     globals: true,
-    passWithNoTests: true
+    passWithNoTests: true,
+    testTimeout: 15_000
   }
 });

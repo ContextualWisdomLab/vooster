@@ -169,6 +169,32 @@ else
 fi
 echo ""
 
+echo "=== Goal 3 Coverage (managed Postgres) ==="
+if [ -f prisma/schema.prisma ]; then
+  PROVIDER=$(grep -E 'provider\s*=' prisma/schema.prisma | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+  echo "  Prisma provider: $PROVIDER"
+else
+  echo "  Prisma provider: (schema missing)"
+fi
+
+if [ -d tests ]; then
+  FILE_URL_REFS=$(grep -rlE 'file:' tests/ 2>/dev/null | wc -l | tr -d ' ')
+  echo "  Test file URL refs: $FILE_URL_REFS"
+fi
+
+if [ -f tests/helpers/postgres-db.ts ]; then
+  echo "  Test DB helper:  ✓ tests/helpers/postgres-db.ts"
+else
+  echo "  Test DB helper:  ✗ missing"
+fi
+
+if find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | grep -q .; then
+  echo "  CI workflow:     ✓ present"
+else
+  echo "  CI workflow:     ✗ missing"
+fi
+echo ""
+
 echo "=== Blockers ==="
 if [ -s docs/state/blockers.md ]; then
   grep -vE '^(#|$)' docs/state/blockers.md | head -10 | sed 's/^/  /'

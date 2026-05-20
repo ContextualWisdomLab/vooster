@@ -6,7 +6,7 @@
 #   1. docker compose -f docker-compose.prod.yml build
 #   2. up -d
 #   3. wait for /healthz on the published host port
-#   4. POST a signup-start against the published port
+#   4. Drive the signup start/callback roundtrip against the published port
 #   5. tear the stack down (including volumes)
 #
 # Fails if docker is unavailable. The goal explicitly requires Docker
@@ -36,6 +36,7 @@ fi
 
 PORT=${VSPEC_DEPLOY_TEST_PORT:-4400}
 export VSPEC_DEPLOY_HOST_PORT="$PORT"
+export VSPEC_AUTH_STUB=1
 LOG=$(mktemp)
 
 cleanup() {
@@ -79,5 +80,20 @@ if ! echo "$START" | grep -q '"authorization_url"'; then
   echo "  body: $START"
   exit 1
 fi
+STATE=$(echo "$START" | sed -n 's/.*"state":"\([^"]*\)".*/\1/p')
+if [ -z "$STATE" ]; then
+  echo "✗ check-deployable: signup-start did not return state"
+  echo "  body: $START"
+  exit 1
+fi
 
-echo "✓ check-deployable: stack up, /healthz green, signup-start works on :${PORT}"
+CB_STATUS=$(curl -s -b /tmp/dep-jar -o /tmp/dep-cb.json -w '%{http_code}' \
+  "http://127.0.0.1:${PORT}/v1/auth/github/callback?code=stub-deploy&state=${STATE}" \
+  2>/dev/null || echo "000")
+if [ "$CB_STATUS" != "201" ]; then
+  echo "✗ check-deployable: signup callback returned $CB_STATUS"
+  cat /tmp/dep-cb.json 2>/dev/null | sed 's/^/    /'
+  exit 1
+fi
+
+echo "✓ check-deployable: stack up, /healthz green, signup roundtrip writes on :${PORT}"

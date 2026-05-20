@@ -7,6 +7,7 @@ import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
+import { runProject } from "./commands/project.js";
 import { deleteJson, fetchJson, patchJson, postJson, postText } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -114,7 +115,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "project" && this.argv[1] === "create") {
-      await this.createProject(parsed.flags);
+      await runProject(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "branch" && this.argv[1] === "create") {
@@ -267,26 +268,6 @@ export class VspecCommand extends Command {
     }
 
     this.log("vspec CLI");
-  }
-
-  private async createProject(flags: ParsedFlags): Promise<void> {
-    const projectFlags = projectFlagsFrom(flags);
-    const response = await postJson(
-      `${projectFlags.apiUrl}/v1/workspaces/${projectFlags.workspaceId}/projects`,
-      {
-        key: projectFlags.key,
-        name: projectFlags.name,
-        visibility: projectFlags.visibility
-      },
-      {
-        Cookie: projectFlags.sessionCookie
-      }
-    );
-    const body = response.body as ProjectResponse;
-
-    this.log(`Project ${body.project.name} ${body.project.key}`);
-    this.log(`Branch ${body.default_branch.name}`);
-    this.log(body.recommended_next_command);
   }
 
   private async createBranch(flags: ParsedFlags): Promise<void> {
@@ -1231,15 +1212,6 @@ export class VspecCommand extends Command {
   }
 }
 
-type ProjectFlags = {
-  apiUrl: string;
-  key: string;
-  name: string;
-  sessionCookie: string;
-  visibility: "INTERNAL" | "PRIVATE";
-  workspaceId: string;
-};
-
 type BranchCreateFlags = {
   apiUrl: string;
   from: string;
@@ -1562,17 +1534,6 @@ type ParsedFlags = {
   "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
-};
-
-type ProjectResponse = {
-  default_branch: {
-    name: string;
-  };
-  project: {
-    key: string;
-    name: string;
-  };
-  recommended_next_command: string;
 };
 
 type BranchCreateResponse = {
@@ -2120,17 +2081,6 @@ type SessionCompleteResponse = {
   }>;
 };
 
-function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    key: requiredFlag(flags, "key"),
-    name: requiredFlag(flags, "name"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
-    workspaceId: requiredFlag(flags, "workspace-id")
-  };
-}
-
 function branchCreateFlagsFrom(
   flags: ParsedFlags,
   name: string | undefined
@@ -2499,15 +2449,6 @@ function sessionCompleteFlagsFrom(
     sessionId: requiredArgument(sessionId, "session-id"),
     summary: optionalFlag(flags, "summary")
   };
-}
-
-function projectVisibility(rawVisibility: string): "INTERNAL" | "PRIVATE" {
-  const visibility = rawVisibility.toUpperCase();
-  if (visibility === "INTERNAL" || visibility === "PRIVATE") {
-    return visibility;
-  }
-
-  throw new Error("Visibility must be INTERNAL or PRIVATE.");
 }
 
 function actorType(rawType: string): "OFFSTAGE" | "PRIMARY" | "SUPPORTING" {

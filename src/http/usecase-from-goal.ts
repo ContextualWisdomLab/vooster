@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { promoteGoalToUseCase } from "./goal-promotion-routes.js";
+import { promoteLoadedGoal } from "../application/goal-promotion.js";
+import { sendGoalPromotionResult } from "./goal-promotion-results.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
 import type { GoalStore } from "../ports/goal-store.js";
@@ -28,15 +29,20 @@ export async function createUseCaseFromGoal(
     return true;
   }
 
-  await promoteGoalToUseCase(
-    reply,
-    state,
-    goalStore,
-    projectStore,
-    revisionStore,
-    useCaseStore,
-    { goal, projectId }
+  void state;
+  const result = await promoteLoadedGoal(
+    {
+      goalStore,
+      projectStore,
+      revisionStore,
+      useCaseStore
+    },
+    {
+      goal,
+      projectId
+    }
   );
+  sendGoalPromotionResult(reply, result);
   return true;
 }
 

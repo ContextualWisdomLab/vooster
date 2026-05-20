@@ -12,6 +12,7 @@ import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
+import { runStakeholder } from "./commands/stakeholder.js";
 import { deleteJson, fetchJson, patchJson, postJson, postText } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -211,7 +212,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
-      await this.createStakeholder(parsed.flags);
+      await runStakeholder(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "create") {
@@ -697,26 +698,6 @@ export class VspecCommand extends Command {
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
-  private async createStakeholder(flags: ParsedFlags): Promise<void> {
-    const stakeholderFlags = stakeholderFlagsFrom(flags);
-    const response = await postJson(
-      `${stakeholderFlags.apiUrl}/v1/projects/${stakeholderFlags.projectId}/stakeholders`,
-      {
-        description: stakeholderFlags.description,
-        name: stakeholderFlags.name,
-        type: stakeholderFlags.type
-      },
-      {
-        Cookie: stakeholderFlags.sessionCookie
-      }
-    );
-    const body = response.body as StakeholderResponse;
-
-    this.log(`Stakeholder ${body.stakeholder.name} ${body.stakeholder.type}`);
-    this.log(`Revision version ${String(body.revision.version_number)}`);
-    this.log(body.recommended_next_command);
-  }
-
   private async createUseCase(flags: ParsedFlags): Promise<void> {
     const useCaseFlags = useCaseCreateFlagsFrom(flags);
     const response = await postJson(
@@ -1110,15 +1091,6 @@ type ExportGherkinFlags = {
   revision: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type StakeholderFlags = {
-  apiUrl: string;
-  description: string;
-  name: string;
-  projectId: string;
-  sessionCookie: string;
-  type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
 };
 
 type UseCaseCreateFlags = {
@@ -1538,17 +1510,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type StakeholderResponse = {
-  recommended_next_command: string;
-  revision: {
-    version_number: number;
-  };
-  stakeholder: {
-    name: string;
-    type: string;
-  };
-};
-
 type UseCaseResponse = {
   revision: {
     version_number: number;
@@ -1868,17 +1829,6 @@ function exportFlagsFrom(
   };
 }
 
-function stakeholderFlagsFrom(flags: ParsedFlags): StakeholderFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    description: flags.description ?? "",
-    name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    type: stakeholderType(requiredFlag(flags, "type"))
-  };
-}
-
 function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -2018,15 +1968,6 @@ function sessionCompleteFlagsFrom(
     sessionId: requiredArgument(sessionId, "session-id"),
     summary: optionalFlag(flags, "summary")
   };
-}
-
-function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY" {
-  const type = rawType.toUpperCase();
-  if (type === "EXTERNAL" || type === "INTERNAL" || type === "REGULATORY") {
-    return type;
-  }
-
-  throw new Error("Stakeholder type must be INTERNAL, EXTERNAL, or REGULATORY.");
 }
 
 function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {

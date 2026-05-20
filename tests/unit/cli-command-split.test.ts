@@ -5,6 +5,7 @@ import { ActorCommand } from "../../src/cli/commands/actor.js";
 import { AiGuideCommand } from "../../src/cli/commands/ai-guide.js";
 import { ApiKeyCommand } from "../../src/cli/commands/api-key.js";
 import { BranchCommand } from "../../src/cli/commands/branch.js";
+import { ChangeCommand } from "../../src/cli/commands/change.js";
 import { CommentCommand } from "../../src/cli/commands/comment.js";
 import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
@@ -76,5 +77,9 @@ describe("CLI command split", () => {
 
   test("merge lives in a real oclif command module", () => {
     expect(MergeCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("change lives in a real oclif command module", () => {
+    expect(ChangeCommand.prototype).toBeInstanceOf(Command);
   });
 });

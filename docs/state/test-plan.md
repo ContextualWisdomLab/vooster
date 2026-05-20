@@ -51,6 +51,10 @@ write. This guides your TDD cycles within an iteration._
 
 - **Actor goal application extraction**: test `createGoal`, `patchGoal`, and `listGoals` without Fastify by faking actor, goal, membership, project, revision, and workspace stores; assert create persists a goal plus revision and duplicate warning, unavailable actors do not write, illegal/promoted status changes leave goals unchanged, and list groups goals by active actor.
 
+### Goal 2 Layers - Scenario Authoring
+
+- **Scenario authoring application extraction**: test `createScenario` and `addScenarioStep` without Fastify by faking use case, scenario, step, actor, stakeholder-interest, revision, and membership stores; assert main success creation writes scenario plus revision, duplicate main scenarios do not write, extension creation validates/defaults outcome and duplicate points, and step creation preserves contiguous numbering while rejecting unresolved actors without writes.
+
 ## Example
 
 ### UC-009

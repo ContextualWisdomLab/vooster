@@ -12,6 +12,7 @@ import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
+import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
 import { runUsecase } from "./commands/usecase.js";
 import { fetchJson, patchJson, postJson, postText } from "./http-client.js";
@@ -261,15 +262,15 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "session" && this.argv[1] === "complete") {
-      await this.completeSession(parsed.flags);
+      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "session" && this.argv[1] === "list") {
-      await this.listSessions(parsed.flags);
+      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "session" && this.argv[1] === "start") {
-      await this.startSession(parsed.flags);
+      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
 
@@ -768,102 +769,6 @@ export class VspecCommand extends Command {
     this.log(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
   }
 
-  private async startSession(flags: ParsedFlags): Promise<void> {
-    const sessionFlags = sessionStartFlagsFrom(flags);
-    const response = await postJson(
-      `${sessionFlags.apiUrl}/v1/sessions`,
-      {
-        agent_type: sessionFlags.agentType,
-        auto_branch: sessionFlags.autoBranch,
-        ...(sessionFlags.branchName === undefined ? {} : { branch_name: sessionFlags.branchName }),
-        intent: sessionFlags.intent,
-        pins: sessionFlags.pins,
-        project_id: sessionFlags.projectId
-      },
-      {
-        Cookie: sessionFlags.sessionCookie,
-        "X-Vspec-Agent": "codex-cli"
-      }
-    );
-    const body = response.body as SessionStartResponse;
-
-    this.log(`Session ${body.session.id}`);
-    this.log(`Intent ${body.session.intent}`);
-    this.log(`Agent ${body.session.agent_type} ${body.session.agent_identifier}`);
-    this.log(`Pinned revisions ${String(Object.keys(body.session.pinned_revisions).length)}`);
-    this.log(`Session file ${body.session_file.path}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
-  private async listSessions(flags: ParsedFlags): Promise<void> {
-    const sessionFlags = sessionListFlagsFrom(flags);
-    const url = new URL("/v1/sessions", sessionFlags.apiUrl);
-    url.searchParams.set("workspace_id", sessionFlags.workspaceId);
-    setSearchParam(url, "project_id", sessionFlags.projectId);
-    setSearchParam(url, "status", sessionFlags.status);
-
-    const response = await fetchJson(url, {
-      headers: {
-        Cookie: sessionFlags.sessionCookie
-      }
-    });
-    const body = response.body as SessionListResponse;
-
-    this.log(`Total sessions ${String(body.total)}`);
-    this.log(`Total conflicts ${String(body.summary.total_conflicts)}`);
-    for (const session of body.sessions) {
-      this.log(`Session ${session.id}`);
-      this.log(`Status ${session.status}`);
-      this.log(`Agent ${session.agent_type} ${session.agent_identifier}`);
-      this.log(`Intent ${session.intent}`);
-      this.log(`Pins ${session.pinned_keys.join(", ") || "none"}`);
-      this.log(`Branch ${session.branch_name ?? "none"}`);
-      this.log(`Idle seconds ${String(session.idle_seconds)}`);
-      this.log(`Locks ${String(session.lock_count)}`);
-      this.log(`Conflicts ${String(session.conflict_markers.length)}`);
-      if (session.markers.length > 0) {
-        this.log(`Markers ${session.markers.join(", ")}`);
-      }
-    }
-    for (const action of body.suggested_next_actions ?? []) {
-      this.log(action.command);
-    }
-  }
-
-  private async completeSession(flags: ParsedFlags): Promise<void> {
-    const sessionFlags = sessionCompleteFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${sessionFlags.apiUrl}/v1/sessions/${sessionFlags.sessionId}/complete`,
-      {
-        no_merge: sessionFlags.noMerge,
-        ...(sessionFlags.summary === undefined ? {} : { summary: sessionFlags.summary })
-      },
-      {
-        Cookie: sessionFlags.sessionCookie
-      }
-    );
-    const body = response.body as SessionCompleteResponse;
-
-    this.log(`Session ${body.session.id}`);
-    this.log(`Status ${body.session.status}`);
-    this.log(`Ended at ${body.session.ended_at}`);
-    this.log(`Released locks ${body.released_lock_ids.join(", ") || "none"}`);
-    if (body.merge_request !== undefined) {
-      this.log(`Merge request ${body.merge_request.id}`);
-      this.log(`Merge status ${body.merge_request.status}`);
-      this.log(`Strategy ${body.merge_request.strategy}`);
-      this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
-    }
-    this.log(`Session file ${body.session_file.path} cleared`);
-    for (const warning of body.warnings ?? []) {
-      this.log(`Warning ${warning.type} ${warning.lock_id}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
 }
 
 type MergeOpenFlags = {
@@ -990,33 +895,6 @@ type StepEditFlags = {
   baseRevision: string;
   sessionCookie: string;
   stepId: string;
-};
-
-type SessionStartFlags = {
-  agentType: string;
-  apiUrl: string;
-  autoBranch: boolean;
-  branchName: string | undefined;
-  intent: string;
-  pins: string[];
-  projectId: string;
-  sessionCookie: string;
-};
-
-type SessionListFlags = {
-  apiUrl: string;
-  projectId: string | undefined;
-  sessionCookie: string;
-  status: string | undefined;
-  workspaceId: string;
-};
-
-type SessionCompleteFlags = {
-  apiUrl: string;
-  noMerge: boolean;
-  sessionCookie: string;
-  sessionId: string;
-  summary: string | undefined;
 };
 
 type ParsedFlags = {
@@ -1380,70 +1258,6 @@ type StepEditResponse = {
   };
 };
 
-type SessionStartResponse = {
-  session: {
-    agent_identifier: string;
-    agent_type: string;
-    id: string;
-    intent: string;
-    pinned_revisions: Record<string, string>;
-  };
-  session_file: {
-    path: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
-type SessionListResponse = {
-  sessions: Array<{
-    agent_identifier: string;
-    agent_type: string;
-    branch_name: null | string;
-    conflict_markers: string[];
-    id: string;
-    idle_seconds: number;
-    intent: string;
-    lock_count: number;
-    markers: string[];
-    pinned_keys: string[];
-    status: string;
-  }>;
-  suggested_next_actions?: Array<{
-    command: string;
-  }>;
-  summary: {
-    total_conflicts: number;
-  };
-  total: number;
-};
-
-type SessionCompleteResponse = {
-  merge_request?: {
-    conflicts: unknown[];
-    id: string;
-    status: string;
-    strategy: string;
-  };
-  released_lock_ids: string[];
-  session: {
-    ended_at: string;
-    id: string;
-    status: string;
-  };
-  session_file: {
-    path: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings?: Array<{
-    lock_id: string;
-    type: string;
-  }>;
-};
-
 function mergeOpenFlagsFrom(
   flags: ParsedFlags,
   sourceBranchId: string | undefined
@@ -1624,42 +1438,6 @@ function stepEditFlagsFrom(
   };
 }
 
-function sessionStartFlagsFrom(flags: ParsedFlags): SessionStartFlags {
-  return {
-    agentType: agentType(flags["agent-type"] ?? "OTHER"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    autoBranch: flags["auto-branch"] ?? false,
-    branchName: optionalFlag(flags, "branch-name"),
-    intent: requiredFlag(flags, "intent"),
-    pins: pinsFrom(requiredFlag(flags, "pin")),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
-
-function sessionListFlagsFrom(flags: ParsedFlags): SessionListFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    projectId: optionalFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    status: optionalFlag(flags, "status"),
-    workspaceId: requiredFlag(flags, "workspace-id")
-  };
-}
-
-function sessionCompleteFlagsFrom(
-  flags: ParsedFlags,
-  sessionId: string | undefined
-): SessionCompleteFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    noMerge: flags["no-merge"] ?? false,
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    sessionId: requiredArgument(sessionId, "session-id"),
-    summary: optionalFlag(flags, "summary")
-  };
-}
-
 function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {
   if (rawStrategy === undefined) {
     return undefined;
@@ -1755,14 +1533,6 @@ function scenarioExtensionPoint(
   type: "EXTENSION" | "MAIN_SUCCESS"
 ): string | undefined {
   return type === "EXTENSION" ? requiredFlag(flags, "at") : undefined;
-}
-
-function pinsFrom(rawPins: string): string[] {
-  return rawPins.split(",").map((pin) => pin.trim()).filter(Boolean);
-}
-
-function agentType(rawAgentType: string): string {
-  return rawAgentType.toUpperCase().replaceAll("-", "_");
 }
 
 function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | undefined {

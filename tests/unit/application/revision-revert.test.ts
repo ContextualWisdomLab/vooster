@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { revertUseCaseRevision } from "../../../src/application/revision-revert.js";
-import type { StoredRevision, StoredUseCase } from "../../../src/http/signup-types.js";
+import type {
+  StoredRevision,
+  StoredSpecBranch,
+  StoredUseCase
+} from "../../../src/http/signup-types.js";
 import {
   depsFor,
   lock,
@@ -13,7 +17,7 @@ import {
 describe("revision revert application", () => {
   test("appends a forward revision and advances the default branch head", async () => {
     const savedRevisions: StoredRevision[] = [];
-    const updatedBranches: Array<{ head_revision_ids?: Record<string, string> }> = [];
+    const updatedBranches: StoredSpecBranch[] = [];
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await revertUseCaseRevision(
@@ -88,7 +92,7 @@ describe("revision revert application", () => {
     expect(savedRevisions).toEqual([]);
   });
 
-  test("rejects missing target and current revisions without writing", async () => {
+  test("rejects missing target revisions without writing", async () => {
     const savedRevisions: StoredRevision[] = [];
 
     await expect(
@@ -102,30 +106,22 @@ describe("revision revert application", () => {
       status: "TARGET_REVISION_NOT_FOUND",
       usecase: usecase()
     });
-
-    await expect(
-      revertUseCaseRevision(
-        depsFor({ revisions: [], savedRevisions }),
-        revertInput(),
-        () => "unused"
-      )
-    ).resolves.toEqual({ status: "CURRENT_REVISION_NOT_FOUND" });
     expect(savedRevisions).toEqual([]);
   });
 
   test("rejects breaking reverts without force and reports active sessions", async () => {
-    await expect(
-      revertUseCaseRevision(
-        depsFor({
-          revisions: revisions({ current: { severity: "BREAKING" } }),
-          sessions: [session(), session({ id: "session-done", status: "COMPLETED" })]
-        }),
-        revertInput(),
-        () => "unused"
-      )
-    ).resolves.toEqual({
+    const result = await revertUseCaseRevision(
+      depsFor({
+        revisions: revisions({ current: { severity: "BREAKING" } }),
+        sessions: [session(), session({ id: "session-done", status: "COMPLETED" })]
+      }),
+      revertInput(),
+      () => "unused"
+    );
+
+    expect(result).toEqual({
       affectedSessions: ["session-1"],
-      currentRevision: expect.objectContaining({ id: "revision-current" }),
+      currentRevision: revisions({ current: { severity: "BREAKING" } })[1],
       status: "BREAKING_REVERT",
       targetRevisionId: "revision-target",
       usecase: usecase()

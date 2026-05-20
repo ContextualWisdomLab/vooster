@@ -4,6 +4,7 @@ import type {
   StoredProject,
   StoredRevision,
   StoredSpecBranch,
+  StoredUseCase,
   StoredWorkSession
 } from "../../../src/http/signup-types.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
@@ -59,7 +60,7 @@ export function depsFor(
       options.savedRevisions ?? []
     ),
     useCaseStore: useCaseStore(
-      options.usecase ?? usecase(),
+      "usecase" in options ? (options.usecase ?? null) : usecase(),
       options.updatedUseCases ?? []
     ),
     workSessionStore: workSessionStore(options.sessions ?? [])

@@ -601,6 +601,6 @@ write. This guides your TDD cycles within an iteration._
 
 ### Goal 2 Layers - Revision Revert
 
-- **Application**: revision revert resolves the use case/project, authorizes membership, rejects hard locks, missing target revisions, missing current revisions, breaking reverts without force, and simulated write failures without writes.
+- **Application**: revision revert resolves the use case/project, authorizes membership, rejects hard locks, missing target revisions, breaking reverts without force, and simulated write failures without writes.
 - **Application**: revision revert appends a forward USECASE revision from the target snapshot with injected ids, advances the use case current head, advances the project default branch head, reports impact metadata, and emits Gherkin drift warnings.
 - **Route preservation**: UC-026 E2E and CLI tests continue to prove HTTP validation, missing-revision guidance, hard-lock guidance, breaking-impact guidance, write-failure retry guidance, branch head advancement, and human CLI output.

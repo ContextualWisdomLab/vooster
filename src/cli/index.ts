@@ -6,6 +6,7 @@ import { Args, Command, Flags, flush, handle } from "@oclif/core";
 import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runLogin } from "./commands/login.js";
+import { runMember } from "./commands/member.js";
 import { deleteJson, fetchJson, patchJson, postJson, postText } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -97,7 +98,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {
-      await this.inviteMember(parsed.flags);
+      await runMember(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "api-key" && this.argv[1] === "create") {
@@ -266,27 +267,6 @@ export class VspecCommand extends Command {
     }
 
     this.log("vspec CLI");
-  }
-
-  private async inviteMember(flags: ParsedFlags): Promise<void> {
-    const inviteFlags = inviteFlagsFrom(flags);
-    const response = await postJson(
-      `${inviteFlags.apiUrl}/v1/workspaces/${inviteFlags.workspaceId}/invitations`,
-      {
-        email: inviteFlags.email,
-        role: inviteFlags.role
-      },
-      {
-        Cookie: inviteFlags.sessionCookie
-      }
-    );
-    const body = response.body as InvitationResponse;
-
-    this.log(`Invited ${body.invitation.email}`);
-    this.log(`Role ${body.invitation.role}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
   }
 
   private async createProject(flags: ParsedFlags): Promise<void> {
@@ -1251,14 +1231,6 @@ export class VspecCommand extends Command {
   }
 }
 
-type InviteFlags = {
-  apiUrl: string;
-  email: string;
-  role: "EDITOR" | "OWNER";
-  sessionCookie: string;
-  workspaceId: string;
-};
-
 type ProjectFlags = {
   apiUrl: string;
   key: string;
@@ -1590,16 +1562,6 @@ type ParsedFlags = {
   "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
-};
-
-type InvitationResponse = {
-  invitation: {
-    email: string;
-    role: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
 };
 
 type ProjectResponse = {
@@ -2158,16 +2120,6 @@ type SessionCompleteResponse = {
   }>;
 };
 
-function inviteFlagsFrom(flags: ParsedFlags): InviteFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    email: requiredFlag(flags, "email"),
-    role: invitationRole(requiredFlag(flags, "role")),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    workspaceId: requiredFlag(flags, "workspace-id")
-  };
-}
-
 function projectFlagsFrom(flags: ParsedFlags): ProjectFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -2547,15 +2499,6 @@ function sessionCompleteFlagsFrom(
     sessionId: requiredArgument(sessionId, "session-id"),
     summary: optionalFlag(flags, "summary")
   };
-}
-
-function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
-  const role = rawRole.toUpperCase();
-  if (role === "EDITOR" || role === "OWNER") {
-    return role;
-  }
-
-  throw new Error("Role must be EDITOR or OWNER.");
 }
 
 function projectVisibility(rawVisibility: string): "INTERNAL" | "PRIVATE" {

@@ -580,3 +580,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: change preview resolves an accessible non-archived use case by key, rejects missing/read-only callers, mismatched patch targets, hard locks, and stale bases without creating previews.
 - **Application**: change preview creates deterministic title diffs with a 15-minute expiry, NON_BREAKING severity, affected active session metadata, auto-commit warnings, and commit/who guidance.
 - **Route preservation**: UC-035 E2E and CLI tests continue to prove HTTP validation, stale-base mapping, hard-lock guidance, preview commit behavior, expired preview handling, affected-session impact, and human CLI output.
+
+### Goal 2 Layers - Step Editing
+
+- **Application**: step editing resolves the step/scenario/use case, authorizes project membership, rejects missing steps, stale bases, empty actions, passive actions without force, hard locks, and semantic action edits without writes.
+- **Application**: step editing updates action/notes, appends a USECASE revision with BREAKING or COSMETIC severity using injected ids, and returns affected active session ids.
+- **Route preservation**: UC-013 E2E tests continue to prove HTTP validation, stale-base problem mapping, passive-voice guidance, lock guidance, revision severity, and affected-session output.

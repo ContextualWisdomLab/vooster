@@ -561,3 +561,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: impact preview resolves the use case/project, authorizes membership, rejects missing use cases, missing base revisions, unreadable proposed-change files, and malformed proposed-change content without reading sessions.
 - **Application**: impact preview computes deterministic input hashes, returns cached reports idempotently, rolls severity to BREAKING for active pinned sessions, and returns next-action command data with injected preview ids.
 - **Route preservation**: UC-027 E2E and CLI tests continue to prove HTTP problem mapping, no revision writes, cache behavior, active-session impact details, proposed-change guidance, authorization protection, and human CLI output.
+
+### Goal 2 Layers - Use Case Authoring
+
+- **Application**: direct use-case authoring authorizes project membership, rejects non-verb titles without force, rejects missing projects, and rejects missing or archived primary actors without writing.
+- **Application**: direct use-case authoring creates a draft BRIEF use case with defaults, deterministic ids, a first USECASE revision snapshot, next-action command data, and collision-skipped keys.
+- **Route preservation**: UC-009 E2E and CLI tests continue to prove HTTP validation, from-goal delegation, guidance mapping, key allocation, unauthorized protection, and human CLI output.

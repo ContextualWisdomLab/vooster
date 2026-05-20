@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T01:51:58Z_
+_Last updated: 2026-05-20T02:10:31Z_
 
 ## Overall
 
-- Commits: 743
-- Last commit: 723eb35 refactor(layers): extract goal promotion
+- Commits: 746
+- Last commit: ead314c refactor(layers): extract who is working
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

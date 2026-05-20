@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T02:10:31Z_
+_Last updated: 2026-05-20T02:29:06Z_
 
 ## Overall
 
-- Commits: 746
-- Last commit: ead314c refactor(layers): extract who is working
+- Commits: 749
+- Last commit: ac57b03 green(layers): extract lock workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

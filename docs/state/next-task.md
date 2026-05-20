@@ -1,13 +1,12 @@
 # Next Task
 
-_Auto-generated 2026-05-20T20:04:18Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T20:07:42Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Create per-port Prisma adapters (gate 4.C2).
 
   Each port under src/ports/ must have a matching prisma adapter.
   Missing:
-    src/infrastructure/prisma-scenario-store.ts
     src/infrastructure/prisma-revision-store.ts
     src/infrastructure/prisma-step-store.ts
     src/infrastructure/prisma-work-session-store.ts

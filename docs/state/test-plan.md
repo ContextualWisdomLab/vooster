@@ -682,3 +682,10 @@ write. This guides your TDD cycles within an iteration._
 - **Route preservation**: branch-test routes keep HTTP parsing, invalid-body
   problem responses, not-found problem responses, and `{ revision_id }`
   response shape while delegating mutations to application code.
+
+### Goal 2 Boundaries - Upward Enforcement
+
+- **Config**: ESLint boundary rules explicitly forbid `http` imports from
+  `domain` and `cli` imports from `infrastructure`.
+- **Verification**: `npx eslint .` runs with the stricter rules so any existing
+  direct imports must be routed through application or HTTP-facing seams first.

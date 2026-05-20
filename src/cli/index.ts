@@ -19,6 +19,7 @@ import { runMerge } from "./commands/merge.js";
 import { runProject } from "./commands/project.js";
 import { runPull } from "./commands/pull.js";
 import { runPush } from "./commands/push.js";
+import { runRevert } from "./commands/revert.js";
 import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
@@ -165,7 +166,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "revert") {
-      await this.revertRevision(parsed.flags);
+      await runRevert(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "impact") {
@@ -288,40 +289,6 @@ export class VspecCommand extends Command {
     this.log("vspec CLI");
   }
 
-  private async revertRevision(flags: ParsedFlags): Promise<void> {
-    const revertFlags = revertFlagsFrom(flags, this.argv[1]);
-    const response = await postJson(
-      `${revertFlags.apiUrl}/v1/usecases/${revertFlags.usecaseId}/revert`,
-      {
-        force: revertFlags.force,
-        revision_id: revertFlags.revisionId,
-        ...(revertFlags.summary === undefined ? {} : { summary: revertFlags.summary })
-      },
-      {
-        Cookie: revertFlags.sessionCookie
-      }
-    );
-    const body = response.body as RevertResponse;
-
-    this.log(`UseCase ${body.usecase.id}`);
-    this.log(`Title ${body.usecase.title}`);
-    this.log(`Current revision ${body.usecase.current_revision_id}`);
-    this.log(`Revision ${body.revision.id}`);
-    this.log(`Parent ${body.revision.parent_revision_id}`);
-    this.log(`Change ${body.revision.change_summary}`);
-    this.log(`Version ${String(body.revision.version_number)}`);
-    this.log(`Severity ${body.revision.severity}`);
-    this.log(`Impact ${body.impact.severity}`);
-    this.log(`Affected sessions ${body.impact.affected_sessions.join(", ") || "none"}`);
-    this.log(`Affected branches ${body.impact.affected_branches.join(", ") || "none"}`);
-    for (const warning of body.warnings ?? []) {
-      this.log(`Warning ${warning.type} ${warning.message}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async previewImpact(flags: ParsedFlags): Promise<void> {
     const impactFlags = impactFlagsFrom(flags, this.argv[1]);
     const history = await latestUseCaseRevision(impactFlags);
@@ -354,15 +321,6 @@ export class VspecCommand extends Command {
   }
 
 }
-
-type RevertFlags = {
-  apiUrl: string;
-  force: boolean;
-  revisionId: string;
-  sessionCookie: string;
-  summary: string | undefined;
-  usecaseId: string;
-};
 
 type ImpactFlags = {
   apiUrl: string;
@@ -438,33 +396,6 @@ type ParsedFlags = {
   "workspace-slug"?: string;
 };
 
-type RevertResponse = {
-  impact: {
-    affected_branches: string[];
-    affected_sessions: string[];
-    severity: string;
-  };
-  revision: {
-    change_summary: string;
-    id: string;
-    parent_revision_id: string;
-    severity: string;
-    version_number: number;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    current_revision_id: string;
-    id: string;
-    title: string;
-  };
-  warnings?: Array<{
-    message: string;
-    type: string;
-  }>;
-};
-
 type ImpactResponse = {
   cached: boolean;
   impact: {
@@ -491,17 +422,6 @@ type RevisionListResponse = {
     revision: string;
   }>;
 };
-
-function revertFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): RevertFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    force: flags.force ?? false,
-    revisionId: requiredFlag(flags, "to"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    summary: optionalFlag(flags, "summary"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
 
 function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): ImpactFlags {
   return {

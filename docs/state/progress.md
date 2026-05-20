@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T03:09:27Z_
+_Last updated: 2026-05-20T03:28:57Z_
 
 ## Overall
 
-- Commits: 755
-- Last commit: 7b2abbf green(layers): extract project creation workflow
+- Commits: 758
+- Last commit: 392bdaf green(layers): extract session list workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

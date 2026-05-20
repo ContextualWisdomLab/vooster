@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { createPrismaApiKeyStore } from "../../src/infrastructure/prisma-api-key-store.js";
 import { createPrismaCommentStore } from "../../src/infrastructure/prisma-comment-store.js";
+import { createPrismaLockStore } from "../../src/infrastructure/prisma-lock-store.js";
 import { createPrismaMembershipStore } from "../../src/infrastructure/prisma-membership-store.js";
 import { createPrismaProjectStore } from "../../src/infrastructure/prisma-project-store.js";
 import { createPrismaUserStore } from "../../src/infrastructure/prisma-user-store.js";
@@ -30,5 +31,9 @@ describe("Prisma adapter split", () => {
 
   test("project store has a dedicated Prisma adapter", () => {
     expect(createPrismaProjectStore).toBeTypeOf("function");
+  });
+
+  test("lock store has a dedicated Prisma adapter", () => {
+    expect(createPrismaLockStore).toBeTypeOf("function");
   });
 });

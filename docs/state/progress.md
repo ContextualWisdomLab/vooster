@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T06:11:07Z_
+_Last updated: 2026-05-20T06:28:57Z_
 
 ## Overall
 
-- Commits: 787
-- Last commit: c70f67c green(layers): extract change preview workflow
+- Commits: 790
+- Last commit: a90d483 green(layers): extract step editing workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

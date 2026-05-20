@@ -501,3 +501,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: who-is-working resolves and authorizes the use case, then returns active pinned sessions, unexpired locks, and open merge requests whose branches touch the use case.
 - **Application**: result shaping includes zombie session markers, archived restore guidance, lock/merge guidance, and empty-state session-start guidance without mutating state.
 - **Route preservation**: UC-023 E2E and CLI tests continue to prove HTTP problem mapping, membership protection, and response shape.
+
+### Goal 2 Layers - Locks
+
+- **Application**: lock acquisition authorizes the caller, rejects missing/archived use cases, detects competing active locks, ignores expired locks, and creates finite auto-release lock rows.
+- **Application**: lock renewal rejects missing, foreign, and expired locks, and extends owned active locks using an injected clock.
+- **Route preservation**: UC-022 E2E and CLI tests continue to prove HTTP problem mapping, holder metadata, and renew/unlock guidance.

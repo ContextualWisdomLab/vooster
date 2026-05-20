@@ -653,3 +653,18 @@ write. This guides your TDD cycles within an iteration._
   validation, inactive-session guidance, completion-failure retry guidance,
   failed-lock warnings, conflict guidance, no-merge guidance, and human CLI
   output.
+
+### Goal 2 Layers - Use Case Archive
+
+- **Application**: use case archive resolves the use case/project, authorizes
+  membership, rejects missing cases, hard-delete requests, already archived
+  cases, and active HARD locks without writing revisions.
+- **Application**: use case archive stamps `archived_at`, writes an archive
+  USECASE revision with injected id/clock, advances the main branch head, counts
+  active locks, and reports active pinned sessions.
+- **Application**: use case restore authorizes membership, rejects missing or
+  non-archived cases, clears `archived_at`, writes a restore revision, and
+  advances the main branch head.
+- **Route preservation**: UC-015 E2E and CLI tests continue to prove HTTP
+  validation, archive/restore revision history, default-list filtering,
+  hard-lock guidance, hard-delete guidance, and human CLI output.

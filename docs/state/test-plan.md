@@ -568,3 +568,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: direct use-case authoring creates a draft BRIEF use case with defaults, deterministic ids, a first USECASE revision snapshot, next-action command data, and collision-skipped keys.
 - **Application**: use-case updates authorize project membership, hide missing use cases, block status transitions out of DRAFT when stakeholder interests are empty, and preserve update writes for allowed requests.
 - **Route preservation**: UC-009 E2E and CLI tests continue to prove HTTP validation, from-goal delegation, guidance mapping, key allocation, unauthorized protection, and human CLI output.
+
+### Goal 2 Layers - Sync Files
+
+- **Application**: sync pull authorizes project membership and returns canonical markdown only for active use cases with a cursor from the first returned revision.
+- **Application**: sync push authorizes project membership, reports queued network failures without writes, previews dry runs without cache entries, reports stale-base conflicts, writes fresh revisions for clean files, and advances the main branch head.
+- **Route preservation**: UC-029 E2E and CLI tests continue to prove HTTP validation, parse-problem mapping, conflict cache entries, pending-push guidance, unauthorized guidance, and human CLI output.

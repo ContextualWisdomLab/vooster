@@ -213,8 +213,10 @@ function apiKeyStore(
 function membershipStore(value: StoredMembership | null): MembershipStore {
   return {
     membershipForProject: () => Promise.resolve(undefined),
-    membershipForWorkspace: (_workspaceId, userId) =>
-      Promise.resolve(value?.user_id === userId ? value : undefined),
+    membershipForWorkspace: (workspaceId, userId) =>
+      Promise.resolve(value?.user_id === userId && value.workspace_id === workspaceId
+        ? value
+        : undefined),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
   };

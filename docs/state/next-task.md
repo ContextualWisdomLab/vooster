@@ -1,12 +1,12 @@
 # Next Task
 
-_Auto-generated 2026-05-20T16:53:52Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T17:05:02Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Decompose god files (gate 4.C1).
 
   Files over 1000 lines:
-    3306 src/cli/index.ts
+    3121 src/cli/index.ts
 
   Canonical decompositions:
 

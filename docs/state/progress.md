@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T16:53:52Z_
+_Last updated: 2026-05-20T17:05:02Z_
 
 ## Overall
 
-- Commits: 839
-- Last commit: 654f10c green(prisma-split): extract signup mapper helpers
+- Commits: 842
+- Last commit: 88a22be green(cli-split): extract login command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

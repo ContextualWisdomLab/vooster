@@ -7,6 +7,7 @@ import { ApiKeyCommand } from "../../src/cli/commands/api-key.js";
 import { BranchCommand } from "../../src/cli/commands/branch.js";
 import { ChangeCommand } from "../../src/cli/commands/change.js";
 import { CommentCommand } from "../../src/cli/commands/comment.js";
+import { ExportCommand } from "../../src/cli/commands/export.js";
 import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
@@ -86,5 +87,9 @@ describe("CLI command split", () => {
 
   test("sync lives in a real oclif command module", () => {
     expect(SyncCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("export lives in a real oclif command module", () => {
+    expect(ExportCommand.prototype).toBeInstanceOf(Command);
   });
 });

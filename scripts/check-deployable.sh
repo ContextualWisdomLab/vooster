@@ -35,22 +35,27 @@ if [ ! -f docker-compose.prod.yml ]; then
 fi
 
 PORT=${VSPEC_DEPLOY_TEST_PORT:-4400}
+PROJECT=${VSPEC_DEPLOY_TEST_PROJECT:-vspec-deploy-check}
 export VSPEC_DEPLOY_HOST_PORT="$PORT"
 export VSPEC_AUTH_STUB=1
 LOG=$(mktemp)
 
+compose() {
+  docker compose -p "$PROJECT" -f docker-compose.prod.yml "$@"
+}
+
 cleanup() {
-  docker compose -f docker-compose.prod.yml down -v >/dev/null 2>&1 || true
+  compose down -v >/dev/null 2>&1 || true
   rm -f "$LOG"
 }
 trap cleanup EXIT
 
-if ! docker compose -f docker-compose.prod.yml build >"$LOG" 2>&1; then
+if ! compose build >"$LOG" 2>&1; then
   echo "✗ check-deployable: docker compose build failed"
   tail -20 "$LOG" | sed 's/^/    /'
   exit 1
 fi
-if ! docker compose -f docker-compose.prod.yml up -d >"$LOG" 2>&1; then
+if ! compose up -d >"$LOG" 2>&1; then
   echo "✗ check-deployable: docker compose up failed"
   tail -20 "$LOG" | sed 's/^/    /'
   exit 1
@@ -66,7 +71,7 @@ for _ in $(seq 1 60); do
 done
 if [ "$ok" != true ]; then
   echo "✗ check-deployable: /healthz never returned 200 within 60s"
-  docker compose -f docker-compose.prod.yml logs --tail=40 2>&1 | sed 's/^/    /'
+  compose logs --tail=40 2>&1 | sed 's/^/    /'
   exit 1
 fi
 

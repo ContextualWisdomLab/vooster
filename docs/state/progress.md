@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T01:34:14Z_
+_Last updated: 2026-05-20T01:51:58Z_
 
 ## Overall
 
-- Commits: 740
-- Last commit: 1a58a20 refactor(layers): extract comment workflow
+- Commits: 743
+- Last commit: 723eb35 refactor(layers): extract goal promotion
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

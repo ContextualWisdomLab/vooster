@@ -12,6 +12,7 @@ import { ExportCommand } from "../../src/cli/commands/export.js";
 import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { HistoryCommand } from "../../src/cli/commands/history.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
+import { LockCommand } from "../../src/cli/commands/lock.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
 import { MergeCommand } from "../../src/cli/commands/merge.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
@@ -107,6 +108,10 @@ describe("CLI command split", () => {
 
   test("history lives in a real oclif command module", () => {
     expect(HistoryCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("lock lives in a real oclif command module", () => {
+    expect(LockCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("export lives in a real oclif command module", () => {

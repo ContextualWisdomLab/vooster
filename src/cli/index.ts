@@ -1,6 +1,5 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import type { Dirent } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
 import { runActor } from "./commands/actor.js";
@@ -18,6 +17,7 @@ import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
 import { runStep } from "./commands/step.js";
+import { runSync } from "./commands/sync.js";
 import { runUsecase } from "./commands/usecase.js";
 import { fetchJson, postJson, postText } from "./http-client.js";
 
@@ -174,15 +174,15 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "pull") {
-      await this.pullFiles(parsed.flags);
+      await runSync(parsed.flags, "pull", this.log.bind(this));
       return;
     }
     if (parsed.args.command === "push") {
-      await this.pushFiles(parsed.flags);
+      await runSync(parsed.flags, "push", this.log.bind(this));
       return;
     }
     if (parsed.args.command === "sync") {
-      await this.pullFiles(parsed.flags);
+      await runSync(parsed.flags, "sync", this.log.bind(this));
       return;
     }
     if (parsed.args.command === "export" && this.argv[1] === "gherkin") {
@@ -489,59 +489,6 @@ export class VspecCommand extends Command {
     }
   }
 
-  private async pullFiles(flags: ParsedFlags): Promise<void> {
-    const syncFlags = syncFlagsFrom(flags);
-    const response = await postJson(
-      `${syncFlags.apiUrl}/v1/projects/${syncFlags.projectId}/sync/pull`,
-      { branch: syncFlags.branch },
-      {
-        Cookie: syncFlags.sessionCookie
-      }
-    );
-    const body = response.body as SyncPullResponse;
-
-    this.log(`Cursor ${body.cursor}`);
-    for (const file of body.files) {
-      await writeSyncFile(syncFlags.root, file.path, file.content);
-      this.log(`File ${file.path}`);
-      this.log(`Revision ${file.revision}`);
-    }
-  }
-
-  private async pushFiles(flags: ParsedFlags): Promise<void> {
-    const syncFlags = syncFlagsFrom(flags);
-    const files = await localSyncFiles(syncFlags.root);
-    const response = await postJson(
-      `${syncFlags.apiUrl}/v1/projects/${syncFlags.projectId}/sync/push`,
-      {
-        branch: syncFlags.branch,
-        dry_run: syncFlags.dryRun,
-        files
-      },
-      {
-        Cookie: syncFlags.sessionCookie
-      }
-    );
-    const body = response.body as SyncPushResponse;
-
-    await applySyncResults(syncFlags.root, files, body.results, syncFlags.dryRun);
-    this.log(`Results ${String(body.results.length)}`);
-    for (const result of body.results) {
-      this.log(`Result ${result.path} ${result.status}`);
-      this.log(`Revision ${result.current_revision}`);
-      if (result.dry_run === true) {
-        this.log("Dry run true");
-      }
-    }
-    for (const entry of body.cache.entries) {
-      this.log(`Cache ${entry.path} ${entry.status}`);
-      this.log(`Cache revision ${entry.revision}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async exportGherkin(flags: ParsedFlags): Promise<void> {
     const exportFlags = exportFlagsFrom(flags, this.argv[2]);
     const response = await postText(
@@ -636,15 +583,6 @@ type ImpactFlags = {
   proposedChangePath: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type SyncFlags = {
-  apiUrl: string;
-  branch: string;
-  dryRun: boolean;
-  projectId: string;
-  root: string;
-  sessionCookie: string;
 };
 
 type ExportGherkinFlags = {
@@ -867,41 +805,6 @@ type ImpactResponse = {
   }>;
 };
 
-type SyncPullResponse = {
-  cursor: string;
-  files: Array<{
-    content: string;
-    path: string;
-    revision: string;
-  }>;
-};
-
-type SyncPushFile = {
-  base_revision: string;
-  content: string;
-  path: string;
-};
-
-type SyncPushResponse = {
-  cache: {
-    entries: Array<{
-      path: string;
-      revision: string;
-      status: string;
-    }>;
-  };
-  results: Array<{
-    conflict_content?: string;
-    current_revision: string;
-    dry_run?: boolean;
-    path: string;
-    status: string;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
 function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): LockCreateFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -964,17 +867,6 @@ function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Imp
     proposedChangePath: optionalFlag(flags, "proposed-change"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function syncFlagsFrom(flags: ParsedFlags): SyncFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    branch: flags.branch ?? "main",
-    dryRun: flags["dry-run"] ?? false,
-    projectId: requiredFlag(flags, "project-id"),
-    root: resolve(flags.root ?? process.cwd()),
-    sessionCookie: requiredFlag(flags, "session-cookie")
   };
 }
 
@@ -1100,86 +992,6 @@ async function writeSyncFile(root: string, path: string, content: string): Promi
   const absolutePath = resolve(root, path);
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content);
-}
-
-async function localSyncFiles(root: string): Promise<SyncPushFile[]> {
-  const specsRoot = join(root, "specs");
-  const paths = await markdownFiles(specsRoot);
-  return Promise.all(paths.map((path) => localSyncFile(root, path)));
-}
-
-async function markdownFiles(dir: string): Promise<string[]> {
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    const nested = await Promise.all(entries.map((entry) => markdownEntry(dir, entry)));
-    return nested.flat();
-  } catch (error: unknown) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function markdownEntry(
-  dir: string,
-  entry: Dirent
-): Promise<string[]> {
-  const path = join(dir, entry.name);
-  if (entry.isDirectory()) {
-    return markdownFiles(path);
-  }
-
-  return entry.isFile() && entry.name.endsWith(".md") ? [path] : [];
-}
-
-async function localSyncFile(root: string, absolutePath: string): Promise<SyncPushFile> {
-  const content = await readFile(absolutePath, "utf8");
-  return {
-    base_revision: baseRevisionFrom(content),
-    content,
-    path: relative(root, absolutePath).split(sep).join("/")
-  };
-}
-
-function baseRevisionFrom(content: string): string {
-  const match = /^revision:\s*(?<revision>\S+)\s*$/m.exec(content);
-  if (match?.groups?.revision === undefined) {
-    throw new Error("Sync file is missing revision frontmatter.");
-  }
-
-  return match.groups.revision;
-}
-
-async function applySyncResults(
-  root: string,
-  files: SyncPushFile[],
-  results: SyncPushResponse["results"],
-  dryRun: boolean
-): Promise<void> {
-  if (dryRun) {
-    return;
-  }
-  await Promise.all(results.map((result) => applySyncResult(root, files, result)));
-}
-
-async function applySyncResult(
-  root: string,
-  files: SyncPushFile[],
-  result: SyncPushResponse["results"][number]
-): Promise<void> {
-  if (result.conflict_content !== undefined) {
-    await writeSyncFile(root, result.path, result.conflict_content);
-    return;
-  }
-  const file = files.find((candidate) => candidate.path === result.path);
-  if (file !== undefined && result.status === "OK") {
-    await writeSyncFile(root, result.path, replaceRevision(file.content, result.current_revision));
-  }
-}
-
-function replaceRevision(content: string, revision: string): string {
-  return content.replace(/^revision:\s*\S+\s*$/m, `revision: ${revision}`);
 }
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {

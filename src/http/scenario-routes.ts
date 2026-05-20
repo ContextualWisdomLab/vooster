@@ -1,24 +1,17 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { createExtensionScenario } from "./scenario-extension-support.js";
 import {
-  appendUseCaseRevision,
-  duplicateMainSuccessProblem,
-  mainSuccessScenario,
-  passiveActionProblem,
-  scenarioWithUseCase,
-  stepCreateResponse,
-  unknownStepActorProblem,
-  usesPassiveVoice
-} from "./scenario-support.js";
-import { membershipForProject } from "./membership-support.js";
+  addScenarioStep as addScenarioStepUseCase,
+  createScenario as createScenarioUseCase,
+  type ScenarioAuthoringDeps
+} from "../application/scenario-authoring.js";
+import {
+  sendAddScenarioStepResult,
+  sendCreateScenarioResult
+} from "./scenario-results.js";
+import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredScenario,
-  StoredStep
-} from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -50,31 +43,20 @@ export function registerScenarioRoutes(
   stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
+  const deps = {
+    actorStore,
+    membershipStore,
+    revisionStore,
+    scenarioStore,
+    stakeholderInterestStore,
+    stepStore,
+    useCaseStore
+  };
   app.post("/v1/usecases/:usecaseId/scenarios", (request, reply) =>
-    createScenario(
-      request,
-      reply,
-      state,
-      membershipStore,
-      scenarioStore,
-      revisionStore,
-      stakeholderInterestStore,
-      stepStore,
-      useCaseStore
-    )
+    createScenario(request, reply, state, deps)
   );
   app.post("/v1/scenarios/:scenarioId/steps", (request, reply) =>
-    addStep(
-      request,
-      reply,
-      state,
-      actorStore,
-      membershipStore,
-      scenarioStore,
-      revisionStore,
-      stepStore,
-      useCaseStore
-    )
+    addStep(request, reply, state, deps)
   );
 }
 
@@ -82,82 +64,42 @@ async function createScenario(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  membershipStore: MembershipStore,
-  scenarioStore: ScenarioStore,
-  revisionStore: RevisionStore,
-  stakeholderInterestStore: StakeholderInterestStore,
-  stepStore: StepStore,
-  useCaseStore: UseCaseStore
+  deps: ScenarioAuthoringDeps
 ) {
-  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
-  }
-  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-  }
+  const usecaseId = usecaseIdFrom(request.params);
   const parsed = scenarioRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid scenario request"));
   }
-  if (parsed.data.type === "EXTENSION") {
-    return createExtensionScenario(reply, revisionStore, scenarioStore, stepStore, found, {
-      ...parsed.data,
-      type: "EXTENSION"
-    });
-  }
-  const existing = await mainSuccessScenario(scenarioStore, found.usecase.id);
-  if (existing !== undefined) {
-    return reply.code(409).send(duplicateMainSuccessProblem(existing));
-  }
-  if ((await stakeholderInterestStore.listStakeholderInterests(found.usecase.id)).length === 0) {
-    return reply
-      .code(422)
-      .send(problem(422, "Use case needs at least one stakeholder interest"));
-  }
 
-  const scenario: StoredScenario = {
-    id: randomUUID(),
-    usecase_id: found.usecase.id,
-    type: parsed.data.type,
-    extension_point: null,
-    parent_step_number: null,
-    condition: null,
-    outcome: "SUCCESS",
-    order_index: 0
-  };
-  await scenarioStore.saveScenario(scenario);
-  const revision = await appendUseCaseRevision(
-    revisionStore,
-    found.usecase,
-    `Created main success scenario ${scenario.id}`
+  const result = await createScenarioUseCase(
+    deps,
+    parsed.data.type === "EXTENSION"
+      ? {
+          condition: parsed.data.condition,
+          extensionPoint: parsed.data.extension_point,
+          outcome: parsed.data.outcome,
+          type: "EXTENSION",
+          usecaseId,
+          userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+        }
+      : {
+          type: "MAIN_SUCCESS",
+          usecaseId,
+          userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+        }
   );
 
-  return reply.code(201).send({ scenario, revision, steps: [] });
+  return sendCreateScenarioResult(reply, result);
 }
 
 async function addStep(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore,
-  membershipStore: MembershipStore,
-  scenarioStore: ScenarioStore,
-  revisionStore: RevisionStore,
-  stepStore: StepStore,
-  useCaseStore: UseCaseStore
+  deps: ScenarioAuthoringDeps
 ) {
-  const found = await scenarioWithUseCase(
-    scenarioStore,
-    useCaseStore,
-    scenarioIdFrom(request.params)
-  );
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Scenario not found"));
-  }
-  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-  }
+  const scenarioId = scenarioIdFrom(request.params);
   const parsed = stepRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step request"));
@@ -165,37 +107,19 @@ async function addStep(
   if (parsed.data.action.trim().length === 0) {
     return reply.code(400).send(problem(400, "Step action is required"));
   }
-  if (!parsed.data.force && usesPassiveVoice(parsed.data.action)) {
-    return reply.code(422).send(passiveActionProblem(parsed.data.action));
-  }
-  const actor = await actorStore.findActorByName(found.projectId, parsed.data.actor);
-  if (actor === undefined || actor.archived_at !== null) {
-    const knownActors = (await actorStore.listActors(found.projectId))
-      .filter((candidate) => candidate.archived_at === null)
-      .map((candidate) => candidate.name);
-    return reply.code(422).send(unknownStepActorProblem(knownActors));
-  }
 
-  const steps = await stepStore.listSteps(found.scenario.id);
-  const step: StoredStep = {
-    id: randomUUID(),
-    scenario_id: found.scenario.id,
-    step_number: steps.length + 1,
-    actor_id: actor.id,
-    action: parsed.data.action,
-    is_system_step: actor.name === "System",
-    notes: null,
-    order_index: steps.length
-  };
-  const scenarioSteps = [...steps, step];
-  await stepStore.saveStep(step);
-  const revision = await appendUseCaseRevision(
-    revisionStore,
-    found.usecase,
-    `Added step ${String(step.step_number)} to main success scenario`
+  const result = await addScenarioStepUseCase(
+    deps,
+    {
+      action: parsed.data.action,
+      actorName: parsed.data.actor,
+      force: parsed.data.force,
+      scenarioId,
+      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+    }
   );
 
-  return reply.code(201).send(stepCreateResponse(step, revision, scenarioSteps));
+  return sendAddScenarioStepResult(reply, result);
 }
 
 function usecaseIdFrom(params: unknown): string {

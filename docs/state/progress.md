@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T04:02:32Z_
+_Last updated: 2026-05-20T04:16:46Z_
 
 ## Overall
 
-- Commits: 764
-- Last commit: f2f2320 green(layers): extract invitation workflow
+- Commits: 767
+- Last commit: 7194681 green(layers): extract stakeholder workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

@@ -477,3 +477,9 @@ write. This guides your TDD cycles within an iteration._
 - **UC-033 MAIN**: `vspec ai-guide --api-url <server>` calls the public AI guide endpoint, prints the markdown crash course sections, and includes the suggested next commands for login, project listing, and session start.
 - **UC-034 MAIN**: after a use case has stakeholder and scenario content, `vspec usecase show <KEY-NNN> --format agent` calls the real agent fetch API and prints a structured JSON envelope with data, context, warnings, format version, and suggested next actions.
 - **UC-035 MAIN**: after an agent has a use case key and base revision, `vspec change propose --usecase <KEY-NNN> --base-revision <rev> --patch <file>` creates a real non-committing preview, then `vspec change commit --preview-id <id>` materializes the revision and prints history guidance.
+
+### Goal 2 Layers - Signup Completion
+
+- **Application**: `completeVerifiedSignup` creates User, Workspace, and OWNER Membership through either the transactional `SignupStore` or separate ports, and reports duplicate workspace slugs without writes.
+- **Application**: `completeLogin` updates `last_login_at`, returns workspace summaries, handles unknown GitHub identities, and recommends `vspec workspace create` when the known user has no workspaces.
+- **Route preservation**: UC-001 and UC-002 E2E tests continue to prove OAuth callback cookies, HTTP status mapping, session creation, and GitHub retry guidance.

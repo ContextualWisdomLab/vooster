@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T08:07:31Z_
+_Last updated: 2026-05-20T08:31:57Z_
 
 ## Overall
 
-- Commits: 802
-- Last commit: e00512b green(layers): extract gherkin export workflow
+- Commits: 805
+- Last commit: 798f5f0 green(layers): extract merge resolution workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

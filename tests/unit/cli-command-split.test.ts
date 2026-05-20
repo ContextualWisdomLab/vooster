@@ -9,6 +9,7 @@ import { CommentCommand } from "../../src/cli/commands/comment.js";
 import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
+import { MergeCommand } from "../../src/cli/commands/merge.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
 import { ScenarioCommand } from "../../src/cli/commands/scenario.js";
 import { SessionCommand } from "../../src/cli/commands/session.js";
@@ -71,5 +72,9 @@ describe("CLI command split", () => {
 
   test("step lives in a real oclif command module", () => {
     expect(StepCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("merge lives in a real oclif command module", () => {
+    expect(MergeCommand.prototype).toBeInstanceOf(Command);
   });
 });

@@ -1,0 +1,137 @@
+import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+
+export type UsecaseCliFlags = {
+  "actor-id"?: string;
+  "api-url"?: string;
+  cursor?: string;
+  format?: string;
+  interest?: string;
+  level?: string;
+  limit?: string;
+  "primary-actor"?: string;
+  "project-id"?: string;
+  "protection-mechanism"?: string;
+  q?: string;
+  revision?: string;
+  session?: string;
+  "session-cookie"?: string;
+  stakeholder?: string;
+  status?: string;
+  title?: string;
+};
+
+export type UsecaseCreateFlags = {
+  apiUrl: string;
+  primaryActor: string;
+  projectId: string;
+  sessionCookie: string;
+  title: string;
+};
+
+export type UsecaseListFlags = {
+  actorId: string | undefined;
+  apiUrl: string;
+  cursor: string | undefined;
+  level: string | undefined;
+  limit: string | undefined;
+  projectId: string;
+  q: string | undefined;
+  sessionCookie: string;
+  status: string | undefined;
+};
+
+export type UsecaseShowFlags = {
+  apiUrl: string;
+  format: "agent" | "human" | "json";
+  revision: string | undefined;
+  session: string | undefined;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
+export type UsecaseArchiveFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  usecaseId: string;
+};
+
+export type StakeholderInterestFlags = {
+  apiUrl: string;
+  interest: string;
+  protectionMechanism: string;
+  sessionCookie: string;
+  stakeholder: string;
+  usecaseId: string;
+};
+
+export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    primaryActor: requiredFlag(flags, "primary-actor"),
+    projectId: requiredFlag(flags, "project-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    title: requiredFlag(flags, "title")
+  };
+}
+
+export function usecaseListFlagsFrom(flags: UsecaseCliFlags): UsecaseListFlags {
+  return {
+    actorId: optionalFlag(flags, "actor-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    cursor: optionalFlag(flags, "cursor"),
+    level: optionalFlag(flags, "level"),
+    limit: optionalFlag(flags, "limit"),
+    projectId: requiredFlag(flags, "project-id"),
+    q: optionalFlag(flags, "q"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    status: optionalFlag(flags, "status")
+  };
+}
+
+export function usecaseShowFlagsFrom(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined
+): UsecaseShowFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    format: usecaseFormat(flags.format ?? "human"),
+    revision: optionalFlag(flags, "revision"),
+    session: optionalFlag(flags, "session"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+export function usecaseArchiveFlagsFrom(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined
+): UsecaseArchiveFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+export function stakeholderInterestFlagsFrom(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined
+): StakeholderInterestFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    interest: requiredFlag(flags, "interest"),
+    protectionMechanism: flags["protection-mechanism"] ?? "",
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    stakeholder: requiredFlag(flags, "stakeholder"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+function usecaseFormat(rawFormat: string): "agent" | "human" | "json" {
+  const format = rawFormat.toLowerCase();
+  if (format === "agent" || format === "human" || format === "json") {
+    return format;
+  }
+
+  throw new Error("Diff format must be human, json, or agent.");
+}

@@ -13,7 +13,8 @@ import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
 import { runStakeholder } from "./commands/stakeholder.js";
-import { deleteJson, fetchJson, patchJson, postJson, postText } from "./http-client.js";
+import { runUsecase } from "./commands/usecase.js";
+import { fetchJson, patchJson, postJson, postText } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 export class VspecCommand extends Command {
@@ -228,23 +229,23 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "create") {
-      await this.createUseCase(parsed.flags);
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "add-stakeholder") {
-      await this.addStakeholderInterest(parsed.flags);
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "list") {
-      await this.listUseCases(parsed.flags);
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "show") {
-      await this.showUseCase(parsed.flags);
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "archive") {
-      await this.archiveUseCase(parsed.flags);
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "scenario" && this.argv[1] === "add") {
@@ -698,134 +699,6 @@ export class VspecCommand extends Command {
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
-  private async createUseCase(flags: ParsedFlags): Promise<void> {
-    const useCaseFlags = useCaseCreateFlagsFrom(flags);
-    const response = await postJson(
-      `${useCaseFlags.apiUrl}/v1/projects/${useCaseFlags.projectId}/usecases`,
-      {
-        primary_actor: useCaseFlags.primaryActor,
-        title: useCaseFlags.title
-      },
-      {
-        Cookie: useCaseFlags.sessionCookie
-      }
-    );
-    const body = response.body as UseCaseResponse;
-
-    this.log(`UseCase ${body.usecase.key}`);
-    this.log(`Title ${body.usecase.title}`);
-    this.log(`Level ${body.usecase.level}`);
-    this.log(`Format ${body.usecase.format}`);
-    this.log(`Status ${body.usecase.status}`);
-    this.log(`Priority ${body.usecase.priority}`);
-    this.log(`Revision version ${String(body.revision.version_number)}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
-  private async addStakeholderInterest(flags: ParsedFlags): Promise<void> {
-    const interestFlags = stakeholderInterestFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${interestFlags.apiUrl}/v1/usecases/${interestFlags.usecaseId}/stakeholder-interests`,
-      {
-        interest: interestFlags.interest,
-        protection_mechanism: interestFlags.protectionMechanism,
-        stakeholder: interestFlags.stakeholder
-      },
-      {
-        Cookie: interestFlags.sessionCookie
-      }
-    );
-    const body = response.body as StakeholderInterestResponse;
-
-    this.log(`Stakeholder ${body.stakeholder_interests.at(-1)?.stakeholder.name ?? ""}`);
-    this.log(`Interest ${body.stakeholder_interest.interest}`);
-    this.log(`Protection ${body.stakeholder_interest.protection_mechanism}`);
-    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
-    for (const item of body.stakeholder_interests) {
-      this.log(`${item.stakeholder.name}: ${item.interest.interest}`);
-    }
-    if (body.next_missing_role_hint !== "") {
-      this.log(body.next_missing_role_hint);
-    }
-  }
-
-  private async listUseCases(flags: ParsedFlags): Promise<void> {
-    const listFlags = useCaseListFlagsFrom(flags);
-    const url = new URL(`/v1/projects/${listFlags.projectId}/usecases`, listFlags.apiUrl);
-    setSearchParam(url, "actor_id", listFlags.actorId);
-    setSearchParam(url, "cursor", listFlags.cursor);
-    setSearchParam(url, "level", listFlags.level);
-    setSearchParam(url, "limit", listFlags.limit);
-    setSearchParam(url, "q", listFlags.q);
-    setSearchParam(url, "status", listFlags.status);
-
-    const response = await fetchJson(url, {
-      headers: {
-        Cookie: listFlags.sessionCookie
-      }
-    });
-    const body = response.body as UseCaseListResponse;
-
-    for (const item of body.items) {
-      this.log(`${item.key} ${item.title}`);
-      this.log(`${item.status} ${item.level} ${item.primary_actor}`);
-      if (item.trigger_excerpt !== "") {
-        this.log(item.trigger_excerpt);
-      }
-    }
-    this.log(`Next cursor ${body.next_cursor ?? ""}`);
-    for (const action of body.suggested_next_actions ?? []) {
-      this.log(action.command);
-    }
-  }
-
-  private async showUseCase(flags: ParsedFlags): Promise<void> {
-    const showFlags = useCaseShowFlagsFrom(flags, this.argv[2]);
-    const url = new URL(`/v1/usecases/${showFlags.usecaseId}`, showFlags.apiUrl);
-    url.searchParams.set("format", showFlags.format);
-    setSearchParam(url, "revision", showFlags.revision);
-    setSearchParam(url, "session", showFlags.session);
-
-    const response = await fetchJson(url, {
-      headers: {
-        Cookie: showFlags.sessionCookie
-      }
-    });
-
-    if (showFlags.format === "agent" || showFlags.format === "json") {
-      this.log(JSON.stringify(response.body, null, 2));
-      return;
-    }
-
-    const body = response.body as UseCaseShowResponse;
-    this.log(`UseCase ${body.usecase.key}`);
-    this.log(`Title ${body.usecase.title}`);
-    this.log(`Status ${body.usecase.status}`);
-    this.log(`Revision ${body.usecase.current_revision_id}`);
-  }
-
-  private async archiveUseCase(flags: ParsedFlags): Promise<void> {
-    const archiveFlags = useCaseArchiveFlagsFrom(flags, this.argv[2]);
-    const response = await deleteJson(
-      `${archiveFlags.apiUrl}/v1/usecases/${archiveFlags.usecaseId}`,
-      {
-        Cookie: archiveFlags.sessionCookie
-      }
-    );
-    const body = response.body as UseCaseArchiveResponse;
-
-    this.log(`UseCase ${body.usecase.key}`);
-    this.log(`Archived at ${body.usecase.archived_at}`);
-    this.log(body.revision.change_summary);
-    this.log(`Affected sessions ${String(body.affected_sessions_count)}`);
-    this.log(`Active locks ${String(body.active_locks_count)}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async createScenario(flags: ParsedFlags): Promise<void> {
     const scenarioFlags = scenarioCreateFlagsFrom(flags, this.argv[2]);
     const response = await postJson(
@@ -1090,50 +963,6 @@ type ExportGherkinFlags = {
   output: string | undefined;
   revision: string | undefined;
   sessionCookie: string;
-  usecaseId: string;
-};
-
-type UseCaseCreateFlags = {
-  apiUrl: string;
-  primaryActor: string;
-  projectId: string;
-  sessionCookie: string;
-  title: string;
-};
-
-type UseCaseListFlags = {
-  actorId: string | undefined;
-  apiUrl: string;
-  cursor: string | undefined;
-  level: string | undefined;
-  limit: string | undefined;
-  projectId: string;
-  q: string | undefined;
-  sessionCookie: string;
-  status: string | undefined;
-};
-
-type UseCaseShowFlags = {
-  apiUrl: string;
-  format: "agent" | "human" | "json";
-  revision: string | undefined;
-  session: string | undefined;
-  sessionCookie: string;
-  usecaseId: string;
-};
-
-type UseCaseArchiveFlags = {
-  apiUrl: string;
-  sessionCookie: string;
-  usecaseId: string;
-};
-
-type StakeholderInterestFlags = {
-  apiUrl: string;
-  interest: string;
-  protectionMechanism: string;
-  sessionCookie: string;
-  stakeholder: string;
   usecaseId: string;
 };
 
@@ -1510,82 +1339,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type UseCaseResponse = {
-  revision: {
-    version_number: number;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    format: string;
-    key: string;
-    level: string;
-    priority: string;
-    status: string;
-    title: string;
-  };
-};
-
-type UseCaseListResponse = {
-  items: Array<{
-    key: string;
-    level: string;
-    primary_actor: string;
-    status: string;
-    title: string;
-    trigger_excerpt: string;
-  }>;
-  next_cursor: string | null;
-  suggested_next_actions?: Array<{
-    command: string;
-  }>;
-};
-
-type UseCaseShowResponse = {
-  usecase: {
-    current_revision_id: string;
-    key: string;
-    status: string;
-    title: string;
-  };
-};
-
-type UseCaseArchiveResponse = {
-  active_locks_count: number;
-  affected_sessions_count: number;
-  revision: {
-    change_summary: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    archived_at: string;
-    key: string;
-  };
-};
-
-type StakeholderInterestResponse = {
-  next_missing_role_hint: string;
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  stakeholder_interest: {
-    interest: string;
-    protection_mechanism: string;
-  };
-  stakeholder_interests: Array<{
-    interest: {
-      interest: string;
-    };
-    stakeholder: {
-      name: string;
-    };
-  }>;
-};
-
 type ScenarioResponse = {
   revision: {
     severity: string;
@@ -1825,69 +1578,6 @@ function exportFlagsFrom(
     output: optionalFlag(flags, "output"),
     revision: optionalFlag(flags, "revision"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    primaryActor: requiredFlag(flags, "primary-actor"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    title: requiredFlag(flags, "title")
-  };
-}
-
-function useCaseListFlagsFrom(flags: ParsedFlags): UseCaseListFlags {
-  return {
-    actorId: optionalFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    cursor: optionalFlag(flags, "cursor"),
-    level: optionalFlag(flags, "level"),
-    limit: optionalFlag(flags, "limit"),
-    projectId: requiredFlag(flags, "project-id"),
-    q: optionalFlag(flags, "q"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    status: optionalFlag(flags, "status")
-  };
-}
-
-function useCaseShowFlagsFrom(
-  flags: ParsedFlags,
-  usecaseId: string | undefined
-): UseCaseShowFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    format: diffFormat(flags.format ?? "human"),
-    revision: optionalFlag(flags, "revision"),
-    session: optionalFlag(flags, "session"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function useCaseArchiveFlagsFrom(
-  flags: ParsedFlags,
-  usecaseId: string | undefined
-): UseCaseArchiveFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function stakeholderInterestFlagsFrom(
-  flags: ParsedFlags,
-  usecaseId: string | undefined
-): StakeholderInterestFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    interest: requiredFlag(flags, "interest"),
-    protectionMechanism: flags["protection-mechanism"] ?? "",
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    stakeholder: requiredFlag(flags, "stakeholder"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }

@@ -15,6 +15,7 @@ import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
 import { MergeCommand } from "../../src/cli/commands/merge.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
+import { PullCommand } from "../../src/cli/commands/pull.js";
 import { ScenarioCommand } from "../../src/cli/commands/scenario.js";
 import { SessionCommand } from "../../src/cli/commands/session.js";
 import { StakeholderCommand } from "../../src/cli/commands/stakeholder.js";
@@ -89,6 +90,10 @@ describe("CLI command split", () => {
 
   test("sync lives in a real oclif command module", () => {
     expect(SyncCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("pull lives in a real oclif command module", () => {
+    expect(PullCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("diff lives in a real oclif command module", () => {

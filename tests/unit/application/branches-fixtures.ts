@@ -15,16 +15,20 @@ import type { RevisionStore } from "../../../src/ports/revision-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import { mainBranch, usecase } from "./branches-data.js";
 
-export function depsFor(options: {
-  baseBranch?: StoredSpecBranch;
-  existingBranches?: StoredSpecBranch[];
-  latestRevisionId?: string;
-  mergeRequests?: StoredMergeRequest[];
-  readOnly?: boolean;
-  savedBranches?: StoredSpecBranch[];
-  usecases?: StoredUseCase[];
-} = {}) {
-  const baseBranch = options.baseBranch ?? mainBranch();
+export function depsFor(
+  options: {
+    baseBranch?: StoredSpecBranch;
+    existingBranches?: StoredSpecBranch[];
+    latestRevisionId?: string;
+    mergeRequests?: StoredMergeRequest[];
+    readOnly?: boolean;
+    savedBranches?: StoredSpecBranch[];
+    usecases?: StoredUseCase[];
+  } = {}
+) {
+  const baseBranch = "baseBranch" in options ? options.baseBranch : mainBranch();
+  const latestRevisionId =
+    "latestRevisionId" in options ? options.latestRevisionId : "revision-latest";
   return {
     branchStore: branchStore(
       baseBranch === undefined ? [] : [baseBranch],
@@ -36,7 +40,7 @@ export function depsFor(options: {
     membershipStore: membershipStore(),
     mergeRequestStore: mergeRequestStore(options.mergeRequests ?? []),
     projectStore: projectStore(),
-    revisionStore: revisionStore(options.latestRevisionId),
+    revisionStore: revisionStore(latestRevisionId),
     useCaseStore: useCaseStore(options.usecases ?? [usecase()])
   };
 }
@@ -59,7 +63,8 @@ function branchStore(
 ): BranchStore {
   const branches = existingBranches ?? baseBranches;
   return {
-    findBranchById: (branchId) => Promise.resolve(baseBranches.find((branch) => branch.id === branchId)),
+    findBranchById: (branchId) =>
+      Promise.resolve(baseBranches.find((branch) => branch.id === branchId)),
     findBranchByProjectAndName: (_projectId, name) =>
       Promise.resolve(branches.find((branch) => branch.name === name)),
     listBranches: () => Promise.resolve(branches),
@@ -87,7 +92,9 @@ function mergeRequestStore(mergeRequests: StoredMergeRequest[]): MergeRequestSto
     listOpenMergeRequests: () => Promise.resolve([]),
     listOpenMergeRequestsByTargetBranchId: (targetBranchId) =>
       Promise.resolve(
-        mergeRequests.filter((mergeRequest) => mergeRequest.target_branch_id === targetBranchId)
+        mergeRequests.filter(
+          (mergeRequest) => mergeRequest.target_branch_id === targetBranchId
+        )
       ),
     saveMergeRequest: () => Promise.resolve(),
     updateMergeRequest: () => Promise.resolve()
@@ -104,11 +111,15 @@ function projectStore(): ProjectStore {
   };
 }
 
-function revisionStore(latestRevisionId = "revision-latest"): RevisionStore {
+function revisionStore(latestRevisionId: string | undefined): RevisionStore {
   return {
     findRevisionById: () => Promise.resolve(undefined),
     latestRevision: (entityId) =>
-      Promise.resolve(latestRevisionId === undefined ? undefined : revision(entityId, latestRevisionId)),
+      Promise.resolve(
+        latestRevisionId === undefined
+          ? undefined
+          : revision(entityId, latestRevisionId)
+      ),
     listRevisions: () => Promise.resolve([]),
     nextVersionNumber: () => Promise.resolve(1),
     saveRevision: () => Promise.resolve()
@@ -152,7 +163,7 @@ function revision(entityId: string, revisionId: string): StoredRevision {
     entity_type: "USECASE",
     id: revisionId,
     severity: "NON_BREAKING",
-    snapshot: {},
+    snapshot: usecase({ id: entityId }),
     version_number: 1
   };
 }

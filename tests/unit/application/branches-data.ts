@@ -1,7 +1,12 @@
 import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
-import type { StoredSpecBranch, StoredUseCase } from "../../../src/http/signup-types.js";
+import type {
+  StoredSpecBranch,
+  StoredUseCase
+} from "../../../src/http/signup-types.js";
 
-export function mainBranch(overrides: Partial<StoredSpecBranch> = {}): StoredSpecBranch {
+export function mainBranch(
+  overrides: Partial<StoredSpecBranch> = {}
+): StoredSpecBranch {
   return {
     base_branch_id: null,
     head_revision_ids: { "usecase-1": "revision-main" },

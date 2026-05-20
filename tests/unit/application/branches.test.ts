@@ -48,13 +48,17 @@ describe("branches application", () => {
   });
 
   test("rejects access, read-only, non-main, missing branch, and snapshot failures", async () => {
-    await expect(createBranch(depsFor(), input({ userId: undefined }))).resolves.toEqual({
+    await expect(
+      createBranch(depsFor(), input({ userId: undefined }))
+    ).resolves.toEqual({
       status: "ACCESS_DENIED"
     });
     await expect(createBranch(depsFor({ readOnly: true }), input())).resolves.toEqual({
       status: "READ_ONLY"
     });
-    await expect(createBranch(depsFor(), input({ from: "feature/base" }))).resolves.toEqual({
+    await expect(
+      createBranch(depsFor(), input({ from: "feature/base" }))
+    ).resolves.toEqual({
       branchName: "feature/refund",
       status: "NON_MAIN_BASE"
     });

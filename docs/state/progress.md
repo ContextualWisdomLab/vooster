@@ -1,13 +1,13 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T14:14:46Z_
+_Last updated: 2026-05-20T15:50:40Z_
 
 ## Overall
 
-- Commits: 828
-- Last commit: 96e9062 green(testdb): run tests on Postgres schemas
+- Commits: 833
+- Last commit: 5a39ca1 fix(goals): make boundary regression gate honest
 - Use cases complete: 35 / 35
-- Active goal: ALL_DONE
+- Active goal: goals/4-honest-boundaries.md
 
 ## Runnability (goal 1)
 

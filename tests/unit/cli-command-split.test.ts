@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { AiGuideCommand } from "../../src/cli/commands/ai-guide.js";
 import { ApiKeyCommand } from "../../src/cli/commands/api-key.js";
+import { BranchCommand } from "../../src/cli/commands/branch.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
@@ -26,5 +27,9 @@ describe("CLI command split", () => {
 
   test("project lives in a real oclif command module", () => {
     expect(ProjectCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("branch lives in a real oclif command module", () => {
+    expect(BranchCommand.prototype).toBeInstanceOf(Command);
   });
 });

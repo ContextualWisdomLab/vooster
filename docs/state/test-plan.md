@@ -495,3 +495,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: goal promotion authorizes the caller, rejects missing goals/projects, duplicate promotion, rejected goals, and simulated write failures without creating partial use cases.
 - **Application**: successful promotion creates a seeded UseCase, initial Revision, and promoted Goal link with a project-scoped key and optional weak-title warning.
 - **Route preservation**: UC-008 E2E and CLI tests continue to prove HTTP status mapping, suggested next actions, and retry guidance.
+
+### Goal 2 Layers - Who Is Working
+
+- **Application**: who-is-working resolves and authorizes the use case, then returns active pinned sessions, unexpired locks, and open merge requests whose branches touch the use case.
+- **Application**: result shaping includes zombie session markers, archived restore guidance, lock/merge guidance, and empty-state session-start guidance without mutating state.
+- **Route preservation**: UC-023 E2E and CLI tests continue to prove HTTP problem mapping, membership protection, and response shape.

@@ -18,6 +18,7 @@ import { MergeCommand } from "../../src/cli/commands/merge.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
 import { PullCommand } from "../../src/cli/commands/pull.js";
 import { PushCommand } from "../../src/cli/commands/push.js";
+import { RevertCommand } from "../../src/cli/commands/revert.js";
 import { ScenarioCommand } from "../../src/cli/commands/scenario.js";
 import { SessionCommand } from "../../src/cli/commands/session.js";
 import { StakeholderCommand } from "../../src/cli/commands/stakeholder.js";
@@ -117,6 +118,10 @@ describe("CLI command split", () => {
 
   test("who lives in a real oclif command module", () => {
     expect(WhoCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("revert lives in a real oclif command module", () => {
+    expect(RevertCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("export lives in a real oclif command module", () => {

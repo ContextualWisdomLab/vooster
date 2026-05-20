@@ -11,6 +11,7 @@ import { runComment } from "./commands/comment.js";
 import { runDiff } from "./commands/diff.js";
 import { runExport } from "./commands/export.js";
 import { runGoal } from "./commands/goal.js";
+import { runHistory } from "./commands/history.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runMerge } from "./commands/merge.js";
@@ -152,7 +153,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "history") {
-      await this.listHistory(parsed.flags);
+      await runHistory(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "diff") {
@@ -350,37 +351,6 @@ export class VspecCommand extends Command {
     }
   }
 
-  private async listHistory(flags: ParsedFlags): Promise<void> {
-    const historyFlags = historyFlagsFrom(flags, this.argv[1]);
-    const url = new URL(`/v1/usecases/${historyFlags.usecaseId}/revisions`, historyFlags.apiUrl);
-    setSearchParam(url, "limit", historyFlags.limit);
-
-    const response = await fetchJson(url, {
-      headers: {
-        Cookie: historyFlags.sessionCookie
-      }
-    });
-    const body = response.body as HistoryResponse;
-
-    this.log(`UseCase ${body.usecase.key}`);
-    this.log(`Limit ${String(body.limit)}`);
-    this.log(`Truncated ${String(body.truncated)}`);
-    this.log(`Suppressed ${String(body.suppressed_count)}`);
-    for (const revision of body.revisions) {
-      this.log(`Revision ${revision.revision}`);
-      this.log(`Version ${String(revision.version_number)}`);
-      this.log(`Entity ${revision.entity_type} ${revision.entity_id}`);
-      this.log(`Author ${revision.author}`);
-      this.log(`Timestamp ${revision.timestamp}`);
-      if (revision.change_summary !== undefined) {
-        this.log(revision.change_summary);
-      }
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async revertRevision(flags: ParsedFlags): Promise<void> {
     const revertFlags = revertFlagsFrom(flags, this.argv[1]);
     const response = await postJson(
@@ -460,13 +430,6 @@ type LockCreateFlags = {
 
 type WhoFlags = {
   apiUrl: string;
-  sessionCookie: string;
-  usecaseId: string;
-};
-
-type HistoryFlags = {
-  apiUrl: string;
-  limit: string | undefined;
   sessionCookie: string;
   usecaseId: string;
 };
@@ -597,27 +560,6 @@ type WhoResponse = {
   };
 };
 
-type HistoryResponse = {
-  limit: number;
-  revisions: Array<{
-    author: string;
-    change_summary?: string;
-    entity_id: string;
-    entity_type: string;
-    revision: string;
-    timestamp: string;
-    version_number: number;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  suppressed_count: number;
-  truncated: boolean;
-  usecase: {
-    key: string;
-  };
-};
-
 type RevertResponse = {
   impact: {
     affected_branches: string[];
@@ -666,6 +608,12 @@ type ImpactResponse = {
   }>;
 };
 
+type RevisionListResponse = {
+  revisions: Array<{
+    revision: string;
+  }>;
+};
+
 function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): LockCreateFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -681,15 +629,6 @@ function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): 
 function whoFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): WhoFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function historyFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): HistoryFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    limit: optionalFlag(flags, "limit"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
@@ -745,12 +684,6 @@ function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | un
   return value;
 }
 
-function setSearchParam(url: URL, name: string, value: string | undefined): void {
-  if (value !== undefined) {
-    url.searchParams.set(name, value);
-  }
-}
-
 function requiredFlag(values: ParsedFlags, name: keyof ParsedFlags): string {
   const value = values[name];
   if (typeof value !== "string" || value.trim() === "") {
@@ -778,7 +711,7 @@ async function latestUseCaseRevision(
       Cookie: flags.sessionCookie
     }
   });
-  const body = response.body as Pick<HistoryResponse, "revisions">;
+  const body = response.body as RevisionListResponse;
   const latest = body.revisions[0];
   if (latest === undefined) {
     throw new Error("Use case has no revisions.");

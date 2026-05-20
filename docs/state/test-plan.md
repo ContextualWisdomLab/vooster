@@ -625,3 +625,17 @@ write. This guides your TDD cycles within an iteration._
   validation, stale-base guidance, manual-value guidance, uncovered-conflict
   guidance, late hard-lock guidance, write-failure rollback shape, and human CLI
   output.
+
+### Goal 2 Layers - Branch Creation
+
+- **Application**: branch creation resolves project membership, rejects missing
+  access, read-only callers, non-main bases, duplicate names with a suggested
+  alternative, missing main branches, and simulated snapshot failures without
+  saving a branch.
+- **Application**: branch creation snapshots each use case's latest revision,
+  creates an ACTIVE human branch with injected ids, includes in-flight merge
+  warnings, and returns checkout/edit guidance.
+- **Route preservation**: UC-019 E2E and CLI tests continue to prove HTTP
+  validation, read-only guidance, non-main guidance, collision guidance,
+  in-flight merge warnings, snapshot-failure retry guidance, and human CLI
+  output.

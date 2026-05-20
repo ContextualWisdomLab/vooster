@@ -1052,3 +1052,14 @@ write. This guides your TDD cycles within an iteration._
 - **Assertions**: focused command-split test, TypeScript build, lint, and the
   full Vitest suite remain green after moving the behavior out of
   `src/cli/index.ts`.
+
+### Goal 4 Honest Gates - Config Grep Ban
+
+- **Script behavior**: an integration test runs
+  `scripts/check-honest-gates.sh` against a temporary tests directory and
+  asserts a test that `readFileSync`s a config file and uses `toContain` on the
+  raw body is reported as dishonest.
+- **Allowed behavior**: the same test asserts a structurally parsed config test
+  in the temporary directory is allowed.
+- **Repository behavior**: the script exits successfully against the real
+  repository tests once no dishonest tests are present.

@@ -1,11 +1,11 @@
 # Next Task
 
-_Auto-generated 2026-05-20T07:44:26Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T08:07:31Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Slim down a fat route file (gate 2.C1).
 
-  Candidate: src/http/gherkin-export-routes.ts (189 lines)
+  Candidate: src/http/merge-resolve-routes.ts (218 lines)
 
   1. Identify the route's business logic vs. parsing/validation.
   2. Extract logic into src/application/<area>.ts as pure functions taking

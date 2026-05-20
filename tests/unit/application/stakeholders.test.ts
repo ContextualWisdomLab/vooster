@@ -46,7 +46,10 @@ describe("stakeholders application", () => {
   test("rejects invalid and duplicate stakeholder requests without writing", async () => {
     const savedStakeholders: StoredStakeholder[] = [];
     const savedRevisions: StoredRevision[] = [];
-    const existing = stakeholder({ id: "stakeholder-existing", name: "Product Manager" });
+    const existing = stakeholder({
+      id: "stakeholder-existing",
+      name: "Product Manager"
+    });
 
     await expect(
       createStakeholder(
@@ -143,7 +146,9 @@ function stakeholderStore(
   return {
     findStakeholderById: () => Promise.resolve(undefined),
     findStakeholderByName: (_projectId, name) =>
-      Promise.resolve(existingStakeholder?.name === name ? existingStakeholder : undefined),
+      Promise.resolve(
+        existingStakeholder?.name === name ? existingStakeholder : undefined
+      ),
     listStakeholders: () => Promise.resolve([]),
     saveStakeholder: (stakeholder) => {
       savedStakeholders.push(stakeholder);

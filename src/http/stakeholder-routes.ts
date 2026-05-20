@@ -1,12 +1,10 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
+import { sendCreateStakeholderResult } from "./stakeholder-results.js";
 import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredStakeholder
-} from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import { createStakeholder as createStakeholderWorkflow } from "../application/stakeholders.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -19,8 +17,6 @@ const stakeholderRequestSchema = z.object({
   name: z.string().min(1),
   type: z.string()
 });
-
-const stakeholderTypes = ["INTERNAL", "EXTERNAL", "REGULATORY"] as const;
 
 export function registerStakeholderRoutes(
   app: FastifyInstance,
@@ -56,7 +52,10 @@ async function createStakeholder(
   workspaceStore: WorkspaceStore
 ) {
   const projectId = projectIdFrom(request.params);
-  if (await membershipForProject(request, state, membershipStore, projectId) === undefined) {
+  if (
+    (await membershipForProject(request, state, membershipStore, projectId)) ===
+    undefined
+  ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
@@ -64,90 +63,24 @@ async function createStakeholder(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
-
-  if (await projectWorkspaceArchived(projectStore, workspaceStore, projectId)) {
-    return reply.code(409).send(problem(409, "Workspace has been archived"));
-  }
-
-  if (parsed.data.attach_to_step === true) {
-    return reply.code(400).send(
-      problem(400, "Actors do; stakeholders care", {}, [
-        { command: "vspec actor create", reason: "Create an actor for step actions." }
-      ])
-    );
-  }
-
-  if (!isStakeholderType(parsed.data.type)) {
-    return reply.code(400).send(
-      problem(400, "Invalid stakeholder type", {
-        valid_types: [...stakeholderTypes]
-      })
-    );
-  }
-
-  const existing = await activeStakeholderNamed(stakeholderStore, projectId, parsed.data.name);
-  if (existing !== undefined) {
-    return reply.code(422).send(
-      problem(
-        422,
-        "Stakeholder name already exists",
-        { existing_stakeholder_id: existing.id },
-        [
-          {
-            command: "vspec stakeholder edit",
-            reason: "Amend the existing stakeholder."
-          }
-        ]
-      )
-    );
-  }
-
-  const stakeholder: StoredStakeholder = {
-    id: randomUUID(),
-    project_id: projectId,
-    name: parsed.data.name,
-    type: parsed.data.type,
-    description: parsed.data.description,
-    archived_at: null
-  };
-  const revision = {
-    id: randomUUID(),
-    entity_type: "STAKEHOLDER" as const,
-    entity_id: stakeholder.id,
-    version_number: 1,
-    snapshot: stakeholder
-  };
-
-  await stakeholderStore.saveStakeholder(stakeholder);
-  await revisionStore.saveRevision(revision);
-
-  return reply.code(201).send({
-    stakeholder,
-    revision,
-    recommended_next_command: "vspec usecase add-stakeholder"
-  });
-}
-
-function isStakeholderType(type: string): type is StoredStakeholder["type"] {
-  return stakeholderTypes.includes(type as StoredStakeholder["type"]);
-}
-
-async function activeStakeholderNamed(
-  stakeholderStore: StakeholderStore,
-  projectId: string,
-  name: string
-) {
-  const stakeholder = await stakeholderStore.findStakeholderByName(projectId, name);
-  return stakeholder?.archived_at === null ? stakeholder : undefined;
-}
-
-async function projectWorkspaceArchived(
-  projectStore: ProjectStore,
-  workspaceStore: WorkspaceStore,
-  projectId: string
-): Promise<boolean> {
-  const project = await projectStore.findProjectById(projectId);
-  return project !== undefined && await workspaceStore.isWorkspaceArchived(project.workspace_id);
+  return sendCreateStakeholderResult(
+    reply,
+    await createStakeholderWorkflow(
+      {
+        projectStore,
+        revisionStore,
+        stakeholderStore,
+        workspaceStore
+      },
+      {
+        attachToStep: parsed.data.attach_to_step === true,
+        description: parsed.data.description,
+        name: parsed.data.name,
+        projectId,
+        type: parsed.data.type
+      }
+    )
+  );
 }
 
 function projectIdFrom(params: unknown): string {

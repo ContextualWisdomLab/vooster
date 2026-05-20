@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T19:56:43Z_
+_Last updated: 2026-05-20T19:59:53Z_
 
 ## Overall
 
-- Commits: 925
-- Last commit: 56f7af7 green(prisma-split): add prisma actor adapter
+- Commits: 929
+- Last commit: cba2ce9 green(prisma-split): add prisma stakeholder adapter
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

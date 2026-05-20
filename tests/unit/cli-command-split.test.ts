@@ -10,6 +10,7 @@ import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
+import { StakeholderCommand } from "../../src/cli/commands/stakeholder.js";
 
 describe("CLI command split", () => {
   test("login lives in a real oclif command module", () => {
@@ -46,5 +47,9 @@ describe("CLI command split", () => {
 
   test("actor lives in a real oclif command module", () => {
     expect(ActorCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("stakeholder lives in a real oclif command module", () => {
+    expect(StakeholderCommand.prototype).toBeInstanceOf(Command);
   });
 });

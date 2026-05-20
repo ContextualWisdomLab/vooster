@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T01:11:49Z_
+_Last updated: 2026-05-20T01:34:14Z_
 
 ## Overall
 
-- Commits: 737
-- Last commit: fc1db58 refactor(layers): extract signup completion
+- Commits: 740
+- Last commit: 1a58a20 refactor(layers): extract comment workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

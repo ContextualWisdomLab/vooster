@@ -11,6 +11,7 @@ import { DiffCommand } from "../../src/cli/commands/diff.js";
 import { ExportCommand } from "../../src/cli/commands/export.js";
 import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { HistoryCommand } from "../../src/cli/commands/history.js";
+import { ImpactCommand } from "../../src/cli/commands/impact.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { LockCommand } from "../../src/cli/commands/lock.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
@@ -122,6 +123,10 @@ describe("CLI command split", () => {
 
   test("revert lives in a real oclif command module", () => {
     expect(RevertCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("impact lives in a real oclif command module", () => {
+    expect(ImpactCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("export lives in a real oclif command module", () => {

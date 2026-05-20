@@ -6,6 +6,7 @@ import { Args, Command, Flags, flush, handle } from "@oclif/core";
 import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runBranch } from "./commands/branch.js";
+import { runComment } from "./commands/comment.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
@@ -184,23 +185,23 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "add") {
-      await this.addComment(parsed.flags);
+      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "list") {
-      await this.listComments(parsed.flags);
+      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "edit") {
-      await this.editComment(parsed.flags);
+      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "resolve") {
-      await this.resolveComment(parsed.flags);
+      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "delete") {
-      await this.deleteComment(parsed.flags);
+      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
@@ -692,89 +693,6 @@ export class VspecCommand extends Command {
     await writeSyncFile(process.cwd(), exportFlags.output, response.body);
     this.log(`Exported ${exportFlags.output}`);
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
-  }
-
-  private async addComment(flags: ParsedFlags): Promise<void> {
-    const commentFlags = commentBodyFlagsFrom(flags, this.argv[2], "usecase-id");
-    const response = await postJson(
-      `${commentFlags.apiUrl}/v1/usecases/${commentFlags.targetId}/comments`,
-      { body: commentFlags.body },
-      {
-        Cookie: commentFlags.sessionCookie
-      }
-    );
-    this.printCommentResponse(response.body as CommentResponse);
-  }
-
-  private async listComments(flags: ParsedFlags): Promise<void> {
-    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "usecase-id");
-    const response = await fetchJson(
-      `${commentFlags.apiUrl}/v1/usecases/${commentFlags.targetId}/comments`,
-      {
-        headers: {
-          Cookie: commentFlags.sessionCookie
-        }
-      }
-    );
-    const body = response.body as CommentListResponse;
-
-    this.log(`Comments ${String(body.comments.length)}`);
-    for (const comment of body.comments) {
-      this.printComment(comment);
-    }
-  }
-
-  private async editComment(flags: ParsedFlags): Promise<void> {
-    const commentFlags = commentBodyFlagsFrom(flags, this.argv[2], "comment-id");
-    const response = await patchJson(
-      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
-      { body: commentFlags.body },
-      {
-        Cookie: commentFlags.sessionCookie
-      }
-    );
-    this.printCommentResponse(response.body as CommentResponse);
-  }
-
-  private async resolveComment(flags: ParsedFlags): Promise<void> {
-    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "comment-id");
-    const response = await patchJson(
-      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
-      { resolved: true },
-      {
-        Cookie: commentFlags.sessionCookie
-      }
-    );
-    this.printCommentResponse(response.body as CommentResponse);
-  }
-
-  private async deleteComment(flags: ParsedFlags): Promise<void> {
-    const commentFlags = commentTargetFlagsFrom(flags, this.argv[2], "comment-id");
-    const response = await deleteJson(
-      `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
-      {
-        Cookie: commentFlags.sessionCookie
-      }
-    );
-    this.printCommentResponse(response.body as CommentResponse);
-    this.log("Deleted true");
-  }
-
-  private printCommentResponse(body: CommentResponse): void {
-    this.printComment(body.comment);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
-  private printComment(comment: CommentPayload): void {
-    this.log(`Comment ${comment.id}`);
-    this.log(`Target ${comment.target_id}`);
-    this.log(`Author ${comment.author_id}`);
-    this.log(`Resolved ${String(comment.resolved)}`);
-    this.log(`Resolved at ${comment.resolved_at ?? ""}`);
-    this.log(`Updated at ${comment.updated_at ?? ""}`);
-    this.log(`Body ${comment.body}`);
   }
 
   private async createActor(flags: ParsedFlags): Promise<void> {
@@ -1285,16 +1203,6 @@ type ExportGherkinFlags = {
   usecaseId: string;
 };
 
-type CommentTargetFlags = {
-  apiUrl: string;
-  sessionCookie: string;
-  targetId: string;
-};
-
-type CommentBodyFlags = CommentTargetFlags & {
-  body: string;
-};
-
 type ActorFlags = {
   aliases: string[];
   apiUrl: string;
@@ -1754,29 +1662,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type CommentPayload = {
-  author_id: string;
-  body: string;
-  created_at: string;
-  id: string;
-  resolved: boolean;
-  resolved_at: null | string;
-  target_id: string;
-  target_type: string;
-  updated_at: null | string;
-};
-
-type CommentResponse = {
-  comment: CommentPayload;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
-type CommentListResponse = {
-  comments: CommentPayload[];
-};
-
 type ActorResponse = {
   actor: {
     name: string;
@@ -2163,29 +2048,6 @@ function exportFlagsFrom(
     revision: optionalFlag(flags, "revision"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function commentTargetFlagsFrom(
-  flags: ParsedFlags,
-  targetId: string | undefined,
-  argumentName: string
-): CommentTargetFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    targetId: requiredArgument(targetId, argumentName)
-  };
-}
-
-function commentBodyFlagsFrom(
-  flags: ParsedFlags,
-  targetId: string | undefined,
-  argumentName: string
-): CommentBodyFlags {
-  return {
-    ...commentTargetFlagsFrom(flags, targetId, argumentName),
-    body: requiredFlag(flags, "body")
   };
 }
 

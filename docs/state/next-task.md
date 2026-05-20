@@ -1,23 +1,24 @@
 # Next Task
 
-_Auto-generated 2026-05-20T20:30:55Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T20:35:28Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Create per-port Prisma adapters (gate 4.C2).
+TASK: Finish the CLI split (gate 4.C3).
 
-  Each port under src/ports/ must have a matching prisma adapter.
-  Missing:
-    src/infrastructure/prisma-usecase-store.ts
+  These subcommands still have no file under src/cli/commands/:
+    diff
+    history
+    impact
+    lock
+    pull
+    push
+    revert
+    who
 
-  Steps per port:
-    1. Copy the structure from the sibling memory-<name>-store.ts.
-    2. Replace in-memory ops with PrismaClient calls.
-    3. Update src/http/server.ts to wire prisma-<name>-store (in
-       Postgres mode) instead of dereferencing the dissolved
-       SignupStore intersection.
-    4. Run npm test — the persistence-matrix test will catch any
-       behaviour drift.
+  When all subcommands have a dedicated file, delete the
+  `if (parsed.args.command === …)` chain from src/cli/index.ts. C1
+  re-verifies the size cap after the chain is gone.
 
-  Commit per port:
-      green(prisma-split): prisma-<name>-store
+  Commit:
+      green(cli-split): extract <subcommand>
 ```

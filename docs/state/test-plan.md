@@ -724,3 +724,14 @@ write. This guides your TDD cycles within an iteration._
 - **Assertions**: focused command-split test, TypeScript build, lint, and the
   full Vitest suite remain green after moving the behavior out of
   `src/cli/index.ts`.
+
+### Goal 4 CLI Split - Scenario Command
+
+- **Command module**: `tests/unit/cli-command-split.test.ts` imports
+  `ScenarioCommand` from `src/cli/commands/scenario.ts` and asserts it extends
+  the oclif `Command` base class.
+- **Setup**: keep the command-split test as the fast RED/GREEN signal while
+  extracting `scenario add`.
+- **Assertions**: focused command-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after moving the behavior out of
+  `src/cli/index.ts`.

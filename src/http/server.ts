@@ -52,6 +52,7 @@ import { registerUseCaseAgentRoutes } from "./usecase-agent-routes.js";
 import { registerUseCaseArchiveRoutes } from "./usecase-archive-routes.js";
 import { registerUseCaseRoutes } from "./usecase-routes.js";
 import { registerUseCaseSearchRoutes } from "./usecase-search-routes.js";
+import { registerUseCaseUpdateRoutes } from "./usecase-update-routes.js";
 import { registerWhoRoutes } from "./who-routes.js";
 import type { GithubOAuthConfig, ServerOptions, SignupState } from "./signup-types.js";
 import type { UserStore } from "../ports/user-store.js";
@@ -247,8 +248,16 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     app,
     state,
     actorStore,
-    branchStore,
     goalStore,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
+  registerUseCaseUpdateRoutes(
+    app,
+    state,
+    branchStore,
     membershipStore,
     projectStore,
     revisionStore,

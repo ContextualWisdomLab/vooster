@@ -1,5 +1,8 @@
 import type { FastifyReply } from "fastify";
-import type { UseCaseAuthoringResult } from "../application/usecases.js";
+import type {
+  UseCaseAuthoringResult,
+  UseCaseUpdateResult
+} from "../application/usecases.js";
 import { problem } from "./signup-support.js";
 
 export function sendUseCaseAuthoringResult(
@@ -63,4 +66,24 @@ export function useCaseCreateAccessProblem() {
       reason: "Ask a workspace owner for editor access."
     }
   ]);
+}
+
+export function sendUseCaseUpdateResult(
+  reply: FastifyReply,
+  result: UseCaseUpdateResult
+) {
+  switch (result.status) {
+    case "USECASE_NOT_FOUND":
+      return reply.code(404).send(problem(404, "Use case not found"));
+    case "FORBIDDEN":
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
+    case "NEEDS_STAKEHOLDER_INTEREST":
+      return reply
+        .code(422)
+        .send(problem(422, "Use case needs at least one stakeholder interest"));
+    case "UPDATED":
+      return reply.send({ usecase: result.usecase });
+  }
 }

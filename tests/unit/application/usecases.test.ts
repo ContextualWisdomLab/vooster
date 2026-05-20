@@ -273,7 +273,7 @@ function stakeholderInterestStore(
   interests: StoredStakeholderInterest[]
 ): StakeholderInterestStore {
   return {
-    deleteStakeholderInterest: () => Promise.resolve(false),
+    deleteStakeholderInterest: () => Promise.resolve(),
     findStakeholderInterestById: () => Promise.resolve(undefined),
     findStakeholderInterestForStakeholder: () => Promise.resolve(undefined),
     listStakeholderInterests: () => Promise.resolve(interests),

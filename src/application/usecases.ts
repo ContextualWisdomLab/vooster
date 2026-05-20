@@ -8,6 +8,7 @@ import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export type UseCaseAuthoringDeps = {
@@ -42,6 +43,24 @@ export type UseCaseAuthoringResult =
       suggestedNextActions: Array<{ command: string; reason: string }>;
       usecase: StoredUseCase;
     };
+
+export type UseCaseUpdateDeps = {
+  membershipStore: MembershipStore;
+  stakeholderInterestStore: StakeholderInterestStore;
+  useCaseStore: UseCaseStore;
+};
+
+export type UseCaseUpdateInput = {
+  status: "APPROVED" | "DEPRECATED" | "DRAFT" | "IN_REVIEW" | undefined;
+  usecaseId: string;
+  userId: string | undefined;
+};
+
+export type UseCaseUpdateResult =
+  | { status: "USECASE_NOT_FOUND" }
+  | { status: "FORBIDDEN" }
+  | { status: "NEEDS_STAKEHOLDER_INTEREST" }
+  | { status: "UPDATED"; usecase: StoredUseCase };
 
 export async function authorUseCase(
   deps: UseCaseAuthoringDeps,
@@ -90,6 +109,34 @@ export async function authorUseCase(
     suggestedNextActions: useCaseNextActions(usecase.key),
     usecase
   };
+}
+
+export async function updateUseCaseMetadata(
+  deps: UseCaseUpdateDeps,
+  input: UseCaseUpdateInput
+): Promise<UseCaseUpdateResult> {
+  const found = await deps.useCaseStore.findUseCaseWithProject(input.usecaseId);
+  if (found === undefined) {
+    return { status: "USECASE_NOT_FOUND" };
+  }
+  if (
+    input.userId === undefined ||
+    (await deps.membershipStore.membershipForProject(found.projectId, input.userId)) ===
+      undefined
+  ) {
+    return { status: "FORBIDDEN" };
+  }
+  if (
+    input.status !== undefined &&
+    input.status !== "DRAFT" &&
+    (await deps.stakeholderInterestStore.listStakeholderInterests(found.usecase.id))
+      .length === 0
+  ) {
+    return { status: "NEEDS_STAKEHOLDER_INTEREST" };
+  }
+
+  await deps.useCaseStore.updateUseCase(found.usecase);
+  return { status: "UPDATED", usecase: found.usecase };
 }
 
 async function seededUseCase(

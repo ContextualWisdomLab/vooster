@@ -537,3 +537,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: invitation creation authorizes workspace membership, rejects missing workspaces, blocks editor-to-owner invites, and rejects emails that already belong to active members without saving.
 - **Application**: invitation creation returns an existing pending invitation idempotently, creates new expiring invitations with injected ids/clock, and records delivery-failure state for response guidance.
 - **Route preservation**: UC-003 E2E and CLI tests continue to prove HTTP problem mapping, invite acceptance, duplicate resend guidance, delivery-failure guidance, expiry handling, and email mismatch protection.
+
+### Goal 2 Layers - Stakeholders
+
+- **Application**: stakeholder creation rejects archived project workspaces, actor-step misuse, invalid stakeholder types, and duplicate active names without saving stakeholders or revisions.
+- **Application**: stakeholder creation persists a new Stakeholder plus version-1 STAKEHOLDER revision using injected ids and returns the next command guidance data to HTTP.
+- **Route preservation**: UC-006 E2E and CLI tests continue to prove membership protection, HTTP problem mapping, duplicate guidance, invalid-type details, actor/stakeholder distinction, archive handling, and human CLI output.

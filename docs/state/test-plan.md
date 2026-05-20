@@ -543,3 +543,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: stakeholder creation rejects archived project workspaces, actor-step misuse, invalid stakeholder types, and duplicate active names without saving stakeholders or revisions.
 - **Application**: stakeholder creation persists a new Stakeholder plus version-1 STAKEHOLDER revision using injected ids and returns the next command guidance data to HTTP.
 - **Route preservation**: UC-006 E2E and CLI tests continue to prove membership protection, HTTP problem mapping, duplicate guidance, invalid-type details, actor/stakeholder distinction, archive handling, and human CLI output.
+
+### Goal 2 Layers - Merges
+
+- **Application**: merge opening resolves source branch/project, authorizes project membership, rejects inactive or missing sources, and rejects forced fast-forward when main advanced without creating a merge request.
+- **Application**: merge opening creates auditable OPEN merge requests with severity impact for conflicts, hard locks, and write failures, and mutates target/source/MR only for clean merges using injected ids and clock.
+- **Route preservation**: UC-020 E2E and CLI tests continue to prove HTTP problem mapping, fast-forward success, structural and semantic conflicts, hard-lock guidance, forced fast-forward rejection, write-failure retry guidance, and human CLI output.

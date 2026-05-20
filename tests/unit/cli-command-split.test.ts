@@ -5,6 +5,7 @@ import { AiGuideCommand } from "../../src/cli/commands/ai-guide.js";
 import { ApiKeyCommand } from "../../src/cli/commands/api-key.js";
 import { BranchCommand } from "../../src/cli/commands/branch.js";
 import { CommentCommand } from "../../src/cli/commands/comment.js";
+import { GoalCommand } from "../../src/cli/commands/goal.js";
 import { LoginCommand } from "../../src/cli/commands/login.js";
 import { MemberCommand } from "../../src/cli/commands/member.js";
 import { ProjectCommand } from "../../src/cli/commands/project.js";
@@ -36,5 +37,9 @@ describe("CLI command split", () => {
 
   test("comment lives in a real oclif command module", () => {
     expect(CommentCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("goal lives in a real oclif command module", () => {
+    expect(GoalCommand.prototype).toBeInstanceOf(Command);
   });
 });

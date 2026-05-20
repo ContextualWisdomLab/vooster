@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T20:35:28Z_
+_Last updated: 2026-05-20T20:41:10Z_
 
 ## Overall
 
-- Commits: 961
-- Last commit: 83ca97a green(prisma-split): add prisma usecase adapter
+- Commits: 965
+- Last commit: 404e9dd green(cli-split): extract diff command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

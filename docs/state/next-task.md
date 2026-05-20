@@ -1,12 +1,11 @@
 # Next Task
 
-_Auto-generated 2026-05-20T20:35:28Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T20:41:10Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Finish the CLI split (gate 4.C3).
 
   These subcommands still have no file under src/cli/commands/:
-    diff
     history
     impact
     lock

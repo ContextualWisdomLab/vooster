@@ -507,3 +507,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: lock acquisition authorizes the caller, rejects missing/archived use cases, detects competing active locks, ignores expired locks, and creates finite auto-release lock rows.
 - **Application**: lock renewal rejects missing, foreign, and expired locks, and extends owned active locks using an injected clock.
 - **Route preservation**: UC-022 E2E and CLI tests continue to prove HTTP problem mapping, holder metadata, and renew/unlock guidance.
+
+### Goal 2 Layers - Revision History
+
+- **Application**: revision history lookup authorizes the caller, resolves project-scoped missing-usecase guidance, and remains read-only for missing or forbidden callers.
+- **Application**: revision history rows are ordered newest-first, capped by the requested limit, include deterministic author/timestamp fields, and report suppressed counts plus larger-limit guidance.
+- **Route preservation**: UC-024 E2E and CLI tests continue to prove HTTP problem mapping, retry guidance, truncation flags, and human CLI output.

@@ -1,13 +1,13 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T21:14:04Z_
+_Last updated: 2026-05-20T22:04:27Z_
 
 ## Overall
 
-- Commits: 994
-- Last commit: 55d2428 green(honest-gates): add config grep meta script
+- Commits: 996
+- Last commit: d78b530 fix(gates): restore regression gate isolation
 - Use cases complete: 35 / 35
-- Active goal: goals/4-honest-boundaries.md
+- Active goal: ALL_DONE
 
 ## Runnability (goal 1)
 

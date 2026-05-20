@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T18:28:03Z_
+_Last updated: 2026-05-20T18:32:07Z_
 
 ## Overall
 
-- Commits: 863
-- Last commit: 2adf214 green(cli-split): extract goal command
+- Commits: 866
+- Last commit: 4d1037f green(cli-split): extract actor command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

@@ -108,10 +108,12 @@ function depsFor(
   } = {}
 ) {
   return {
-    actorStore: actorStore(options.actor),
+    actorStore: actorStore("actor" in options ? options.actor : actor()),
     idFactory: ids("usecase-1", "revision-1"),
-    membershipStore: membershipStore(options.membership),
-    projectStore: projectStore(options.project),
+    membershipStore: membershipStore(
+      "membership" in options ? options.membership : member()
+    ),
+    projectStore: projectStore("project" in options ? options.project : project()),
     revisionStore: revisionStore(options.savedRevisions ?? []),
     useCaseStore: useCaseStore(options.savedUseCases ?? [])
   };
@@ -134,7 +136,7 @@ function input(
   };
 }
 
-function actorStore(foundActor = actor()): ActorStore {
+function actorStore(foundActor: StoredActor | undefined): ActorStore {
   return {
     archiveActor: () => Promise.resolve(false),
     findActorById: () => Promise.resolve(undefined),
@@ -144,7 +146,7 @@ function actorStore(foundActor = actor()): ActorStore {
   };
 }
 
-function membershipStore(membership = member()): MembershipStore {
+function membershipStore(membership: StoredMembership | undefined): MembershipStore {
   return {
     membershipForProject: () => Promise.resolve(membership),
     membershipForWorkspace: () => Promise.resolve(undefined),
@@ -153,7 +155,7 @@ function membershipStore(membership = member()): MembershipStore {
   };
 }
 
-function projectStore(foundProject = project()): ProjectStore {
+function projectStore(foundProject: StoredProject | undefined): ProjectStore {
   return {
     findProjectById: () => Promise.resolve(foundProject),
     findProjectByWorkspaceAndKey: () => Promise.resolve(undefined),
@@ -196,9 +198,11 @@ function ids(...values: string[]) {
 
 function actor(overrides: Partial<StoredActor> = {}): StoredActor {
   return {
+    aliases: [],
     archived_at: null,
     description: "",
     id: "actor-1",
+    is_human: true,
     name: "Customer",
     project_id: "project-1",
     type: "PRIMARY",
@@ -208,6 +212,7 @@ function actor(overrides: Partial<StoredActor> = {}): StoredActor {
 
 function member(): StoredMembership {
   return {
+    id: "membership-1",
     role: "EDITOR",
     user_id: "user-1",
     workspace_id: "workspace-1"
@@ -216,10 +221,11 @@ function member(): StoredMembership {
 
 function project(): StoredProject {
   return {
+    default_branch_id: "branch-main",
     id: "project-1",
     key: "CHK",
     name: "Checkout",
-    slug: "checkout",
+    visibility: "PRIVATE",
     workspace_id: "workspace-1"
   };
 }

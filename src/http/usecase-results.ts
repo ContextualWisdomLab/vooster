@@ -1,0 +1,66 @@
+import type { FastifyReply } from "fastify";
+import type { UseCaseAuthoringResult } from "../application/usecases.js";
+import { problem } from "./signup-support.js";
+
+export function sendUseCaseAuthoringResult(
+  reply: FastifyReply,
+  result: UseCaseAuthoringResult
+) {
+  switch (result.status) {
+    case "FORBIDDEN":
+      return reply.code(403).send(useCaseCreateAccessProblem());
+    case "TITLE_NOT_VERB_PHRASE":
+      return reply.code(422).send(
+        problem(
+          422,
+          "Use case title should be a verb phrase",
+          { suggested_titles: result.suggestedTitles },
+          [
+            {
+              command: "vspec usecase create --force",
+              reason: "Create anyway after reviewing the title."
+            }
+          ]
+        )
+      );
+    case "PROJECT_NOT_FOUND":
+      return reply.code(404).send(problem(404, "Project not found"));
+    case "PRIMARY_ACTOR_NOT_AVAILABLE":
+      return reply.code(422).send(
+        problem(
+          422,
+          "Primary actor is not available",
+          { actor_name: result.actorName },
+          [
+            {
+              command: "vspec actor list",
+              reason: "Find a valid actor for this project."
+            },
+            {
+              command: `vspec actor create --name ${result.actorName}`,
+              reason: "Create the actor before authoring the use case."
+            }
+          ]
+        )
+      );
+    case "CREATED":
+      return reply.code(201).send({
+        revision: result.revision,
+        suggested_next_actions: result.suggestedNextActions,
+        usecase: result.usecase
+      });
+  }
+}
+
+export function useCaseCreateAccessProblem() {
+  return problem(403, "Not authorized to create use cases in this project", {}, [
+    {
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    },
+    {
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for editor access."
+    }
+  ]);
+}

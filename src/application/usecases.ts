@@ -1,0 +1,169 @@
+import { randomUUID } from "node:crypto";
+import type {
+  StoredProject,
+  StoredRevision,
+  StoredUseCase
+} from "../http/signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
+import type { MembershipStore } from "../ports/membership-store.js";
+import type { ProjectStore } from "../ports/project-store.js";
+import type { RevisionStore } from "../ports/revision-store.js";
+import type { UseCaseStore } from "../ports/usecase-store.js";
+
+export type UseCaseAuthoringDeps = {
+  actorStore: ActorStore;
+  idFactory?: () => string;
+  membershipStore: MembershipStore;
+  projectStore: ProjectStore;
+  revisionStore: RevisionStore;
+  useCaseStore: UseCaseStore;
+};
+
+export type UseCaseAuthoringInput = {
+  force: boolean;
+  level: StoredUseCase["level"];
+  primaryActor: string;
+  priority: StoredUseCase["priority"];
+  projectId: string;
+  scope: string | undefined;
+  simulateKeyCollisionOnce: boolean;
+  title: string;
+  userId: string | undefined;
+};
+
+export type UseCaseAuthoringResult =
+  | { status: "FORBIDDEN" }
+  | { status: "TITLE_NOT_VERB_PHRASE"; suggestedTitles: string[] }
+  | { status: "PROJECT_NOT_FOUND" }
+  | { actorName: string; status: "PRIMARY_ACTOR_NOT_AVAILABLE" }
+  | {
+      revision: StoredRevision;
+      status: "CREATED";
+      suggestedNextActions: Array<{ command: string; reason: string }>;
+      usecase: StoredUseCase;
+    };
+
+export async function authorUseCase(
+  deps: UseCaseAuthoringDeps,
+  input: UseCaseAuthoringInput
+): Promise<UseCaseAuthoringResult> {
+  if (
+    input.userId === undefined ||
+    (await deps.membershipStore.membershipForProject(input.projectId, input.userId)) ===
+      undefined
+  ) {
+    return { status: "FORBIDDEN" };
+  }
+  if (!input.force && !titleLooksLikeVerbPhrase(input.title)) {
+    return {
+      status: "TITLE_NOT_VERB_PHRASE",
+      suggestedTitles: suggestedTitles(input.title)
+    };
+  }
+
+  const project = await deps.projectStore.findProjectById(input.projectId);
+  if (project === undefined) {
+    return { status: "PROJECT_NOT_FOUND" };
+  }
+  const actor = await deps.actorStore.findActorByName(
+    input.projectId,
+    input.primaryActor
+  );
+  if (actor === undefined || actor.archived_at !== null) {
+    return {
+      actorName: input.primaryActor,
+      status: "PRIMARY_ACTOR_NOT_AVAILABLE"
+    };
+  }
+
+  const usecase = await seededUseCase(deps, input, project, actor.id);
+  const revision = useCaseRevision(deps, usecase);
+  usecase.current_revision_id = revision.id;
+  revision.snapshot = { ...usecase };
+
+  await deps.useCaseStore.saveUseCase(usecase);
+  await deps.revisionStore.saveRevision(revision);
+
+  return {
+    revision,
+    status: "CREATED",
+    suggestedNextActions: useCaseNextActions(usecase.key),
+    usecase
+  };
+}
+
+async function seededUseCase(
+  deps: UseCaseAuthoringDeps,
+  input: UseCaseAuthoringInput,
+  project: StoredProject,
+  actorId: string
+): Promise<StoredUseCase> {
+  return {
+    archived_at: null,
+    current_revision_id: "",
+    format: "BRIEF",
+    id: idFrom(deps),
+    key: await nextUseCaseKey(
+      deps.useCaseStore,
+      project.id,
+      project.key,
+      input.simulateKeyCollisionOnce ? 1 : 0
+    ),
+    level: input.level,
+    primary_actor_id: actorId,
+    priority: input.priority,
+    project_id: input.projectId,
+    scope: input.scope ?? project.key.toLowerCase(),
+    status: "DRAFT",
+    title: input.title
+  };
+}
+
+async function nextUseCaseKey(
+  useCaseStore: UseCaseStore,
+  projectId: string,
+  projectKey: string,
+  skipCount = 0
+): Promise<string> {
+  const nextNumber =
+    (await useCaseStore.listUseCases(projectId)).length + 1 + skipCount;
+  return `${projectKey}-${String(nextNumber).padStart(3, "0")}`;
+}
+
+function useCaseRevision(
+  deps: UseCaseAuthoringDeps,
+  usecase: StoredUseCase
+): StoredRevision {
+  return {
+    entity_id: usecase.id,
+    entity_type: "USECASE",
+    id: idFrom(deps),
+    snapshot: { ...usecase },
+    version_number: 1
+  };
+}
+
+function useCaseNextActions(key: string) {
+  return [
+    { command: `vspec usecase show ${key}`, reason: "Open the new use case." },
+    {
+      command: "vspec usecase add-stakeholder",
+      reason: "Attach stakeholders and interests."
+    },
+    { command: "vspec scenario add", reason: "Write the main success scenario." }
+  ];
+}
+
+function titleLooksLikeVerbPhrase(title: string): boolean {
+  return /^(adds?|approves?|cancels?|creates?|places?|promotes?|renews?|requests?|reviews?|submits?|tracks?|writes?)\b/i.test(
+    title
+  );
+}
+
+function suggestedTitles(title: string): string[] {
+  return [`Reviews ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
+}
+
+function idFrom(deps: UseCaseAuthoringDeps): string {
+  return (deps.idFactory ?? randomUUID)();
+}

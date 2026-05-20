@@ -24,6 +24,7 @@ import { StakeholderCommand } from "../../src/cli/commands/stakeholder.js";
 import { StepCommand } from "../../src/cli/commands/step.js";
 import { SyncCommand } from "../../src/cli/commands/sync.js";
 import { UsecaseCommand } from "../../src/cli/commands/usecase.js";
+import { WhoCommand } from "../../src/cli/commands/who.js";
 
 describe("CLI command split", () => {
   test("login lives in a real oclif command module", () => {
@@ -112,6 +113,10 @@ describe("CLI command split", () => {
 
   test("lock lives in a real oclif command module", () => {
     expect(LockCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("who lives in a real oclif command module", () => {
+    expect(WhoCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("export lives in a real oclif command module", () => {

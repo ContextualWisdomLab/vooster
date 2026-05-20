@@ -1,0 +1,197 @@
+import { Args, Command, Flags } from "@oclif/core";
+
+import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { deleteJson, fetchJson, postJson } from "../http-client.js";
+
+type ApiKeyFlags = {
+  "api-url"?: string;
+  name?: string;
+  scopes?: string;
+  "session-cookie"?: string;
+  "workspace-id"?: string;
+};
+
+type ApiKeyWorkspaceFlags = {
+  apiUrl: string;
+  sessionCookie: string;
+  workspaceId: string;
+};
+
+type ApiKeyCreateFlags = ApiKeyWorkspaceFlags & {
+  name: string;
+  scopes: string[];
+};
+
+type ApiKeyRevokeFlags = {
+  apiKeyId: string;
+  apiUrl: string;
+  sessionCookie: string;
+};
+
+type ApiKey = {
+  id: string;
+  name: string;
+  revoked_at: null | string;
+  scopes: string[];
+};
+
+type SuggestedAction = {
+  command: string;
+};
+
+type ApiKeyCreateResponse = {
+  api_key: ApiKey;
+  plaintext_token: string;
+  suggested_next_actions: SuggestedAction[];
+};
+
+type ApiKeyListResponse = { api_keys: ApiKey[] };
+
+type ApiKeyRevokeResponse = {
+  api_key: ApiKey;
+  idempotent?: boolean;
+  suggested_next_actions: SuggestedAction[];
+};
+
+export class ApiKeyCommand extends Command {
+  static override description = "Manage workspace API keys.";
+
+  static override args = {
+    action: Args.string(),
+    apiKeyId: Args.string()
+  };
+
+  static override flags = {
+    "api-url": Flags.string(),
+    name: Flags.string(),
+    scopes: Flags.string(),
+    "session-cookie": Flags.string(),
+    "workspace-id": Flags.string()
+  };
+
+  override async run(): Promise<void> {
+    const parsed = await this.parse(ApiKeyCommand);
+
+    await runApiKey(parsed.flags, parsed.args.action, parsed.args.apiKeyId, this.log.bind(this));
+  }
+}
+
+export async function runApiKey(
+  flags: ApiKeyFlags,
+  action: string | undefined,
+  apiKeyId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  if (action === "create") {
+    await createApiKey(flags, writeLine);
+    return;
+  }
+  if (action === "list") {
+    await listApiKeys(flags, writeLine);
+    return;
+  }
+  if (action === "revoke") {
+    await revokeApiKey(flags, apiKeyId, writeLine);
+    return;
+  }
+
+  throw new Error("Missing api-key action.");
+}
+
+async function createApiKey(flags: ApiKeyFlags, writeLine: (message: string) => void): Promise<void> {
+  const apiKeyFlags = apiKeyCreateFlagsFrom(flags);
+  const response = await postJson(
+    `${apiKeyFlags.apiUrl}/v1/api-keys`,
+    {
+      name: apiKeyFlags.name,
+      scopes: apiKeyFlags.scopes,
+      workspace_id: apiKeyFlags.workspaceId
+    },
+    {
+      Cookie: apiKeyFlags.sessionCookie
+    }
+  );
+  const body = response.body as ApiKeyCreateResponse;
+
+  printApiKey(body.api_key, writeLine);
+  writeLine(`Token ${body.plaintext_token}`);
+  writeLine("Only shown once");
+  for (const action of body.suggested_next_actions) {
+    writeLine(action.command);
+  }
+}
+
+async function listApiKeys(flags: ApiKeyFlags, writeLine: (message: string) => void): Promise<void> {
+  const apiKeyFlags = apiKeyWorkspaceFlagsFrom(flags);
+  const url = new URL("/v1/api-keys", apiKeyFlags.apiUrl);
+  url.searchParams.set("workspace_id", apiKeyFlags.workspaceId);
+  const response = await fetchJson(url, {
+    headers: {
+      Cookie: apiKeyFlags.sessionCookie
+    }
+  });
+  const body = response.body as ApiKeyListResponse;
+
+  writeLine(`ApiKeys ${String(body.api_keys.length)}`);
+  for (const apiKey of body.api_keys) {
+    printApiKey(apiKey, writeLine);
+  }
+}
+
+async function revokeApiKey(
+  flags: ApiKeyFlags,
+  apiKeyId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const apiKeyFlags = apiKeyRevokeFlagsFrom(flags, apiKeyId);
+  const response = await deleteJson(`${apiKeyFlags.apiUrl}/v1/api-keys/${apiKeyFlags.apiKeyId}`, {
+    Cookie: apiKeyFlags.sessionCookie
+  });
+  const body = response.body as ApiKeyRevokeResponse;
+
+  printApiKey(body.api_key, writeLine);
+  writeLine(`Revoked ${body.api_key.revoked_at ?? "null"}`);
+  if (body.idempotent === true) {
+    writeLine("Idempotent true");
+  }
+  for (const action of body.suggested_next_actions) {
+    writeLine(action.command);
+  }
+}
+
+function printApiKey(apiKey: ApiKey, writeLine: (message: string) => void): void {
+  writeLine(`ApiKey ${apiKey.id}`);
+  writeLine(`Name ${apiKey.name}`);
+  writeLine(`Scopes ${apiKey.scopes.join(", ")}`);
+  writeLine(`Revoked ${apiKey.revoked_at ?? "false"}`);
+}
+
+function apiKeyWorkspaceFlagsFrom(flags: ApiKeyFlags): ApiKeyWorkspaceFlags {
+  return {
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    workspaceId: requiredFlag(flags, "workspace-id")
+  };
+}
+
+function apiKeyCreateFlagsFrom(flags: ApiKeyFlags): ApiKeyCreateFlags {
+  return {
+    ...apiKeyWorkspaceFlagsFrom(flags),
+    name: requiredFlag(flags, "name"),
+    scopes: requiredFlag(flags, "scopes")
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter((scope) => scope.length > 0)
+  };
+}
+
+function apiKeyRevokeFlagsFrom(
+  flags: ApiKeyFlags,
+  apiKeyId: string | undefined
+): ApiKeyRevokeFlags {
+  return {
+    apiKeyId: requiredArgument(apiKeyId, "api-key-id"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}

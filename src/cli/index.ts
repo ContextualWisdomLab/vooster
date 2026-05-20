@@ -7,6 +7,7 @@ import { runActor } from "./commands/actor.js";
 import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runBranch } from "./commands/branch.js";
+import { runChange } from "./commands/change.js";
 import { runComment } from "./commands/comment.js";
 import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
@@ -165,11 +166,11 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "change" && this.argv[1] === "propose") {
-      await this.proposeChange(parsed.flags);
+      await runChange(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "change" && this.argv[1] === "commit") {
-      await this.commitChange(parsed.flags);
+      await runChange(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "pull") {
@@ -488,63 +489,6 @@ export class VspecCommand extends Command {
     }
   }
 
-  private async proposeChange(flags: ParsedFlags): Promise<void> {
-    const changeFlags = changeProposeFlagsFrom(flags);
-    const patch = await readJsonFile(changeFlags.patchPath);
-    const response = await postJson(
-      `${changeFlags.apiUrl}/v1/changes/preview`,
-      {
-        auto_commit: changeFlags.autoCommit,
-        base_revision: changeFlags.baseRevision,
-        patch,
-        usecase_key: changeFlags.usecaseKey
-      },
-      {
-        Cookie: changeFlags.sessionCookie
-      }
-    );
-    const body = response.body as ChangePreviewResponse;
-
-    this.log(`Preview ${body.preview_id}`);
-    this.log(`Severity ${body.severity}`);
-    this.log(`Expires ${body.expires_at}`);
-    this.log(`Affected sessions ${formatPreviewAffectedSessions(body.impact.affected_sessions)}`);
-    for (const diff of body.diff) {
-      this.log(`Diff ${diff.entity_type} ${diff.path} ${diff.severity}`);
-      this.log(`Before ${diff.before}`);
-      this.log(`After ${diff.after}`);
-    }
-    for (const warning of body.warnings) {
-      this.log(`Warning ${warning.type} ${warning.message}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
-  private async commitChange(flags: ParsedFlags): Promise<void> {
-    const changeFlags = changeCommitFlagsFrom(flags);
-    const response = await postJson(
-      `${changeFlags.apiUrl}/v1/changes/commit`,
-      {
-        confirmed: true,
-        preview_id: changeFlags.previewId
-      },
-      {
-        Cookie: changeFlags.sessionCookie
-      }
-    );
-    const body = response.body as ChangeCommitResponse;
-
-    for (const revision of body.revisions) {
-      this.log(`Entity ${revision.entity_id}`);
-      this.log(`Revision ${revision.revision_id}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async pullFiles(flags: ParsedFlags): Promise<void> {
     const syncFlags = syncFlagsFrom(flags);
     const response = await postJson(
@@ -692,21 +636,6 @@ type ImpactFlags = {
   proposedChangePath: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type ChangeProposeFlags = {
-  apiUrl: string;
-  autoCommit: boolean;
-  baseRevision: string;
-  patchPath: string;
-  sessionCookie: string;
-  usecaseKey: string;
-};
-
-type ChangeCommitFlags = {
-  apiUrl: string;
-  previewId: string;
-  sessionCookie: string;
 };
 
 type SyncFlags = {
@@ -938,43 +867,6 @@ type ImpactResponse = {
   }>;
 };
 
-type ChangePreviewResponse = {
-  diff: Array<{
-    after: string;
-    before: string;
-    entity_type: string;
-    path: string;
-    severity: string;
-  }>;
-  expires_at: string;
-  impact: {
-    affected_sessions: Array<{
-      id: string;
-      pinned_usecase_keys: string[];
-    }>;
-    severity: string;
-  };
-  preview_id: string;
-  severity: string;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings: Array<{
-    message: string;
-    type: string;
-  }>;
-};
-
-type ChangeCommitResponse = {
-  revisions: Array<{
-    entity_id: string;
-    revision_id: string;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
 type SyncPullResponse = {
   cursor: string;
   files: Array<{
@@ -1072,25 +964,6 @@ function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Imp
     proposedChangePath: optionalFlag(flags, "proposed-change"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function changeProposeFlagsFrom(flags: ParsedFlags): ChangeProposeFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    autoCommit: flags["auto-commit"] ?? false,
-    baseRevision: requiredFlag(flags, "base-revision"),
-    patchPath: requiredFlag(flags, "patch"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseKey: requiredFlag(flags, "usecase")
-  };
-}
-
-function changeCommitFlagsFrom(flags: ParsedFlags): ChangeCommitFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    previewId: requiredFlag(flags, "preview-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
   };
 }
 
@@ -1209,22 +1082,6 @@ async function proposedChangePayload(path: string | undefined): Promise<Record<s
     proposed_change_content: await readFile(path, "utf8"),
     proposed_change_path: path
   };
-}
-
-async function readJsonFile(path: string): Promise<unknown> {
-  return JSON.parse(await readFile(path, "utf8")) as unknown;
-}
-
-function formatPreviewAffectedSessions(
-  sessions: ChangePreviewResponse["impact"]["affected_sessions"]
-): string {
-  if (sessions.length === 0) {
-    return "none";
-  }
-
-  return sessions
-    .map((session) => `${session.id} ${session.pinned_usecase_keys.join(",")}`)
-    .join("; ");
 }
 
 function formatAffectedSessions(sessions: ImpactResponse["impact"]["affected_sessions"]): string {

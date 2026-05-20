@@ -604,3 +604,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: revision revert resolves the use case/project, authorizes membership, rejects hard locks, missing target revisions, breaking reverts without force, and simulated write failures without writes.
 - **Application**: revision revert appends a forward USECASE revision from the target snapshot with injected ids, advances the use case current head, advances the project default branch head, reports impact metadata, and emits Gherkin drift warnings.
 - **Route preservation**: UC-026 E2E and CLI tests continue to prove HTTP validation, missing-revision guidance, hard-lock guidance, breaking-impact guidance, write-failure retry guidance, branch head advancement, and human CLI output.
+
+### Goal 2 Layers - Gherkin Export
+
+- **Application**: Gherkin export resolves the use case/project, authorizes membership, rejects missing use cases, archived use cases, missing requested revisions, and incomplete main success scenarios before rendering.
+- **Application**: Gherkin export renders deterministic Feature, Background, main scenario, and lexicographically sorted extension scenarios with actor names.
+- **Route preservation**: UC-030 E2E and CLI tests continue to prove HTTP validation, output-path guidance, existing-file diff guidance, missing-revision guidance, archived-usecase guidance, and human CLI output.

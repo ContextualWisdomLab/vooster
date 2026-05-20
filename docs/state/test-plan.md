@@ -1008,6 +1008,18 @@ write. This guides your TDD cycles within an iteration._
   full Vitest suite remain green after `src/cli/index.ts` delegates `revert` to
   the dedicated command module.
 
+### Goal 4 CLI Split - Impact Command
+
+- **Command module**: `tests/unit/cli-command-split.test.ts` imports
+  `ImpactCommand` from `src/cli/commands/impact.ts` and asserts it extends the
+  oclif `Command` base class.
+- **Setup**: keep the command-split test as the fast RED/GREEN signal while
+  extracting `impact` preview behavior and local proposed-change file loading
+  from `src/cli/index.ts`.
+- **Assertions**: focused command-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after `src/cli/index.ts` delegates `impact` to
+  the dedicated command module.
+
 ### Goal 4 CLI Split - Diff Command
 
 - **Command module**: `tests/unit/cli-command-split.test.ts` imports

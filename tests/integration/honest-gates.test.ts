@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -7,7 +8,12 @@ import { describe, expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "../..");
-const fixtureRoot = path.join(root, ".state/honest-gates-test");
+const fixtureRoot = path.join(tmpdir(), "vooster-honest-gates-test");
+
+type ExecResult = {
+  stdout: string;
+  stderr: string;
+};
 
 describe("honest gates script", () => {
   test("rejects tests that assert on raw config file text", async () => {
@@ -25,9 +31,9 @@ describe("honest gates script", () => {
       ].join("\n")
     );
 
-    await expect(runHonestGates(testsDir)).rejects.toMatchObject({
-      stdout: expect.stringContaining("dishonest.test.ts")
-    });
+    await expect(runHonestGates(testsDir)).rejects.toSatisfy(
+      (error: unknown) => outputFrom(error).stdout.includes("dishonest.test.ts")
+    );
   });
 
   test("allows tests that parse config structurally", async () => {
@@ -44,9 +50,8 @@ describe("honest gates script", () => {
       ].join("\n")
     );
 
-    await expect(runHonestGates(testsDir)).resolves.toMatchObject({
-      stdout: expect.stringContaining("check-honest-gates")
-    });
+    const result = await runHonestGates(testsDir);
+    expect(result.stdout).toContain("check-honest-gates");
   });
 });
 
@@ -64,5 +69,22 @@ async function runHonestGates(testsDir: string) {
       ...process.env,
       HONEST_GATES_TESTS_DIR: testsDir
     }
-  });
+  }) as Promise<ExecResult>;
+}
+
+function outputFrom(error: unknown): ExecResult {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "stdout" in error &&
+    "stderr" in error
+  ) {
+    const output = error as Partial<ExecResult>;
+    return {
+      stderr: output.stderr ?? "",
+      stdout: output.stdout ?? ""
+    };
+  }
+
+  return { stderr: "", stdout: "" };
 }

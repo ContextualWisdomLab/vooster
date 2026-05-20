@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T18:35:14Z_
+_Last updated: 2026-05-20T18:43:56Z_
 
 ## Overall
 
-- Commits: 869
-- Last commit: e1da619 green(cli-split): extract stakeholder command
+- Commits: 872
+- Last commit: aae2e19 green(cli-split): extract usecase command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

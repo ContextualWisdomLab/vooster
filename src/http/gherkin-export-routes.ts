@@ -1,15 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import {
-  archivedUseCaseProblem,
-  existingOutputProblem,
-  gherkinPrerequisiteProblem,
-  missingRevisionProblem,
-  outputPathProblem
-} from "./gherkin-export-problems.js";
-import { membershipForProject } from "./membership-support.js";
+import { exportGherkin as exportGherkinWorkflow } from "../application/gherkin-export.js";
+import { existingOutputProblem, outputPathProblem } from "./gherkin-export-problems.js";
+import { sendGherkinExportProblem } from "./gherkin-export-results.js";
+import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredScenario, StoredStep, StoredUseCase } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -66,124 +62,41 @@ async function exportGherkin(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid Gherkin export request"));
   }
-  const found = await useCaseStore.findUseCaseWithProject(usecaseId);
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
-  }
-  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Not authorized to export Gherkin"));
-  }
-  const archivedProblem = archivedUseCaseProblem(found.usecase);
-  if (archivedProblem !== undefined) {
-    return reply.code(409).send(archivedProblem);
-  }
-  const revisionProblem = await missingRevisionProblem(
-    revisionStore,
-    found.usecase,
-    parsed.data.revision_id
+
+  const result = await exportGherkinWorkflow(
+    {
+      actorStore,
+      membershipStore,
+      revisionStore,
+      scenarioStore,
+      stepStore,
+      useCaseStore
+    },
+    {
+      revisionId: parsed.data.revision_id,
+      usecaseId,
+      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+    }
   );
-  if (revisionProblem !== undefined) {
-    return reply.code(404).send(revisionProblem);
+  if (result.status !== "EXPORTED") {
+    return sendGherkinExportProblem(reply, result);
   }
-  const prerequisiteProblem = await gherkinPrerequisiteProblem(
-    state,
-    scenarioStore,
-    stepStore,
-    found.usecase
-  );
-  if (prerequisiteProblem !== undefined) {
-    return reply.code(422).send(prerequisiteProblem);
-  }
+
   const outputProblem = outputPathProblem(parsed.data.output_path);
   if (outputProblem !== undefined) {
     return reply.code(400).send(outputProblem);
   }
-  const feature = await renderFeature(
-    state,
-    found.projectId,
-    found.usecase,
-    actorStore,
-    scenarioStore,
-    stepStore
-  );
   if (parsed.data.existing_file_content !== undefined && !parsed.data.force) {
-    return reply.code(409).send(existingOutputProblem(
-      found.usecase,
-      parsed.data.output_path,
-      parsed.data.existing_file_content,
-      feature
-    ));
+    return reply
+      .code(409)
+      .send(
+        existingOutputProblem(
+          result.usecase,
+          parsed.data.output_path,
+          parsed.data.existing_file_content,
+          result.feature
+        )
+      );
   }
-  return reply.type("text/plain").send(feature);
-}
-
-async function renderFeature(
-  state: SignupState,
-  projectId: string,
-  usecase: StoredUseCase,
-  actorStore: ActorStore,
-  scenarioStore: ScenarioStore,
-  stepStore: StepStore
-) {
-  const scenarios = await scenarioStore.listScenarios(usecase.id);
-  const main = scenarios.find((scenario) => scenario.type === "MAIN_SUCCESS");
-  const extensions = scenarios
-    .filter((scenario) => scenario.type === "EXTENSION")
-    .sort((left, right) => (left.extension_point ?? "").localeCompare(right.extension_point ?? ""));
-  return [
-    `Feature: ${usecase.title}`,
-    `Background:\n  Given the use case is in scope ${usecase.scope}`,
-    main === undefined ? "" : await renderMainScenario(projectId, main, actorStore, stepStore),
-    ...(await Promise.all(
-      extensions.map((scenario) =>
-        renderExtensionScenario(projectId, scenario, actorStore, stepStore)
-      )
-    ))
-  ].filter((section) => section.length > 0).join("\n\n") + "\n";
-}
-
-async function renderMainScenario(
-  projectId: string,
-  scenario: StoredScenario,
-  actorStore: ActorStore,
-  stepStore: StepStore
-) {
-  const steps = await Promise.all(
-    (await scenarioSteps(stepStore, scenario.id)).map(async (step) =>
-      `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
-  );
-  return [
-    "Scenario: Main success",
-    ...steps
-  ].join("\n");
-}
-
-async function renderExtensionScenario(
-  projectId: string,
-  scenario: StoredScenario,
-  actorStore: ActorStore,
-  stepStore: StepStore
-) {
-  const condition = scenario.condition ?? "Extension";
-  const extensionPoint = scenario.extension_point ?? "*";
-  const parentStep = scenario.parent_step_number ?? 0;
-  const steps = await Promise.all(
-    (await scenarioSteps(stepStore, scenario.id)).map(async (step) =>
-      `  When ${await actorName(actorStore, projectId, step.actor_id)} ${step.action}`)
-  );
-  return [
-    `Scenario: ${extensionPoint} ${condition}`,
-    `  Given main success reaches step ${String(parentStep)}`,
-    ...steps,
-    `  Then outcome is ${scenario.outcome}`
-  ].join("\n");
-}
-
-async function scenarioSteps(stepStore: StepStore, scenarioId: string): Promise<StoredStep[]> {
-  return [...(await stepStore.listSteps(scenarioId))]
-    .sort((left, right) => left.step_number - right.step_number);
-}
-
-async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {
-  return (await actorStore.findActorById(projectId, actorId))?.name ?? "System";
+  return reply.type("text/plain").send(result.feature);
 }

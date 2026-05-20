@@ -1,24 +1,16 @@
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredUseCase } from "./signup-types.js";
-import type { RevisionStore } from "../ports/revision-store.js";
-import type { ScenarioStore } from "../ports/scenario-store.js";
-import type { StepStore } from "../ports/step-store.js";
+import type { StoredUseCase } from "./signup-types.js";
 
 export function archivedUseCaseProblem(usecase: StoredUseCase) {
   if (usecase.archived_at === null) {
     return undefined;
   }
-  return problem(
-    409,
-    "Use case is archived",
-    {},
-    [
-      {
-        command: `vspec usecase restore ${usecase.key}`,
-        reason: "Restore the use case before exporting Gherkin."
-      }
-    ]
-  );
+  return problem(409, "Use case is archived", {}, [
+    {
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the use case before exporting Gherkin."
+    }
+  ]);
 }
 
 export function existingOutputProblem(
@@ -50,23 +42,14 @@ export function existingOutputProblem(
   );
 }
 
-export async function gherkinPrerequisiteProblem(
-  state: SignupState,
-  scenarioStore: ScenarioStore,
-  stepStore: StepStore,
-  usecase: StoredUseCase
+export function gherkinPrerequisiteProblem(
+  usecase: StoredUseCase,
+  missingRequiredField: "main_success" | "main_success.steps"
 ) {
-  const main = await scenarioStore.findMainScenario(usecase.id);
-  const stepCount = main === undefined
-    ? 0
-    : (await stepStore.listSteps(main.id)).length;
-  if (main !== undefined && stepCount > 0) {
-    return undefined;
-  }
   return problem(
     422,
     "Cannot export incomplete use case",
-    { missing_required_field: main === undefined ? "main_success" : "main_success.steps" },
+    { missing_required_field: missingRequiredField },
     [
       {
         command: `vspec doctor ${usecase.key}`,
@@ -80,30 +63,13 @@ export async function gherkinPrerequisiteProblem(
   );
 }
 
-export async function missingRevisionProblem(
-  revisionStore: RevisionStore,
-  usecase: StoredUseCase,
-  revisionId: string | undefined
-): Promise<ReturnType<typeof problem> | undefined> {
-  if (revisionId === undefined) {
-    return undefined;
-  }
-  const exists = (await revisionStore.listRevisions(usecase.id))
-    .some((revision) => revision.id === revisionId);
-  if (exists) {
-    return undefined;
-  }
-  return problem(
-    404,
-    "Revision not found",
-    { revision_id: revisionId },
-    [
-      {
-        command: `vspec history ${usecase.key}`,
-        reason: "Find an exportable revision for this use case."
-      }
-    ]
-  );
+export function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
+  return problem(404, "Revision not found", { revision_id: revisionId }, [
+    {
+      command: `vspec history ${usecase.key}`,
+      reason: "Find an exportable revision for this use case."
+    }
+  ]);
 }
 
 export function outputPathProblem(outputPath: string | undefined) {

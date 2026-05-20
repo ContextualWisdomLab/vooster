@@ -519,3 +519,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: project creation authorizes workspace membership, rejects archived workspaces and duplicate keys without writes, and creates a Project plus default main SpecBranch with injected ids.
 - **Application**: project creation uses the transactional signup store when available, falls back to separate project/branch ports when not, and reports simulated branch failure without consuming the key namespace.
 - **Route preservation**: UC-004 E2E and CLI tests continue to prove HTTP validation, problem mapping, rollback retry behavior, archived workspace handling, and create-next-action output.
+
+### Goal 2 Layers - Session List
+
+- **Application**: session list authorizes workspace membership and refuses non-members without reading workspace sessions.
+- **Application**: session list filters by workspace projects, status, project, and user; orders newest-first; resolves pinned keys, branch names, idle seconds, lock counts, conflict markers, and zombie markers with an injected clock.
+- **Route preservation**: UC-017 E2E and CLI tests continue to prove HTTP/SSE response mapping, non-member protection, empty guidance, zombie guidance, and human CLI output.

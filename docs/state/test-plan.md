@@ -555,3 +555,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: agent use-case fetch resolves the use case/project, authorizes project membership, hides missing or archived use cases, and returns simple non-agent reads without assembling agent-only data.
 - **Application**: agent use-case fetch resolves effective revisions from session pins, requested revisions, or current head; reports missing revisions; and emits warnings/actions for overridden and unpinned session reads.
 - **Route preservation**: UC-034 E2E and CLI tests continue to prove agent envelope shape, request id propagation, auth guidance, missing revision guidance, session pin override, unpinned session warning, archived hiding, and human CLI JSON output.
+
+### Goal 2 Layers - Impact Analysis
+
+- **Application**: impact preview resolves the use case/project, authorizes membership, rejects missing use cases, missing base revisions, unreadable proposed-change files, and malformed proposed-change content without reading sessions.
+- **Application**: impact preview computes deterministic input hashes, returns cached reports idempotently, rolls severity to BREAKING for active pinned sessions, and returns next-action command data with injected preview ids.
+- **Route preservation**: UC-027 E2E and CLI tests continue to prove HTTP problem mapping, no revision writes, cache behavior, active-session impact details, proposed-change guidance, authorization protection, and human CLI output.

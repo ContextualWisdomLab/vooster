@@ -1,15 +1,20 @@
 import { describe, expect, test } from "vitest";
-import { authorUseCase } from "../../../src/application/usecases.js";
+import {
+  authorUseCase,
+  updateUseCaseMetadata
+} from "../../../src/application/usecases.js";
 import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
+import type { StakeholderInterestStore } from "../../../src/ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type {
   StoredActor,
   StoredMembership,
   StoredProject,
   StoredRevision,
+  StoredStakeholderInterest,
   StoredUseCase
 } from "../../../src/http/signup-types.js";
 
@@ -95,6 +100,57 @@ describe("use case authoring application", () => {
       actorName: "Customer",
       status: "PRIMARY_ACTOR_NOT_AVAILABLE"
     });
+  });
+});
+
+describe("use case update application", () => {
+  test("blocks status transitions without stakeholder interests", async () => {
+    const updates: StoredUseCase[] = [];
+
+    await expect(
+      updateUseCaseMetadata(updateDepsFor({ updates }), {
+        status: "IN_REVIEW",
+        usecaseId: "usecase-1",
+        userId: "user-1"
+      })
+    ).resolves.toEqual({ status: "NEEDS_STAKEHOLDER_INTEREST" });
+    expect(updates).toEqual([]);
+  });
+
+  test("updates allowed use case metadata after authorization", async () => {
+    const updates: StoredUseCase[] = [];
+
+    const result = await updateUseCaseMetadata(
+      updateDepsFor({
+        interests: [stakeholderInterest()],
+        updates
+      }),
+      {
+        status: "IN_REVIEW",
+        usecaseId: "usecase-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "UPDATED", usecase: usecase() });
+    expect(updates).toEqual([usecase()]);
+  });
+
+  test("returns update failure statuses before reading interests", async () => {
+    await expect(
+      updateUseCaseMetadata(updateDepsFor({ found: undefined }), {
+        status: undefined,
+        usecaseId: "missing",
+        userId: "user-1"
+      })
+    ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });
+    await expect(
+      updateUseCaseMetadata(updateDepsFor({ membership: undefined }), {
+        status: "DRAFT",
+        usecaseId: "usecase-1",
+        userId: "user-1"
+      })
+    ).resolves.toEqual({ status: "FORBIDDEN" });
   });
 });
 
@@ -191,6 +247,57 @@ function useCaseStore(savedUseCases: StoredUseCase[]): UseCaseStore {
   };
 }
 
+function updateDepsFor(
+  options: {
+    found?: { projectId: string; usecase: StoredUseCase };
+    interests?: StoredStakeholderInterest[];
+    membership?: StoredMembership;
+    updates?: StoredUseCase[];
+  } = {}
+) {
+  return {
+    membershipStore: membershipStore(
+      "membership" in options ? options.membership : member()
+    ),
+    stakeholderInterestStore: stakeholderInterestStore(options.interests ?? []),
+    useCaseStore: updatingUseCaseStore(
+      "found" in options
+        ? options.found
+        : { projectId: "project-1", usecase: usecase() },
+      options.updates ?? []
+    )
+  };
+}
+
+function stakeholderInterestStore(
+  interests: StoredStakeholderInterest[]
+): StakeholderInterestStore {
+  return {
+    deleteStakeholderInterest: () => Promise.resolve(false),
+    findStakeholderInterestById: () => Promise.resolve(undefined),
+    findStakeholderInterestForStakeholder: () => Promise.resolve(undefined),
+    listStakeholderInterests: () => Promise.resolve(interests),
+    saveStakeholderInterest: () => Promise.resolve()
+  };
+}
+
+function updatingUseCaseStore(
+  found: { projectId: string; usecase: StoredUseCase } | undefined,
+  updates: StoredUseCase[]
+): UseCaseStore {
+  return {
+    findUseCaseById: () => Promise.resolve(undefined),
+    findUseCaseWithProject: () => Promise.resolve(found),
+    findUseCasesByKey: () => Promise.resolve([]),
+    listUseCases: () => Promise.resolve([]),
+    saveUseCase: () => Promise.resolve(),
+    updateUseCase: (updated) => {
+      updates.push(updated);
+      return Promise.resolve();
+    }
+  };
+}
+
 function ids(...values: string[]) {
   let index = 0;
   return () => values[index++] ?? `id-${String(index)}`;
@@ -227,5 +334,32 @@ function project(): StoredProject {
     name: "Checkout",
     visibility: "PRIVATE",
     workspace_id: "workspace-1"
+  };
+}
+
+function usecase(): StoredUseCase {
+  return {
+    archived_at: null,
+    current_revision_id: "revision-1",
+    format: "BRIEF",
+    id: "usecase-1",
+    key: "CHK-001",
+    level: "USER_GOAL",
+    primary_actor_id: "actor-1",
+    priority: "P2",
+    project_id: "project-1",
+    scope: "chk",
+    status: "DRAFT",
+    title: "Places an order"
+  };
+}
+
+function stakeholderInterest(): StoredStakeholderInterest {
+  return {
+    id: "interest-1",
+    interest: "Checkout revenue is protected.",
+    protection_mechanism: "",
+    stakeholder_id: "stakeholder-1",
+    usecase_id: "usecase-1"
   };
 }

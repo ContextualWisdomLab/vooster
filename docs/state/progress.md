@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T18:43:56Z_
+_Last updated: 2026-05-20T18:49:19Z_
 
 ## Overall
 
-- Commits: 872
-- Last commit: aae2e19 green(cli-split): extract usecase command
+- Commits: 875
+- Last commit: 441329a green(cli-split): extract session command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

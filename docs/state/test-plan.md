@@ -668,3 +668,17 @@ write. This guides your TDD cycles within an iteration._
 - **Route preservation**: UC-015 E2E and CLI tests continue to prove HTTP
   validation, archive/restore revision history, default-list filtering,
   hard-lock guidance, hard-delete guidance, and human CLI output.
+
+### Goal 2 Layers - Branch Test Helpers
+
+- **Application**: branch test helpers reject missing branch/use case targets
+  without saving revisions or mutating heads.
+- **Application**: branch test helpers create branch-scoped use case and
+  extension revisions with injected ids, advance branch heads from current or
+  base heads, and leave canonical use case fields unchanged.
+- **Application**: main test helpers create use case and extension revisions,
+  update canonical use case state, and advance the project default branch when
+  present.
+- **Route preservation**: branch-test routes keep HTTP parsing, invalid-body
+  problem responses, not-found problem responses, and `{ revision_id }`
+  response shape while delegating mutations to application code.

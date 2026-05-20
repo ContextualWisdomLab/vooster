@@ -78,7 +78,8 @@ describe("usecase agent application", () => {
     }
     expect(pinned.envelope.context.revision).toBe("revision-pinned");
     expect(pinned.envelope.warnings).toContainEqual({
-      message: "Requested revision was ignored because the active session pins this use case.",
+      message:
+        "Requested revision was ignored because the active session pins this use case.",
       type: "REVISION_OVERRIDDEN_BY_SESSION"
     });
 
@@ -92,7 +93,8 @@ describe("usecase agent application", () => {
       throw new Error("expected unpinned envelope");
     }
     expect(unpinned.envelope.warnings).toContainEqual({
-      message: "Session does not pin this use case; concurrent edits may change future reads.",
+      message:
+        "Session does not pin this use case; concurrent edits may change future reads.",
       type: "UNPINNED_SESSION_READ"
     });
     expect(unpinned.envelope.suggested_next_actions).toContainEqual({
@@ -102,7 +104,9 @@ describe("usecase agent application", () => {
   });
 
   test("returns failure statuses without assembling agent data", async () => {
-    await expect(showUseCaseForAgent(depsFor({ found: undefined }), input())).resolves.toEqual({
+    await expect(
+      showUseCaseForAgent(depsFor({ found: undefined }), input())
+    ).resolves.toEqual({
       status: "NOT_FOUND"
     });
     await expect(
@@ -135,7 +139,9 @@ function depsFor(
   const selectedUseCase = options.usecase ?? usecase();
   return {
     actorStore: actorStore(),
-    membershipStore: membershipStore(options.membership ?? membership()),
+    membershipStore: membershipStore(
+      "membership" in options ? options.membership : membership()
+    ),
     projectStore: projectStore(),
     revisionStore: revisionStore(),
     scenarioStore: scenarioStore(),

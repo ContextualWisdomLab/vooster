@@ -13,6 +13,7 @@ import { ProjectCommand } from "../../src/cli/commands/project.js";
 import { ScenarioCommand } from "../../src/cli/commands/scenario.js";
 import { SessionCommand } from "../../src/cli/commands/session.js";
 import { StakeholderCommand } from "../../src/cli/commands/stakeholder.js";
+import { StepCommand } from "../../src/cli/commands/step.js";
 import { UsecaseCommand } from "../../src/cli/commands/usecase.js";
 
 describe("CLI command split", () => {
@@ -66,5 +67,9 @@ describe("CLI command split", () => {
 
   test("scenario lives in a real oclif command module", () => {
     expect(ScenarioCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("step lives in a real oclif command module", () => {
+    expect(StepCommand.prototype).toBeInstanceOf(Command);
   });
 });

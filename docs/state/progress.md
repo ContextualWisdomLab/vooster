@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T16:39:50Z_
+_Last updated: 2026-05-20T16:53:52Z_
 
 ## Overall
 
-- Commits: 836
-- Last commit: b4573fa green(domain): relocate Stored entity types
+- Commits: 839
+- Last commit: 654f10c green(prisma-split): extract signup mapper helpers
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

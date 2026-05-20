@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { StoredComment } from "../http/comment-types.js";
-import type { StoredUseCase } from "../http/signup-types.js";
+import type { StoredComment } from "../domain/entities/index.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { CommentStore } from "../ports/comment-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";

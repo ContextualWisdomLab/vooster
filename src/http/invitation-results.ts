@@ -1,6 +1,6 @@
 import type { FastifyReply } from "fastify";
 import type { CreateInvitationResult } from "../application/invitations.js";
-import type { StoredInvitation } from "./invitation-store.js";
+import type { StoredInvitation } from "../domain/entities/index.js";
 import {
   alreadyMemberProblem,
   editorOwnerInviteProblem

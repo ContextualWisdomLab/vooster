@@ -1,5 +1,5 @@
 import type { BranchStore } from "../ports/branch-store.js";
-import type { StoredSpecBranch } from "../http/signup-types.js";
+import type { StoredSpecBranch } from "../domain/entities/index.js";
 
 export function createMemoryBranchStore(): BranchStore {
   const branchesById = new Map<string, StoredSpecBranch>();

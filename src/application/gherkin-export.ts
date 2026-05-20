@@ -2,7 +2,7 @@ import {
   gherkinMissingRequiredField,
   renderGherkinFeature
 } from "./gherkin-renderer.js";
-import type { StoredUseCase } from "../http/signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";

@@ -1,7 +1,7 @@
 import type { LockStore } from "../ports/lock-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-import type { StoredSpecBranch } from "../http/signup-types.js";
+import type { StoredSpecBranch } from "../domain/entities/index.js";
 
 type ExtensionChange = { condition: string; extension_point: string };
 

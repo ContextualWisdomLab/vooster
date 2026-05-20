@@ -1,13 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  addScenarioStep as addScenarioStepUseCase,
-  createScenario as createScenarioUseCase,
-  type ScenarioAuthoringDeps
+  addScenarioStep as addScenarioStepUseCase, createScenario as createScenarioUseCase, type ScenarioAuthoringDeps
 } from "../application/scenario-authoring.js";
 import {
-  sendAddScenarioStepResult,
-  sendCreateScenarioResult
+  sendAddScenarioStepResult, sendCreateScenarioResult
 } from "./scenario-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";

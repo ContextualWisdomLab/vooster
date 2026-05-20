@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { createBranch } from "../../../src/application/branches.js";
-import type { StoredSpecBranch } from "../../../src/http/signup-types.js";
+import type { StoredSpecBranch } from "../../../src/domain/entities/index.js";
 import { mainBranch, mergeRequest, usecase } from "./branches-data.js";
 import { depsFor, input } from "./branches-fixtures.js";
 

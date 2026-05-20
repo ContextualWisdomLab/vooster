@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { StoredActor, StoredGoal, StoredRevision } from "../http/signup-types.js";
+import type { StoredActor, StoredGoal, StoredRevision } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";

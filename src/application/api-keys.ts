@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { StoredApiKey } from "../http/api-key-types.js";
-import type { StoredMembership } from "../http/signup-types.js";
+import type { StoredApiKey } from "../domain/entities/index.js";
+import type { StoredMembership } from "../domain/entities/index.js";
 import type { ApiKeyStore } from "../ports/api-key-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 

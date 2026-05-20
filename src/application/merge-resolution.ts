@@ -10,7 +10,7 @@ import type {
   ResolveMergeInput,
   ResolveMergeResult
 } from "./merge-resolution-types.js";
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 export type {
   ResolveMergeInput,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { StoredStakeholder, StoredStakeholderInterest } from "./signup-types.js";
+import type { StoredStakeholder, StoredStakeholderInterest } from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";

@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { StoredWorkSession } from "./signup-types.js";
+import type { StoredWorkSession } from "../domain/entities/index.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const sessionBodySchema = z.object({

@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { createInvitation } from "../../../src/application/invitations.js";
-import type { StoredInvitation } from "../../../src/http/invitation-store.js";
+import type { StoredInvitation } from "../../../src/domain/entities/index.js";
 import type {
   StoredMembership,
   StoredUser,
   StoredWorkspace
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { UserStore } from "../../../src/ports/user-store.js";
 import type { WorkspaceStore } from "../../../src/ports/workspace-store.js";

@@ -4,8 +4,8 @@ import {
   listApiKeys,
   revokeApiKey
 } from "../../../src/application/api-keys.js";
-import type { StoredApiKey } from "../../../src/http/api-key-types.js";
-import type { StoredMembership } from "../../../src/http/signup-types.js";
+import type { StoredApiKey } from "../../../src/domain/entities/index.js";
+import type { StoredMembership } from "../../../src/domain/entities/index.js";
 import type { ApiKeyStore } from "../../../src/ports/api-key-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 

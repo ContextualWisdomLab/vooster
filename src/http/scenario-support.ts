@@ -1,10 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { problem } from "./signup-support.js";
-import type {
-  StoredScenario,
-  StoredStep,
-  StoredUseCase
-} from "./signup-types.js";
+import type { StoredScenario, StoredStep, StoredUseCase } from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";

@@ -1,4 +1,4 @@
-import type { StoredSpecBranch } from "../http/signup-types.js";
+import type { StoredSpecBranch } from "../domain/entities/index.js";
 
 export type BranchStore = {
   findBranchById: (branchId: string) => Promise<StoredSpecBranch | undefined>;

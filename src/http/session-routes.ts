@@ -1,17 +1,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  startWorkSession,
-  type StartWorkSessionResult
+  startWorkSession, type StartWorkSessionResult
 } from "../application/work-session-start.js";
 import {
-  archivedPinProblem,
-  hardLockedPinProblem,
-  semanticLockProblem
+  archivedPinProblem, hardLockedPinProblem, semanticLockProblem
 } from "./session-pin-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredSpecBranch, StoredWorkSession } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredSpecBranch, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";

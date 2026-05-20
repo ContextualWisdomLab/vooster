@@ -1,6 +1,7 @@
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredLock, StoredSpecBranch } from "./signup-types.js";
-import type { StoredMergeRequest } from "./merge-request-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredLock, StoredSpecBranch } from "../domain/entities/index.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 type MergeResolution = {

@@ -15,7 +15,7 @@ import type {
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("sync files application", () => {
   test("pull returns canonical markdown for active use cases", async () => {

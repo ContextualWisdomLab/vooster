@@ -1,4 +1,4 @@
-import type { StoredComment } from "../http/comment-types.js";
+import type { StoredComment } from "../domain/entities/index.js";
 import type { CommentStore } from "../ports/comment-store.js";
 
 export function createMemoryCommentStore(): CommentStore {

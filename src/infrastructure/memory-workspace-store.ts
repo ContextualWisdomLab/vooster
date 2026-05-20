@@ -1,4 +1,4 @@
-import type { StoredWorkspace } from "../http/signup-types.js";
+import type { StoredWorkspace } from "../domain/entities/index.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
 
 export function createMemoryWorkspaceStore(): WorkspaceStore {

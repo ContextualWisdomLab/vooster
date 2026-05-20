@@ -6,7 +6,7 @@ import type {
   ShowUseCaseResult,
   UseCaseAgentDeps
 } from "./usecase-agent-types.js";
-import type { StoredUseCase, StoredWorkSession } from "../http/signup-types.js";
+import type { StoredUseCase, StoredWorkSession } from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 

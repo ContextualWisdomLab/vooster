@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { resolveMerge } from "../../../src/application/merge-resolution.js";
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
 import type {
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import { featureBranch, lock, mergeRequest } from "./merge-resolution-data.js";
 import { depsFor, input } from "./merge-resolution-fixtures.js";
 

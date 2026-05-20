@@ -1,7 +1,7 @@
 import type { FastifyReply } from "fastify";
 import type { ActorDefinitionResult } from "../application/actors.js";
 import { problem } from "./signup-support.js";
-import type { StoredActor } from "./signup-types.js";
+import type { StoredActor } from "../domain/entities/index.js";
 
 export function sendActorDefinitionResult(
   reply: FastifyReply,

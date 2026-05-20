@@ -11,7 +11,7 @@ import type {
   StoredStep,
   StoredUseCase,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";

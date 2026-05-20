@@ -1,4 +1,4 @@
-import type { StoredStep } from "../http/signup-types.js";
+import type { StoredStep } from "../domain/entities/index.js";
 
 export type StepStore = {
   findStepById: (stepId: string) => Promise<StoredStep | undefined>;

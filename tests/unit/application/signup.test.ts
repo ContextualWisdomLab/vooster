@@ -7,12 +7,12 @@ import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { SignupStore, WorkspaceSummary } from "../../../src/ports/signup-store.js";
 import type { UserStore } from "../../../src/ports/user-store.js";
 import type { WorkspaceStore } from "../../../src/ports/workspace-store.js";
+import type { GithubProfile } from "../../../src/domain/signup.js";
 import type {
-  GithubProfile,
   StoredMembership,
   StoredUser,
   StoredWorkspace
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("signup application", () => {
   test("starts GitHub OAuth and omits client id for stub auth", () => {

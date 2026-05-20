@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { SignupState, StoredSpecBranch, StoredWorkSession } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredSpecBranch, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 

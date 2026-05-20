@@ -1,4 +1,5 @@
-import type { SignupState, StoredLock, StoredUseCase } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredLock, StoredUseCase } from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
 
 export type ChangePreview = {

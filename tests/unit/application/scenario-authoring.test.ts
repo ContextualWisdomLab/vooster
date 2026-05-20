@@ -18,7 +18,7 @@ import type {
   StoredStakeholderInterest,
   StoredStep,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("scenario authoring application", () => {
   test("creates the main success scenario and appends a use case revision", async () => {

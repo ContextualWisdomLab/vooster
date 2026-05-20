@@ -5,8 +5,8 @@ import {
   listComments,
   patchComment
 } from "../../../src/application/comments.js";
-import type { StoredComment } from "../../../src/http/comment-types.js";
-import type { StoredMembership, StoredUseCase } from "../../../src/http/signup-types.js";
+import type { StoredComment } from "../../../src/domain/entities/index.js";
+import type { StoredMembership, StoredUseCase } from "../../../src/domain/entities/index.js";
 import type { CommentStore } from "../../../src/ports/comment-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";

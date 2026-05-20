@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { StoredLock, StoredUseCase } from "../http/signup-types.js";
+import type { StoredLock, StoredUseCase } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";

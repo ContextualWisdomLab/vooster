@@ -4,7 +4,7 @@ import type {
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import {
   depsFor,
   lock,

@@ -1,4 +1,4 @@
-import type { StoredWorkSession } from "../http/signup-types.js";
+import type { StoredWorkSession } from "../domain/entities/index.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export function createMemoryWorkSessionStore(): WorkSessionStore {

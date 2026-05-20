@@ -5,8 +5,8 @@ import type {
   CompleteSessionResult,
   LockRelease
 } from "./session-completion-types.js";
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
-import type { StoredLock, StoredWorkSession } from "../http/signup-types.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
+import type { StoredLock, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 export type {

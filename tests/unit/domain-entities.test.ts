@@ -1,13 +1,15 @@
 import { execFile } from "node:child_process";
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { describe, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "../..");
-const fixturePath = path.join(root, "tests/fixtures/domain-entity-imports.test-fixture.ts");
+const fixtureDir = path.join(root, ".state/domain-entity-test");
+const fixturePath = path.join(fixtureDir, "domain-entity-imports.test-fixture.ts");
+const tsconfigPath = path.join(fixtureDir, "tsconfig.json");
 
 describe("domain entity vocabulary", () => {
   test("exports a Stored<Model> type for every Prisma model", async () => {
@@ -16,19 +18,36 @@ describe("domain entity vocabulary", () => {
       ([, model]) => `Stored${model ?? ""}`
     );
 
+    await mkdir(fixtureDir, { recursive: true });
     await writeFile(fixturePath, typeImportFixture(storedTypes));
+    await writeFile(tsconfigPath, domainEntityTsconfig());
 
     try {
-      await execFileAsync("npx", ["tsc", "--noEmit", "--pretty", "false"], {
+      const result = await execFileAsync("npx", ["tsc", "-p", tsconfigPath, "--pretty", "false"], {
         cwd: root,
         env: process.env,
         maxBuffer: 10 * 1024 * 1024
       });
+      expect(result.stderr).toBe("");
     } finally {
-      await unlink(fixturePath).catch(() => undefined);
+      await Promise.all([
+        unlink(fixturePath).catch(() => undefined),
+        unlink(tsconfigPath).catch(() => undefined)
+      ]);
     }
   }, 30_000);
 });
+
+function domainEntityTsconfig(): string {
+  return `${JSON.stringify(
+    {
+      extends: "../../tsconfig.json",
+      include: ["domain-entity-imports.test-fixture.ts", "../../src/domain/**/*.ts"]
+    },
+    null,
+    2
+  )}\n`;
+}
 
 function typeImportFixture(storedTypes: string[]): string {
   const imports = storedTypes.map((storedType) => `  ${storedType}`).join(",\n");

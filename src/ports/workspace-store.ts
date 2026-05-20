@@ -1,4 +1,4 @@
-import type { StoredWorkspace } from "../http/signup-types.js";
+import type { StoredWorkspace } from "../domain/entities/index.js";
 
 export type WorkspaceStore = {
   archiveWorkspace: (workspaceId: string, archivedAt: string) => Promise<void>;

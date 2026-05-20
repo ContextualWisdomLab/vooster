@@ -1,8 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  archiveUseCase as archiveUseCaseWorkflow,
-  restoreUseCase as restoreUseCaseWorkflow
+  archiveUseCase as archiveUseCaseWorkflow, restoreUseCase as restoreUseCaseWorkflow
 } from "../application/usecase-archive.js";
 import { authenticatedUserId } from "./session-support.js";
 import type { SignupState } from "./signup-types.js";

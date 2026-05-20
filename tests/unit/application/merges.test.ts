@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { openMerge } from "../../../src/application/merges.js";
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
 import type {
   StoredLock,
   StoredMembership,
@@ -8,7 +8,7 @@ import type {
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";

@@ -1,4 +1,4 @@
-import type { StoredLock } from "../http/signup-types.js";
+import type { StoredLock } from "../domain/entities/index.js";
 
 export type LockStore = {
   deleteLock: (lockId: string) => Promise<void>;

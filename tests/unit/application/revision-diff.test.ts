@@ -9,7 +9,7 @@ import type {
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("compareUseCaseRevisions", () => {
   test("returns structural changes with summary and cross-branch warnings", async () => {

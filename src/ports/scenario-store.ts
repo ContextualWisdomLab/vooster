@@ -1,4 +1,4 @@
-import type { StoredScenario } from "../http/signup-types.js";
+import type { StoredScenario } from "../domain/entities/index.js";
 
 export type ScenarioStore = {
   findMainScenario: (usecaseId: string) => Promise<StoredScenario | undefined>;

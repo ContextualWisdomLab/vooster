@@ -1,8 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  exportMarkdown as exportMarkdownWorkflow,
-  type MarkdownExportResult
+  exportMarkdown as exportMarkdownWorkflow, type MarkdownExportResult
 } from "../application/markdown-export.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -13,9 +12,7 @@ import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import {
-  existingOutputProblem,
-  missingMarkdownRevisionProblem,
-  outputPathProblem
+  existingOutputProblem, missingMarkdownRevisionProblem, outputPathProblem
 } from "./markdown-export-problems.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { MergeResolution, ResolveMergeDeps } from "./merge-resolution-types.js";
-import type { StoredRevision, StoredUseCase } from "../http/signup-types.js";
+import type { StoredRevision, StoredUseCase } from "../domain/entities/index.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export function manualResolutionMissingValue(resolutions: MergeResolution[]) {

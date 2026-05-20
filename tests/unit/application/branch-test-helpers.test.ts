@@ -5,7 +5,7 @@ import {
   advanceMainExtensionRevision,
   advanceMainUseCaseRevision
 } from "../../../src/application/branch-test-helpers.js";
-import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../../../src/http/signup-types.js";
+import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../../../src/domain/entities/index.js";
 describe("branch test helper application", () => {
   test("creates a branch use case revision and advances the branch head", async () => {
     const savedRevisions: StoredRevision[] = [], updatedBranches: StoredSpecBranch[] = [];

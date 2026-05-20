@@ -2,18 +2,16 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  emailMismatchProblem,
-  invitationExpiredProblem
+  emailMismatchProblem, invitationExpiredProblem
 } from "./invitation-problems.js";
 import {
-  invitations,
-  pendingInvitationForEmail,
-  type StoredInvitation
+  invitations, pendingInvitationForEmail
 } from "./invitation-store.js";
 import { sendCreateInvitationResult } from "./invitation-results.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
 import { githubProfile, problem } from "./signup-support.js";
-import type { ServerOptions, SignupState, StoredUser } from "./signup-types.js";
+import type { ServerOptions, SignupState } from "./signup-types.js";
+import type { StoredInvitation, StoredUser } from "../domain/entities/index.js";
 import { createInvitation as createInvitationWorkflow } from "../application/invitations.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";

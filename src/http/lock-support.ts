@@ -1,5 +1,5 @@
 import { problem } from "./signup-support.js";
-import type { StoredLock, StoredUseCase } from "./signup-types.js";
+import type { StoredLock, StoredUseCase } from "../domain/entities/index.js";
 
 export function blockingLock(
   lock: StoredLock | undefined,

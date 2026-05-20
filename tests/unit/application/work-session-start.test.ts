@@ -13,7 +13,7 @@ import type {
   StoredSpecBranch,
   StoredUseCase,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("startWorkSession", () => {
   test("creates an active session pinned to latest use case revisions", async () => {

@@ -1,4 +1,4 @@
-import type { StoredUser } from "../http/signup-types.js";
+import type { StoredUser } from "../domain/entities/index.js";
 
 export type UserStore = {
   findUserByEmail: (email: string) => Promise<StoredUser | undefined>;

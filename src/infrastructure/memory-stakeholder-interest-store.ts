@@ -1,4 +1,4 @@
-import type { StoredStakeholderInterest } from "../http/signup-types.js";
+import type { StoredStakeholderInterest } from "../domain/entities/index.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 
 export function createMemoryStakeholderInterestStore(): StakeholderInterestStore {

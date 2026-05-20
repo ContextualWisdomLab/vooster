@@ -1,4 +1,4 @@
-import type { StoredUseCase } from "../http/signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export function createMemoryUseCaseStore(): UseCaseStore {

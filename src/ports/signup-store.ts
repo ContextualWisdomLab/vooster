@@ -4,7 +4,7 @@ import type {
   StoredSpecBranch,
   StoredUser,
   StoredWorkspace
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 import type { ApiKeyStore } from "./api-key-store.js";
 import type { ActorStore } from "./actor-store.js";
 import type { BranchStore } from "./branch-store.js";

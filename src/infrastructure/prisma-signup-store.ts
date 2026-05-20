@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
-import type { StoredApiKey } from "../http/api-key-types.js";
-import type { StoredComment } from "../http/comment-types.js";
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
+import type { StoredApiKey } from "../domain/entities/index.js";
+import type { StoredComment } from "../domain/entities/index.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type {
   StoredActor,
   StoredGoal,
@@ -20,7 +20,7 @@ import type {
   StoredUseCase,
   StoredWorkspace,
   StoredWorkSession
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 
 export function createPrismaSignupStore(databaseUrl: string): SignupStore {
   return new PrismaSignupStore(

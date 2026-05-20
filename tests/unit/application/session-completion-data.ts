@@ -1,11 +1,11 @@
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
 import type {
   StoredLock,
   StoredMembership,
   StoredProject,
   StoredSpecBranch,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 export function session(overrides: Partial<StoredWorkSession> = {}): StoredWorkSession {
   return {

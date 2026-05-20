@@ -1,4 +1,4 @@
-import type { StoredRevision } from "../http/signup-types.js";
+import type { StoredRevision } from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 
 export function createMemoryRevisionStore(): RevisionStore {

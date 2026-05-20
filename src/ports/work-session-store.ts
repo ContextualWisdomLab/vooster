@@ -1,4 +1,4 @@
-import type { StoredWorkSession } from "../http/signup-types.js";
+import type { StoredWorkSession } from "../domain/entities/index.js";
 
 export type WorkSessionStore = {
   findWorkSessionById: (sessionId: string) => Promise<StoredWorkSession | undefined>;

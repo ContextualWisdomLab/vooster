@@ -1,4 +1,4 @@
-import type { StoredRevision } from "../http/signup-types.js";
+import type { StoredRevision } from "../domain/entities/index.js";
 
 export type RevisionStore = {
   findRevisionById: (revisionId: string) => Promise<StoredRevision | undefined>;

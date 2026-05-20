@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { StoredLock } from "./signup-types.js";
+import type { StoredLock } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 
 const lockBodySchema = z.object({

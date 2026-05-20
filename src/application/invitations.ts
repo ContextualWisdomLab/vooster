@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { StoredInvitation } from "../http/invitation-store.js";
-import type { StoredMembership } from "../http/signup-types.js";
+import type { StoredInvitation } from "../domain/entities/index.js";
+import type { StoredMembership } from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";

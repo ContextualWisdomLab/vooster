@@ -9,7 +9,7 @@ import type {
   StoredScenario,
   StoredStep,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("scenario result responses", () => {
   test("serializes create scenario validation failures", () => {

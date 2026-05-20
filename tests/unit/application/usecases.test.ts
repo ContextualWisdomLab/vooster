@@ -16,7 +16,7 @@ import type {
   StoredRevision,
   StoredStakeholderInterest,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("use case authoring application", () => {
   test("creates a draft use case with defaults and a first revision", async () => {

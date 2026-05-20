@@ -1,5 +1,5 @@
 import { problem } from "./signup-support.js";
-import type { StoredUseCase } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 
 export type SyncFile = {
   content: string;

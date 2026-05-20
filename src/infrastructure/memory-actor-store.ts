@@ -1,5 +1,5 @@
 import type { ActorStore } from "../ports/actor-store.js";
-import type { StoredActor } from "../http/signup-types.js";
+import type { StoredActor } from "../domain/entities/index.js";
 
 export function createMemoryActorStore(): ActorStore {
   const actorsByProjectId = new Map<string, StoredActor[]>();

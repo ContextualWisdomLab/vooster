@@ -15,7 +15,7 @@ import type {
   StoredStep,
   StoredUseCase,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("step editing application", () => {
   test("edits an action, appends a breaking revision, and reports affected sessions", async () => {

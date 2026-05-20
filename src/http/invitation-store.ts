@@ -1,17 +1,7 @@
 import type { SignupState } from "./signup-types.js";
+import type { StoredInvitation } from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
-
-export type StoredInvitation = {
-  accepted_at: null | string;
-  delivery_status: "FAILED" | "SENT";
-  email: string;
-  expires_at: string;
-  id: string;
-  role: "EDITOR" | "OWNER";
-  token: string;
-  workspace_id: string;
-};
 
 const invitationsByState = new WeakMap<SignupState, Map<string, StoredInvitation>>();
 

@@ -17,7 +17,7 @@ import type {
   StoredProject,
   StoredRevision,
   StoredWorkspace
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("actor goal application", () => {
   test("creates a goal, appends revision, and reports near duplicates", async () => {

@@ -6,7 +6,7 @@ import type {
   StoredActor,
   StoredMembership,
   StoredRevision
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";

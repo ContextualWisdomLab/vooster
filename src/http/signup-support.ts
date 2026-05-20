@@ -1,14 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
 import type {
-  GithubProfile,
-  PendingOAuth,
-  PendingSignup,
-  ServerOptions,
-  StoredMembership,
-  StoredUser,
-  StoredWorkspace
-} from "./signup-types.js";
+  GithubProfile, PendingOAuth, PendingSignup, ServerOptions } from "./signup-types.js";
+import type { StoredMembership, StoredUser, StoredWorkspace } from "../domain/entities/index.js";
 
 export class GithubNetworkError extends Error {}
 

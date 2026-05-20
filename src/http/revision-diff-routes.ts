@@ -1,13 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  compareUseCaseRevisions,
-  type CompareUseCaseRevisionsDeps,
-  type CompareUseCaseRevisionsResult
+  compareUseCaseRevisions, type CompareUseCaseRevisionsDeps, type CompareUseCaseRevisionsResult
 } from "../application/revision-diff.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";

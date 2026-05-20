@@ -1,4 +1,4 @@
-import type { StoredApiKey } from "../http/api-key-types.js";
+import type { StoredApiKey } from "../domain/entities/index.js";
 import type { ApiKeyStore } from "../ports/api-key-store.js";
 
 export function createMemoryApiKeyStore(): ApiKeyStore {

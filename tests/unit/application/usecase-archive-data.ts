@@ -5,7 +5,7 @@ import type {
   StoredSpecBranch,
   StoredUseCase,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 export function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
   return {

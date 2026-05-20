@@ -1,7 +1,8 @@
 import type { FastifyReply } from "fastify";
 import type { RevisionRevertResult } from "../application/revision-revert-types.js";
 import { problem } from "./signup-support.js";
-import type { StoredLock, StoredRevision, StoredUseCase } from "./signup-types.js";
+import type { StoredLock } from "../domain/entities/index.js";
+import type { StoredRevision, StoredUseCase } from "../domain/entities/index.js";
 
 export function sendRevisionRevertResult(
   reply: FastifyReply,

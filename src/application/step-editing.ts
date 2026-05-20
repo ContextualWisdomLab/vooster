@@ -4,7 +4,7 @@ import type {
   StoredRevision,
   StoredStep,
   StoredUseCase
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";

@@ -1,14 +1,11 @@
 import type { FastifyReply } from "fastify";
 import type { CommentCommandResult } from "../application/comments.js";
-import type { StoredComment } from "./comment-types.js";
+import type { StoredComment } from "../domain/entities/index.js";
 import {
-  commentWriteFailedProblem,
-  emptyBodyProblem,
-  missingUseCaseProblem,
-  notOwnerProblem
+  commentWriteFailedProblem, emptyBodyProblem, missingUseCaseProblem, notOwnerProblem
 } from "./comment-problems.js";
 import { problem } from "./signup-support.js";
-import type { StoredUseCase } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 
 export function sendCommentResult(reply: FastifyReply, result: CommentCommandResult) {
   switch (result.status) {

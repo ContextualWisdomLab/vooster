@@ -1,4 +1,4 @@
-import type { StoredActor } from "../http/signup-types.js";
+import type { StoredActor } from "../domain/entities/index.js";
 
 export type ActorStore = {
   archiveActor: (projectId: string, actorId: string, archivedAt: string) => Promise<boolean>;

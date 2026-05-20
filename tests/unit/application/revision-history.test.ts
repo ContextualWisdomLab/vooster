@@ -5,7 +5,7 @@ import type {
   StoredProject,
   StoredRevision,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";

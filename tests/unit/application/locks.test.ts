@@ -4,7 +4,7 @@ import type {
   StoredLock,
   StoredMembership,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";

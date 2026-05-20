@@ -1,4 +1,4 @@
-import type { StoredUseCase } from "../http/signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseAgentDeps } from "./usecase-agent-types.js";

@@ -1,8 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  previewImpact as previewImpactWorkflow,
-  type ImpactPayload
+  previewImpact as previewImpactWorkflow, type ImpactPayload
 } from "../application/impact-analysis.js";
 import { previewSpecChange } from "./change-preview-routes.js";
 import { sendImpactResult } from "./impact-results.js";

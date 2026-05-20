@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { createMemoryLockStore } from "../../src/infrastructure/memory-lock-store.js";
-import type { StoredLock } from "../../src/http/signup-types.js";
+import type { StoredLock } from "../../src/domain/entities/index.js";
 
 describe("memory lock store", () => {
   test("stores, finds, updates, and deletes locks by id", async () => {

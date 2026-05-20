@@ -1,5 +1,6 @@
 import { problem } from "./signup-support.js";
-import type { SignupState, StoredUseCase } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";

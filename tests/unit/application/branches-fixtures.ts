@@ -1,12 +1,12 @@
 import type { CreateBranchInput } from "../../../src/application/branches.js";
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
 import type {
   StoredMembership,
   StoredProject,
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { MergeRequestStore } from "../../../src/ports/merge-request-store.js";

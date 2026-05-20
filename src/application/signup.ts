@@ -3,14 +3,12 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
+import type { GithubProfile, PendingOAuth, PendingSignup } from "../domain/signup.js";
 import type {
-  GithubProfile,
-  PendingOAuth,
-  PendingSignup,
   StoredMembership,
   StoredUser,
   StoredWorkspace
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 
 export type StartGithubOAuthInput = { flow: "login" } | { workspace: PendingSignup };
 

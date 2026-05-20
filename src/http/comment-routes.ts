@@ -1,10 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  addComment as addUseCaseComment,
-  deleteComment as deleteUseCaseComment,
-  listComments as listUseCaseComments,
-  patchComment as patchUseCaseComment
+  addComment as addUseCaseComment, deleteComment as deleteUseCaseComment, listComments as listUseCaseComments, patchComment as patchUseCaseComment
 } from "../application/comments.js";
 import type { CommentStore } from "../ports/comment-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";

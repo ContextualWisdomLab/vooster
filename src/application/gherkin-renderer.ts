@@ -2,7 +2,7 @@ import type {
   StoredScenario,
   StoredStep,
   StoredUseCase
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";

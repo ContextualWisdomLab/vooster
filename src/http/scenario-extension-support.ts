@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
 import {
-  appendUseCaseRevision,
-  extensionPointParentStep,
-  mainScenarioHasStep,
-  mainSuccessScenario
+  appendUseCaseRevision, extensionPointParentStep, mainScenarioHasStep, mainSuccessScenario
 } from "./scenario-support.js";
 import { problem } from "./signup-support.js";
-import type { StoredScenario, StoredUseCase } from "./signup-types.js";
+import type { StoredScenario } from "../domain/entities/index.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";

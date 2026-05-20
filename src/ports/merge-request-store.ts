@@ -1,4 +1,4 @@
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
 
 export type MergeRequestStore = {
   findMergeRequestById: (mergeRequestId: string) => Promise<StoredMergeRequest | undefined>;

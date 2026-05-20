@@ -2,9 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { listSessionSnapshot } from "../application/session-list.js";
 import {
-  sendSessionListResult,
-  sessionListEvent,
-  workspaceMembershipProblem
+  sendSessionListResult, sessionListEvent, workspaceMembershipProblem
 } from "./session-list-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";

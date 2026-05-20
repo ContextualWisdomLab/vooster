@@ -5,7 +5,7 @@ import type {
   UseCaseArchiveResult,
   UseCaseRestoreResult
 } from "./usecase-archive-types.js";
-import type { StoredRevision, StoredUseCase } from "../http/signup-types.js";
+import type { StoredRevision, StoredUseCase } from "../domain/entities/index.js";
 export type {
   UseCaseArchiveInput,
   UseCaseArchiveResult,

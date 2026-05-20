@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { StoredRevision, StoredStakeholder } from "../http/signup-types.js";
+import type { StoredRevision, StoredStakeholder } from "../domain/entities/index.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";

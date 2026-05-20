@@ -11,7 +11,7 @@ import type {
   StoredRevision,
   StoredUseCase,
   StoredWorkSession
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("change preview application", () => {
   test("creates a non-committing title preview with active session impact", async () => {

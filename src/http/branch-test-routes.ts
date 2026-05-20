@@ -1,10 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  advanceBranchExtensionRevision,
-  advanceBranchUseCaseRevision,
-  advanceMainExtensionRevision,
-  advanceMainUseCaseRevision
+  advanceBranchExtensionRevision, advanceBranchUseCaseRevision, advanceMainExtensionRevision, advanceMainUseCaseRevision
 } from "../application/branch-test-helpers.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";

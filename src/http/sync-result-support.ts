@@ -1,4 +1,4 @@
-import type { StoredUseCase } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
 import { usecaseMarkdown } from "./sync-markdown.js";
 

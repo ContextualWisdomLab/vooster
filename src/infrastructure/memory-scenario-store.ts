@@ -1,4 +1,4 @@
-import type { StoredScenario } from "../http/signup-types.js";
+import type { StoredScenario } from "../domain/entities/index.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 
 export function createMemoryScenarioStore(): ScenarioStore {

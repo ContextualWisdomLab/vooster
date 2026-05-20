@@ -1,4 +1,3 @@
-import { unlink, writeFile } from "node:fs/promises";
 import { ESLint } from "eslint";
 import { describe, expect, test } from "vitest";
 
@@ -12,7 +11,7 @@ describe("Goal 2 boundary config", () => {
           "export type BoundaryFixture = StoredUser;"
         ].join("\n"),
         expectedBoundaryErrors: 1,
-        filePath: "src/ports/__boundary_rejects_http.test-fixture.ts"
+        filePath: "src/ports/user-store.ts"
       },
       {
         code: [
@@ -20,27 +19,23 @@ describe("Goal 2 boundary config", () => {
           "export type BoundaryFixture = StartGithubOAuthResult;"
         ].join("\n"),
         expectedBoundaryErrors: 0,
-        filePath: "src/cli/__boundary_allows_application.test-fixture.ts"
+        filePath: "src/cli/index.ts"
       }
     ];
 
-    try {
-      await Promise.all(cases.map((lintCase) => writeFile(lintCase.filePath, lintCase.code)));
+    const results = await Promise.all(
+      cases.map((lintCase) => eslint.lintText(lintCase.code, { filePath: lintCase.filePath }))
+    );
 
-      const results = await Promise.all(cases.map((lintCase) => eslint.lintFiles([lintCase.filePath])));
-
-      for (const [index, result] of results.entries()) {
-        const lintCase = cases[index];
-        if (lintCase === undefined) {
-          throw new Error(`Missing lint case for result ${String(index)}`);
-        }
-        const boundaryErrors = result[0]?.messages.filter(
-          (message) => message.ruleId === "boundaries/element-types"
-        );
-        expect(boundaryErrors).toHaveLength(lintCase.expectedBoundaryErrors);
+    for (const [index, result] of results.entries()) {
+      const lintCase = cases[index];
+      if (lintCase === undefined) {
+        throw new Error(`Missing lint case for result ${String(index)}`);
       }
-    } finally {
-      await Promise.all(cases.map((lintCase) => unlink(lintCase.filePath).catch(() => undefined)));
+      const boundaryErrors = result[0]?.messages.filter(
+        (message) => message.ruleId === "boundaries/element-types"
+      );
+      expect(boundaryErrors).toHaveLength(lintCase.expectedBoundaryErrors);
     }
   });
 });

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { StoredUseCase } from "./signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 export async function nextUseCaseKey(

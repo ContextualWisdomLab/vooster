@@ -1,4 +1,4 @@
-import type { StoredProject } from "../http/signup-types.js";
+import type { StoredProject } from "../domain/entities/index.js";
 
 export type ProjectStore = {
   findProjectById: (projectId: string) => Promise<StoredProject | undefined>;

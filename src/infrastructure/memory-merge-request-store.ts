@@ -1,4 +1,4 @@
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 
 export function createMemoryMergeRequestStore(): MergeRequestStore {

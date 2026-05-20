@@ -1,4 +1,4 @@
-import type { StoredUser } from "../http/signup-types.js";
+import type { StoredUser } from "../domain/entities/index.js";
 import type { UserStore } from "../ports/user-store.js";
 
 export function createMemoryUserStore(): UserStore {

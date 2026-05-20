@@ -1,4 +1,4 @@
-import type { StoredGoal } from "../http/signup-types.js";
+import type { StoredGoal } from "../domain/entities/index.js";
 import type { GoalStore } from "../ports/goal-store.js";
 
 export function createMemoryGoalStore(): GoalStore {

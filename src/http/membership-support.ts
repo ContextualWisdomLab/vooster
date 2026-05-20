@@ -1,6 +1,7 @@
 import type { FastifyRequest } from "fastify";
 import { authenticatedUserId } from "./session-support.js";
-import type { SignupState, StoredMembership } from "./signup-types.js";
+import type { SignupState } from "./signup-types.js";
+import type { StoredMembership } from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 
 export async function membershipForProject(

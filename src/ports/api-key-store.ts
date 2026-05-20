@@ -1,4 +1,4 @@
-import type { StoredApiKey } from "../http/api-key-types.js";
+import type { StoredApiKey } from "../domain/entities/index.js";
 
 export type ApiKeyStore = {
   findApiKeyById: (apiKeyId: string) => Promise<StoredApiKey | undefined>;

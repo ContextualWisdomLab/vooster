@@ -1,4 +1,4 @@
-import type { StoredComment } from "../http/comment-types.js";
+import type { StoredComment } from "../domain/entities/index.js";
 
 export type CommentStore = {
   deleteComment: (commentId: string) => Promise<void>;

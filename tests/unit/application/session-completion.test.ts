@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { completeSession } from "../../../src/application/session-completion.js";
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
-import type { StoredWorkSession } from "../../../src/http/signup-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
+import type { StoredWorkSession } from "../../../src/domain/entities/index.js";
 import { branch, lock, mergeRequest, session } from "./session-completion-data.js";
 import { depsFor, input } from "./session-completion-fixtures.js";
 

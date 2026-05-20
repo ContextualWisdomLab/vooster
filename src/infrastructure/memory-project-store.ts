@@ -1,4 +1,4 @@
-import type { StoredProject } from "../http/signup-types.js";
+import type { StoredProject } from "../domain/entities/index.js";
 import type { ProjectStore } from "../ports/project-store.js";
 
 export function createMemoryProjectStore(): ProjectStore {

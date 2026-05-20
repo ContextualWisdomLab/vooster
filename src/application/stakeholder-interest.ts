@@ -4,7 +4,7 @@ import type {
   StoredStakeholder,
   StoredStakeholderInterest,
   StoredUseCase
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";

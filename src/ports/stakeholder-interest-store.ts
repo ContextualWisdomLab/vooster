@@ -1,4 +1,4 @@
-import type { StoredStakeholderInterest } from "../http/signup-types.js";
+import type { StoredStakeholderInterest } from "../domain/entities/index.js";
 
 export type StakeholderInterestStore = {
   deleteStakeholderInterest: (interestId: string) => Promise<void>;

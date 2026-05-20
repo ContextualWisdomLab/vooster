@@ -1,4 +1,4 @@
-import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../http/signup-types.js";
+import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";

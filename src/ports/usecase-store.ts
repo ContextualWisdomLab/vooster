@@ -1,4 +1,4 @@
-import type { StoredUseCase } from "../http/signup-types.js";
+import type { StoredUseCase } from "../domain/entities/index.js";
 
 export type UseCaseLookup = {
   projectId: string;

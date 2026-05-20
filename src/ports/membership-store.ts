@@ -1,4 +1,4 @@
-import type { StoredMembership } from "../http/signup-types.js";
+import type { StoredMembership } from "../domain/entities/index.js";
 
 export type MembershipStore = {
   membershipForProject: (

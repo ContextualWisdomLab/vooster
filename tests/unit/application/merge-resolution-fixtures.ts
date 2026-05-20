@@ -1,11 +1,11 @@
 import type { ResolveMergeInput } from "../../../src/application/merge-resolution.js";
-import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
+import type { StoredMergeRequest } from "../../../src/domain/entities/index.js";
 import type {
   StoredLock,
   StoredRevision,
   StoredSpecBranch,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { StoredGoal } from "./signup-types.js";
+import type { StoredGoal } from "../domain/entities/index.js";
 
 export const allowedStatusTransitions = [
   "IDENTIFIED -> IN_DESIGN",

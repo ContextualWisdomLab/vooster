@@ -1,4 +1,4 @@
-import type { StoredLock } from "../http/signup-types.js";
+import type { StoredLock } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 
 export function createMemoryLockStore(): LockStore {

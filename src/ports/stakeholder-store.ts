@@ -1,4 +1,4 @@
-import type { StoredStakeholder } from "../http/signup-types.js";
+import type { StoredStakeholder } from "../domain/entities/index.js";
 
 export type StakeholderStore = {
   findStakeholderById: (

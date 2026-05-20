@@ -14,7 +14,7 @@ import type {
   StoredStakeholder,
   StoredStakeholderInterest,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 describe("stakeholder interest application", () => {
   test("adds an interest and appends a non-breaking use case revision", async () => {

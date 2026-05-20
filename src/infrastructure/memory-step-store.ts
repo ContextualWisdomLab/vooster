@@ -1,4 +1,4 @@
-import type { StoredStep } from "../http/signup-types.js";
+import type { StoredStep } from "../domain/entities/index.js";
 import type { StepStore } from "../ports/step-store.js";
 
 export function createMemoryStepStore(): StepStore {

@@ -6,7 +6,7 @@ import type {
   StoredScenario,
   StoredStep,
   StoredUseCase
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 
 export function depsFor(
   options: {

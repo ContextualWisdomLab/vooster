@@ -3,7 +3,7 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-import type { StoredRevision, StoredUseCase } from "../http/signup-types.js";
+import type { StoredRevision, StoredUseCase } from "../domain/entities/index.js";
 
 type BranchTestDeps = {
   branchStore: BranchStore;

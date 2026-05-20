@@ -1,4 +1,4 @@
-import type { StoredGoal } from "../http/signup-types.js";
+import type { StoredGoal } from "../domain/entities/index.js";
 
 export type GoalStore = {
   findGoalById: (goalId: string) => Promise<StoredGoal | undefined>;

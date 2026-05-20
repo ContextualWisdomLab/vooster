@@ -1,4 +1,4 @@
-import type { StoredMembership } from "../http/signup-types.js";
+import type { StoredMembership } from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 
 export function createMemoryMembershipStore(

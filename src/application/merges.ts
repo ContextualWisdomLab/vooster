@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { hardLockConflict, mergeConflicts, useCaseKey } from "./merge-conflicts.js";
 import type { MergeDeps, OpenMergeInput, OpenMergeResult } from "./merge-types.js";
-import type { StoredMergeRequest } from "../http/merge-request-types.js";
-import type { StoredProject, StoredSpecBranch } from "../http/signup-types.js";
+import type { StoredMergeRequest } from "../domain/entities/index.js";
+import type { StoredProject, StoredSpecBranch } from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 export async function openMerge(
   deps: MergeDeps,

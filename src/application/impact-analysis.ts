@@ -3,7 +3,7 @@ import type {
   StoredRevision,
   StoredUseCase,
   StoredWorkSession
-} from "../http/signup-types.js";
+} from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";

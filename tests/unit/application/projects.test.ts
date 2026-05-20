@@ -4,7 +4,7 @@ import type {
   StoredMembership,
   StoredProject,
   StoredSpecBranch
-} from "../../../src/http/signup-types.js";
+} from "../../../src/domain/entities/index.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";

@@ -72,9 +72,9 @@ describe("change preview application", () => {
   });
 
   test("returns failure statuses before creating previews", async () => {
-    await expect(
-      previewChange(depsFor({ usecases: [] }), input())
-    ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });
+    await expect(previewChange(depsFor({ usecases: [] }), input())).resolves.toEqual({
+      status: "USECASE_NOT_FOUND"
+    });
     await expect(
       previewChange(depsFor({ membership: undefined }), input())
     ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });
@@ -87,7 +87,15 @@ describe("change preview application", () => {
       )
     ).resolves.toEqual({ status: "WRITE_FORBIDDEN" });
     await expect(
-      previewChange(depsFor(), input({ patchEntityId: "other-usecase" }))
+      previewChange(
+        depsFor(),
+        input({
+          patch: {
+            entityId: "other-usecase",
+            title: "Reviews a refund with audit trail"
+          }
+        })
+      )
     ).resolves.toEqual({ status: "PATCH_TARGET_MISMATCH" });
     await expect(
       previewChange(depsFor({ lock: hardLock() }), input())
@@ -98,7 +106,9 @@ describe("change preview application", () => {
     });
     await expect(
       previewChange(
-        depsFor({ revision: revision({ id: "revision-current", severity: "BREAKING" }) }),
+        depsFor({
+          revision: revision({ id: "revision-current", severity: "BREAKING" })
+        }),
         input({ baseRevision: "revision-stale" })
       )
     ).resolves.toEqual({

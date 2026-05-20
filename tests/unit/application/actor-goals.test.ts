@@ -82,6 +82,70 @@ describe("actor goal application", () => {
     expect(savedRevisions).toEqual([]);
   });
 
+  test("rejects goal creation when project access is missing", async () => {
+    const result = await createGoal(
+      depsFor({ member: false }),
+      {
+        actorId: "actor-1",
+        description: "Places an order",
+        level: "USER_GOAL",
+        priority: "P1",
+        projectId: "project-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "FORBIDDEN" });
+  });
+
+  test("rejects goal creation when the workspace is archived", async () => {
+    const result = await createGoal(
+      depsFor({ workspaceArchived: true }),
+      {
+        actorId: "actor-1",
+        description: "Places an order",
+        level: "USER_GOAL",
+        priority: "P1",
+        projectId: "project-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "WORKSPACE_ARCHIVED" });
+  });
+
+  test("patches a legal goal status and appends a revision", async () => {
+    const savedRevisions: StoredRevision[] = [];
+    const updatedGoals: StoredGoal[] = [];
+
+    const result = await patchGoal(
+      depsFor({
+        existingGoals: [goal()],
+        savedRevisions,
+        updatedGoals
+      }),
+      {
+        goalId: "goal-1",
+        status: "IN_DESIGN",
+        userId: "user-1"
+      }
+    );
+
+    expect(result.status).toBe("PATCHED");
+    if (result.status !== "PATCHED") {
+      throw new Error("expected goal to be patched");
+    }
+    expect(result.goal.status).toBe("IN_DESIGN");
+    expect(result.revision).toMatchObject({
+      entity_id: "goal-1",
+      entity_type: "GOAL",
+      id: "id-1",
+      version_number: 2
+    });
+    expect(savedRevisions).toEqual([result.revision]);
+    expect(updatedGoals).toEqual([result.goal]);
+  });
+
   test("rejects illegal status transitions without updating the goal", async () => {
     const updatedGoals: StoredGoal[] = [];
     const savedRevisions: StoredRevision[] = [];
@@ -102,6 +166,32 @@ describe("actor goal application", () => {
     expect(result).toEqual({ status: "ILLEGAL_STATUS_TRANSITION" });
     expect(updatedGoals).toEqual([]);
     expect(savedRevisions).toEqual([]);
+  });
+
+  test("reports missing goals before patch authorization", async () => {
+    const result = await patchGoal(
+      depsFor(),
+      {
+        goalId: "missing-goal",
+        status: "IN_DESIGN",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "GOAL_NOT_FOUND" });
+  });
+
+  test("rejects goal patches when project access is missing", async () => {
+    const result = await patchGoal(
+      depsFor({ existingGoals: [goal()], member: false }),
+      {
+        goalId: "goal-1",
+        status: "IN_DESIGN",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "FORBIDDEN" });
   });
 
   test("rejects promoted goals before a use case is archived", async () => {
@@ -137,15 +227,29 @@ describe("actor goal application", () => {
       status: "LISTED"
     });
   });
+
+  test("rejects listing goals without project membership", async () => {
+    const result = await listGoals(
+      depsFor({ member: false }),
+      {
+        projectId: "project-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result).toEqual({ status: "FORBIDDEN" });
+  });
 });
 
 function depsFor(options: {
   actor?: StoredActor | null;
   actors?: StoredActor[];
   existingGoals?: StoredGoal[];
+  member?: boolean;
   savedGoals?: StoredGoal[];
   savedRevisions?: StoredRevision[];
   updatedGoals?: StoredGoal[];
+  workspaceArchived?: boolean;
 } = {}) {
   let nextId = 0;
   const savedGoals = options.savedGoals ?? [];
@@ -157,10 +261,10 @@ function depsFor(options: {
       nextId += 1;
       return `id-${String(nextId)}`;
     },
-    membershipStore: membershipStore(),
+    membershipStore: membershipStore(options.member ?? true),
     projectStore: projectStore(),
     revisionStore: revisionStore(options.savedRevisions ?? []),
-    workspaceStore: workspaceStore()
+    workspaceStore: workspaceStore(options.workspaceArchived ?? false)
   };
 }
 
@@ -199,9 +303,9 @@ function goalStore(
   };
 }
 
-function membershipStore(): MembershipStore {
+function membershipStore(member: boolean): MembershipStore {
   return {
-    membershipForProject: () => Promise.resolve(membership()),
+    membershipForProject: () => Promise.resolve(member ? membership() : undefined),
     membershipForWorkspace: () => Promise.resolve(undefined),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
@@ -230,11 +334,11 @@ function revisionStore(savedRevisions: StoredRevision[]): RevisionStore {
   };
 }
 
-function workspaceStore(): WorkspaceStore {
+function workspaceStore(archived: boolean): WorkspaceStore {
   return {
     archiveWorkspace: () => Promise.resolve(),
     findWorkspaceById: () => Promise.resolve(workspace()),
-    isWorkspaceArchived: () => Promise.resolve(false),
+    isWorkspaceArchived: () => Promise.resolve(archived),
     nextAvailableWorkspaceSlug: (slug) => Promise.resolve(slug),
     saveWorkspace: () => Promise.resolve(),
     workspaceSlugExists: () => Promise.resolve(false)

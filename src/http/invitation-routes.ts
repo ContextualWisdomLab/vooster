@@ -2,21 +2,19 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  alreadyMemberProblem,
-  editorOwnerInviteProblem,
   emailMismatchProblem,
   invitationExpiredProblem
 } from "./invitation-problems.js";
 import {
-  activeMembershipForEmail,
-  expiryFor,
   invitations,
   pendingInvitationForEmail,
   type StoredInvitation
 } from "./invitation-store.js";
+import { sendCreateInvitationResult } from "./invitation-results.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
 import { githubProfile, problem } from "./signup-support.js";
 import type { ServerOptions, SignupState, StoredUser } from "./signup-types.js";
+import { createInvitation as createInvitationWorkflow } from "../application/invitations.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
@@ -54,49 +52,28 @@ async function createInvitation(
 ) {
   const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
   const parsed = inviteSchema.safeParse(request.body);
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  const membership =
-    userId === undefined
-      ? undefined
-      : await membershipStore.membershipForWorkspace(params.workspaceId, userId);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid invitation request"));
   }
-  if (
-    await workspaceStore.findWorkspaceById(params.workspaceId) === undefined ||
-    membership === undefined
-  ) {
-    return reply.code(403).send(problem(403, "Workspace owner role required"));
-  }
-  if (membership.role !== "OWNER" && parsed.data.role === "OWNER") {
-    return reply.code(403).send(editorOwnerInviteProblem());
-  }
-  if (
-    await activeMembershipForEmail(
-      userStore,
-      membershipStore,
-      params.workspaceId,
-      parsed.data.email
-    ) !== undefined
-  ) {
-    return reply.code(422).send(alreadyMemberProblem());
-  }
-  const existing = pendingInvitationForEmail(state, params.workspaceId, parsed.data.email);
-  if (existing !== undefined) {
-    return reply.code(200).send(invitationResponse(existing, true));
-  }
-  const invitation = {
-    accepted_at: null,
-    delivery_status: parsed.data.simulate_delivery_failure === true ? "FAILED" as const : "SENT" as const,
-    email: parsed.data.email,
-    expires_at: expiryFor(parsed.data.simulate_expired === true),
-    id: randomUUID(),
-    role: parsed.data.role,
-    token: randomUUID(),
-    workspace_id: params.workspaceId
-  };
-  invitations(state).set(invitation.token, invitation);
-  return reply.code(201).send(invitationResponse(invitation));
+  return sendCreateInvitationResult(
+    reply,
+    await createInvitationWorkflow(
+      {
+        invitationStore: invitationStoreFor(state),
+        membershipStore,
+        userStore,
+        workspaceStore
+      },
+      {
+        email: parsed.data.email,
+        role: parsed.data.role,
+        simulateDeliveryFailure: parsed.data.simulate_delivery_failure === true,
+        simulateExpired: parsed.data.simulate_expired === true,
+        userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken),
+        workspaceId: params.workspaceId
+      }
+    )
+  );
 }
 
 async function acceptInvitation(
@@ -152,25 +129,12 @@ async function userForProfile(
   return user;
 }
 
-function invitationResponse(invitation: StoredInvitation, includeResend = false) {
+function invitationStoreFor(state: SignupState) {
   return {
-    invitation,
-    suggested_next_actions: [
-      {
-        command: "vspec member list",
-        reason: "Review pending and active workspace members."
-      },
-      ...(includeResend
-        ? [{ command: "vspec member invite --resend", reason: "Resend the existing invitation email." }]
-        : []),
-      ...(invitation.delivery_status === "FAILED"
-        ? [
-            {
-              command: "vspec member invite --email <corrected>",
-              reason: "Correct the address and send a new invitation."
-            }
-          ]
-        : [])
-    ]
+    pendingInvitationForEmail: (workspaceId: string, email: string) =>
+      pendingInvitationForEmail(state, workspaceId, email),
+    saveInvitation: (invitation: StoredInvitation) => {
+      invitations(state).set(invitation.token, invitation);
+    }
   };
 }

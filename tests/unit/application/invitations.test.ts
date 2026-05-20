@@ -14,17 +14,14 @@ describe("invitations application", () => {
   test("creates an expiring invitation for a workspace member", async () => {
     const savedInvitations: StoredInvitation[] = [];
 
-    const result = await createInvitation(
-      depsFor({ savedInvitations }),
-      {
-        email: "teammate@example.com",
-        role: "EDITOR",
-        simulateDeliveryFailure: false,
-        simulateExpired: false,
-        userId: "user-1",
-        workspaceId: "workspace-1"
-      }
-    );
+    const result = await createInvitation(depsFor({ savedInvitations }), {
+      email: "teammate@example.com",
+      role: "EDITOR",
+      simulateDeliveryFailure: false,
+      simulateExpired: false,
+      userId: "user-1",
+      workspaceId: "workspace-1"
+    });
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -128,12 +125,14 @@ function depsFor(
       }
     },
     membershipStore: membershipStore(
-      "membership" in options ? options.membership ?? null : membership(),
+      "membership" in options ? (options.membership ?? null) : membership(),
       options.existingUserMembership
     ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     userStore: userStore(options.existingUser),
-    workspaceStore: workspaceStore("workspace" in options ? options.workspace ?? null : workspace())
+    workspaceStore: workspaceStore(
+      "workspace" in options ? (options.workspace ?? null) : workspace()
+    )
   };
 }
 
@@ -144,10 +143,13 @@ function membershipStore(
   return {
     membershipForProject: () => Promise.resolve(undefined),
     membershipForWorkspace: (workspaceId, userId) => {
-      const memberships = [workspaceMembership, existingUserMembership]
-        .filter((item): item is StoredMembership => item !== null && item !== undefined);
+      const memberships = [workspaceMembership, existingUserMembership].filter(
+        (item): item is StoredMembership => item !== null && item !== undefined
+      );
       return Promise.resolve(
-        memberships.find((item) => item.workspace_id === workspaceId && item.user_id === userId)
+        memberships.find(
+          (item) => item.workspace_id === workspaceId && item.user_id === userId
+        )
       );
     },
     membershipsForUser: () => Promise.resolve([]),

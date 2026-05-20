@@ -1,6 +1,6 @@
 # Next Task
 
-_Auto-generated 2026-05-20T19:19:33Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T19:27:10Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Create per-port Prisma adapters (gate 4.C2).
@@ -24,7 +24,6 @@ TASK: Create per-port Prisma adapters (gate 4.C2).
     src/infrastructure/prisma-usecase-store.ts
     src/infrastructure/prisma-branch-store.ts
     src/infrastructure/prisma-user-store.ts
-    src/infrastructure/prisma-comment-store.ts
 
   Steps per port:
     1. Copy the structure from the sibling memory-<name>-store.ts.

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T03:45:00Z_
+_Last updated: 2026-05-20T04:02:32Z_
 
 ## Overall
 
-- Commits: 761
-- Last commit: c2c08d6 green(layers): extract api key workflow
+- Commits: 764
+- Last commit: f2f2320 green(layers): extract invitation workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

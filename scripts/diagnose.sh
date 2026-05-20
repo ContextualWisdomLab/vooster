@@ -92,18 +92,20 @@ TOTAL=0
 COMPLETED=0
 IN_PROGRESS=0
 NOT_STARTED=0
+
+UC_STATUS_FILE=$(mktemp)
+trap 'rm -f "$UC_STATUS_FILE"' EXIT
+node "$ROOT/scripts/_uc-status.mjs" tests/e2e >"$UC_STATUS_FILE" 2>/dev/null || true
+
 for f in docs/usecases/UC-*.md; do
   [ -f "$f" ] || continue
   TOTAL=$((TOTAL+1))
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
   TEST_FILE="tests/e2e/${UC_ID}.test.ts"
   if [ -f "$TEST_FILE" ]; then
-    if grep -qE "describe\(|test\(|it\(" "$TEST_FILE"; then
-      if npx --no-install vitest run "$TEST_FILE" --reporter=dot >/dev/null 2>&1; then
-        COMPLETED=$((COMPLETED+1))
-      else
-        IN_PROGRESS=$((IN_PROGRESS+1))
-      fi
+    STATUS=$(grep -F "${TEST_FILE}"$'\t' "$UC_STATUS_FILE" | awk -F'\t' '{print $2}' | head -1)
+    if [ "$STATUS" = "PASS" ]; then
+      COMPLETED=$((COMPLETED+1))
     else
       IN_PROGRESS=$((IN_PROGRESS+1))
     fi

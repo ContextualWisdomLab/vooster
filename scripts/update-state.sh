@@ -17,6 +17,15 @@ LAST=$(git log -1 --pretty='%h %s' 2>/dev/null || echo '(none)')
 TOTAL=0
 COMPLETED=0
 declare -a ROWS
+
+UC_STATUS_FILE=$(mktemp)
+trap 'rm -f "$UC_STATUS_FILE"' EXIT
+node "$ROOT/scripts/_uc-status.mjs" tests/e2e tests/e2e-cli >"$UC_STATUS_FILE" 2>/dev/null || true
+
+uc_status() {
+  grep -F "$1"$'\t' "$UC_STATUS_FILE" | awk -F'\t' '{print $2}' | head -1
+}
+
 for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
   TOTAL=$((TOTAL+1))
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
@@ -28,7 +37,7 @@ for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
   CLI="○"
   if [ -f "$TEST_FILE" ]; then
     TEST_COUNT=$(grep -cE '\b(test|it)\(' "$TEST_FILE" 2>/dev/null || echo 0)
-    if npx --no-install vitest run "$TEST_FILE" --reporter=dot >/dev/null 2>&1; then
+    if [ "$(uc_status "$TEST_FILE")" = "PASS" ]; then
       STATUS="✓ DONE"
       COMPLETED=$((COMPLETED+1))
       TESTS="$TEST_COUNT/$TEST_COUNT"
@@ -38,7 +47,7 @@ for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
     fi
   fi
   if [ -f "$CLI_FILE" ]; then
-    if npx --no-install vitest run "$CLI_FILE" --reporter=dot >/dev/null 2>&1; then
+    if [ "$(uc_status "$CLI_FILE")" = "PASS" ]; then
       CLI="✓"
     else
       CLI="⚙"

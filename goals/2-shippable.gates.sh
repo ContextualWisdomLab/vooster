@@ -11,6 +11,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=../scripts/_gate-cache.sh
+source "$ROOT/scripts/_gate-cache.sh"
+
+GOAL_NAME="2-shippable"
+
+if gate_cache_hit "$GOAL_NAME"; then
+  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+  exit 0
+fi
+
 PASS=true
 
 run_gate() {
@@ -119,7 +129,15 @@ else
 fi
 
 run_gate "2.B2 DB config consistency" "$ROOT/scripts/check-db-consistency.sh"
-run_gate "2.B3 Docker deploy"         "$ROOT/scripts/check-deployable.sh"
+
+DEEP_SKIPPED=false
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "[2.B3 Docker deploy]"
+  echo "    ⚠ skipped (VSPEC_GATES_SKIP_DEEP=1)"
+  DEEP_SKIPPED=true
+else
+  run_gate "2.B3 Docker deploy"         "$ROOT/scripts/check-deployable.sh"
+fi
 
 echo "[2.B4] README has Install / Run / Deploy sections"
 MISSING_SECTIONS=()
@@ -199,6 +217,9 @@ fi
 run_gate "2.D3 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/2-shippable.md"
 
 if [ "$PASS" = true ]; then
+  if [ "$DEEP_SKIPPED" = false ]; then
+    gate_cache_save "$GOAL_NAME"
+  fi
   exit 0
 else
   exit 1

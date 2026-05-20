@@ -10,6 +10,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=../scripts/_gate-cache.sh
+source "$ROOT/scripts/_gate-cache.sh"
+
+GOAL_NAME="3-managed-db"
+
+if gate_cache_hit "$GOAL_NAME"; then
+  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+  exit 0
+fi
+
 PASS=true
 
 run_gate() {
@@ -269,6 +279,9 @@ fi
 run_gate "3.D4 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/3-managed-db.md"
 
 if [ "$PASS" = true ]; then
+  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+    gate_cache_save "$GOAL_NAME"
+  fi
   exit 0
 else
   exit 1

@@ -7,6 +7,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=../scripts/_gate-cache.sh
+source "$ROOT/scripts/_gate-cache.sh"
+
+GOAL_NAME="1-runnable"
+
+if gate_cache_hit "$GOAL_NAME"; then
+  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+  exit 0
+fi
+
 PASS=true
 
 run_gate() {
@@ -52,6 +62,7 @@ else
 fi
 
 if [ "$PASS" = true ]; then
+  gate_cache_save "$GOAL_NAME"
   exit 0
 else
   exit 1

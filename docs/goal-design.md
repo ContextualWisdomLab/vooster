@@ -101,6 +101,65 @@ goal 1 이후의 모든 gate suite는 마지막에 **이전 goal들의 gate를 �
 재실행**한다 (`1.6` = goal-0, `2.D1/2.D2` = goal-0/1, `3.D1/3.D2` =
 goal-0/1). 이전 단계가 깨졌으면 현재 goal도 실패로 간주.
 
+## Gate 실행 최적화
+
+`*.gates.sh`를 그대로 두면 `completion-check.sh` 한 번 호출로
+`goal-0` gate suite가 6번 돈다 (Tranche D에서 lower goal을 재귀적으로
+호출). 이를 줄이기 위해 다음 메커니즘이 들어가 있다.
+
+### 1. Per-goal cache
+
+각 goal의 gate 스크립트는 `scripts/_gate-cache.sh`를 source 한다.
+
+- 캐시 key = 현재 `git rev-parse HEAD` + **clean working tree**
+  (modified나 untracked 파일이 있으면 캐시 무효)
+- 캐시 hit이면 gate 스크립트 즉시 `exit 0` (메시지: `[cache hit] goal …`)
+- gate suite가 성공하면 현재 SHA를 `.state/gate-cache/<goal-name>`에 저장
+- `.state/`는 `.gitignore`에 들어있어 커밋되지 않음
+
+수동 무효화:
+
+```
+rm -rf .state/gate-cache              # 전체 캐시 버스트
+rm    .state/gate-cache/0-init        # 한 goal만
+VSPEC_GATES_NO_CACHE=1 bash goals/0-init.gates.sh   # 일회성 우회
+```
+
+### 2. Deep-gate skip flag
+
+`VSPEC_GATES_SKIP_DEEP=1`을 export 하면 무거운 외부-시스템 gate를
+스킵한다 (현재는 goal-2.B3의 `docker compose build / up`).
+
+- 스킵된 run은 **캐시를 저장하지 않는다** — partial run은 authoritative가
+  아니므로 다음 full run을 강제한다.
+- Tranche D 회귀 호출에도 env가 전파되므로, goal-3에서 goal-2를 호출할
+  때도 skip이 유효하다. 이때도 goal-3 자체 캐시는 저장되지 않는다.
+
+빠른 iteration:
+
+```
+VSPEC_GATES_SKIP_DEEP=1 bash scripts/completion-check.sh
+```
+
+배포 직전 풀 검증:
+
+```
+bash scripts/completion-check.sh
+```
+
+### 3. Gate 0.2 = Tests + Coverage (병합됨)
+
+`vitest run --coverage`가 일반 `vitest run`을 strict하게 포함하므로
+(테스트 실패 또는 커버리지 threshold 미달 둘 다 exit non-zero), 별도의
+"테스트만" gate를 두지 않는다. 그래서 goal-0은 5 gate.
+
+### 4. `diagnose.sh` / `update-state.sh`의 UC 매트릭스
+
+이전엔 UC 35개 각각에 `npx vitest run <file>`을 cold-start 했다 (35×
+vitest 부팅). 지금은 `scripts/_uc-status.mjs`가 vitest를 **한 번** 호출해
+json reporter 출력을 파일별 PASS/FAIL로 변환하고, bash가 그 결과를
+`grep`으로 lookup한다.
+
 ## 새 goal 추가하기
 
 `.state/active-goal`이 `ALL_DONE`이면 모든 gate가 통과한 상태.

@@ -549,3 +549,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: merge opening resolves source branch/project, authorizes project membership, rejects inactive or missing sources, and rejects forced fast-forward when main advanced without creating a merge request.
 - **Application**: merge opening creates auditable OPEN merge requests with severity impact for conflicts, hard locks, and write failures, and mutates target/source/MR only for clean merges using injected ids and clock.
 - **Route preservation**: UC-020 E2E and CLI tests continue to prove HTTP problem mapping, fast-forward success, structural and semantic conflicts, hard-lock guidance, forced fast-forward rejection, write-failure retry guidance, and human CLI output.
+
+### Goal 2 Layers - Agent Use Case Fetch
+
+- **Application**: agent use-case fetch resolves the use case/project, authorizes project membership, hides missing or archived use cases, and returns simple non-agent reads without assembling agent-only data.
+- **Application**: agent use-case fetch resolves effective revisions from session pins, requested revisions, or current head; reports missing revisions; and emits warnings/actions for overridden and unpinned session reads.
+- **Route preservation**: UC-034 E2E and CLI tests continue to prove agent envelope shape, request id propagation, auth guidance, missing revision guidance, session pin override, unpinned session warning, archived hiding, and human CLI JSON output.

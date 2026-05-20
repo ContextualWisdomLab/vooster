@@ -164,6 +164,34 @@ describe("Goal 2 persistence matrix", () => {
     );
   }, 90_000);
 
+  test("UseCase survives a server restart", async () => {
+    const databaseUrl = `file:${path.join(tempDir, "usecase.sqlite")}`;
+    const first = await bootServer(databaseUrl);
+    const signup = await signupWorkspace(first.url, "usecase-owner");
+    const project = await createProject(first.url, signup, "UseCase Matrix", "UCASE");
+    await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const usecase = await createUseCase(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Reviews persisted use cases",
+      "Customer"
+    );
+
+    await first.stop();
+
+    const second = await bootServer(databaseUrl);
+    const loggedIn = await login(second.url, "usecase-owner");
+    const shown = await readUseCase(second.url, loggedIn.sessionCookie, usecase.id);
+
+    await second.stop();
+
+    expect(shown.status).toBe(200);
+    expect(shown.data.usecase).toEqual({ id: usecase.id, key: usecase.key });
+    expect(shown.data.title).toBe("Reviews persisted use cases");
+    expect(shown.data.primary_actor).toEqual({ name: "Customer" });
+  }, 90_000);
+
   test("WorkSession survives a server restart", async () => {
     const databaseUrl = `file:${path.join(tempDir, "worksession.sqlite")}`;
     const first = await bootServer(databaseUrl);

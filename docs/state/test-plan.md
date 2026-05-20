@@ -689,3 +689,12 @@ write. This guides your TDD cycles within an iteration._
   `domain` and `cli` imports from `infrastructure`.
 - **Verification**: `npx eslint .` runs with the stricter rules so any existing
   direct imports must be routed through application or HTTP-facing seams first.
+
+### Goal 2 Persistence - UseCase Matrix
+
+- **Integration**: the persistence matrix includes an explicit `UseCase`
+  restart-survival row that creates a use case through the public project API,
+  restarts against the same database, and reads it back through the public
+  agent-format use case API.
+- **Assertions**: the row proves the persisted use case keeps its id, key,
+  title, and primary actor relationship after restart.

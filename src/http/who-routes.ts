@@ -1,20 +1,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import type { StoredMergeRequest } from "./merge-request-types.js";
-import { membershipForProject } from "./membership-support.js";
-import { problem } from "./signup-support.js";
-import type {
-  SignupState,
-  StoredLock,
-  StoredUseCase,
-  StoredWorkSession
-} from "./signup-types.js";
+import { whoIsWorking } from "../application/who-is-working.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
+import { authenticatedUserId } from "./session-support.js";
+import type { SignupState } from "./signup-types.js";
+import { sendWhoResult } from "./who-results.js";
 
 export function registerWhoRoutes(
   app: FastifyInstance,
@@ -52,171 +47,21 @@ async function showWho(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
-  const usecaseId = usecaseIdFrom(request.params);
-  const usecase = (await useCaseStore.findUseCaseWithProject(usecaseId))?.usecase;
-  if (usecase === undefined) {
-    return reply.code(404).send(missingUseCaseProblem(usecaseId));
-  }
-  if (await membershipForProject(request, state, membershipStore, usecase.project_id) === undefined) {
-    return reply.code(403).send(workspaceMembershipProblem());
-  }
-
-  const sessions = (await activeSessions(workSessionStore, usecase.id)).map(sessionRow);
-  const locks = (await activeLocks(lockStore, usecase.id)).map(lockRow);
-  const mergeRequests = (
-    await openMergeRequests(branchStore, mergeRequestStore, usecase.id)
-  ).map(mergeRow);
-  const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
-  return reply.send({
-    ...(usecase.archived_at === null ? {} : { archived: true }),
-    locks,
-    merge_requests: mergeRequests,
-    sessions,
-    suggested_next_actions: nextActions(locks, mergeRequests, usecase, hasActiveWork, sessions),
-    usecase: { id: usecase.id, key: usecase.key }
-  });
-}
-
-function missingUseCaseProblem(usecaseId: string) {
-  return problem(
-    404,
-    "Use case not found",
-    { key_format: "KEY-NNN" },
-    [
-      {
-        command: `vspec usecase search ${usecaseId}`,
-        reason: "Search for the intended use case key."
-      }
-    ]
+  const result = await whoIsWorking(
+    {
+      branchStore,
+      lockStore,
+      membershipStore,
+      mergeRequestStore,
+      useCaseStore,
+      workSessionStore
+    },
+    {
+      usecaseId: usecaseIdFrom(request.params),
+      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+    }
   );
-}
-
-function workspaceMembershipProblem() {
-  return problem(
-    403,
-    "Workspace membership required",
-    {},
-    [
-      {
-        command: "vspec workspace list",
-        reason: "Choose a workspace you can access."
-      }
-    ]
-  );
-}
-
-async function activeSessions(workSessionStore: WorkSessionStore, usecaseId: string) {
-  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
-    .filter((session) => session.status === "ACTIVE")
-    .filter((session) => session.pinned_revisions?.[usecaseId] !== undefined);
-}
-
-async function activeLocks(lockStore: LockStore, usecaseId: string) {
-  return (await lockStore.listLocksForUseCase(usecaseId))
-    .filter((lock) => Date.parse(lock.expires_at) > Date.now());
-}
-
-async function openMergeRequests(
-  branchStore: BranchStore,
-  mergeRequestStore: MergeRequestStore,
-  usecaseId: string
-) {
-  const matches = await Promise.all((await mergeRequestStore.listOpenMergeRequests())
-    .map(async (merge) => ({
-      merge,
-      touches: await branchTouches(branchStore, merge.source_branch_id, usecaseId) ||
-        await branchTouches(branchStore, merge.target_branch_id, usecaseId)
-    })));
-  return matches.filter((match) => match.touches).map((match) => match.merge);
-}
-
-function sessionRow(session: StoredWorkSession) {
-  return {
-    agent_type: session.agent_type,
-    id: session.id,
-    intent: session.intent,
-    markers: sessionMarkers(session),
-    started_at: session.started_at,
-    user_id: session.user_id
-  };
-}
-
-function lockRow(lock: StoredLock) {
-  return {
-    expires_at: lock.expires_at,
-    held_by_session_id: lock.held_by_session_id ?? null,
-    held_by_user_id: lock.held_by_user_id ?? "",
-    id: lock.id ?? lock.usecase_id,
-    lock_type: lock.lock_type ?? lock.mode
-  };
-}
-
-function mergeRow(merge: StoredMergeRequest) {
-  return {
-    conflict_count: merge.conflicts.length,
-    id: merge.id,
-    source_branch_id: merge.source_branch_id,
-    status: merge.status
-  };
-}
-
-function nextActions(
-  locks: ReturnType<typeof lockRow>[],
-  merges: Array<ReturnType<typeof mergeRow>>,
-  usecase: StoredUseCase,
-  hasActiveWork: boolean,
-  sessions: Array<ReturnType<typeof sessionRow>>
-) {
-  if (!hasActiveWork) {
-    return [
-      {
-        command: `vspec session start --intent "..." --pin ${usecase.key}`,
-        reason: "Start a session on this use case."
-      }
-    ];
-  }
-  return [
-    ...(
-      usecase.archived_at !== null
-        ? [{
-            command: `vspec usecase restore ${usecase.key}`,
-            reason: "Restore the archived use case before coordinating active work."
-          }]
-        : []
-    ),
-    ...(
-      locks.length === 0
-        ? []
-        : [{ command: "vspec lock list", reason: "Review active locks before editing." }]
-    ),
-    ...merges.map((merge) => ({
-      command: `vspec merge show ${merge.id}`,
-      reason: "Review the open merge request touching this use case."
-    })),
-    ...sessions
-      .filter((session) => session.markers.includes("ZOMBIE"))
-      .map((session) => ({
-        command: `vspec session abandon ${session.id}`,
-        reason: "Review and explicitly abandon the stale active session."
-      }))
-  ];
-}
-
-function sessionMarkers(session: StoredWorkSession): string[] {
-  return idleSeconds(session.last_activity_at ?? session.started_at) > 1800 ? ["ZOMBIE"] : [];
-}
-
-function idleSeconds(startedAt: string | undefined): number {
-  return Math.max(0, Math.floor((Date.now() - Date.parse(startedAt ?? "")) / 1000));
-}
-
-async function branchTouches(
-  branchStore: BranchStore,
-  branchId: null | string,
-  usecaseId: string
-): Promise<boolean> {
-  return branchId !== null &&
-    (await branchStore.findBranchById(branchId))?.head_revision_ids?.[usecaseId] !== undefined;
+  return sendWhoResult(reply, result);
 }
 
 function usecaseIdFrom(params: unknown): string {

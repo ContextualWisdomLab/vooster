@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T20:07:42Z_
+_Last updated: 2026-05-20T20:12:55Z_
 
 ## Overall
 
-- Commits: 937
-- Last commit: 489dc89 green(prisma-split): add prisma scenario adapter
+- Commits: 941
+- Last commit: 9d573c6 green(prisma-split): add prisma step adapter
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

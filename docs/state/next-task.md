@@ -1,6 +1,6 @@
 # Next Task
 
-_Auto-generated 2026-05-20T19:41:59Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T19:45:04Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Create per-port Prisma adapters (gate 4.C2).
@@ -16,7 +16,6 @@ TASK: Create per-port Prisma adapters (gate 4.C2).
     src/infrastructure/prisma-work-session-store.ts
     src/infrastructure/prisma-merge-request-store.ts
     src/infrastructure/prisma-goal-store.ts
-    src/infrastructure/prisma-project-store.ts
     src/infrastructure/prisma-lock-store.ts
     src/infrastructure/prisma-usecase-store.ts
     src/infrastructure/prisma-branch-store.ts

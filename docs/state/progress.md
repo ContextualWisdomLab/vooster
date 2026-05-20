@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T19:41:59Z_
+_Last updated: 2026-05-20T19:45:04Z_
 
 ## Overall
 
-- Commits: 909
-- Last commit: f58a3e3 green(prisma-split): add prisma membership adapter
+- Commits: 913
+- Last commit: c635d12 green(prisma-split): add prisma project adapter
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

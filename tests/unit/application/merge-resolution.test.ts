@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { resolveMerge } from "../../../src/application/merge-resolution.js";
 import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
-import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../../../src/http/signup-types.js";
+import type {
+  StoredRevision,
+  StoredSpecBranch,
+  StoredUseCase
+} from "../../../src/http/signup-types.js";
 import { featureBranch, lock, mergeRequest } from "./merge-resolution-data.js";
 import { depsFor, input } from "./merge-resolution-fixtures.js";
 
@@ -13,7 +17,12 @@ describe("merge resolution application", () => {
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await resolveMerge(
-      depsFor({ savedRevisions, updatedBranches, updatedMergeRequests, updatedUseCases }),
+      depsFor({
+        savedRevisions,
+        updatedBranches,
+        updatedMergeRequests,
+        updatedUseCases
+      }),
       input()
     );
 
@@ -57,13 +66,16 @@ describe("merge resolution application", () => {
   });
 
   test("rejects invalid resolution requests before writes", async () => {
-    await expect(resolveMerge(depsFor(), input({ baseRevision: "stale" }))).resolves
-      .toMatchObject({ mergeRequest: mergeRequest(), status: "STALE_BASE" });
+    await expect(
+      resolveMerge(depsFor(), input({ baseRevision: "stale" }))
+    ).resolves.toMatchObject({ mergeRequest: mergeRequest(), status: "STALE_BASE" });
 
     await expect(
       resolveMerge(
         depsFor(),
-        input({ resolutions: [{ entity_id: "usecase-1", field: "title", strategy: "MANUAL" }] })
+        input({
+          resolutions: [{ entity_id: "usecase-1", field: "title", strategy: "MANUAL" }]
+        })
       )
     ).resolves.toMatchObject({
       mergeRequest: mergeRequest(),
@@ -74,7 +86,11 @@ describe("merge resolution application", () => {
     await expect(
       resolveMerge(
         depsFor(),
-        input({ resolutions: [{ entity_id: "other-usecase", field: "title", strategy: "THEIRS" }] })
+        input({
+          resolutions: [
+            { entity_id: "other-usecase", field: "title", strategy: "THEIRS" }
+          ]
+        })
       )
     ).resolves.toMatchObject({
       mergeRequest: mergeRequest(),
@@ -84,14 +100,15 @@ describe("merge resolution application", () => {
   });
 
   test("keeps the merge open for hard locks and simulated write failures", async () => {
-    await expect(resolveMerge(depsFor({ hardLock: lock() }), input())).resolves
-      .toMatchObject({
-        holdingSession: "session-lock-holder",
-        mainHeadRevisionIds: { "usecase-1": "revision-main" },
-        mergeRequest: mergeRequest(),
-        status: "HARD_LOCK",
-        useCaseKey: "MRG-001"
-      });
+    await expect(
+      resolveMerge(depsFor({ hardLock: lock() }), input())
+    ).resolves.toMatchObject({
+      holdingSession: "session-lock-holder",
+      mainHeadRevisionIds: { "usecase-1": "revision-main" },
+      mergeRequest: mergeRequest(),
+      status: "HARD_LOCK",
+      useCaseKey: "MRG-001"
+    });
 
     await expect(
       resolveMerge(depsFor(), input({ simulateWriteFailure: true }))

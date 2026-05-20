@@ -613,6 +613,15 @@ write. This guides your TDD cycles within an iteration._
 
 ### Goal 2 Layers - Merge Resolution
 
-- **Application**: merge resolution resolves the merge/source/target, authorizes project membership, rejects missing merges or branches, non-open/no-conflict merges, stale base revisions, missing manual values, uncovered conflicts, hard locks, and simulated write failures without mutating successful state.
-- **Application**: merge resolution writes one resolved USECASE revision per conflict with injected ids and clock, advances the target branch heads, marks the merge request and source branch merged, and returns usecase review guidance.
-- **Route preservation**: UC-021 E2E and CLI tests continue to prove HTTP validation, stale-base guidance, manual-value guidance, uncovered-conflict guidance, late hard-lock guidance, write-failure rollback shape, and human CLI output.
+- **Application**: merge resolution resolves the merge/source/target, authorizes
+  project membership, rejects missing merges or branches, non-open/no-conflict
+  merges, stale base revisions, missing manual values, uncovered conflicts, hard
+  locks, and simulated write failures without mutating successful state.
+- **Application**: merge resolution writes one resolved USECASE revision per
+  conflict with injected ids and clock, advances the target branch heads, marks
+  the merge request and source branch merged, and returns usecase review
+  guidance.
+- **Route preservation**: UC-021 E2E and CLI tests continue to prove HTTP
+  validation, stale-base guidance, manual-value guidance, uncovered-conflict
+  guidance, late hard-lock guidance, write-failure rollback shape, and human CLI
+  output.

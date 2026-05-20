@@ -6,16 +6,20 @@ import type {
   StoredUseCase
 } from "../../../src/http/signup-types.js";
 
-export function mergeRequest(overrides: Partial<StoredMergeRequest> = {}): StoredMergeRequest {
+export function mergeRequest(
+  overrides: Partial<StoredMergeRequest> = {}
+): StoredMergeRequest {
   return {
-    conflicts: [{
-      entity_id: "usecase-1",
-      entity_type: "USECASE",
-      field: "title",
-      mine_value: "Source title",
-      theirs_value: "Main title",
-      type: "STRUCTURAL"
-    }],
+    conflicts: [
+      {
+        entity_id: "usecase-1",
+        entity_type: "USECASE",
+        field: "title",
+        mine_value: "Source title",
+        theirs_value: "Main title",
+        type: "STRUCTURAL"
+      }
+    ],
     created_by: "user-1",
     current_revision_id: "merge-current",
     id: "merge-1",
@@ -28,7 +32,9 @@ export function mergeRequest(overrides: Partial<StoredMergeRequest> = {}): Store
   };
 }
 
-export function featureBranch(overrides: Partial<StoredSpecBranch> = {}): StoredSpecBranch {
+export function featureBranch(
+  overrides: Partial<StoredSpecBranch> = {}
+): StoredSpecBranch {
   return {
     base_branch_id: "branch-main",
     base_revision_ids: { "usecase-1": "revision-base" },
@@ -43,7 +49,9 @@ export function featureBranch(overrides: Partial<StoredSpecBranch> = {}): Stored
   };
 }
 
-export function mainBranch(overrides: Partial<StoredSpecBranch> = {}): StoredSpecBranch {
+export function mainBranch(
+  overrides: Partial<StoredSpecBranch> = {}
+): StoredSpecBranch {
   return {
     base_branch_id: null,
     head_revision_ids: { "usecase-1": "revision-main" },

@@ -12,15 +12,23 @@ import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { MergeRequestStore } from "../../../src/ports/merge-request-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
-import { featureBranch, mainBranch, membership, mergeRequest, usecase } from "./merge-resolution-data.js";
+import {
+  featureBranch,
+  mainBranch,
+  membership,
+  mergeRequest,
+  usecase
+} from "./merge-resolution-data.js";
 
-export function depsFor(options: {
-  hardLock?: StoredLock;
-  savedRevisions?: StoredRevision[];
-  updatedBranches?: StoredSpecBranch[];
-  updatedMergeRequests?: StoredMergeRequest[];
-  updatedUseCases?: StoredUseCase[];
-} = {}) {
+export function depsFor(
+  options: {
+    hardLock?: StoredLock;
+    savedRevisions?: StoredRevision[];
+    updatedBranches?: StoredSpecBranch[];
+    updatedMergeRequests?: StoredMergeRequest[];
+    updatedUseCases?: StoredUseCase[];
+  } = {}
+) {
   const source = featureBranch();
   const target = mainBranch();
   return {
@@ -46,9 +54,14 @@ export function input(overrides: Partial<ResolveMergeInput> = {}): ResolveMergeI
   };
 }
 
-function branchStore(source: StoredSpecBranch, target: StoredSpecBranch, updated: StoredSpecBranch[]): BranchStore {
+function branchStore(
+  source: StoredSpecBranch,
+  target: StoredSpecBranch,
+  updated: StoredSpecBranch[]
+): BranchStore {
   return {
-    findBranchById: (branchId) => Promise.resolve([source, target].find((branch) => branch.id === branchId)),
+    findBranchById: (branchId) =>
+      Promise.resolve([source, target].find((branch) => branch.id === branchId)),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
     listBranches: () => Promise.resolve([]),
     saveBranch: () => Promise.resolve(),
@@ -74,7 +87,8 @@ function lockStore(hardLock: StoredLock | undefined): LockStore {
 
 function membershipStore(): MembershipStore {
   return {
-    membershipForProject: (_projectId, userId) => Promise.resolve(userId === "user-1" ? membership() : undefined),
+    membershipForProject: (_projectId, userId) =>
+      Promise.resolve(userId === "user-1" ? membership() : undefined),
     membershipForWorkspace: () => Promise.resolve(undefined),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
@@ -83,7 +97,8 @@ function membershipStore(): MembershipStore {
 
 function mergeRequestStore(updated: StoredMergeRequest[]): MergeRequestStore {
   return {
-    findMergeRequestById: (mergeId) => Promise.resolve(mergeId === "merge-1" ? mergeRequest() : undefined),
+    findMergeRequestById: (mergeId) =>
+      Promise.resolve(mergeId === "merge-1" ? mergeRequest() : undefined),
     listOpenMergeRequests: () => Promise.resolve([]),
     listOpenMergeRequestsByTargetBranchId: () => Promise.resolve([]),
     saveMergeRequest: () => Promise.resolve(),
@@ -111,9 +126,11 @@ function useCaseStore(updated: StoredUseCase[]): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: (usecaseId) =>
-      Promise.resolve(usecaseId === "usecase-1"
-        ? { projectId: "project-1", usecase: usecase() }
-        : undefined),
+      Promise.resolve(
+        usecaseId === "usecase-1"
+          ? { projectId: "project-1", usecase: usecase() }
+          : undefined
+      ),
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve([usecase()]),
     saveUseCase: () => Promise.resolve(),

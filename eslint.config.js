@@ -24,23 +24,24 @@ export default tseslint.config(
     },
     settings: {
       "boundaries/elements": [
-        { type: "cli", pattern: "src/cli/*" },
-        { type: "http", pattern: "src/http/*" },
-        { type: "application", pattern: "src/application/*" },
-        { type: "domain", pattern: "src/domain/*" },
-        { type: "ports", pattern: "src/ports/*" },
-        { type: "infrastructure", pattern: "src/infrastructure/*" }
+        { type: "cli", pattern: "src/cli" },
+        { type: "http", pattern: "src/http" },
+        { type: "application", pattern: "src/application" },
+        { type: "domain", pattern: "src/domain" },
+        { type: "ports", pattern: "src/ports" },
+        { type: "infrastructure", pattern: "src/infrastructure" }
       ]
     },
     rules: {
       "@typescript-eslint/consistent-type-imports": "error",
       "boundaries/element-types": ["error", {
-        default: "allow",
+        default: "disallow",
         rules: [
-          { from: "http", disallow: ["domain", "infrastructure"] },
-          { from: "cli", disallow: ["infrastructure"] },
-          { from: "application", disallow: ["infrastructure"] },
-          { from: "domain", disallow: ["cli", "http", "application", "ports", "infrastructure"] }
+          { from: "cli", allow: ["http", "application", "ports", "domain"] },
+          { from: "http", allow: ["application", "ports", "domain"] },
+          { from: "application", allow: ["ports", "domain"] },
+          { from: "infrastructure", allow: ["ports", "domain"] },
+          { from: "ports", allow: ["domain"] }
         ]
       }]
     }

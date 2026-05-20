@@ -3,6 +3,7 @@ import type { Dirent } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
+import { runActor } from "./commands/actor.js";
 import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runBranch } from "./commands/branch.js";
@@ -206,7 +207,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
-      await this.createActor(parsed.flags);
+      await runActor(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
@@ -696,28 +697,6 @@ export class VspecCommand extends Command {
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
-  private async createActor(flags: ParsedFlags): Promise<void> {
-    const actorFlags = actorFlagsFrom(flags);
-    const response = await postJson(
-      `${actorFlags.apiUrl}/v1/projects/${actorFlags.projectId}/actors`,
-      {
-        aliases: actorFlags.aliases,
-        description: actorFlags.description,
-        is_human: true,
-        name: actorFlags.name,
-        type: actorFlags.type
-      },
-      {
-        Cookie: actorFlags.sessionCookie
-      }
-    );
-    const body = response.body as ActorResponse;
-
-    this.log(`Actor ${body.actor.name} ${body.actor.type}`);
-    this.log(`Revision version ${String(body.revision.version_number)}`);
-    this.log(body.recommended_next_command);
-  }
-
   private async createStakeholder(flags: ParsedFlags): Promise<void> {
     const stakeholderFlags = stakeholderFlagsFrom(flags);
     const response = await postJson(
@@ -1131,16 +1110,6 @@ type ExportGherkinFlags = {
   revision: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type ActorFlags = {
-  aliases: string[];
-  apiUrl: string;
-  description: string;
-  name: string;
-  projectId: string;
-  sessionCookie: string;
-  type: "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
 };
 
 type StakeholderFlags = {
@@ -1569,17 +1538,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type ActorResponse = {
-  actor: {
-    name: string;
-    type: string;
-  };
-  recommended_next_command: string;
-  revision: {
-    version_number: number;
-  };
-};
-
 type StakeholderResponse = {
   recommended_next_command: string;
   revision: {
@@ -1910,18 +1868,6 @@ function exportFlagsFrom(
   };
 }
 
-function actorFlagsFrom(flags: ParsedFlags): ActorFlags {
-  return {
-    aliases: aliasesFrom(flags.aliases),
-    apiUrl: requiredFlag(flags, "api-url"),
-    description: flags.description ?? "",
-    name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    type: actorType(requiredFlag(flags, "type"))
-  };
-}
-
 function stakeholderFlagsFrom(flags: ParsedFlags): StakeholderFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -2074,15 +2020,6 @@ function sessionCompleteFlagsFrom(
   };
 }
 
-function actorType(rawType: string): "OFFSTAGE" | "PRIMARY" | "SUPPORTING" {
-  const type = rawType.toUpperCase();
-  if (type === "OFFSTAGE" || type === "PRIMARY" || type === "SUPPORTING") {
-    return type;
-  }
-
-  throw new Error("Actor type must be PRIMARY, SUPPORTING, or OFFSTAGE.");
-}
-
 function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY" {
   const type = rawType.toUpperCase();
   if (type === "EXTERNAL" || type === "INTERNAL" || type === "REGULATORY") {
@@ -2187,14 +2124,6 @@ function scenarioExtensionPoint(
   type: "EXTENSION" | "MAIN_SUCCESS"
 ): string | undefined {
   return type === "EXTENSION" ? requiredFlag(flags, "at") : undefined;
-}
-
-function aliasesFrom(rawAliases: string | undefined): string[] {
-  if (rawAliases === undefined || rawAliases.trim() === "") {
-    return [];
-  }
-
-  return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
 }
 
 function pinsFrom(rawPins: string): string[] {

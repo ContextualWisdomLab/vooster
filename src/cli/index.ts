@@ -7,6 +7,7 @@ import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
 import { runBranch } from "./commands/branch.js";
 import { runComment } from "./commands/comment.js";
+import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
@@ -213,15 +214,15 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "create") {
-      await this.createGoal(parsed.flags);
+      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "list") {
-      await this.listGoals(parsed.flags);
+      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "promote") {
-      await this.promoteGoal(parsed.flags);
+      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "create") {
@@ -737,77 +738,6 @@ export class VspecCommand extends Command {
     this.log(body.recommended_next_command);
   }
 
-  private async createGoal(flags: ParsedFlags): Promise<void> {
-    const goalFlags = goalCreateFlagsFrom(flags);
-    const response = await postJson(
-      `${goalFlags.apiUrl}/v1/projects/${goalFlags.projectId}/goals`,
-      {
-        actor_id: goalFlags.actorId,
-        description: goalFlags.description,
-        level: goalFlags.level,
-        priority: goalFlags.priority
-      },
-      {
-        Cookie: goalFlags.sessionCookie
-      }
-    );
-    const body = response.body as GoalResponse;
-
-    this.log(`Goal ${body.goal.description}`);
-    this.log(`Status ${body.goal.status} ${body.goal.priority}`);
-    this.log(`Revision version ${String(body.revision.version_number)}`);
-    for (const warning of body.warnings ?? []) {
-      this.log(`Warning ${warning.command}`);
-    }
-    this.log(body.recommended_next_command);
-  }
-
-  private async listGoals(flags: ParsedFlags): Promise<void> {
-    const goalFlags = goalListFlagsFrom(flags);
-    const url = new URL(`/v1/projects/${goalFlags.projectId}/goals`, goalFlags.apiUrl);
-    if (goalFlags.actorId !== undefined) {
-      url.searchParams.set("actor_id", goalFlags.actorId);
-    }
-
-    const response = await fetchJson(url, {
-      headers: {
-        Cookie: goalFlags.sessionCookie
-      }
-    });
-    const body = response.body as GoalListResponse;
-
-    for (const actorGoals of body.actors) {
-      this.log(`Actor ${actorGoals.actor.name}`);
-      for (const goal of actorGoals.goals) {
-        this.log(`${goal.description} ${goal.priority} ${goal.status}`);
-      }
-    }
-  }
-
-  private async promoteGoal(flags: ParsedFlags): Promise<void> {
-    const goalFlags = goalPromoteFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}/promote`,
-      {},
-      {
-        Cookie: goalFlags.sessionCookie
-      }
-    );
-    const body = response.body as GoalPromotionResponse;
-
-    this.log(`UseCase ${body.usecase.key}`);
-    this.log(`Title ${body.usecase.title}`);
-    this.log(`Format ${body.usecase.format}`);
-    this.log(`Revision version ${String(body.revision.version_number)}`);
-    this.log(`Goal ${body.goal.status}`);
-    for (const warning of body.warnings ?? []) {
-      this.log(`Warning ${warning.message}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
   private async createUseCase(flags: ParsedFlags): Promise<void> {
     const useCaseFlags = useCaseCreateFlagsFrom(flags);
     const response = await postJson(
@@ -1220,29 +1150,6 @@ type StakeholderFlags = {
   projectId: string;
   sessionCookie: string;
   type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
-};
-
-type GoalCreateFlags = {
-  actorId: string;
-  apiUrl: string;
-  description: string;
-  level: "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";
-  priority: "P0" | "P1" | "P2" | "P3";
-  projectId: string;
-  sessionCookie: string;
-};
-
-type GoalListFlags = {
-  actorId: string | undefined;
-  apiUrl: string;
-  projectId: string;
-  sessionCookie: string;
-};
-
-type GoalPromoteFlags = {
-  apiUrl: string;
-  goalId: string;
-  sessionCookie: string;
 };
 
 type UseCaseCreateFlags = {
@@ -1684,54 +1591,6 @@ type StakeholderResponse = {
   };
 };
 
-type GoalResponse = {
-  goal: {
-    description: string;
-    priority: string;
-    status: string;
-  };
-  recommended_next_command: string;
-  revision: {
-    version_number: number;
-  };
-  warnings?: Array<{
-    command: string;
-  }>;
-};
-
-type GoalListResponse = {
-  actors: Array<{
-    actor: {
-      name: string;
-    };
-    goals: Array<{
-      description: string;
-      priority: string;
-      status: string;
-    }>;
-  }>;
-};
-
-type GoalPromotionResponse = {
-  goal: {
-    status: string;
-  };
-  revision: {
-    version_number: number;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    format: string;
-    key: string;
-    title: string;
-  };
-  warnings?: Array<{
-    message: string;
-  }>;
-};
-
 type UseCaseResponse = {
   revision: {
     version_number: number;
@@ -2074,38 +1933,6 @@ function stakeholderFlagsFrom(flags: ParsedFlags): StakeholderFlags {
   };
 }
 
-function goalCreateFlagsFrom(flags: ParsedFlags): GoalCreateFlags {
-  return {
-    actorId: requiredFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    description: requiredFlag(flags, "description"),
-    level: goalLevel(requiredFlag(flags, "level")),
-    priority: goalPriority(requiredFlag(flags, "priority")),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
-
-function goalListFlagsFrom(flags: ParsedFlags): GoalListFlags {
-  return {
-    actorId: optionalFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
-
-function goalPromoteFlagsFrom(
-  flags: ParsedFlags,
-  goalId: string | undefined
-): GoalPromoteFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    goalId: requiredArgument(goalId, "goal-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
-
 function useCaseCreateFlagsFrom(flags: ParsedFlags): UseCaseCreateFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -2263,24 +2090,6 @@ function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY
   }
 
   throw new Error("Stakeholder type must be INTERNAL, EXTERNAL, or REGULATORY.");
-}
-
-function goalLevel(rawLevel: string): "SUMMARY" | "USER_GOAL" | "SUBFUNCTION" {
-  const level = rawLevel.toUpperCase();
-  if (level === "SUMMARY" || level === "USER_GOAL" || level === "SUBFUNCTION") {
-    return level;
-  }
-
-  throw new Error("Goal level must be SUMMARY, USER_GOAL, or SUBFUNCTION.");
-}
-
-function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
-  const priority = rawPriority.toUpperCase();
-  if (priority === "P0" || priority === "P1" || priority === "P2" || priority === "P3") {
-    return priority;
-  }
-
-  throw new Error("Goal priority must be P0, P1, P2, or P3.");
 }
 
 function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {

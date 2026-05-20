@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
 import { runActor } from "./commands/actor.js";
@@ -8,6 +8,7 @@ import { runApiKey } from "./commands/api-key.js";
 import { runBranch } from "./commands/branch.js";
 import { runChange } from "./commands/change.js";
 import { runComment } from "./commands/comment.js";
+import { runExport } from "./commands/export.js";
 import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
@@ -19,7 +20,7 @@ import { runStakeholder } from "./commands/stakeholder.js";
 import { runStep } from "./commands/step.js";
 import { runSync } from "./commands/sync.js";
 import { runUsecase } from "./commands/usecase.js";
-import { fetchJson, postJson, postText } from "./http-client.js";
+import { fetchJson, postJson } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 export class VspecCommand extends Command {
@@ -186,11 +187,11 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "export" && this.argv[1] === "gherkin") {
-      await this.exportGherkin(parsed.flags);
+      await runExport(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "export" && this.argv[1] === "markdown") {
-      await this.exportMarkdown(parsed.flags);
+      await runExport(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "comment" && this.argv[1] === "add") {
@@ -489,52 +490,6 @@ export class VspecCommand extends Command {
     }
   }
 
-  private async exportGherkin(flags: ParsedFlags): Promise<void> {
-    const exportFlags = exportFlagsFrom(flags, this.argv[2]);
-    const response = await postText(
-      `${exportFlags.apiUrl}/v1/usecases/${exportFlags.usecaseId}/export/gherkin?format=feature`,
-      {
-        force: exportFlags.force,
-        ...(exportFlags.output === undefined ? {} : { output_path: exportFlags.output }),
-        ...(exportFlags.revision === undefined ? {} : { revision_id: exportFlags.revision })
-      },
-      {
-        Cookie: exportFlags.sessionCookie
-      }
-    );
-
-    if (exportFlags.output === undefined) {
-      this.log(response.body);
-      return;
-    }
-    await writeSyncFile(process.cwd(), exportFlags.output, response.body);
-    this.log(`Exported ${exportFlags.output}`);
-    this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
-  }
-
-  private async exportMarkdown(flags: ParsedFlags): Promise<void> {
-    const exportFlags = exportFlagsFrom(flags, this.argv[2]);
-    const response = await postText(
-      `${exportFlags.apiUrl}/v1/usecases/${exportFlags.usecaseId}/export/markdown`,
-      {
-        force: exportFlags.force,
-        ...(exportFlags.output === undefined ? {} : { output_path: exportFlags.output }),
-        ...(exportFlags.revision === undefined ? {} : { revision_id: exportFlags.revision })
-      },
-      {
-        Cookie: exportFlags.sessionCookie
-      }
-    );
-
-    if (exportFlags.output === undefined) {
-      this.log(response.body);
-      return;
-    }
-    await writeSyncFile(process.cwd(), exportFlags.output, response.body);
-    this.log(`Exported ${exportFlags.output}`);
-    this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
-  }
-
 }
 
 type LockCreateFlags = {
@@ -581,15 +536,6 @@ type RevertFlags = {
 type ImpactFlags = {
   apiUrl: string;
   proposedChangePath: string | undefined;
-  sessionCookie: string;
-  usecaseId: string;
-};
-
-type ExportGherkinFlags = {
-  apiUrl: string;
-  force: boolean;
-  output: string | undefined;
-  revision: string | undefined;
   sessionCookie: string;
   usecaseId: string;
 };
@@ -870,20 +816,6 @@ function impactFlagsFrom(flags: ParsedFlags, usecaseId: string | undefined): Imp
   };
 }
 
-function exportFlagsFrom(
-  flags: ParsedFlags,
-  usecaseId: string | undefined
-): ExportGherkinFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    force: flags.force ?? false,
-    output: optionalFlag(flags, "output"),
-    revision: optionalFlag(flags, "revision"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
 function lockType(rawType: string): "HARD" | "SEMANTIC" | "SOFT" {
   const type = rawType.toUpperCase();
   if (type === "HARD" || type === "SEMANTIC" || type === "SOFT") {
@@ -986,12 +918,6 @@ function formatAffectedSessions(sessions: ImpactResponse["impact"]["affected_ses
       `${session.id} ${session.agent_type} ${session.owner} ${session.pinned_revision}`
     )
     .join(", ");
-}
-
-async function writeSyncFile(root: string, path: string, content: string): Promise<void> {
-  const absolutePath = resolve(root, path);
-  await mkdir(dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, content);
 }
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {

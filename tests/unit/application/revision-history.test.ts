@@ -133,11 +133,13 @@ function depsFor(
   } = {}
 ) {
   return {
-    membershipStore: membershipStore(options.membership ?? membership()),
+    membershipStore: membershipStore(
+      "membership" in options ? options.membership ?? null : membership()
+    ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     projectStore: projectStore(),
     revisionStore: revisionStore(options.readEntityIds ?? []),
-    useCaseStore: useCaseStore(options.usecase ?? usecase())
+    useCaseStore: useCaseStore("usecase" in options ? options.usecase ?? null : usecase())
   };
 }
 

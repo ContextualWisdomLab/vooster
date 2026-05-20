@@ -986,6 +986,17 @@ write. This guides your TDD cycles within an iteration._
   full Vitest suite remain green after `src/cli/index.ts` delegates `lock` to
   the dedicated command module.
 
+### Goal 4 CLI Split - Who Command
+
+- **Command module**: `tests/unit/cli-command-split.test.ts` imports
+  `WhoCommand` from `src/cli/commands/who.ts` and asserts it extends the oclif
+  `Command` base class.
+- **Setup**: keep the command-split test as the fast RED/GREEN signal while
+  extracting `who` request/formatting behavior from `src/cli/index.ts`.
+- **Assertions**: focused command-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after `src/cli/index.ts` delegates `who` to
+  the dedicated command module.
+
 ### Goal 4 CLI Split - Diff Command
 
 - **Command module**: `tests/unit/cli-command-split.test.ts` imports

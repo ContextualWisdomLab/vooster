@@ -11,6 +11,7 @@ import { runComment } from "./commands/comment.js";
 import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
+import { runMerge } from "./commands/merge.js";
 import { runProject } from "./commands/project.js";
 import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
@@ -132,11 +133,11 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "merge" && this.argv[1] === "open") {
-      await this.openMerge(parsed.flags);
+      await runMerge(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "merge" && this.argv[1] === "resolve") {
-      await this.resolveMerge(parsed.flags);
+      await runMerge(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "lock" && this.argv[1] !== "renew") {
@@ -277,65 +278,6 @@ export class VspecCommand extends Command {
     }
 
     this.log("vspec CLI");
-  }
-
-  private async openMerge(flags: ParsedFlags): Promise<void> {
-    const mergeFlags = mergeOpenFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${mergeFlags.apiUrl}/v1/merges`,
-      {
-        source_branch_id: mergeFlags.sourceBranchId,
-        ...(mergeFlags.strategy === undefined ? {} : { strategy: mergeFlags.strategy }),
-        target: mergeFlags.target
-      },
-      {
-        Cookie: mergeFlags.sessionCookie
-      }
-    );
-    const body = response.body as MergeOpenResponse;
-
-    this.log(`Merge request ${body.merge_request.id}`);
-    this.log(`Status ${body.merge_request.status}`);
-    this.log(`Strategy ${body.merge_request.strategy}`);
-    this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
-    this.log(`Impacted entities ${String(Object.keys(body.merge_request.impact.severity_by_entity).length)}`);
-    this.log(`Source branch ${body.source_branch.id} ${body.source_branch.status}`);
-    this.log(`Main heads ${String(Object.keys(body.main_head_revision_ids).length)}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
-  }
-
-  private async resolveMerge(flags: ParsedFlags): Promise<void> {
-    const mergeFlags = mergeResolveFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${mergeFlags.apiUrl}/v1/merges/${mergeFlags.mergeId}/resolve`,
-      {
-        base_revision: mergeFlags.baseRevision,
-        resolutions: [
-          {
-            entity_id: mergeFlags.entityId,
-            field: mergeFlags.field,
-            strategy: mergeFlags.strategy,
-            ...(mergeFlags.value === undefined ? {} : { value: mergeFlags.value })
-          }
-        ]
-      },
-      {
-        Cookie: mergeFlags.sessionCookie
-      }
-    );
-    const body = response.body as MergeResolveResponse;
-
-    this.log(`Merge request ${body.merge_request.id}`);
-    this.log(`Status ${body.merge_request.status}`);
-    this.log(`Conflicts ${String(body.merge_request.conflicts.length)}`);
-    this.log(`New revisions ${String(body.new_revisions.length)}`);
-    this.log(`Source branch ${body.source_branch.id} ${body.source_branch.status}`);
-    this.log(`Main heads ${String(Object.keys(body.main_head_revision_ids).length)}`);
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
   }
 
   private async createLock(flags: ParsedFlags): Promise<void> {
@@ -704,25 +646,6 @@ export class VspecCommand extends Command {
 
 }
 
-type MergeOpenFlags = {
-  apiUrl: string;
-  sessionCookie: string;
-  sourceBranchId: string;
-  strategy: "FAST_FORWARD" | "SQUASH" | undefined;
-  target: "main";
-};
-
-type MergeResolveFlags = {
-  apiUrl: string;
-  baseRevision: string;
-  entityId: string;
-  field: string;
-  mergeId: string;
-  sessionCookie: string;
-  strategy: "MANUAL" | "MINE" | "THEIRS";
-  value: string | undefined;
-};
-
 type LockCreateFlags = {
   apiUrl: string;
   reason: string;
@@ -869,43 +792,6 @@ type ParsedFlags = {
   "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
-};
-
-type MergeOpenResponse = {
-  main_head_revision_ids: Record<string, string>;
-  merge_request: {
-    conflicts: unknown[];
-    id: string;
-    impact: {
-      severity_by_entity: Record<string, string>;
-    };
-    status: string;
-    strategy: string;
-  };
-  source_branch: {
-    id: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
-type MergeResolveResponse = {
-  main_head_revision_ids: Record<string, string>;
-  merge_request: {
-    conflicts: unknown[];
-    id: string;
-    status: string;
-  };
-  new_revisions: unknown[];
-  source_branch: {
-    id: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
 };
 
 type LockCreateResponse = {
@@ -1124,35 +1010,6 @@ type SyncPushResponse = {
   }>;
 };
 
-function mergeOpenFlagsFrom(
-  flags: ParsedFlags,
-  sourceBranchId: string | undefined
-): MergeOpenFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    sourceBranchId: requiredArgument(sourceBranchId, "branch-id"),
-    strategy: mergeStrategy(optionalFlag(flags, "strategy")),
-    target: mergeTarget(flags.into ?? "main")
-  };
-}
-
-function mergeResolveFlagsFrom(
-  flags: ParsedFlags,
-  mergeId: string | undefined
-): MergeResolveFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    baseRevision: requiredFlag(flags, "base-revision"),
-    entityId: requiredFlag(flags, "entity-id"),
-    field: requiredFlag(flags, "field"),
-    mergeId: requiredArgument(mergeId, "merge-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    strategy: resolutionStrategy(requiredFlag(flags, "strategy")),
-    value: optionalFlag(flags, "value")
-  };
-}
-
 function lockCreateFlagsFrom(flags: ParsedFlags, targetId: string | undefined): LockCreateFlags {
   return {
     apiUrl: requiredFlag(flags, "api-url"),
@@ -1262,27 +1119,6 @@ function exportFlagsFrom(
   };
 }
 
-function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {
-  if (rawStrategy === undefined) {
-    return undefined;
-  }
-  const strategy = rawStrategy.toUpperCase().replaceAll("-", "_");
-  if (strategy === "FAST_FORWARD" || strategy === "SQUASH") {
-    return strategy;
-  }
-
-  throw new Error("Merge strategy must be FAST_FORWARD or SQUASH.");
-}
-
-function resolutionStrategy(rawStrategy: string): "MANUAL" | "MINE" | "THEIRS" {
-  const strategy = rawStrategy.toUpperCase();
-  if (strategy === "MANUAL" || strategy === "MINE" || strategy === "THEIRS") {
-    return strategy;
-  }
-
-  throw new Error("Resolution strategy must be MANUAL, MINE, or THEIRS.");
-}
-
 function lockType(rawType: string): "HARD" | "SEMANTIC" | "SOFT" {
   const type = rawType.toUpperCase();
   if (type === "HARD" || type === "SEMANTIC" || type === "SOFT") {
@@ -1302,14 +1138,6 @@ function ttlMinutes(rawTtl: string | undefined): number {
   }
 
   throw new Error("Lock TTL must be a positive number.");
-}
-
-function mergeTarget(rawTarget: string): "main" {
-  if (rawTarget === "main") {
-    return rawTarget;
-  }
-
-  throw new Error("Merge target must be main.");
 }
 
 function diffFormat(rawFormat: string): "agent" | "human" | "json" {

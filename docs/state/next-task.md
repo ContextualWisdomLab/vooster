@@ -1,6 +1,6 @@
 # Next Task
 
-_Auto-generated 2026-05-20T20:50:04Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T20:53:15Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Finish the CLI split (gate 4.C3).
@@ -8,7 +8,6 @@ TASK: Finish the CLI split (gate 4.C3).
   These subcommands still have no file under src/cli/commands/:
     impact
     lock
-    push
     revert
     who
 

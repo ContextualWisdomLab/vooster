@@ -1,0 +1,77 @@
+import type { FastifyReply } from "fastify";
+import { activeRewrite, type StepEditingResult } from "../application/step-editing.js";
+import { hardLockProblem, semanticLockProblem } from "./step-lock-support.js";
+import { problem } from "./signup-support.js";
+
+export function sendStepEditingResult(reply: FastifyReply, result: StepEditingResult) {
+  switch (result.status) {
+    case "STEP_NOT_FOUND":
+      return reply.code(404).send(problem(404, "Step not found"));
+    case "FORBIDDEN":
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
+    case "STALE_BASE":
+      return reply
+        .code(409)
+        .send(
+          staleBaseRevisionProblem(
+            result.usecase,
+            result.baseRevision,
+            result.currentRevision
+          )
+        );
+    case "EMPTY_ACTION":
+      return reply.code(400).send(problem(400, "Step action is required"));
+    case "PASSIVE_ACTION":
+      return reply.code(422).send(passiveStepEditProblem(result.action));
+    case "HARD_LOCKED":
+      return reply.code(409).send(hardLockProblem(result.lock));
+    case "SEMANTIC_LOCKED":
+      return reply.code(409).send(semanticLockProblem(result.lock));
+    case "UPDATED":
+      return reply.send({
+        affected_sessions: result.affectedSessions,
+        revision: result.revision,
+        step: result.step
+      });
+  }
+}
+
+function staleBaseRevisionProblem(
+  usecase: { key: string },
+  baseRevision: string,
+  currentRevision: string
+) {
+  return problem(
+    409,
+    "Base revision is stale",
+    {
+      current_revision_id: currentRevision,
+      revision_diff: {
+        base_revision: baseRevision,
+        current_revision: currentRevision
+      }
+    },
+    [
+      {
+        command: `vspec usecase show ${usecase.key}`,
+        reason: "Inspect the current use case before retrying the step edit."
+      }
+    ]
+  );
+}
+
+function passiveStepEditProblem(action: string) {
+  return problem(
+    422,
+    "Step action uses passive voice",
+    { suggested_action: activeRewrite(action) },
+    [
+      {
+        command: "vspec step edit --force",
+        reason: "Persist this wording after reviewing the passive voice warning."
+      }
+    ]
+  );
+}

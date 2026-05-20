@@ -50,8 +50,12 @@ describe("step editing application", () => {
         id: "step-1"
       }
     });
-    expect(updatedSteps).toMatchObject([{ action: "Reviews the order.", id: "step-1" }]);
-    expect(savedRevisions).toMatchObject([{ id: "revision-new", severity: "BREAKING" }]);
+    expect(updatedSteps).toMatchObject([
+      { action: "Reviews the order.", id: "step-1" }
+    ]);
+    expect(savedRevisions).toMatchObject([
+      { id: "revision-new", severity: "BREAKING" }
+    ]);
   });
 
   test("edits notes only as cosmetic under a semantic lock", async () => {
@@ -71,11 +75,16 @@ describe("step editing application", () => {
     await expect(editStep(depsFor({ step: undefined }), input())).resolves.toEqual({
       status: "STEP_NOT_FOUND"
     });
-    await expect(editStep(depsFor({ membership: undefined }), input())).resolves.toEqual({
+    await expect(
+      editStep(depsFor({ membership: undefined }), input())
+    ).resolves.toEqual({
       status: "FORBIDDEN"
     });
     await expect(
-      editStep(depsFor({ latestRevision: revision({ id: "revision-current" }) }), input())
+      editStep(
+        depsFor({ latestRevision: revision({ id: "revision-current" }) }),
+        input()
+      )
     ).resolves.toEqual({
       baseRevision: "revision-1",
       currentRevision: "revision-current",
@@ -95,7 +104,10 @@ describe("step editing application", () => {
       editStep(depsFor({ lock: lock({ mode: "HARD" }) }), input({ notes: "Blocked." }))
     ).resolves.toEqual({ lock: lock({ mode: "HARD" }), status: "HARD_LOCKED" });
     await expect(
-      editStep(depsFor({ lock: lock({ mode: "SEMANTIC" }) }), input({ action: "Reviews." }))
+      editStep(
+        depsFor({ lock: lock({ mode: "SEMANTIC" }) }),
+        input({ action: "Reviews." })
+      )
     ).resolves.toEqual({
       lock: lock({ mode: "SEMANTIC" }),
       status: "SEMANTIC_LOCKED"
@@ -124,10 +136,7 @@ function depsFor(
     membershipStore: membershipStore(
       "membership" in options ? options.membership : membership()
     ),
-    revisionStore: revisionStore(
-      options.latestRevision,
-      options.savedRevisions ?? []
-    ),
+    revisionStore: revisionStore(options.latestRevision, options.savedRevisions ?? []),
     scenarioStore: scenarioStore(foundScenario),
     stepStore: stepStore(
       "step" in options ? options.step : step(),
@@ -277,6 +286,7 @@ function step(overrides: Partial<StoredStep> = {}): StoredStep {
     action: "Places an order.",
     actor_id: "actor-1",
     id: "step-1",
+    is_system_step: false,
     notes: null,
     order_index: 0,
     scenario_id: "scenario-1",

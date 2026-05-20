@@ -8,6 +8,7 @@ import { createPrismaGoalStore } from "../../src/infrastructure/prisma-goal-stor
 import { createPrismaLockStore } from "../../src/infrastructure/prisma-lock-store.js";
 import { createPrismaMembershipStore } from "../../src/infrastructure/prisma-membership-store.js";
 import { createPrismaProjectStore } from "../../src/infrastructure/prisma-project-store.js";
+import { createPrismaRevisionStore } from "../../src/infrastructure/prisma-revision-store.js";
 import { createPrismaScenarioStore } from "../../src/infrastructure/prisma-scenario-store.js";
 import { createPrismaStakeholderInterestStore } from "../../src/infrastructure/prisma-stakeholder-interest-store.js";
 import { createPrismaStakeholderStore } from "../../src/infrastructure/prisma-stakeholder-store.js";
@@ -70,5 +71,9 @@ describe("Prisma adapter split", () => {
 
   test("goal store has a dedicated Prisma adapter", () => {
     expect(createPrismaGoalStore).toBeTypeOf("function");
+  });
+
+  test("revision store has a dedicated Prisma adapter", () => {
+    expect(createPrismaRevisionStore).toBeTypeOf("function");
   });
 });

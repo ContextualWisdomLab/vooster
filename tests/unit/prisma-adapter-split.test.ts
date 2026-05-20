@@ -10,6 +10,7 @@ import { createPrismaProjectStore } from "../../src/infrastructure/prisma-projec
 import { createPrismaScenarioStore } from "../../src/infrastructure/prisma-scenario-store.js";
 import { createPrismaStakeholderInterestStore } from "../../src/infrastructure/prisma-stakeholder-interest-store.js";
 import { createPrismaStakeholderStore } from "../../src/infrastructure/prisma-stakeholder-store.js";
+import { createPrismaStepStore } from "../../src/infrastructure/prisma-step-store.js";
 import { createPrismaUserStore } from "../../src/infrastructure/prisma-user-store.js";
 import { createPrismaWorkspaceStore } from "../../src/infrastructure/prisma-workspace-store.js";
 
@@ -60,5 +61,9 @@ describe("Prisma adapter split", () => {
 
   test("scenario store has a dedicated Prisma adapter", () => {
     expect(createPrismaScenarioStore).toBeTypeOf("function");
+  });
+
+  test("step store has a dedicated Prisma adapter", () => {
+    expect(createPrismaStepStore).toBeTypeOf("function");
   });
 });

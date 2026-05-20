@@ -1,45 +1,31 @@
 # Next Task
 
-_Auto-generated 2026-05-20T15:50:40Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T16:39:50Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Move Stored<Model> types into src/domain/ (gates 4.B1 / 4.B2).
+TASK: Decompose god files (gate 4.C1).
 
-  These domain types are still absent from src/domain/:
-    StoredUser
-    StoredWorkspace
-    StoredMembership
-    StoredProject
-    StoredActor
-    StoredStakeholder
-    StoredGoal
-    StoredUseCase
-    StoredScenario
-    StoredStep
-    StoredStakeholderInterest
-    StoredRevision
-    StoredSpecBranch
-    StoredMergeRequest
-    StoredWorkSession
-    StoredLock
-    StoredComment
-    StoredApiKey
+  Files over 1000 lines:
+    3306 src/cli/index.ts
+    1811 src/infrastructure/prisma-signup-store.ts
 
-  Plan:
-    1. mkdir -p src/domain/entities
-    2. For each model in prisma/schema.prisma, create
-       src/domain/entities/<lowercase-name>.ts that exports the
-       Stored<Model> type currently living in src/http/signup-types.ts
-       (and the few neighbours: src/http/api-key-types.ts,
-       comment-types.ts, merge-request-types.ts).
-    3. Add a barrel: src/domain/entities/index.ts re-exporting all.
-    4. Delete the Stored* declarations from src/http/.
+  Canonical decompositions:
 
-  Note: keep the StoredX SHAPE byte-for-byte identical. This is a
-  mechanical relocation, not a redesign.
+  • src/infrastructure/prisma-signup-store.ts
+      → one prisma-<port>-store.ts per file in src/ports/ (see C2).
+        The in-memory siblings under src/infrastructure/memory-*-store.ts
+        already model the per-port shape — copy that structure.
+      → src/http/server.ts wires each store directly; the
+        `serverOptions.signupStore ?? createMemoryX()` chain dissolves.
 
-  RED commit:
-      red(domain): assert every Prisma model has a domain entity
-  GREEN commit:
-      green(domain): relocate Stored* types into src/domain/entities
+  • src/cli/index.ts
+      → src/cli/commands/<subcommand>.ts per first-word subcommand,
+        each extending @oclif/core Command. See C3.
+
+  Stage the split in small PRs (one batch per area) so the test suite
+  remains green throughout.
+
+  Commit per batch:
+      green(prisma-split): extract prisma-<name>-store
+      green(cli-split): extract <subcommand> command
 ```

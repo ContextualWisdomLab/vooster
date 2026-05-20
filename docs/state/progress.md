@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T15:50:40Z_
+_Last updated: 2026-05-20T16:39:50Z_
 
 ## Overall
 
-- Commits: 833
-- Last commit: 5a39ca1 fix(goals): make boundary regression gate honest
+- Commits: 836
+- Last commit: b4573fa green(domain): relocate Stored entity types
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

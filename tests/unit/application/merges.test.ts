@@ -72,10 +72,11 @@ describe("merges application", () => {
       createInput({ strategy: "FAST_FORWARD" })
     );
 
-    expect(result).toMatchObject({
-      sourceBranch: expect.objectContaining({ name: "feature/refund" }),
-      status: "FAST_FORWARD_REJECTED"
-    });
+    expect(result.status).toBe("FAST_FORWARD_REJECTED");
+    if (result.status !== "FAST_FORWARD_REJECTED") {
+      throw new Error("expected fast-forward rejection");
+    }
+    expect(result.sourceBranch.name).toBe("feature/refund");
     expect(result.mainHeadRevisionIds).toEqual({ "usecase-1": "revision-main" });
     expect(savedMergeRequests).toEqual([]);
   });
@@ -242,7 +243,9 @@ function revisionStore(): RevisionStore {
             : undefined
       ),
     latestRevision: (entityId) =>
-      Promise.resolve(entityId === "usecase-1" ? revision("revision-latest") : undefined),
+      Promise.resolve(
+        entityId === "usecase-1" ? revision("revision-latest") : undefined
+      ),
     listRevisions: () => Promise.resolve([]),
     nextVersionNumber: () => Promise.resolve(1),
     saveRevision: () => Promise.resolve()

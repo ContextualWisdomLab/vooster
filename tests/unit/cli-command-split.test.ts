@@ -1,6 +1,7 @@
 import { Command } from "@oclif/core";
 import { describe, expect, test } from "vitest";
 
+import { ActorCommand } from "../../src/cli/commands/actor.js";
 import { AiGuideCommand } from "../../src/cli/commands/ai-guide.js";
 import { ApiKeyCommand } from "../../src/cli/commands/api-key.js";
 import { BranchCommand } from "../../src/cli/commands/branch.js";
@@ -41,5 +42,9 @@ describe("CLI command split", () => {
 
   test("goal lives in a real oclif command module", () => {
     expect(GoalCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("actor lives in a real oclif command module", () => {
+    expect(ActorCommand.prototype).toBeInstanceOf(Command);
   });
 });

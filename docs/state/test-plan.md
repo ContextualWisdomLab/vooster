@@ -714,6 +714,16 @@ write. This guides your TDD cycles within an iteration._
   full Vitest suite remain green after moving the behavior out of
   `src/cli/index.ts`.
 
+### Goal 4 Prisma Split - User Store
+
+- **Adapter module**: `tests/unit/prisma-adapter-split.test.ts` imports
+  `createPrismaUserStore` from `src/infrastructure/prisma-user-store.ts` and
+  asserts it is a function.
+- **Setup**: keep the split test as the fast RED/GREEN signal while extracting
+  the existing user persistence methods out of the god Prisma signup store.
+- **Assertions**: focused adapter-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after adding the dedicated adapter.
+
 ### Goal 4 CLI Split - Session Command
 
 - **Command module**: `tests/unit/cli-command-split.test.ts` imports

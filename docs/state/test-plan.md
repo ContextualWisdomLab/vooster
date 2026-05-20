@@ -574,3 +574,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: sync pull authorizes project membership and returns canonical markdown only for active use cases with a cursor from the first returned revision.
 - **Application**: sync push authorizes project membership, reports queued network failures without writes, previews dry runs without cache entries, reports stale-base conflicts, writes fresh revisions for clean files, and advances the main branch head.
 - **Route preservation**: UC-029 E2E and CLI tests continue to prove HTTP validation, parse-problem mapping, conflict cache entries, pending-push guidance, unauthorized guidance, and human CLI output.
+
+### Goal 2 Layers - Change Preview
+
+- **Application**: change preview resolves an accessible non-archived use case by key, rejects missing/read-only callers, mismatched patch targets, hard locks, and stale bases without creating previews.
+- **Application**: change preview creates deterministic title diffs with a 15-minute expiry, NON_BREAKING severity, affected active session metadata, auto-commit warnings, and commit/who guidance.
+- **Route preservation**: UC-035 E2E and CLI tests continue to prove HTTP validation, stale-base mapping, hard-lock guidance, preview commit behavior, expired preview handling, affected-session impact, and human CLI output.

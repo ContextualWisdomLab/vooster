@@ -483,3 +483,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: `completeVerifiedSignup` creates User, Workspace, and OWNER Membership through either the transactional `SignupStore` or separate ports, and reports duplicate workspace slugs without writes.
 - **Application**: `completeLogin` updates `last_login_at`, returns workspace summaries, handles unknown GitHub identities, and recommends `vspec workspace create` when the known user has no workspaces.
 - **Route preservation**: UC-001 and UC-002 E2E tests continue to prove OAuth callback cookies, HTTP status mapping, session creation, and GitHub retry guidance.
+
+### Goal 2 Layers - Comments
+
+- **Application**: comment workflow functions authorize the caller against the target use case project, reject missing/archived targets, empty bodies, and non-owner mutations without writes.
+- **Application**: add/list/edit/resolve/delete functions persist the expected comment changes, including idempotent resolve preserving `resolved_at`.
+- **Route preservation**: UC-028 E2E and CLI tests continue to prove HTTP problem mapping, session cookies, and suggested next actions.

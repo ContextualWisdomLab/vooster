@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T00:52:22Z_
+_Last updated: 2026-05-20T01:11:49Z_
 
 ## Overall
 
-- Commits: 734
-- Last commit: 9874641 test(layers): cover scenario authoring branches
+- Commits: 737
+- Last commit: fc1db58 refactor(layers): extract signup completion
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

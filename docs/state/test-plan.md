@@ -841,6 +841,18 @@ write. This guides your TDD cycles within an iteration._
 - **Assertions**: focused adapter-split test, TypeScript build, lint, and the
   full Vitest suite remain green after adding the dedicated adapter.
 
+### Goal 4 Prisma Split - Work Session Store
+
+- **Adapter module**: `tests/unit/prisma-adapter-split.test.ts` imports
+  `createPrismaWorkSessionStore` from
+  `src/infrastructure/prisma-work-session-store.ts` and asserts it is a
+  function.
+- **Setup**: keep the split test as the fast RED/GREEN signal while extracting
+  the existing work-session persistence methods out of the god Prisma signup
+  store.
+- **Assertions**: focused adapter-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after adding the dedicated adapter.
+
 ### Goal 4 Prisma Split - User Store
 
 - **Adapter module**: `tests/unit/prisma-adapter-split.test.ts` imports

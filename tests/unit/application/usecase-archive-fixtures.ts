@@ -13,19 +13,24 @@ import type { ProjectStore } from "../../../src/ports/project-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
-import { mainBranch, membership, project, session, usecase } from "./usecase-archive-data.js";
+import { mainBranch, membership, project, usecase } from "./usecase-archive-data.js";
 
-export function depsFor(options: {
-  branch?: StoredSpecBranch;
-  locks?: StoredLock[];
-  savedRevisions?: StoredRevision[];
-  sessions?: StoredWorkSession[];
-  updatedBranches?: StoredSpecBranch[];
-  updatedUseCases?: StoredUseCase[];
-  usecase?: StoredUseCase;
-} = {}) {
+export function depsFor(
+  options: {
+    branch?: StoredSpecBranch;
+    locks?: StoredLock[];
+    savedRevisions?: StoredRevision[];
+    sessions?: StoredWorkSession[];
+    updatedBranches?: StoredSpecBranch[];
+    updatedUseCases?: StoredUseCase[];
+    usecase?: StoredUseCase;
+  } = {}
+) {
   return {
-    branchStore: branchStore(options.branch ?? mainBranch(), options.updatedBranches ?? []),
+    branchStore: branchStore(
+      options.branch ?? mainBranch(),
+      options.updatedBranches ?? []
+    ),
     clock: () => "2026-05-20T00:00:00.000Z",
     idFactory: idFactory(),
     lockStore: lockStore(options.locks ?? []),
@@ -40,7 +45,9 @@ export function depsFor(options: {
   };
 }
 
-export function input(overrides: Partial<UseCaseArchiveInput> = {}): UseCaseArchiveInput {
+export function input(
+  overrides: Partial<UseCaseArchiveInput> = {}
+): UseCaseArchiveInput {
   return {
     hardDeleteRequested: false,
     usecaseId: "usecase-1",
@@ -49,7 +56,10 @@ export function input(overrides: Partial<UseCaseArchiveInput> = {}): UseCaseArch
   };
 }
 
-function branchStore(branch: StoredSpecBranch | undefined, updated: StoredSpecBranch[]): BranchStore {
+function branchStore(
+  branch: StoredSpecBranch | undefined,
+  updated: StoredSpecBranch[]
+): BranchStore {
   return {
     findBranchById: () => Promise.resolve(branch),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
@@ -114,7 +124,9 @@ function useCaseStore(
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () =>
-      Promise.resolve(found === undefined ? undefined : { projectId: "project-1", usecase: found }),
+      Promise.resolve(
+        found === undefined ? undefined : { projectId: "project-1", usecase: found }
+      ),
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve(found === undefined ? [] : [found]),
     saveUseCase: () => Promise.resolve(),

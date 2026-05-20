@@ -1,7 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { updateUseCaseMetadata } from "../application/usecases.js";
-import { membershipForProject } from "./membership-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
@@ -97,24 +96,15 @@ async function restoreUseCase(
   useCaseStore: UseCaseStore,
   usecaseId: string
 ) {
-  const found = await useCaseStore.findUseCaseWithProject(usecaseId);
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
-  }
-  if (
-    (await membershipForProject(request, state, membershipStore, found.projectId)) ===
-    undefined
-  ) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-  }
   return restoreArchivedUseCase(
     reply,
-    state,
     branchStore,
+    membershipStore,
     projectStore,
     revisionStore,
     useCaseStore,
-    found
+    usecaseId,
+    authenticatedUserId(request.headers.cookie, state.sessionsByToken)
   );
 }
 

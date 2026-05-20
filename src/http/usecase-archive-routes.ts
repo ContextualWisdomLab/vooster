@@ -1,9 +1,15 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { membershipForProject } from "./membership-support.js";
-import { problem } from "./signup-support.js";
-import type { SignupState, StoredRevision, StoredUseCase } from "./signup-types.js";
+import {
+  archiveUseCase as archiveUseCaseWorkflow,
+  restoreUseCase as restoreUseCaseWorkflow
+} from "../application/usecase-archive.js";
+import { authenticatedUserId } from "./session-support.js";
+import type { SignupState } from "./signup-types.js";
+import {
+  sendArchiveUseCaseResult,
+  sendRestoreUseCaseResult
+} from "./usecase-archive-results.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -51,181 +57,68 @@ async function archiveUseCase(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
-  if (found === undefined) {
-    return reply.code(404).send(problem(404, "Use case not found"));
-  }
-  if (await membershipForProject(request, state, membershipStore, found.projectId) === undefined) {
-    return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-  }
-  if (hardDeleteRequested(request.query)) {
-    return reply.code(400).send(hardDeleteProblem(found.usecase));
-  }
-  if (found.usecase.archived_at !== null) {
-    return reply.code(409).send(alreadyArchivedProblem(found.usecase));
-  }
-  const hardLock = await activeHardLock(lockStore, found.usecase.id);
-  if (hardLock !== undefined) {
-    return reply.code(409).send(
-      problem(409, "Use case has an active HARD lock", {
-        expires_at: hardLock.expires_at,
-        holding_session: hardLock.held_by_session_id ?? hardLock.holder
-      })
-    );
-  }
-
-  const archivedAt = new Date().toISOString();
-  found.usecase.archived_at = archivedAt;
-  const revision = await archiveRevision(revisionStore, found.usecase);
-  found.usecase.current_revision_id = revision.id;
-  await useCaseStore.updateUseCase(found.usecase);
-  await revisionStore.saveRevision(revision);
-  await advanceMainHead(projectStore, branchStore, found.usecase, revision.id);
-  const affectedSessions = await affectedSessionsFor(workSessionStore, found.usecase.id);
-
-  return reply.send({
-    active_locks_count: await activeLockCount(lockStore, found.usecase.id),
-    affected_sessions: affectedSessions,
-    affected_sessions_count: affectedSessions.length,
-    revision: { change_summary: revision.change_summary, id: revision.id },
-    suggested_next_actions: [
+  return sendArchiveUseCaseResult(
+    reply,
+    await archiveUseCaseWorkflow(
       {
-        command: `vspec usecase restore ${found.usecase.key}`,
-        reason: "Restore the use case if it returns to scope."
+        branchStore,
+        lockStore,
+        membershipStore,
+        projectStore,
+        revisionStore,
+        useCaseStore,
+        workSessionStore
+      },
+      {
+        hardDeleteRequested: hardDeleteRequested(request.query),
+        usecaseId: usecaseIdFrom(request.params),
+        userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
       }
-    ],
-    usecase: {
-      archived_at: archivedAt,
-      id: found.usecase.id,
-      key: found.usecase.key
-    }
-  });
+    )
+  );
 }
 
 export async function restoreArchivedUseCase(
   reply: FastifyReply,
-  state: SignupState,
   branchStore: BranchStore,
+  membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore,
-  found: { projectId: string; usecase: StoredUseCase }
+  usecaseId: string,
+  userId: string | undefined
 ) {
-  if (found.usecase.archived_at === null) {
-    return reply.code(409).send(problem(409, "Use case is not archived"));
-  }
-  found.usecase.archived_at = null;
-  const revision = await restoreRevision(revisionStore, found.usecase);
-  found.usecase.current_revision_id = revision.id;
-  await useCaseStore.updateUseCase(found.usecase);
-  await revisionStore.saveRevision(revision);
-  await advanceMainHead(projectStore, branchStore, found.usecase, revision.id);
-  return reply.send({
-    revision: { change_summary: revision.change_summary, id: revision.id },
-    usecase: { archived_at: null, id: found.usecase.id, key: found.usecase.key }
-  });
-}
-
-async function archiveRevision(
-  revisionStore: RevisionStore,
-  usecase: StoredUseCase
-): Promise<StoredRevision> {
-  return {
-    id: randomUUID(),
-    entity_type: "USECASE",
-    entity_id: usecase.id,
-    version_number: await revisionStore.nextVersionNumber(usecase.id),
-    snapshot: { ...usecase },
-    change_summary: `Archived use case ${usecase.key}`
-  };
-}
-
-async function restoreRevision(
-  revisionStore: RevisionStore,
-  usecase: StoredUseCase
-): Promise<StoredRevision> {
-  return {
-    id: randomUUID(),
-    entity_type: "USECASE",
-    entity_id: usecase.id,
-    version_number: await revisionStore.nextVersionNumber(usecase.id),
-    snapshot: { ...usecase },
-    change_summary: `Restored use case ${usecase.key}`
-  };
-}
-
-function hardDeleteProblem(usecase: StoredUseCase) {
-  return problem(
-    400,
-    "Destructive deletion is post-MVP",
-    { destructive_delete: true },
-    [
+  return sendRestoreUseCaseResult(
+    reply,
+    await restoreUseCaseWorkflow(
       {
-        command: `vspec usecase archive ${usecase.key}`,
-        reason: "Archive is the supported reversible removal path."
-      }
-    ]
-  );
-}
-
-function alreadyArchivedProblem(usecase: StoredUseCase) {
-  return problem(
-    409,
-    "Use case is already archived",
-    { archived_at: usecase.archived_at },
-    [
+        branchStore,
+        lockStore: undefined as never,
+        membershipStore,
+        projectStore,
+        revisionStore,
+        useCaseStore,
+        workSessionStore: undefined as never
+      },
       {
-        command: `vspec usecase restore ${usecase.key}`,
-        reason: "Restore the archived use case instead."
+        hardDeleteRequested: false,
+        usecaseId,
+        userId
       }
-    ]
+    )
   );
 }
 
 function hardDeleteRequested(query: unknown): boolean {
-  const parsed = z.object({
-    hard: z.literal("true").optional(),
-    purge: z.literal("true").optional()
-  }).safeParse(query);
-  return parsed.success && (parsed.data.hard === "true" || parsed.data.purge === "true");
-}
-
-async function advanceMainHead(
-  projectStore: ProjectStore,
-  branchStore: BranchStore,
-  usecase: StoredUseCase,
-  revisionId: string
-) {
-  const project = await projectStore.findProjectById(usecase.project_id);
-  const main = project === undefined
-    ? undefined
-    : await branchStore.findBranchById(project.default_branch_id);
-  if (main !== undefined) {
-    main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revisionId };
-    await branchStore.updateBranch(main);
-  }
-}
-
-async function activeLockCount(lockStore: LockStore, usecaseId: string) {
-  return (await lockStore.listLocksForUseCase(usecaseId))
-    .filter((lock) => Date.parse(lock.expires_at) > Date.now())
-    .length;
-}
-
-async function activeHardLock(lockStore: LockStore, usecaseId: string) {
-  const lock = await lockStore.findLockForUseCase(usecaseId);
-  return lock?.mode === "HARD" && Date.parse(lock.expires_at) > Date.now()
-    ? lock
-    : undefined;
-}
-
-async function affectedSessionsFor(workSessionStore: WorkSessionStore, usecaseId: string) {
-  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
-    .filter((session) => session.status === "ACTIVE")
-    .map((session) => ({
-      id: session.id,
-      pinned_revision: session.pinned_revisions?.[usecaseId] ?? session.pinned_revision_id ?? ""
-    }));
+  const parsed = z
+    .object({
+      hard: z.literal("true").optional(),
+      purge: z.literal("true").optional()
+    })
+    .safeParse(query);
+  return (
+    parsed.success && (parsed.data.hard === "true" || parsed.data.purge === "true")
+  );
 }
 
 function usecaseIdFrom(params: unknown): string {

@@ -55,24 +55,28 @@ describe("use case archive application", () => {
   });
 
   test("rejects missing, unauthorized, hard-delete, archived, and hard-locked archive requests", async () => {
-    await expect(archiveUseCase(depsFor({ usecase: undefined }), input())).resolves
-      .toEqual({ status: "USECASE_NOT_FOUND" });
-    await expect(archiveUseCase(depsFor(), input({ userId: "stranger" }))).resolves
-      .toEqual({ status: "FORBIDDEN" });
-    await expect(archiveUseCase(depsFor(), input({ hardDeleteRequested: true }))).resolves
-      .toMatchObject({ status: "HARD_DELETE_REQUESTED", usecase: usecase() });
+    await expect(
+      archiveUseCase(depsFor({ usecase: undefined }), input())
+    ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });
+    await expect(
+      archiveUseCase(depsFor(), input({ userId: "stranger" }))
+    ).resolves.toEqual({ status: "FORBIDDEN" });
+    await expect(
+      archiveUseCase(depsFor(), input({ hardDeleteRequested: true }))
+    ).resolves.toMatchObject({ status: "HARD_DELETE_REQUESTED", usecase: usecase() });
     await expect(
       archiveUseCase(
         depsFor({ usecase: usecase({ archived_at: "2026-05-19T00:00:00.000Z" }) }),
         input()
       )
     ).resolves.toMatchObject({ status: "ALREADY_ARCHIVED" });
-    await expect(archiveUseCase(depsFor({ locks: [hardLock()] }), input())).resolves
-      .toMatchObject({
-        expiresAt: "2026-05-20T01:00:00.000Z",
-        holdingSession: "session-lock",
-        status: "HARD_LOCKED"
-      });
+    await expect(
+      archiveUseCase(depsFor({ locks: [hardLock()] }), input())
+    ).resolves.toMatchObject({
+      expiresAt: "2026-05-20T01:00:00.000Z",
+      holdingSession: "session-lock",
+      status: "HARD_LOCKED"
+    });
   });
 
   test("restores an archived use case and advances main", async () => {
@@ -92,7 +96,11 @@ describe("use case archive application", () => {
     if (result.status !== "RESTORED") {
       throw new Error("expected restore success");
     }
-    expect(result.usecase).toEqual({ archived_at: null, id: "usecase-1", key: "ARC-001" });
+    expect(result.usecase).toEqual({
+      archived_at: null,
+      id: "usecase-1",
+      key: "ARC-001"
+    });
     expect(result.revision).toEqual({
       change_summary: "Restored use case ARC-001",
       id: "id-1"

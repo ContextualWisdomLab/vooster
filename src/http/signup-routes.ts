@@ -1,22 +1,16 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { establishSession } from "./session-support.js";
-import {
-  clearOAuthState,
-  cookie,
-  fetchGithubProfile,
-  githubUnavailable,
-  problem,
-  readCookie,
-  signupEntities,
-  signupResponse
-} from "./signup-support.js";
-import type { GithubProfile, PendingOAuth, PendingSignup, ServerOptions, SignupState } from "./signup-types.js";
+import { completeOAuth, startGithubOAuth } from "../application/signup.js";
 import type { MembershipStore } from "../ports/membership-store.js";
-import type { SignupStore } from "../ports/signup-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
+import {
+  sendCompleteOAuthResult,
+  sendDeniedOAuth,
+  sendGithubUnavailable
+} from "./signup-results.js";
+import { clearOAuthState, cookie, fetchGithubProfile, problem, readCookie } from "./signup-support.js";
+import type { PendingOAuth, ServerOptions, SignupState } from "./signup-types.js";
 
 const startSignupSchema = z.union([
   z.object({
@@ -28,19 +22,15 @@ const startSignupSchema = z.union([
   z.object({ flow: z.literal("login") })
 ]);
 
-const callbackSuccessQuerySchema = z.object({
-  code: z.string().min(1),
-  state: z.string().min(1)
-});
-
-const callbackDeniedQuerySchema = z.object({
-  error: z.literal("access_denied"),
-  state: z.string().min(1)
-});
-
 const callbackQuerySchema = z.union([
-  callbackSuccessQuerySchema,
-  callbackDeniedQuerySchema
+  z.object({
+    code: z.string().min(1),
+    state: z.string().min(1)
+  }),
+  z.object({
+    error: z.literal("access_denied"),
+    state: z.string().min(1)
+  })
 ]);
 
 export function registerSignupRoutes(
@@ -78,13 +68,17 @@ function startSignup(
     return reply.code(400).send(problem(400, "Invalid signup request"));
   }
 
-  const oauthState = randomUUID();
-  state.pendingOAuth.set(oauthState, pendingOAuth(parsed.data));
-  reply.header("set-cookie", cookie("vspec_oauth_state", oauthState));
+  const started = startGithubOAuth({
+    authStub: options.authStub,
+    githubClientId: options.githubOAuth?.clientId,
+    input: parsed.data
+  });
+  state.pendingOAuth.set(started.state, started.pending);
+  reply.header("set-cookie", cookie("vspec_oauth_state", started.state));
 
   return {
-    authorization_url: authorizationUrl(options, oauthState),
-    state: oauthState
+    authorization_url: started.authorizationUrl,
+    state: started.state
   };
 }
 
@@ -106,15 +100,7 @@ async function completeSignup(
     const pending = pendingOAuthFor(request, state, parsed.data.state);
     state.pendingOAuth.delete(parsed.data.state);
     clearOAuthState(reply);
-    if (pending?.flow === "login") {
-      return reply.code(401).send(
-        problem(401, "GitHub authorization denied", {}, [
-          { command: "vspec login", reason: "Retry login." }
-        ])
-      );
-    }
-
-    return reply.code(400).send(problem(400, "GitHub authorization denied"));
+    return sendDeniedOAuth(reply, pending?.flow ?? "signup");
   }
 
   const pending = pendingOAuthFor(request, state, parsed.data.state);
@@ -127,132 +113,22 @@ async function completeSignup(
   state.pendingOAuth.delete(parsed.data.state);
   clearOAuthState(reply);
   if (profile === undefined) {
-    return githubUnavailable(reply, pending.flow);
+    return sendGithubUnavailable(reply, pending.flow);
   }
 
-  if (!profile.emailVerified) {
-    return reply.code(422).send(problem(422, "Verify your GitHub email"));
-  }
-
-  if (pending.flow === "login") {
-    return completeLogin(reply, state, membershipStore, userStore, workspaceStore, profile);
-  }
-
-  return completeVerifiedSignup(
-    reply,
-    state,
-    options.signupStore,
-    membershipStore,
-    userStore,
-    workspaceStore,
-    profile,
-    pending.workspace
+  const result = await completeOAuth(
+    {
+      membershipStore,
+      signupStore: options.signupStore,
+      userStore,
+      workspaceStore
+    },
+    {
+      pending,
+      profile
+    }
   );
-}
-
-function pendingOAuth(data: z.infer<typeof startSignupSchema>): PendingOAuth {
-  return "flow" in data ? { flow: "login" } : { flow: "signup", workspace: data.workspace };
-}
-
-function authorizationUrl(options: ServerOptions, oauthState: string): string {
-  const url = new URL("https://github.com/login/oauth/authorize");
-  url.searchParams.set("state", oauthState);
-
-  if (!options.authStub) {
-    url.searchParams.set("client_id", options.githubOAuth?.clientId ?? "");
-  }
-
-  return url.toString();
-}
-
-async function completeVerifiedSignup(
-  reply: FastifyReply,
-  state: SignupState,
-  store: SignupStore | undefined,
-  membershipStore: MembershipStore,
-  userStore: UserStore,
-  workspaceStore: WorkspaceStore,
-  profile: GithubProfile,
-  pending: PendingSignup
-) {
-  if (await workspaceStore.workspaceSlugExists(pending.slug)) {
-    return reply.code(422).send(
-      problem(422, "Workspace slug is already taken", {
-        suggested_alternative_slug: await workspaceStore.nextAvailableWorkspaceSlug(pending.slug)
-      })
-    );
-  }
-
-  const entities = signupEntities(profile, pending);
-  if (store === undefined) {
-    await userStore.saveUser(entities.user);
-    await membershipStore.saveMembership(entities.membership);
-    await workspaceStore.saveWorkspace(entities.workspace);
-  } else {
-    await store.saveSignup(entities);
-  }
-
-  establishSession(reply, state.sessionsByToken, entities.user.id);
-  return reply
-    .code(201)
-    .send(signupResponse(entities.user, entities.workspace, entities.membership));
-}
-
-async function completeLogin(
-  reply: FastifyReply,
-  state: SignupState,
-  membershipStore: MembershipStore,
-  userStore: UserStore,
-  workspaceStore: WorkspaceStore,
-  profile: GithubProfile
-) {
-  const user = await userStore.findUserByGithubId(profile.githubId);
-  if (user === undefined) {
-    return reply.code(404).send(
-      problem(404, "No vspec user exists for GitHub identity", {}, [
-        { command: "vspec login", reason: "Sign up before logging in." }
-      ])
-    );
-  }
-
-  user.last_login_at = new Date().toISOString();
-  await userStore.updateLastLoginAt(user.id, user.last_login_at);
-  establishSession(reply, state.sessionsByToken, user.id);
-  const workspaces = !isSignupStore(userStore)
-    ? await workspacesForUser(membershipStore, workspaceStore, user.id)
-    : await userStore.workspaceSummariesForUser(user.id);
-
-  return reply.code(200).send({
-    user,
-    workspaces,
-    ...(workspaces.length === 0
-      ? { recommended_next_command: "vspec workspace create" }
-      : {})
-  });
-}
-
-async function workspacesForUser(
-  membershipStore: MembershipStore,
-  workspaceStore: WorkspaceStore,
-  userId: string
-) {
-  const memberships = await membershipStore.membershipsForUser(userId);
-  const summaries = await Promise.all(
-    memberships.map(async (membership) => {
-      const workspace = await workspaceStore.findWorkspaceById(membership.workspace_id);
-      return workspace === undefined
-        ? undefined
-        : { id: workspace.id, role: membership.role, slug: workspace.slug };
-    })
-  );
-
-  return summaries.filter((summary): summary is NonNullable<typeof summary> =>
-    summary !== undefined
-  );
-}
-
-function isSignupStore(userStore: UserStore): userStore is SignupStore {
-  return "workspaceSummariesForUser" in userStore;
+  return sendCompleteOAuthResult(reply, state.sessionsByToken, result);
 }
 
 function pendingOAuthFor(

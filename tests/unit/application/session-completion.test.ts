@@ -2,12 +2,7 @@ import { describe, expect, test } from "vitest";
 import { completeSession } from "../../../src/application/session-completion.js";
 import type { StoredMergeRequest } from "../../../src/http/merge-request-types.js";
 import type { StoredWorkSession } from "../../../src/http/signup-types.js";
-import {
-  branch,
-  lock,
-  mergeRequest,
-  session
-} from "./session-completion-data.js";
+import { branch, lock, mergeRequest, session } from "./session-completion-data.js";
 import { depsFor, input } from "./session-completion-fixtures.js";
 
 describe("session completion application", () => {
@@ -45,10 +40,12 @@ describe("session completion application", () => {
   });
 
   test("rejects missing, unauthorized, inactive, and failed completions before writes", async () => {
-    await expect(completeSession(depsFor({ session: undefined }), input())).resolves
-      .toEqual({ status: "SESSION_NOT_FOUND" });
-    await expect(completeSession(depsFor(), input({ userId: "stranger" }))).resolves
-      .toEqual({ status: "FORBIDDEN" });
+    await expect(
+      completeSession(depsFor({ session: undefined }), input())
+    ).resolves.toEqual({ status: "SESSION_NOT_FOUND" });
+    await expect(
+      completeSession(depsFor(), input({ userId: "stranger" }))
+    ).resolves.toEqual({ status: "FORBIDDEN" });
     await expect(
       completeSession(depsFor({ session: session({ status: "COMPLETED" }) }), input())
     ).resolves.toEqual({
@@ -62,8 +59,9 @@ describe("session completion application", () => {
   });
 
   test("supports workspace members, conflicts, no-merge guidance, and lock warnings", async () => {
-    await expect(completeSession(depsFor(), input({ userId: "user-2" }))).resolves
-      .toMatchObject({ status: "COMPLETED" });
+    await expect(
+      completeSession(depsFor(), input({ userId: "user-2" }))
+    ).resolves.toMatchObject({ status: "COMPLETED" });
 
     const conflictResult = await completeSession(
       depsFor(),
@@ -76,7 +74,9 @@ describe("session completion application", () => {
     expect(conflictResult.mergeRequest?.conflicts).toEqual([
       { entity_id: "usecase-1", type: "SEMANTIC" }
     ]);
-    expect(conflictResult.suggestedNextActions[0]?.command).toBe("vspec merge resolve id-1");
+    expect(conflictResult.suggestedNextActions[0]?.command).toBe(
+      "vspec merge resolve id-1"
+    );
 
     const noMergeResult = await completeSession(
       depsFor({ branch: branch({ name: "agent/no-merge" }) }),

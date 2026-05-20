@@ -12,17 +12,25 @@ import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { MergeRequestStore } from "../../../src/ports/merge-request-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
-import { branch, lock, membership, project, session } from "./session-completion-data.js";
+import {
+  branch,
+  lock,
+  membership,
+  project,
+  session
+} from "./session-completion-data.js";
 
-export function depsFor(options: {
-  branch?: StoredSpecBranch;
-  deletedLocks?: string[];
-  locks?: StoredLock[];
-  project?: StoredProject;
-  savedMergeRequests?: StoredMergeRequest[];
-  session?: StoredWorkSession;
-  updatedSessions?: StoredWorkSession[];
-} = {}) {
+export function depsFor(
+  options: {
+    branch?: StoredSpecBranch;
+    deletedLocks?: string[];
+    locks?: StoredLock[];
+    project?: StoredProject;
+    savedMergeRequests?: StoredMergeRequest[];
+    session?: StoredWorkSession;
+    updatedSessions?: StoredWorkSession[];
+  } = {}
+) {
   return {
     branchStore: branchStore(options.branch ?? branch()),
     clock: () => "2026-05-20T01:00:00.000Z",
@@ -38,7 +46,9 @@ export function depsFor(options: {
   };
 }
 
-export function input(overrides: Partial<CompleteSessionInput> = {}): CompleteSessionInput {
+export function input(
+  overrides: Partial<CompleteSessionInput> = {}
+): CompleteSessionInput {
   return {
     noMerge: false,
     sessionId: "session-1",

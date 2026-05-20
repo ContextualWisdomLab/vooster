@@ -3,6 +3,10 @@
 _Append a section per UC before starting it. One bullet per test you intend to
 write. This guides your TDD cycles within an iteration._
 
+### Goal 3 Test DB - Postgres Schema Helper
+
+- **Postgres schema helper**: allocate two isolated test schemas through `tests/helpers/postgres-db.ts`; assert the helper returns PostgreSQL URLs with distinct `schema=` parameters, runs Prisma schema setup, persists a user inside one schema, keeps the second schema isolated, and drops schemas during teardown.
+
 ### Goal 2 Persistence - Actor
 
 - **Actor**: create signup, project, and actor through public HTTP APIs against a Prisma-backed server; restart against the same SQLite database; log back in and assert creating the same actor name is rejected as an existing active actor.

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T17:05:02Z_
+_Last updated: 2026-05-20T17:18:57Z_
 
 ## Overall
 
-- Commits: 842
-- Last commit: 88a22be green(cli-split): extract login command
+- Commits: 845
+- Last commit: 087a8b9 green(cli-split): extract ai-guide command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

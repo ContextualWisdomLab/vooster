@@ -74,14 +74,19 @@ describe("impact analysis application", () => {
   });
 
   test("returns failure statuses before computing impact", async () => {
-    await expect(previewImpact(depsFor({ found: undefined }), input())).resolves.toEqual({
+    await expect(
+      previewImpact(depsFor({ found: undefined }), input())
+    ).resolves.toEqual({
       status: "NOT_FOUND"
     });
     await expect(
       previewImpact(depsFor({ membership: undefined }), input())
     ).resolves.toEqual({ status: "ACCESS_DENIED" });
     await expect(
-      previewImpact(depsFor(), input({ proposedChangeContent: "# Missing frontmatter" }))
+      previewImpact(
+        depsFor(),
+        input({ proposedChangeContent: "# Missing frontmatter" })
+      )
     ).resolves.toEqual({
       path: "<inline>",
       status: "PROPOSED_CHANGE_PARSE_FAILED"
@@ -116,7 +121,9 @@ function depsFor(
     ),
     revisionStore: revisionStore(),
     useCaseStore: useCaseStore(
-      "found" in options ? options.found : { projectId: "project-1", usecase: usecase() }
+      "found" in options
+        ? options.found
+        : { projectId: "project-1", usecase: usecase() }
     ),
     workSessionStore: workSessionStore(options.sessions ?? [])
   };

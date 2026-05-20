@@ -702,3 +702,14 @@ write. This guides your TDD cycles within an iteration._
   agent-format use case API.
 - **Assertions**: the row proves the persisted use case keeps its id, key,
   title, and primary actor relationship after restart.
+
+### Goal 4 CLI Split - Usecase Command
+
+- **Command module**: `tests/unit/cli-command-split.test.ts` imports
+  `UsecaseCommand` from `src/cli/commands/usecase.ts` and asserts it extends
+  the oclif `Command` base class.
+- **Setup**: keep the existing command-split unit test as the fast RED/GREEN
+  signal while extracting `usecase create/add-stakeholder/list/show/archive`.
+- **Assertions**: focused command-split test, TypeScript build, lint, and the
+  full Vitest suite remain green after moving the behavior out of
+  `src/cli/index.ts`.

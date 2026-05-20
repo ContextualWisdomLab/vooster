@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T02:29:06Z_
+_Last updated: 2026-05-20T02:47:20Z_
 
 ## Overall
 
-- Commits: 749
-- Last commit: ac57b03 green(layers): extract lock workflow
+- Commits: 752
+- Last commit: 3127768 green(layers): extract revision history workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

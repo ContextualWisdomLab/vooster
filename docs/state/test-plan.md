@@ -639,3 +639,17 @@ write. This guides your TDD cycles within an iteration._
   validation, read-only guidance, non-main guidance, collision guidance,
   in-flight merge warnings, snapshot-failure retry guidance, and human CLI
   output.
+
+### Goal 2 Layers - Session Completion
+
+- **Application**: session completion resolves the session, authorizes the owner
+  or workspace member, rejects missing/inactive sessions and simulated
+  completion failures without releasing locks or saving merge requests.
+- **Application**: session completion releases held locks with warnings for
+  simulated release failures, stamps completion with an injected clock, opens
+  merge requests with injected ids for branch sessions, and skips merge creation
+  for `no_merge`.
+- **Route preservation**: UC-018 E2E and CLI tests continue to prove HTTP
+  validation, inactive-session guidance, completion-failure retry guidance,
+  failed-lock warnings, conflict guidance, no-merge guidance, and human CLI
+  output.

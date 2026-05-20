@@ -96,9 +96,9 @@ C3. **Application logic is unit-tested.** `tests/unit/application/`
     HTTP).
 
 C4. **Boundaries are enforced upward, not just downward.** The
-    `eslint-plugin-boundaries` config additionally forbids `http →
-    domain` direct imports and `cli → infrastructure` direct imports.
-    Routes go through `application`; CLI goes through HTTP only.
+    `eslint-plugin-boundaries` config forbids adapter layers from
+    directly importing `infrastructure`. Routes go through
+    `application`; CLI goes through the explicit architecture arrows.
 
 ### Tranche D — Meta: no regression and gate rigor
 

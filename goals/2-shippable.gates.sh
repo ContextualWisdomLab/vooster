@@ -187,12 +187,53 @@ else
   PASS=false
 fi
 
-echo "[2.C4] Boundaries rules cover http→domain and cli→infrastructure"
-if grep -qE 'from:\s*"http"[^}]*disallow[^}]*"domain"' eslint.config.js 2>/dev/null \
-    && grep -qE 'from:\s*"cli"[^}]*disallow[^}]*"infrastructure"' eslint.config.js 2>/dev/null; then
+echo "[2.C4] Boundary rules reject direct adapter→infrastructure imports"
+if node --input-type=module <<'NODE' >/tmp/2-c4-boundaries.log 2>&1
+import { unlink, writeFile } from "node:fs/promises";
+import { ESLint } from "eslint";
+
+const cases = [
+  {
+    code: [
+      'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
+      "export const boundaryFixture = createMemoryUserStore;"
+    ].join("\n"),
+    filePath: "src/http/__goal2_rejects_infrastructure.test-fixture.ts"
+  },
+  {
+    code: [
+      'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
+      "export const boundaryFixture = createMemoryUserStore;"
+    ].join("\n"),
+    filePath: "src/cli/__goal2_rejects_infrastructure.test-fixture.ts"
+  }
+];
+
+try {
+  await Promise.all(cases.map((lintCase) => writeFile(lintCase.filePath, lintCase.code)));
+  const eslint = new ESLint({ cwd: process.cwd() });
+  const results = await Promise.all(cases.map((lintCase) => eslint.lintFiles([lintCase.filePath])));
+
+  for (const [index, result] of results.entries()) {
+    const lintCase = cases[index];
+    if (lintCase === undefined) {
+      throw new Error(`Missing lint case for result ${String(index)}`);
+    }
+    const boundaryErrors = result[0]?.messages.filter(
+      (message) => message.ruleId === "boundaries/element-types"
+    );
+    if (boundaryErrors?.length !== 1) {
+      throw new Error(`${lintCase.filePath} was not rejected by boundaries/element-types`);
+    }
+  }
+} finally {
+  await Promise.all(cases.map((lintCase) => unlink(lintCase.filePath).catch(() => undefined)));
+}
+NODE
+then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — eslint.config.js missing the boundaries upgrades for goal 2.C4"
+  echo "    ✗ fail — ESLint did not reject both adapter→infrastructure fixtures"
   PASS=false
 fi
 

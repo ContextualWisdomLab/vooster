@@ -1,6 +1,6 @@
 # Next Task
 
-_Auto-generated 2026-05-19T23:48:39Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T00:15:23Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
 TASK: Slim down a fat route file (gate 2.C1).

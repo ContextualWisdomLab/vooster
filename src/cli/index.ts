@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Args, Command, Flags, flush, handle } from "@oclif/core";
 import { runAiGuide } from "./commands/ai-guide.js";
 import { runApiKey } from "./commands/api-key.js";
+import { runBranch } from "./commands/branch.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
@@ -119,7 +120,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "branch" && this.argv[1] === "create") {
-      await this.createBranch(parsed.flags);
+      await runBranch(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "merge" && this.argv[1] === "open") {
@@ -268,34 +269,6 @@ export class VspecCommand extends Command {
     }
 
     this.log("vspec CLI");
-  }
-
-  private async createBranch(flags: ParsedFlags): Promise<void> {
-    const branchFlags = branchCreateFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${branchFlags.apiUrl}/v1/projects/${branchFlags.projectId}/branches`,
-      {
-        from: branchFlags.from,
-        name: branchFlags.name
-      },
-      {
-        Cookie: branchFlags.sessionCookie
-      }
-    );
-    const body = response.body as BranchCreateResponse;
-
-    this.log(`Branch ${body.branch.id}`);
-    this.log(`Name ${body.branch.name}`);
-    this.log(`Status ${body.branch.status}`);
-    this.log(`Owner ${body.branch.owner_type}`);
-    this.log(`Base revisions ${String(Object.keys(body.branch.base_revision_ids).length)}`);
-    this.log(`Head revisions ${String(Object.keys(body.branch.head_revision_ids).length)}`);
-    for (const warning of body.warnings ?? []) {
-      this.log(`Warning ${warning.type} ${warning.merge_request_id}`);
-    }
-    for (const action of body.suggested_next_actions) {
-      this.log(action.command);
-    }
   }
 
   private async openMerge(flags: ParsedFlags): Promise<void> {
@@ -1212,14 +1185,6 @@ export class VspecCommand extends Command {
   }
 }
 
-type BranchCreateFlags = {
-  apiUrl: string;
-  from: string;
-  name: string;
-  projectId: string;
-  sessionCookie: string;
-};
-
 type MergeOpenFlags = {
   apiUrl: string;
   sessionCookie: string;
@@ -1534,24 +1499,6 @@ type ParsedFlags = {
   "workspace-id"?: string;
   "workspace-name"?: string;
   "workspace-slug"?: string;
-};
-
-type BranchCreateResponse = {
-  branch: {
-    base_revision_ids: Record<string, string>;
-    head_revision_ids: Record<string, string>;
-    id: string;
-    name: string;
-    owner_type: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings?: Array<{
-    merge_request_id: string;
-    type: string;
-  }>;
 };
 
 type MergeOpenResponse = {
@@ -2080,19 +2027,6 @@ type SessionCompleteResponse = {
     type: string;
   }>;
 };
-
-function branchCreateFlagsFrom(
-  flags: ParsedFlags,
-  name: string | undefined
-): BranchCreateFlags {
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    from: flags.from ?? "main",
-    name: requiredArgument(name, "branch-name"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
 
 function mergeOpenFlagsFrom(
   flags: ParsedFlags,

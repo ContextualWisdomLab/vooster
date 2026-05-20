@@ -489,3 +489,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: comment workflow functions authorize the caller against the target use case project, reject missing/archived targets, empty bodies, and non-owner mutations without writes.
 - **Application**: add/list/edit/resolve/delete functions persist the expected comment changes, including idempotent resolve preserving `resolved_at`.
 - **Route preservation**: UC-028 E2E and CLI tests continue to prove HTTP problem mapping, session cookies, and suggested next actions.
+
+### Goal 2 Layers - Goal Promotion
+
+- **Application**: goal promotion authorizes the caller, rejects missing goals/projects, duplicate promotion, rejected goals, and simulated write failures without creating partial use cases.
+- **Application**: successful promotion creates a seeded UseCase, initial Revision, and promoted Goal link with a project-scoped key and optional weak-title warning.
+- **Route preservation**: UC-008 E2E and CLI tests continue to prove HTTP status mapping, suggested next actions, and retry guidance.

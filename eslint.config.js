@@ -37,7 +37,8 @@ export default tseslint.config(
       "boundaries/element-types": ["error", {
         default: "allow",
         rules: [
-          { from: "http", disallow: ["infrastructure"] },
+          { from: "http", disallow: ["domain", "infrastructure"] },
+          { from: "cli", disallow: ["infrastructure"] },
           { from: "application", disallow: ["infrastructure"] },
           { from: "domain", disallow: ["cli", "http", "application", "ports", "infrastructure"] }
         ]

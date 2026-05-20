@@ -14,6 +14,7 @@ import { createPrismaStakeholderInterestStore } from "../../src/infrastructure/p
 import { createPrismaStakeholderStore } from "../../src/infrastructure/prisma-stakeholder-store.js";
 import { createPrismaStepStore } from "../../src/infrastructure/prisma-step-store.js";
 import { createPrismaUserStore } from "../../src/infrastructure/prisma-user-store.js";
+import { createPrismaWorkSessionStore } from "../../src/infrastructure/prisma-work-session-store.js";
 import { createPrismaWorkspaceStore } from "../../src/infrastructure/prisma-workspace-store.js";
 
 describe("Prisma adapter split", () => {
@@ -75,5 +76,9 @@ describe("Prisma adapter split", () => {
 
   test("revision store has a dedicated Prisma adapter", () => {
     expect(createPrismaRevisionStore).toBeTypeOf("function");
+  });
+
+  test("work session store has a dedicated Prisma adapter", () => {
+    expect(createPrismaWorkSessionStore).toBeTypeOf("function");
   });
 });

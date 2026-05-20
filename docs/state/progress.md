@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T06:53:15Z_
+_Last updated: 2026-05-20T07:14:52Z_
 
 ## Overall
 
-- Commits: 793
-- Last commit: 79b2b6f green(layers): extract markdown export workflow
+- Commits: 796
+- Last commit: f4fee73 green(layers): extract actor definition workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

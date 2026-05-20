@@ -513,3 +513,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: revision history lookup authorizes the caller, resolves project-scoped missing-usecase guidance, and remains read-only for missing or forbidden callers.
 - **Application**: revision history rows are ordered newest-first, capped by the requested limit, include deterministic author/timestamp fields, and report suppressed counts plus larger-limit guidance.
 - **Route preservation**: UC-024 E2E and CLI tests continue to prove HTTP problem mapping, retry guidance, truncation flags, and human CLI output.
+
+### Goal 2 Layers - Projects
+
+- **Application**: project creation authorizes workspace membership, rejects archived workspaces and duplicate keys without writes, and creates a Project plus default main SpecBranch with injected ids.
+- **Application**: project creation uses the transactional signup store when available, falls back to separate project/branch ports when not, and reports simulated branch failure without consuming the key namespace.
+- **Route preservation**: UC-004 E2E and CLI tests continue to prove HTTP validation, problem mapping, rollback retry behavior, archived workspace handling, and create-next-action output.

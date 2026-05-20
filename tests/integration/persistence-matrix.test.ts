@@ -1220,6 +1220,18 @@ function showUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) 
   });
 }
 
+async function readUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) {
+  const response = await showUseCase(baseUrl, sessionCookie, usecaseId);
+  const body = (await response.json()) as {
+    data: {
+      primary_actor: { name: string };
+      title: string;
+      usecase: { id: string; key: string };
+    };
+  };
+  return { data: body.data, status: response.status };
+}
+
 function listRevisionHistory(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}/revisions`, {
     headers: { cookie: sessionCookie }

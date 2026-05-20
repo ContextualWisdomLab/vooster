@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T18:32:07Z_
+_Last updated: 2026-05-20T18:35:14Z_
 
 ## Overall
 
-- Commits: 866
-- Last commit: 4d1037f green(cli-split): extract actor command
+- Commits: 869
+- Last commit: e1da619 green(cli-split): extract stakeholder command
 - Use cases complete: 35 / 35
 - Active goal: goals/4-honest-boundaries.md
 

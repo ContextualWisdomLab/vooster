@@ -525,3 +525,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: session list authorizes workspace membership and refuses non-members without reading workspace sessions.
 - **Application**: session list filters by workspace projects, status, project, and user; orders newest-first; resolves pinned keys, branch names, idle seconds, lock counts, conflict markers, and zombie markers with an injected clock.
 - **Route preservation**: UC-017 E2E and CLI tests continue to prove HTTP/SSE response mapping, non-member protection, empty guidance, zombie guidance, and human CLI output.
+
+### Goal 2 Layers - API Keys
+
+- **Application**: API key creation authorizes OWNER membership, rejects unsupported scopes without writes, generates a one-time plaintext token and persisted argon2id hash, and records response-drop failures after metadata is saved.
+- **Application**: API key listing returns public metadata only for workspace owners, and revocation hides missing/foreign keys behind 404 while preserving idempotent revoked timestamps.
+- **Route preservation**: UC-032 E2E and CLI tests continue to prove HTTP problem mapping, token-only-on-create behavior, list/revoke output, and editor/non-owner protection.

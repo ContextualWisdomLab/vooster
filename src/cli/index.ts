@@ -12,6 +12,7 @@ import { runGoal } from "./commands/goal.js";
 import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runProject } from "./commands/project.js";
+import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
 import { runUsecase } from "./commands/usecase.js";
@@ -250,7 +251,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "scenario" && this.argv[1] === "add") {
-      await this.createScenario(parsed.flags);
+      await runScenario(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "step" && this.argv[1] === "add") {
@@ -700,34 +701,6 @@ export class VspecCommand extends Command {
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
-  private async createScenario(flags: ParsedFlags): Promise<void> {
-    const scenarioFlags = scenarioCreateFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${scenarioFlags.apiUrl}/v1/usecases/${scenarioFlags.usecaseId}/scenarios`,
-      {
-        condition: scenarioFlags.condition,
-        extension_point: scenarioFlags.extensionPoint,
-        outcome: scenarioFlags.outcome,
-        type: scenarioFlags.type
-      },
-      {
-        Cookie: scenarioFlags.sessionCookie
-      }
-    );
-    const body = response.body as ScenarioResponse;
-
-    this.log(`Scenario ${body.scenario.id}`);
-    this.log(`Type ${body.scenario.type}`);
-    if (body.scenario.extension_point !== null) {
-      this.log(`At ${body.scenario.extension_point}`);
-    }
-    if (body.scenario.condition !== null) {
-      this.log(`Condition ${body.scenario.condition}`);
-    }
-    this.log(`Outcome ${body.scenario.outcome}`);
-    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
-  }
-
   private async addStep(flags: ParsedFlags): Promise<void> {
     const stepFlags = stepCreateFlagsFrom(flags, this.argv[2]);
     const response = await postJson(
@@ -868,16 +841,6 @@ type ExportGherkinFlags = {
   output: string | undefined;
   revision: string | undefined;
   sessionCookie: string;
-  usecaseId: string;
-};
-
-type ScenarioCreateFlags = {
-  apiUrl: string;
-  condition: string | undefined;
-  extensionPoint: string | undefined;
-  outcome: "FAILURE" | "PARTIAL" | "SUCCESS" | undefined;
-  sessionCookie: string;
-  type: "EXTENSION" | "MAIN_SUCCESS";
   usecaseId: string;
 };
 
@@ -1217,20 +1180,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type ScenarioResponse = {
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  scenario: {
-    condition: string | null;
-    extension_point: string | null;
-    id: string;
-    outcome: string;
-    type: string;
-  };
-};
-
 type StepResponse = {
   revision: {
     severity: string;
@@ -1396,22 +1345,6 @@ function exportFlagsFrom(
   };
 }
 
-function scenarioCreateFlagsFrom(
-  flags: ParsedFlags,
-  usecaseId: string | undefined
-): ScenarioCreateFlags {
-  const type = scenarioType(requiredFlag(flags, "type"));
-  return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    condition: scenarioCondition(flags, type),
-    extensionPoint: scenarioExtensionPoint(flags, type),
-    outcome: scenarioOutcome(flags.outcome),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    type,
-    usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
 function stepCreateFlagsFrom(
   flags: ParsedFlags,
   scenarioId: string | undefined
@@ -1495,44 +1428,6 @@ function diffFormat(rawFormat: string): "agent" | "human" | "json" {
   }
 
   throw new Error("Diff format must be human, json, or agent.");
-}
-
-function scenarioType(rawType: string): "EXTENSION" | "MAIN_SUCCESS" {
-  const type = rawType.toUpperCase().replaceAll("-", "_");
-  if (type === "EXTENSION" || type === "MAIN_SUCCESS") {
-    return type;
-  }
-
-  throw new Error("Scenario type must be MAIN_SUCCESS or EXTENSION.");
-}
-
-function scenarioOutcome(
-  rawOutcome: string | undefined
-): "FAILURE" | "PARTIAL" | "SUCCESS" | undefined {
-  if (rawOutcome === undefined || rawOutcome.trim() === "") {
-    return undefined;
-  }
-
-  const outcome = rawOutcome.toUpperCase();
-  if (outcome === "FAILURE" || outcome === "PARTIAL" || outcome === "SUCCESS") {
-    return outcome;
-  }
-
-  throw new Error("Scenario outcome must be FAILURE, PARTIAL, or SUCCESS.");
-}
-
-function scenarioCondition(
-  flags: ParsedFlags,
-  type: "EXTENSION" | "MAIN_SUCCESS"
-): string | undefined {
-  return type === "EXTENSION" ? requiredFlag(flags, "condition") : undefined;
-}
-
-function scenarioExtensionPoint(
-  flags: ParsedFlags,
-  type: "EXTENSION" | "MAIN_SUCCESS"
-): string | undefined {
-  return type === "EXTENSION" ? requiredFlag(flags, "at") : undefined;
 }
 
 function optionalFlag(values: ParsedFlags, name: keyof ParsedFlags): string | undefined {

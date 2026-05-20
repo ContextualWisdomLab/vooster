@@ -5,17 +5,10 @@ import {
   advanceMainExtensionRevision,
   advanceMainUseCaseRevision
 } from "../../../src/application/branch-test-helpers.js";
-import type {
-  StoredProject,
-  StoredRevision,
-  StoredSpecBranch,
-  StoredUseCase
-} from "../../../src/http/signup-types.js";
-
+import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../../../src/http/signup-types.js";
 describe("branch test helper application", () => {
   test("creates a branch use case revision and advances the branch head", async () => {
-    const savedRevisions: StoredRevision[] = [];
-    const updatedBranches: StoredSpecBranch[] = [];
+    const savedRevisions: StoredRevision[] = [], updatedBranches: StoredSpecBranch[] = [];
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await advanceBranchUseCaseRevision(
@@ -50,8 +43,7 @@ describe("branch test helper application", () => {
   });
 
   test("creates a main use case revision and advances canonical state", async () => {
-    const savedRevisions: StoredRevision[] = [];
-    const updatedBranches: StoredSpecBranch[] = [];
+    const savedRevisions: StoredRevision[] = [], updatedBranches: StoredSpecBranch[] = [];
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await advanceMainUseCaseRevision(
@@ -61,11 +53,11 @@ describe("branch test helper application", () => {
 
     expect(result).toEqual({ revisionId: "id-1", status: "ADVANCED" });
     expect(savedRevisions[0]).toMatchObject({
-      branch_id: undefined,
       id: "id-1",
       severity: "NON_BREAKING",
       snapshot: { title: "Main title" }
     });
+    expect(savedRevisions[0]).not.toHaveProperty("branch_id");
     expect(updatedUseCases[0]).toMatchObject({
       current_revision_id: "id-1",
       title: "Main title"
@@ -85,8 +77,7 @@ describe("branch test helper application", () => {
       }
     );
 
-    const mainRevisions: StoredRevision[] = [];
-    const mainUseCases: StoredUseCase[] = [];
+    const mainRevisions: StoredRevision[] = [], mainUseCases: StoredUseCase[] = [];
     const mainResult = await advanceMainExtensionRevision(
       depsFor({ savedRevisions: mainRevisions, updatedUseCases: mainUseCases }),
       { condition: "Main alternate", extensionPoint: "2", usecaseId: "usecase-1" }
@@ -100,17 +91,16 @@ describe("branch test helper application", () => {
     });
     expect(mainResult).toEqual({ revisionId: "id-1", status: "ADVANCED" });
     expect(mainRevisions[0]).toMatchObject({
-      branch_id: undefined,
       change_summary: "extension:2:Main alternate",
       severity: "NON_BREAKING"
     });
+    expect(mainRevisions[0]).not.toHaveProperty("branch_id");
     expect(mainUseCases[0]?.current_revision_id).toBe("id-1");
   });
 });
 
 function depsFor(overrides: {
   branch?: StoredSpecBranch | undefined;
-  project?: StoredProject | undefined;
   savedRevisions?: StoredRevision[];
   updatedBranches?: StoredSpecBranch[];
   updatedUseCases?: StoredUseCase[];
@@ -124,53 +114,56 @@ function depsFor(overrides: {
     ? overrides.branch
     : branch("branch-feature", { base_revision_ids: { "usecase-1": "revision-current" } });
   const mainBranch = branch("branch-main");
-  const project = overrides.project ?? {
-    default_branch_id: "branch-main",
-    id: "project-1",
-    key: "PRJ",
-    name: "Project",
-    visibility: "INTERNAL",
-    workspace_id: "workspace-1"
-  } satisfies StoredProject;
 
   return {
     branchStore: {
-      findBranchById: async (id: string) =>
-        id === "branch-main" ? mainBranch : featureBranch,
-      findBranchByProjectAndName: async () => undefined,
-      listBranches: async () => [],
-      saveBranch: async () => {},
-      updateBranch: async (stored: StoredSpecBranch) => {
+      findBranchById: (id: string) => Promise.resolve(id === "branch-main" ? mainBranch : featureBranch),
+      findBranchByProjectAndName: () => Promise.resolve(undefined),
+      listBranches: () => Promise.resolve([]),
+      saveBranch: () => Promise.resolve(),
+      updateBranch: (stored: StoredSpecBranch) => {
         updatedBranches.push(stored);
+        return Promise.resolve();
       }
     },
     idFactory: () => "id-1",
     projectStore: {
-      findProjectById: async () => project,
-      findProjectByWorkspaceAndKey: async () => undefined,
-      listProjectsForWorkspace: async () => [],
-      saveProject: async () => {}
+      findProjectById: () => Promise.resolve({
+        default_branch_id: "branch-main",
+        id: "project-1",
+        key: "PRJ",
+        name: "Project",
+        visibility: "INTERNAL" as const,
+        workspace_id: "workspace-1"
+      }),
+      findProjectByWorkspaceAndKey: () => Promise.resolve(undefined),
+      listProjectsForWorkspace: () => Promise.resolve([]),
+      saveProject: () => Promise.resolve()
     },
     revisionStore: {
-      findRevisionById: async () => undefined,
-      latestRevision: async () => undefined,
-      listRevisions: async () => [],
-      nextVersionNumber: async () => 2,
-      saveRevision: async (revision: StoredRevision) => {
+      findRevisionById: () => Promise.resolve(undefined),
+      latestRevision: () => Promise.resolve(undefined),
+      listRevisions: () => Promise.resolve([]),
+      nextVersionNumber: () => Promise.resolve(2),
+      saveRevision: (revision: StoredRevision) => {
         savedRevisions.push(revision);
+        return Promise.resolve();
       }
     },
     useCaseStore: {
-      findUseCaseById: async () => currentUsecase,
-      findUseCaseWithProject: async () =>
-        currentUsecase === undefined
-          ? undefined
-          : { projectId: "project-1", usecase: currentUsecase },
-      findUseCasesByKey: async () => [],
-      listUseCases: async () => [],
-      saveUseCase: async () => {},
-      updateUseCase: async (stored: StoredUseCase) => {
+      findUseCaseById: () => Promise.resolve(currentUsecase),
+      findUseCaseWithProject: () =>
+        Promise.resolve(
+          currentUsecase === undefined
+            ? undefined
+            : { projectId: "project-1", usecase: currentUsecase }
+        ),
+      findUseCasesByKey: () => Promise.resolve([]),
+      listUseCases: () => Promise.resolve([]),
+      saveUseCase: () => Promise.resolve(),
+      updateUseCase: (stored: StoredUseCase) => {
         updatedUseCases.push(stored);
+        return Promise.resolve();
       }
     }
   };

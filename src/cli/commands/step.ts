@@ -1,0 +1,165 @@
+import { Args, Command, Flags } from "@oclif/core";
+
+import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { patchJson, postJson } from "../http-client.js";
+
+type StepCliFlags = {
+  action?: string;
+  actor?: string;
+  "api-url"?: string;
+  "base-revision"?: string;
+  "session-cookie"?: string;
+};
+
+type StepCreateFlags = {
+  action: string;
+  actor: string;
+  apiUrl: string;
+  scenarioId: string;
+  sessionCookie: string;
+};
+
+type StepEditFlags = {
+  action: string;
+  apiUrl: string;
+  baseRevision: string;
+  sessionCookie: string;
+  stepId: string;
+};
+
+type StepResponse = {
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  scenario_steps: Array<{
+    action: string;
+    step_number: number;
+  }>;
+  step: {
+    action: string;
+    step_number: number;
+  };
+};
+
+type StepEditResponse = {
+  affected_sessions: string[];
+  revision: {
+    severity: string;
+    version_number: number;
+  };
+  step: {
+    action: string;
+    id: string;
+  };
+};
+
+export class StepCommand extends Command {
+  static override description = "Manage scenario steps.";
+
+  static override args = {
+    actionName: Args.string(),
+    targetId: Args.string()
+  };
+
+  static override flags = {
+    action: Flags.string(),
+    actor: Flags.string(),
+    "api-url": Flags.string(),
+    "base-revision": Flags.string(),
+    "session-cookie": Flags.string()
+  };
+
+  override async run(): Promise<void> {
+    const parsed = await this.parse(StepCommand);
+
+    await runStep(parsed.flags, parsed.args.actionName, parsed.args.targetId, this.log.bind(this));
+  }
+}
+
+export async function runStep(
+  flags: StepCliFlags,
+  action: string | undefined,
+  targetId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  if (action === "add") {
+    await addStep(flags, targetId, writeLine);
+    return;
+  }
+  if (action === "edit") {
+    await editStep(flags, targetId, writeLine);
+    return;
+  }
+
+  throw new Error("Missing step action.");
+}
+
+async function addStep(
+  flags: StepCliFlags,
+  scenarioId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const stepFlags = stepCreateFlagsFrom(flags, scenarioId);
+  const response = await postJson(
+    `${stepFlags.apiUrl}/v1/scenarios/${stepFlags.scenarioId}/steps`,
+    {
+      action: stepFlags.action,
+      actor: stepFlags.actor
+    },
+    {
+      Cookie: stepFlags.sessionCookie
+    }
+  );
+  const body = response.body as StepResponse;
+
+  writeLine(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
+  writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  for (const step of body.scenario_steps) {
+    writeLine(`${String(step.step_number)}. ${step.action}`);
+  }
+}
+
+async function editStep(
+  flags: StepCliFlags,
+  stepId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const stepFlags = stepEditFlagsFrom(flags, stepId);
+  const response = await patchJson(
+    `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
+    {
+      action: stepFlags.action,
+      base_revision: stepFlags.baseRevision
+    },
+    {
+      Cookie: stepFlags.sessionCookie
+    }
+  );
+  const body = response.body as StepEditResponse;
+
+  writeLine(`Step ${body.step.id}`);
+  writeLine(`Action ${body.step.action}`);
+  writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  writeLine(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
+}
+
+function stepCreateFlagsFrom(flags: StepCliFlags, scenarioId: string | undefined): StepCreateFlags {
+  return {
+    action: requiredFlag(flags, "action"),
+    actor: requiredFlag(flags, "actor"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    scenarioId: requiredArgument(scenarioId, "scenario-id"),
+    sessionCookie: requiredFlag(flags, "session-cookie")
+  };
+}
+
+function stepEditFlagsFrom(flags: StepCliFlags, stepId: string | undefined): StepEditFlags {
+  return {
+    action: requiredFlag(flags, "action"),
+    apiUrl: requiredFlag(flags, "api-url"),
+    baseRevision: requiredFlag(flags, "base-revision"),
+    sessionCookie: requiredFlag(flags, "session-cookie"),
+    stepId: requiredArgument(stepId, "step-id")
+  };
+}

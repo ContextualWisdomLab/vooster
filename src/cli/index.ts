@@ -15,8 +15,9 @@ import { runProject } from "./commands/project.js";
 import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
+import { runStep } from "./commands/step.js";
 import { runUsecase } from "./commands/usecase.js";
-import { fetchJson, patchJson, postJson, postText } from "./http-client.js";
+import { fetchJson, postJson, postText } from "./http-client.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 export class VspecCommand extends Command {
@@ -255,11 +256,11 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "step" && this.argv[1] === "add") {
-      await this.addStep(parsed.flags);
+      await runStep(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "step" && this.argv[1] === "edit") {
-      await this.editStep(parsed.flags);
+      await runStep(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "session" && this.argv[1] === "complete") {
@@ -701,47 +702,6 @@ export class VspecCommand extends Command {
     this.log(`Bytes ${String(Buffer.byteLength(response.body, "utf8"))}`);
   }
 
-  private async addStep(flags: ParsedFlags): Promise<void> {
-    const stepFlags = stepCreateFlagsFrom(flags, this.argv[2]);
-    const response = await postJson(
-      `${stepFlags.apiUrl}/v1/scenarios/${stepFlags.scenarioId}/steps`,
-      {
-        action: stepFlags.action,
-        actor: stepFlags.actor
-      },
-      {
-        Cookie: stepFlags.sessionCookie
-      }
-    );
-    const body = response.body as StepResponse;
-
-    this.log(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
-    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
-    for (const step of body.scenario_steps) {
-      this.log(`${String(step.step_number)}. ${step.action}`);
-    }
-  }
-
-  private async editStep(flags: ParsedFlags): Promise<void> {
-    const stepFlags = stepEditFlagsFrom(flags, this.argv[2]);
-    const response = await patchJson(
-      `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
-      {
-        action: stepFlags.action,
-        base_revision: stepFlags.baseRevision
-      },
-      {
-        Cookie: stepFlags.sessionCookie
-      }
-    );
-    const body = response.body as StepEditResponse;
-
-    this.log(`Step ${body.step.id}`);
-    this.log(`Action ${body.step.action}`);
-    this.log(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
-    this.log(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
-  }
-
 }
 
 type MergeOpenFlags = {
@@ -842,22 +802,6 @@ type ExportGherkinFlags = {
   revision: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type StepCreateFlags = {
-  action: string;
-  actor: string;
-  apiUrl: string;
-  scenarioId: string;
-  sessionCookie: string;
-};
-
-type StepEditFlags = {
-  action: string;
-  apiUrl: string;
-  baseRevision: string;
-  sessionCookie: string;
-  stepId: string;
 };
 
 type ParsedFlags = {
@@ -1180,33 +1124,6 @@ type SyncPushResponse = {
   }>;
 };
 
-type StepResponse = {
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  scenario_steps: Array<{
-    action: string;
-    step_number: number;
-  }>;
-  step: {
-    action: string;
-    step_number: number;
-  };
-};
-
-type StepEditResponse = {
-  affected_sessions: string[];
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  step: {
-    action: string;
-    id: string;
-  };
-};
-
 function mergeOpenFlagsFrom(
   flags: ParsedFlags,
   sourceBranchId: string | undefined
@@ -1342,32 +1259,6 @@ function exportFlagsFrom(
     revision: optionalFlag(flags, "revision"),
     sessionCookie: requiredFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
-  };
-}
-
-function stepCreateFlagsFrom(
-  flags: ParsedFlags,
-  scenarioId: string | undefined
-): StepCreateFlags {
-  return {
-    action: requiredFlag(flags, "action"),
-    actor: requiredFlag(flags, "actor"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    scenarioId: requiredArgument(scenarioId, "scenario-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
-  };
-}
-
-function stepEditFlagsFrom(
-  flags: ParsedFlags,
-  stepId: string | undefined
-): StepEditFlags {
-  return {
-    action: requiredFlag(flags, "action"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    baseRevision: requiredFlag(flags, "base-revision"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    stepId: requiredArgument(stepId, "step-id")
   };
 }
 

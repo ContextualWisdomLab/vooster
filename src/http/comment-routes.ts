@@ -1,20 +1,18 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  commentWriteFailedProblem,
-  emptyBodyProblem,
-  missingUseCaseProblem,
-  notOwnerProblem
-} from "./comment-problems.js";
-import type { StoredComment } from "./comment-types.js";
-import { membershipForProject } from "./membership-support.js";
-import { authenticatedUserId } from "./session-support.js";
-import { problem } from "./signup-support.js";
-import type { SignupState, StoredUseCase } from "./signup-types.js";
+  addComment as addUseCaseComment,
+  deleteComment as deleteUseCaseComment,
+  listComments as listUseCaseComments,
+  patchComment as patchUseCaseComment
+} from "../application/comments.js";
 import type { CommentStore } from "../ports/comment-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import { emptyBodyProblem } from "./comment-problems.js";
+import { sendCommentResult } from "./comment-results.js";
+import { authenticatedUserId } from "./session-support.js";
+import type { SignupState } from "./signup-types.js";
 
 const bodySchema = z.object({
   body: z.string().min(1),
@@ -54,31 +52,19 @@ async function addComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedUseCase(request, reply, state, membershipStore, useCaseStore);
-  if (found === undefined) {
-    return;
-  }
   const parsed = bodySchema.safeParse(request.body);
-  if (!parsed.success || parsed.data.body.trim() === "") {
+  if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }
-  if (parsed.data.simulate_write_failure === true) {
-    return reply.code(500).send(commentWriteFailedProblem());
-  }
-  const now = new Date().toISOString();
-  const comment: StoredComment = {
-    author_id: found.userId,
-    body: parsed.data.body,
-    created_at: now,
-    id: randomUUID(),
-    resolved: false,
-    resolved_at: null,
-    target_id: found.usecase.id,
-    target_type: "USECASE",
-    updated_at: null
-  };
-  await commentStore.saveComment(comment);
-  return reply.code(201).send(commentResponse(comment, found.usecase));
+  return sendCommentResult(reply, await addUseCaseComment(
+    deps(commentStore, membershipStore, useCaseStore),
+    {
+      body: parsed.data.body,
+      simulateWriteFailure: parsed.data.simulate_write_failure,
+      usecaseId: usecaseId(request),
+      userId: userId(request, state)
+    }
+  ));
 }
 
 async function listComments(
@@ -89,13 +75,10 @@ async function listComments(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedUseCase(request, reply, state, membershipStore, useCaseStore);
-  if (found === undefined) {
-    return;
-  }
-  return reply.send({
-    comments: await commentStore.listCommentsForUseCase(found.usecase.id)
-  });
+  return sendCommentResult(reply, await listUseCaseComments(
+    deps(commentStore, membershipStore, useCaseStore),
+    { usecaseId: usecaseId(request), userId: userId(request, state) }
+  ));
 }
 
 async function patchComment(
@@ -106,34 +89,19 @@ async function patchComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(
-    request,
-    reply,
-    state,
-    commentStore,
-    membershipStore,
-    useCaseStore
-  );
-  if (found === undefined) {
-    return;
-  }
-  if (found.comment.author_id !== found.userId) {
-    return reply.code(403).send(notOwnerProblem());
-  }
   const parsed = patchSchema.safeParse(request.body);
-  if (!parsed.success || parsed.data.body?.trim() === "") {
+  if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }
-  if (parsed.data.body !== undefined) {
-    found.comment.body = parsed.data.body;
-    found.comment.updated_at = new Date().toISOString();
-  }
-  if (parsed.data.resolved === true && !found.comment.resolved) {
-    found.comment.resolved = true;
-    found.comment.resolved_at = new Date().toISOString();
-  }
-  await commentStore.updateComment(found.comment);
-  return reply.send(commentResponse(found.comment, found.usecase));
+  return sendCommentResult(reply, await patchUseCaseComment(
+    deps(commentStore, membershipStore, useCaseStore),
+    {
+      body: parsed.data.body,
+      commentId: commentId(request),
+      resolved: parsed.data.resolved,
+      userId: userId(request, state)
+    }
+  ));
 }
 
 async function deleteComment(
@@ -144,89 +112,28 @@ async function deleteComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const found = await authorizedComment(
-    request,
-    reply,
-    state,
-    commentStore,
-    membershipStore,
-    useCaseStore
-  );
-  if (found === undefined) {
-    return;
-  }
-  if (found.comment.author_id !== found.userId) {
-    return reply.code(403).send(notOwnerProblem());
-  }
-  await commentStore.deleteComment(found.comment.id);
-  return reply.send(commentResponse(found.comment, found.usecase));
+  return sendCommentResult(reply, await deleteUseCaseComment(
+    deps(commentStore, membershipStore, useCaseStore),
+    { commentId: commentId(request), userId: userId(request, state) }
+  ));
 }
 
-async function authorizedUseCase(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  state: SignupState,
-  membershipStore: MembershipStore,
-  useCaseStore: UseCaseStore
-) {
-  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const found = await useCaseStore.findUseCaseWithProject(params.usecaseId);
-  if (found === undefined || found.usecase.archived_at !== null) {
-    reply.code(404).send(missingUseCaseProblem());
-    return undefined;
-  }
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (
-    userId === undefined ||
-    await membershipForProject(request, state, membershipStore, found.projectId) === undefined
-  ) {
-    reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-    return undefined;
-  }
-  return { usecase: found.usecase, userId };
-}
-
-async function authorizedComment(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  state: SignupState,
+function deps(
   commentStore: CommentStore,
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const id = z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
-  const comment = await commentStore.findCommentById(id);
-  const found =
-    comment === undefined
-      ? undefined
-      : await useCaseStore.findUseCaseWithProject(comment.target_id);
-  if (comment === undefined || found === undefined) {
-    reply.code(404).send(problem(404, "Comment not found"));
-    return undefined;
-  }
-  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-  if (
-    userId === undefined ||
-    await membershipForProject(request, state, membershipStore, found.projectId) === undefined
-  ) {
-    reply.code(403).send(problem(403, "Contact the workspace owner for access"));
-    return undefined;
-  }
-  return { comment, usecase: found.usecase, userId };
+  return { commentStore, membershipStore, useCaseStore };
 }
 
-function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
-  return {
-    comment,
-    suggested_next_actions: [
-      {
-        command: `vspec comment list ${usecase.key}`,
-        reason: "Review open comments for this use case."
-      },
-      {
-        command: `vspec usecase show ${usecase.key}`,
-        reason: "Open the commented use case."
-      }
-    ]
-  };
+function usecaseId(request: FastifyRequest) {
+  return z.object({ usecaseId: z.string().min(1) }).parse(request.params).usecaseId;
+}
+
+function commentId(request: FastifyRequest) {
+  return z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
+}
+
+function userId(request: FastifyRequest, state: SignupState) {
+  return authenticatedUserId(request.headers.cookie, state.sessionsByToken);
 }

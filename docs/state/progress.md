@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T07:14:52Z_
+_Last updated: 2026-05-20T07:44:26Z_
 
 ## Overall
 
-- Commits: 796
-- Last commit: f4fee73 green(layers): extract actor definition workflow
+- Commits: 799
+- Last commit: f9d909d green(layers): extract revision revert workflow
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T10:40:59Z_
+_Last updated: 2026-05-20T14:14:46Z_
 
 ## Overall
 
-- Commits: 822
-- Last commit: 9f763f0 green(persist): prove UseCase restart survival
+- Commits: 828
+- Last commit: 96e9062 green(testdb): run tests on Postgres schemas
 - Use cases complete: 35 / 35
 - Active goal: ALL_DONE
 

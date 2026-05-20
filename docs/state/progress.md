@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T00:30:03Z_
+_Last updated: 2026-05-20T00:52:22Z_
 
 ## Overall
 
-- Commits: 732
-- Last commit: e19aa95 refactor(layers): extract scenario authoring
+- Commits: 734
+- Last commit: 9874641 test(layers): cover scenario authoring branches
 - Use cases complete: 35 / 35
 - Active goal: goals/2-shippable.md
 

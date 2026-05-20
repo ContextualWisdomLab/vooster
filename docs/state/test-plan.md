@@ -592,3 +592,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: markdown export resolves the use case/project, authorizes membership, rejects missing use cases, missing revisions, and incomplete main scenarios before rendering.
 - **Application**: markdown export renders deterministic frontmatter, stakeholder interests, main scenario steps, and sorted extensions with actor names.
 - **Route preservation**: UC-031 E2E and CLI tests continue to prove HTTP validation, output-path and existing-file problem mapping, missing-revision guidance, round-trip header, extension ordering, and human CLI output.
+
+### Goal 2 Layers - Actors
+
+- **Application**: actor definition authorizes project membership, rejects read-only members, reserved System names, active duplicate names, and archived duplicate names without writes.
+- **Application**: actor definition creates the Actor plus version-1 ACTOR revision with injected ids and returns stakeholder-next-command data.
+- **Route preservation**: UC-005 E2E and CLI tests continue to prove HTTP validation, invalid-type details, duplicate guidance, archive guidance, read-only guidance, and human CLI output.

@@ -7,6 +7,7 @@ import { createPrismaCommentStore } from "../../src/infrastructure/prisma-commen
 import { createPrismaLockStore } from "../../src/infrastructure/prisma-lock-store.js";
 import { createPrismaMembershipStore } from "../../src/infrastructure/prisma-membership-store.js";
 import { createPrismaProjectStore } from "../../src/infrastructure/prisma-project-store.js";
+import { createPrismaStakeholderStore } from "../../src/infrastructure/prisma-stakeholder-store.js";
 import { createPrismaUserStore } from "../../src/infrastructure/prisma-user-store.js";
 import { createPrismaWorkspaceStore } from "../../src/infrastructure/prisma-workspace-store.js";
 
@@ -45,5 +46,9 @@ describe("Prisma adapter split", () => {
 
   test("actor store has a dedicated Prisma adapter", () => {
     expect(createPrismaActorStore).toBeTypeOf("function");
+  });
+
+  test("stakeholder store has a dedicated Prisma adapter", () => {
+    expect(createPrismaStakeholderStore).toBeTypeOf("function");
   });
 });

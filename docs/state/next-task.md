@@ -1,30 +1,40 @@
 # Next Task
 
-_Auto-generated 2026-05-20T19:10:11Z. Do not hand-edit; use blockers.md for overrides._
+_Auto-generated 2026-05-20T19:19:33Z. Do not hand-edit; use blockers.md for overrides._
 
 ```
-TASK: Decompose god files (gate 4.C1).
+TASK: Create per-port Prisma adapters (gate 4.C2).
 
-  Files over 1000 lines:
-    1225 src/cli/index.ts
+  Each port under src/ports/ must have a matching prisma adapter.
+  Missing:
+    src/infrastructure/prisma-stakeholder-interest-store.ts
+    src/infrastructure/prisma-actor-store.ts
+    src/infrastructure/prisma-scenario-store.ts
+    src/infrastructure/prisma-revision-store.ts
+    src/infrastructure/prisma-step-store.ts
+    src/infrastructure/prisma-api-key-store.ts
+    src/infrastructure/prisma-stakeholder-store.ts
+    src/infrastructure/prisma-work-session-store.ts
+    src/infrastructure/prisma-merge-request-store.ts
+    src/infrastructure/prisma-goal-store.ts
+    src/infrastructure/prisma-membership-store.ts
+    src/infrastructure/prisma-project-store.ts
+    src/infrastructure/prisma-lock-store.ts
+    src/infrastructure/prisma-workspace-store.ts
+    src/infrastructure/prisma-usecase-store.ts
+    src/infrastructure/prisma-branch-store.ts
+    src/infrastructure/prisma-user-store.ts
+    src/infrastructure/prisma-comment-store.ts
 
-  Canonical decompositions:
+  Steps per port:
+    1. Copy the structure from the sibling memory-<name>-store.ts.
+    2. Replace in-memory ops with PrismaClient calls.
+    3. Update src/http/server.ts to wire prisma-<name>-store (in
+       Postgres mode) instead of dereferencing the dissolved
+       SignupStore intersection.
+    4. Run npm test — the persistence-matrix test will catch any
+       behaviour drift.
 
-  • src/infrastructure/prisma-signup-store.ts
-      → one prisma-<port>-store.ts per file in src/ports/ (see C2).
-        The in-memory siblings under src/infrastructure/memory-*-store.ts
-        already model the per-port shape — copy that structure.
-      → src/http/server.ts wires each store directly; the
-        `serverOptions.signupStore ?? createMemoryX()` chain dissolves.
-
-  • src/cli/index.ts
-      → src/cli/commands/<subcommand>.ts per first-word subcommand,
-        each extending @oclif/core Command. See C3.
-
-  Stage the split in small PRs (one batch per area) so the test suite
-  remains green throughout.
-
-  Commit per batch:
-      green(prisma-split): extract prisma-<name>-store
-      green(cli-split): extract <subcommand> command
+  Commit per port:
+      green(prisma-split): prisma-<name>-store
 ```

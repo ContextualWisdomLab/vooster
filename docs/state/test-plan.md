@@ -531,3 +531,9 @@ write. This guides your TDD cycles within an iteration._
 - **Application**: API key creation authorizes OWNER membership, rejects unsupported scopes without writes, generates a one-time plaintext token and persisted argon2id hash, and records response-drop failures after metadata is saved.
 - **Application**: API key listing returns public metadata only for workspace owners, and revocation hides missing/foreign keys behind 404 while preserving idempotent revoked timestamps.
 - **Route preservation**: UC-032 E2E and CLI tests continue to prove HTTP problem mapping, token-only-on-create behavior, list/revoke output, and editor/non-owner protection.
+
+### Goal 2 Layers - Invitations
+
+- **Application**: invitation creation authorizes workspace membership, rejects missing workspaces, blocks editor-to-owner invites, and rejects emails that already belong to active members without saving.
+- **Application**: invitation creation returns an existing pending invitation idempotently, creates new expiring invitations with injected ids/clock, and records delivery-failure state for response guidance.
+- **Route preservation**: UC-003 E2E and CLI tests continue to prove HTTP problem mapping, invite acceptance, duplicate resend guidance, delivery-failure guidance, expiry handling, and email mismatch protection.

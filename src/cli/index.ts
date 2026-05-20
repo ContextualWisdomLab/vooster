@@ -16,6 +16,7 @@ import { runLogin } from "./commands/login.js";
 import { runMember } from "./commands/member.js";
 import { runMerge } from "./commands/merge.js";
 import { runProject } from "./commands/project.js";
+import { runPull } from "./commands/pull.js";
 import { runScenario } from "./commands/scenario.js";
 import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
@@ -177,7 +178,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "pull") {
-      await runSync(parsed.flags, "pull", this.log.bind(this));
+      await runPull(parsed.flags, this.log.bind(this));
       return;
     }
     if (parsed.args.command === "push") {

@@ -21,10 +21,17 @@ export class InitCommand extends Command {
   static override description = "Initialize a .vspec directory in the current repository.";
 
   static override flags = {
-    force: Flags.boolean(),
-    format: Flags.string(),
-    project: Flags.string()
+    force: Flags.boolean({ description: "Overwrite an existing .vspec/config.json." }),
+    format: Flags.string({ description: "Output format: human, json, or agent.", options: ["human", "json", "agent"] }),
+    help: Flags.help({ char: "h" }),
+    project: Flags.string({ description: "Project key to bind this repo to.", required: false })
   };
+
+  static override examples = [
+    "<%= config.bin %> init --project ACME",
+    "<%= config.bin %> init --project ACME --force",
+    "<%= config.bin %> init --project ACME --format agent"
+  ];
 
   override async run(): Promise<void> {
     const parsed = await this.parse(InitCommand);

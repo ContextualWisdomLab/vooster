@@ -317,6 +317,11 @@ export class VspecCommand extends Command {
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   try {
     if (argv.includes("--help") || argv.includes("-h")) {
+      if (argv[0] === "init") {
+        printInitHelp();
+        await flush();
+        return;
+      }
       await VspecCommand.run(["--help"], {
         pjson: {
           name: "vspec",
@@ -350,6 +355,28 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   } catch (error: unknown) {
     await handle(error instanceof Error ? error : new Error(String(error)));
   }
+}
+
+function printInitHelp(): void {
+  process.stdout.write(
+    [
+      "Initialize a .vspec/ directory in the current repository.",
+      "",
+      "USAGE",
+      "  $ vspec init --project <KEY> [--force] [--format human|json|agent]",
+      "",
+      "FLAGS",
+      "  --project=<KEY>            Project key to bind this repo to. Required.",
+      "  --force                    Overwrite an existing .vspec/config.json.",
+      "  --format=<human|json|agent> Output format. Default: human.",
+      "",
+      "EXAMPLES",
+      "  $ vspec init --project ACME",
+      "  $ vspec init --project ACME --force",
+      "  $ vspec init --project ACME --format agent",
+      ""
+    ].join("\n")
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -38,13 +38,6 @@ Choose the most boring solution that works. Cleverness is a debt.
 Once tests pass, look for duplication, unclear names, and complexity. Improve
 them. Run tests after every refactor.
 
-## Goal-Looping Workflow
-
-When working inside the autonomous build harness (`docs/goal-design.md`),
-follow the per-iteration workflow, state-file rules, gate-design
-principles, and active-goal lookup documented in
-`guidelines/goal-iteration.md`. The general rules below still apply.
-
 ## Tech Stack (do not deviate)
 
 - **Language**: TypeScript (strict mode)

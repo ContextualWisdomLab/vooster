@@ -5,6 +5,13 @@
 보다 에이전트가 매 iteration마다 동일한 루프를 돌리도록 디렉토리가
 구조화돼 있다.
 
+> **에이전트 작업 프로토콜**: 이 문서는 harness의 **설계**를 설명한다.
+> 한 iteration 안에서 무엇을 어떤 순서로 실행하는지 (Orient → Read
+> Spec → Test Plan → TDD → Verify → Record → Commit), `docs/state/*`를
+> 어떻게 다루는지, gate를 어떻게 설계하는지 같은 **운영 매뉴얼**은
+> `guidelines/goal-iteration.md`에 있다. goal 루프로 작업하는 에이전트는
+> 그 파일을 먼저 읽어야 한다.
+
 ## 핵심 아이디어
 
 - 미션은 `goals/` 아래의 **버전드 goal 스택**으로 표현된다.
@@ -285,6 +292,19 @@ goals/4-<name>.next-task.sh  # 다음 액션 hint (chmod +x)
 ```
 
 다음 `completion-check.sh` 실행이 이걸 active로 잡는다.
+
+### `.md` 본문 컨벤션
+
+새 goal `.md` 의 맨 위(제목 바로 아래)에 한 줄 포인터를 둔다:
+
+```
+> 이 goal을 active로 잡은 에이전트는 먼저
+> `guidelines/goal-iteration.md`를 읽어 iteration 프로토콜을 확인할 것.
+```
+
+이유: active goal 파일은 종종 에이전트가 세션에서 처음 읽는 mission 텍
+스트다. 거기서 운영 매뉴얼로 한 hop 안에 도달하지 못하면 에이전트가
+TDD 단계, state 파일 규칙, gate 설계 원칙을 모른 채 작업을 시작한다.
 
 ### 작성 전 self-audit
 

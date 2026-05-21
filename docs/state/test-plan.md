@@ -1063,3 +1063,14 @@ write. This guides your TDD cycles within an iteration._
   in the temporary directory is allowed.
 - **Repository behavior**: the script exits successfully against the real
   repository tests once no dishonest tests are present.
+
+### CI Boundary Test Stabilization
+
+- **Boundary fixture behavior**: `tests/unit/boundaries-config.test.ts` writes
+  real temporary TypeScript fixture files under the layers being tested and
+  runs ESLint with `lintFiles`.
+- **Assertions**: the forbidden `ports -> http` fixture reports exactly one
+  `boundaries/element-types` error, while the allowed `cli -> application`
+  fixture reports none.
+- **Cleanup**: temporary fixture files are removed even when the assertion
+  fails so the working tree stays clean after the test.

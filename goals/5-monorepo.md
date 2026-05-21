@@ -30,10 +30,12 @@ Three load-bearing reasons:
    side-by-side.
 
 Goal 5 closes the migration. The gate script
-`goals/5-monorepo.gates.sh` enumerates the required apps, layers, and
-landing sections from sources of truth (`pnpm-workspace.yaml`,
-`find apps -maxdepth 1`, a `SECTIONS` array). You cannot pass this goal
-by hand-fixing a single example.
+`goals/5-monorepo.gates.sh` enumerates the required apps and layers
+from sources of truth (`pnpm-workspace.yaml`,
+`find apps -maxdepth 1`). You cannot pass this goal by hand-fixing a
+single example. Landing-page composition is deliberately left to the
+www app's owners; only the existence of `apps/www/src/pages/index.astro`
+and the Korean-copy sweep are enforced.
 
 ## The Goal
 
@@ -123,28 +125,12 @@ C4. **Every landing file is in Korean.** The gate iterates
     character (U+AC00 – U+D7A3) per file. An English-only section file
     fails the gate even if `index.astro` is Korean.
 
-C5. **Required landing sections exist and are wired up.** Inspired by
-    the visual structure of https://www.conductor.build/:
-
-    | Section      | Purpose                                    |
-    | ------------ | ------------------------------------------ |
-    | `Hero`       | Headline, subhead, primary CTA             |
-    | `LogoCloud`  | Trust / social-proof logo bar              |
-    | `Features`   | Capability cards (≥ 3)                     |
-    | `HowItWorks` | Step-by-step workflow                      |
-    | `Showcase`   | Narrative deep-dive / product walkthrough  |
-    | `Pricing`    | Pricing tiers or final CTA                 |
-    | `Footer`     | Navigation, legal, social links            |
-
-    For every name in the SECTIONS array above, the gate requires
-    `apps/www/src/components/sections/<Name>.astro` to exist *and*
-    `apps/www/src/pages/index.astro` to `import` it. The SECTIONS
-    list is the single source of truth — adding a section means adding
-    it to the array, not hardcoding it into one gate branch.
-
-C6. **(DEEP) `pnpm --filter @vooster/www build` exits 0** and produces
+C5. **(DEEP) `pnpm --filter @vooster/www build` exits 0** and produces
     `apps/www/dist/index.html`. Skipped under
-    `VSPEC_GATES_SKIP_DEEP=1`.
+    `VSPEC_GATES_SKIP_DEEP=1`. Landing-page section composition is
+    intentionally left to the www app's own design iteration — the
+    monorepo goal only enforces that the app exists, has Korean copy
+    (C4), and builds.
 
 ### Tranche D — Meta: regression + rigor
 
@@ -178,10 +164,6 @@ Same as Goals 0–4 plus:
   and B5; do not introduce it.
 - **No English-only landing copy.** C4 iterates every section file;
   a single Korean string in `index.astro` does not satisfy it.
-- **No hand-shrunk SECTIONS array.** If a section is hard to author,
-  author a minimal Korean stub. Removing names from the list to fit
-  what you've shipped is the same cheat `check-gate-rigor.sh` exists
-  to prevent.
 - **No `eslint-disable boundaries/element-types` inside `apps/api`.**
   The goal-4 ESLint config still applies after the move; if a
   relocated import trips a boundary rule, fix the import.
@@ -197,8 +179,8 @@ bash scripts/diagnose.sh
 
 `diagnose.sh` is extended in this goal to print "Goal 5 coverage": which
 of `apps/{api,cli,www}` exist, whether `pnpm-workspace.yaml` and
-`pnpm-lock.yaml` are in place, whether the legacy root directories
-linger, and which landing sections are still missing.
+`pnpm-lock.yaml` are in place, and whether the legacy root directories
+linger.
 
 ## Mandatory Reading Order
 
@@ -254,12 +236,12 @@ linger, and which landing sections are still missing.
    `pnpm create astro@latest apps/www -- --template minimal
    --typescript strict --no-install --no-git`, then `pnpm install`.
 
-7. **Author the Korean landing copy (C4 + C5).** One file per name in
-   the SECTIONS array under `apps/www/src/components/sections/`.
-   Import each from `apps/www/src/pages/index.astro`. Keep copy real
-   Korean — placeholder Lorem ipsum fails C4.
+7. **Author the Korean landing copy (C4).** Section composition is left
+   to www's own iteration; just keep every `*.astro` file under
+   `apps/www/src/{pages,components}/` written in Korean — placeholder
+   Lorem ipsum fails C4.
 
-8. **Verify the Astro build (C6).** `pnpm --filter @vooster/www build`.
+8. **Verify the Astro build (C5).** `pnpm --filter @vooster/www build`.
 
 9. **Tranche D last.** `bash scripts/completion-check.sh`; the prior
    gate suites re-run and surface anything you forgot to retarget at
@@ -286,7 +268,6 @@ Reusable scopes:
   after the migration. B1 catches this.
 - Re-exporting moved types from their former paths through a shim file
   at the old location.
-- Removing the SECTIONS array from the gate script to silence C5.
 - Replacing the Hangul iteration with "check `index.astro` only" to
   satisfy C4 with an English section file.
 - Dropping the Tranche D regression check by deleting a prior

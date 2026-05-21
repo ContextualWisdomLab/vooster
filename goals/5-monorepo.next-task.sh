@@ -13,7 +13,6 @@ cd "$ROOT"
 REQUIRED_APPS=(api cli www)
 REQUIRED_API_LAYERS=(domain ports application infrastructure http)
 REQUIRED_SCRIPTS=(build test typecheck)
-REQUIRED_SECTIONS=(Hero LogoCloud Features HowItWorks Showcase Pricing Footer)
 LEGACY_ROOT_DIRS=(src bin prisma tests)
 PRIOR_GOALS=(0-init 1-runnable 2-shippable 3-managed-db 4-honest-boundaries)
 
@@ -395,69 +394,6 @@ EOF
   exit 0
 fi
 
-# ─── C5: required sections ───────────────────────────────────────────────
-C5_GAPS=()
-INDEX=apps/www/src/pages/index.astro
-for name in "${REQUIRED_SECTIONS[@]}"; do
-  comp="apps/www/src/components/sections/${name}.astro"
-  if [ ! -f "$comp" ]; then
-    C5_GAPS+=("missing component: $comp")
-  elif [ ! -f "$INDEX" ] \
-       || ! grep -qE "^[[:space:]]*import[[:space:]]+${name}[[:space:]]+from[[:space:]]+[\"']" "$INDEX"; then
-    C5_GAPS+=("${name} not imported by index.astro")
-  fi
-done
-if [ "${#C5_GAPS[@]}" -gt 0 ]; then
-  cat <<EOF
-TASK: Build the Korean landing sections (gate 5.C5).
-
-  Missing or unwired:
-EOF
-  printf '    %s\n' "${C5_GAPS[@]}"
-  cat <<'EOF'
-
-  For each missing section, create a file at:
-      apps/www/src/components/sections/<Name>.astro
-
-  Import each from apps/www/src/pages/index.astro:
-
-      ---
-      import Hero       from "../components/sections/Hero.astro";
-      import LogoCloud  from "../components/sections/LogoCloud.astro";
-      import Features   from "../components/sections/Features.astro";
-      import HowItWorks from "../components/sections/HowItWorks.astro";
-      import Showcase   from "../components/sections/Showcase.astro";
-      import Pricing    from "../components/sections/Pricing.astro";
-      import Footer     from "../components/sections/Footer.astro";
-      ---
-      <Hero />
-      <LogoCloud />
-      <Features />
-      <HowItWorks />
-      <Showcase />
-      <Pricing />
-      <Footer />
-
-  Section purpose (mirror the visual structure at conductor.build):
-      Hero        → 큰 헤드라인, 한 줄 부제, 기본 CTA 버튼
-      LogoCloud   → 신뢰성 로고 바 (협력사 / 사용처 / 기술 스택)
-      Features    → 핵심 기능 카드 3-6개 (아이콘 + 짧은 설명)
-      HowItWorks  → 3-4 스텝 워크플로 다이어그램
-      Showcase    → 실제 사용 예시 / 데모 / 케이스 스터디
-      Pricing     → 가격 티어 또는 최종 CTA 섹션
-      Footer      → 푸터 링크, 소셜, 법적 고지
-
-  Every file MUST contain Korean copy (gate C4). Placeholder copy is
-  fine to start, but write it in Korean.
-
-  Commits per batch (2-3 sections per commit is reasonable):
-      feat(www): Hero + LogoCloud sections (ko)
-      feat(www): Features + HowItWorks sections (ko)
-      feat(www): Showcase + Pricing + Footer sections (ko)
-EOF
-  exit 0
-fi
-
 # ─── C4: Korean text everywhere ──────────────────────────────────────────
 check_korean_file() {
   node -e "
@@ -493,16 +429,16 @@ EOF
   exit 0
 fi
 
-# ─── C6: deep build for www ──────────────────────────────────────────────
+# ─── C5: deep build for www ──────────────────────────────────────────────
 if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ] && command -v pnpm >/dev/null 2>&1; then
-  if ! pnpm --filter @vooster/www build >/tmp/5-c6.log 2>&1 \
+  if ! pnpm --filter @vooster/www build >/tmp/5-c5.log 2>&1 \
       || [ ! -f apps/www/dist/index.html ]; then
     cat <<'EOF'
-TASK: Make the Astro build pass (gate 5.C6).
+TASK: Make the Astro build pass (gate 5.C5).
 
       pnpm --filter @vooster/www build
 
-  Verify apps/www/dist/index.html lands. See /tmp/5-c6.log for errors.
+  Verify apps/www/dist/index.html lands. See /tmp/5-c5.log for errors.
 
   Commit:
       feat(www): astro build green

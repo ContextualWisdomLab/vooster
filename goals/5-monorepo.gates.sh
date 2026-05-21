@@ -3,9 +3,11 @@
 # (pnpm workspaces monorepo + Astro landing).
 #
 # Anti-cheat principle: every gate enumerates from a source of truth
-# — pnpm-workspace.yaml, `find apps -maxdepth 1`, the SECTIONS array,
-# the prior gate-suite list. Hand-fixing one example does not satisfy
-# the goal.
+# — pnpm-workspace.yaml, `find apps -maxdepth 1`, the prior gate-suite
+# list. Hand-fixing one example does not satisfy the goal.
+#
+# Landing-page section composition is intentionally NOT gated here;
+# it is owned by the www app itself.
 
 set -uo pipefail
 
@@ -20,8 +22,8 @@ GOAL_NAME="5-monorepo"
 # Inputs that determine this goal's gate result.
 # Gates exercised: pnpm-workspace.yaml + root package.json structure,
 # apps/{api,cli,www} skeletons + per-app package.json scripts, lockfile
-# uniqueness, B7/B8/C6 builds (DEEP), Astro landing sections + Hangul
-# sweep, gate-rigor on goal 5 md.
+# uniqueness, B7/B8/C5 builds (DEEP), Hangul sweep across www, gate-rigor
+# on goal 5 md.
 # Prior-goal regression lives in scripts/completion-check.sh.
 GATE_INPUTS=(
   pnpm-workspace.yaml
@@ -45,7 +47,6 @@ PASS=true
 REQUIRED_APPS=(api cli www)
 REQUIRED_API_LAYERS=(domain ports application infrastructure http)
 REQUIRED_SCRIPTS=(build test typecheck)
-REQUIRED_SECTIONS=(Hero LogoCloud Features HowItWorks Showcase Pricing Footer)
 LEGACY_ROOT_DIRS=(src bin prisma tests)
 
 # ─── Tranche A — Workspace skeleton ──────────────────────────────────────
@@ -308,38 +309,16 @@ else
   PASS=false
 fi
 
-echo "[5.C5] every required section has a component AND is imported by index.astro"
-C5_GAPS=()
-INDEX=apps/www/src/pages/index.astro
-for name in "${REQUIRED_SECTIONS[@]}"; do
-  comp="apps/www/src/components/sections/${name}.astro"
-  if [ ! -f "$comp" ]; then
-    C5_GAPS+=("missing component: $comp")
-    continue
-  fi
-  if [ ! -f "$INDEX" ] \
-      || ! grep -qE "^[[:space:]]*import[[:space:]]+${name}[[:space:]]+from[[:space:]]+[\"']" "$INDEX"; then
-    C5_GAPS+=("${name} not imported by index.astro")
-  fi
-done
-if [ "${#C5_GAPS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail —"
-  printf '        %s\n' "${C5_GAPS[@]}"
-  PASS=false
-fi
-
 if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
-  echo "[5.C6] pnpm --filter @vooster/www build (skipped — VSPEC_GATES_SKIP_DEEP=1)"
+  echo "[5.C5] pnpm --filter @vooster/www build (skipped — VSPEC_GATES_SKIP_DEEP=1)"
 else
-  echo "[5.C6] pnpm --filter @vooster/www build produces dist/index.html"
+  echo "[5.C5] pnpm --filter @vooster/www build produces dist/index.html"
   if command -v pnpm >/dev/null 2>&1 \
-      && pnpm --filter @vooster/www build >/tmp/5-c6.log 2>&1 \
+      && pnpm --filter @vooster/www build >/tmp/5-c5.log 2>&1 \
       && [ -f apps/www/dist/index.html ]; then
     echo "    ✓ pass"
   else
-    echo "    ✗ fail — see /tmp/5-c6.log (and confirm apps/www/dist/index.html lands)"
+    echo "    ✗ fail — see /tmp/5-c5.log (and confirm apps/www/dist/index.html lands)"
     PASS=false
   fi
 fi

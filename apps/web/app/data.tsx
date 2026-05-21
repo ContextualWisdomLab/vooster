@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 
 export type ProjectSummary = {
+  id: string;
   key: string;
   name: string;
-  updated_at: string;
+  visibility: string;
+  workspace_id: string;
 };
 
 export type UsecaseSummary = {
@@ -27,7 +29,13 @@ export type UsecaseDetail = {
 };
 
 const demoProjects: ProjectSummary[] = [
-  { key: "DEMO", name: "Checkout Review", updated_at: "2026-05-21" }
+  {
+    id: "DEMO",
+    key: "DEMO",
+    name: "Checkout Review",
+    visibility: "PRIVATE",
+    workspace_id: "DEMO-WORKSPACE"
+  }
 ];
 
 const demoUsecases: UsecaseSummary[] = [
@@ -59,10 +67,13 @@ export async function fetchProjects(): Promise<ProjectSummary[]> {
     return demoProjects;
   }
 
-  return readApi<ProjectSummary[]>("/v1/projects");
+  const response = await readApi<{ items: ProjectSummary[] }>("/v1/projects");
+  return response.items;
 }
 
-export async function fetchProjectUsecases(projectKey: string): Promise<UsecaseSummary[]> {
+export async function fetchProjectUsecases(
+  projectKey: string
+): Promise<UsecaseSummary[]> {
   if (process.env.VSPEC_AUTH_STUB === "1") {
     return demoUsecases.map((item) => ({ ...item, key: `${projectKey}-001` }));
   }
@@ -70,7 +81,10 @@ export async function fetchProjectUsecases(projectKey: string): Promise<UsecaseS
   return readApi<UsecaseSummary[]>(`/v1/projects/${projectKey}/usecases`);
 }
 
-export async function fetchUsecaseDetail(_projectKey: string, ucKey: string): Promise<UsecaseDetail> {
+export async function fetchUsecaseDetail(
+  _projectKey: string,
+  ucKey: string
+): Promise<UsecaseDetail> {
   if (process.env.VSPEC_AUTH_STUB === "1") {
     return {
       ...demoDetail,

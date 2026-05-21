@@ -2,9 +2,19 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
 
 type ProjectResponse = {
-  project: Record<"default_branch_id" | "id" | "key" | "name" | "visibility" | "workspace_id", string>;
-  default_branch: Record<"id" | "name" | "owner_id" | "owner_type" | "project_id", string>;
+  project: Record<
+    "default_branch_id" | "id" | "key" | "name" | "visibility" | "workspace_id",
+    string
+  >;
+  default_branch: Record<
+    "id" | "name" | "owner_id" | "owner_type" | "project_id",
+    string
+  >;
   recommended_next_command: string;
+};
+
+type ProjectListResponse = {
+  items: Array<Record<"id" | "key" | "name" | "visibility" | "workspace_id", string>>;
 };
 
 type ProblemResponse = {
@@ -28,7 +38,11 @@ afterAll(async () => {
 
 describe("UC-004 - Create a project", () => {
   test("MAIN: workspace member creates a project with main branch", async () => {
-    const signedUp = await signup("Project Owner", "project-owner", "stub-project-owner");
+    const signedUp = await signup(
+      "Project Owner",
+      "project-owner",
+      "stub-project-owner"
+    );
 
     const response = await createProject(signedUp, {
       name: "Payments",
@@ -54,8 +68,36 @@ describe("UC-004 - Create a project", () => {
     expect(body.recommended_next_command).toBe("vspec actor define");
   });
 
+  test("MAIN: signed-in member lists their projects for the web viewer", async () => {
+    const signedUp = await signup("Project List", "project-list", "stub-project-list");
+    const created = await createProject(signedUp, {
+      name: "Support Desk",
+      key: "SUP",
+      visibility: "PRIVATE"
+    });
+    const createdBody = (await created.json()) as ProjectResponse;
+
+    const response = await server.fetch("/v1/projects", {
+      headers: { Cookie: signedUp.cookie }
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as ProjectListResponse;
+    expect(body.items).toContainEqual({
+      id: createdBody.project.id,
+      workspace_id: signedUp.workspaceId,
+      name: "Support Desk",
+      key: "SUP",
+      visibility: "PRIVATE"
+    });
+  });
+
   test("2a: non-member cannot create a project in the workspace", async () => {
-    const owner = await signup("Member Workspace", "member-workspace", "stub-member-owner");
+    const owner = await signup(
+      "Member Workspace",
+      "member-workspace",
+      "stub-member-owner"
+    );
     const outsider = await signup(
       "Outsider Workspace",
       "outsider-workspace",
@@ -93,7 +135,11 @@ describe("UC-004 - Create a project", () => {
   });
 
   test("3b: duplicate project key reports existing project", async () => {
-    const signedUp = await signup("Duplicate Key", "duplicate-key", "stub-duplicate-key");
+    const signedUp = await signup(
+      "Duplicate Key",
+      "duplicate-key",
+      "stub-duplicate-key"
+    );
     const first = await createProject(signedUp, {
       name: "Payments",
       key: "PAY",
@@ -168,10 +214,9 @@ async function signup(name: string, slug: string, code: string) {
   });
   const startBody = (await start.json()) as { state: string };
   const params = new URLSearchParams({ code, state: startBody.state });
-  const callback = await server.fetch(
-    `/v1/auth/github/callback?${params.toString()}`,
-    { headers: { Cookie: start.headers.get("set-cookie") ?? "" } }
-  );
+  const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
+    headers: { Cookie: start.headers.get("set-cookie") ?? "" }
+  });
   const body = (await callback.json()) as SignedUp;
 
   return {
@@ -196,4 +241,9 @@ async function createProject(
 }
 
 type SignedUp = { user: { id: string }; workspace: { id: string } };
-type ProjectRequest = { key: string; name: string; simulate_branch_insert_failure?: boolean; visibility: string };
+type ProjectRequest = {
+  key: string;
+  name: string;
+  simulate_branch_insert_failure?: boolean;
+  visibility: string;
+};

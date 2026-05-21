@@ -29,6 +29,9 @@ export function registerProjectRoutes(
   projectStore: ProjectStore,
   workspaceStore: WorkspaceStore
 ) {
+  app.get("/v1/projects", (request, reply) =>
+    listProjects(request, reply, state, membershipStore, projectStore)
+  );
   app.post("/v1/workspaces/:workspaceId/projects", (request, reply) =>
     createProject(
       request,
@@ -44,6 +47,40 @@ export function registerProjectRoutes(
   app.post("/__test/workspaces/:workspaceId/archive", (request, reply) =>
     archiveWorkspace(request, reply, workspaceStore)
   );
+}
+
+async function listProjects(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore,
+  projectStore: ProjectStore
+) {
+  const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+  if (userId === undefined) {
+    return reply.code(401).send(problem(401, "Sign in to list projects"));
+  }
+
+  const memberships = await membershipStore.membershipsForUser(userId);
+  const projects = (
+    await Promise.all(
+      memberships.map((membership) =>
+        projectStore.listProjectsForWorkspace(membership.workspace_id)
+      )
+    )
+  ).flat();
+
+  return reply.send({
+    items: projects
+      .sort((left, right) => left.key.localeCompare(right.key))
+      .map((project) => ({
+        id: project.id,
+        key: project.key,
+        name: project.name,
+        visibility: project.visibility,
+        workspace_id: project.workspace_id
+      }))
+  });
 }
 
 async function createProject(
@@ -74,11 +111,18 @@ async function createProject(
   return sendProjectCreationResult(
     reply,
     await createProjectWorkflow(
-      { branchStore, membershipStore, projectStore, signupStore: store, workspaceStore },
+      {
+        branchStore,
+        membershipStore,
+        projectStore,
+        signupStore: store,
+        workspaceStore
+      },
       {
         key: parsed.data.key,
         name: parsed.data.name,
-        simulateBranchInsertFailure: parsed.data.simulate_branch_insert_failure === true,
+        simulateBranchInsertFailure:
+          parsed.data.simulate_branch_insert_failure === true,
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken),
         visibility: parsed.data.visibility,
         workspaceId
@@ -92,7 +136,10 @@ async function archiveWorkspace(
   reply: FastifyReply,
   workspaceStore: WorkspaceStore
 ) {
-  await workspaceStore.archiveWorkspace(workspaceIdFrom(request.params), new Date().toISOString());
+  await workspaceStore.archiveWorkspace(
+    workspaceIdFrom(request.params),
+    new Date().toISOString()
+  );
   return reply.send({ archived: true });
 }
 

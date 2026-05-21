@@ -23,10 +23,10 @@ export default async function ProjectsPage() {
         </div>
         <ul className="list">
           {projects.map((project) => (
-            <li className="list-item" key={project.key}>
-              <Link href={`/projects/${project.key}`}>{project.name}</Link>
+            <li className="list-item" key={project.id}>
+              <Link href={`/projects/${project.id}`}>{project.name}</Link>
               <span className="meta">
-                {project.key} · Updated {project.updated_at}
+                {project.key} · {project.visibility}
               </span>
             </li>
           ))}

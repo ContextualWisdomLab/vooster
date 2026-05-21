@@ -29,6 +29,7 @@ type SignupResponse = {
     email: string;
   };
   workspace: {
+    id: string;
     slug: string;
   };
 };
@@ -39,6 +40,7 @@ type LoginResponse = {
     github_id: string;
   };
   workspaces: Array<{
+    id: string;
     role: string;
     slug: string;
   }>;
@@ -98,14 +100,14 @@ export async function runLogin(
 
 function printSignup(callbackBody: SignupResponse, writeLine: (message: string) => void): void {
   writeLine(`Signed up ${callbackBody.user.email}`);
-  writeLine(`Workspace ${callbackBody.workspace.slug}`);
+  writeLine(`Workspace ${callbackBody.workspace.slug} ${callbackBody.workspace.id}`);
   writeLine(callbackBody.recommended_next_command);
 }
 
 function printLogin(callbackBody: LoginResponse, writeLine: (message: string) => void): void {
   writeLine(`Logged in ${callbackBody.user.github_id}`);
   for (const workspace of callbackBody.workspaces) {
-    writeLine(`Workspace ${workspace.slug} ${workspace.role}`);
+    writeLine(`Workspace ${workspace.slug} ${workspace.id} ${workspace.role}`);
   }
   if (callbackBody.recommended_next_command !== undefined) {
     writeLine(callbackBody.recommended_next_command);

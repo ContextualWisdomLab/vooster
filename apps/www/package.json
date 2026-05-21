@@ -4,8 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo \"www shell: build waits for Astro scaffold\"",
-    "test": "echo \"www shell: tests wait for Astro scaffold\"",
-    "typecheck": "echo \"www shell: typecheck waits for Astro scaffold\""
+    "build": "astro build",
+    "test": "astro check",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.16.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^5.9.3"
   }
 }

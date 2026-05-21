@@ -87,6 +87,12 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  apps/api: {}
+
+  apps/cli: {}
+
+  apps/www: {}
+
 packages:
 
   '@babel/code-frame@7.29.0':

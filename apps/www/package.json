@@ -1,0 +1,11 @@
+{
+  "name": "@vooster/www",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"www shell: build waits for Astro scaffold\"",
+    "test": "echo \"www shell: tests wait for Astro scaffold\"",
+    "typecheck": "echo \"www shell: typecheck waits for Astro scaffold\""
+  }
+}

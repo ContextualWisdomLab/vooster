@@ -1,0 +1,11 @@
+{
+  "name": "@vooster/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"cli shell: build waits for relocation\"",
+    "test": "echo \"cli shell: tests wait for relocation\"",
+    "typecheck": "echo \"cli shell: typecheck waits for relocation\""
+  }
+}

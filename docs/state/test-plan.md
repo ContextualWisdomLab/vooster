@@ -1094,3 +1094,14 @@ write. This guides your TDD cycles within an iteration._
   is red before changing files.
 - **Assertions**: after the bootstrap slice, A1/A2/A5/A6 pass while later
   monorepo relocation and Astro gates remain red until their own iterations.
+
+### Goal 5 Monorepo - App Shells
+
+- **Gate evidence**: `goals/5-monorepo.gates.sh` covers A3/A4 by enumerating
+  `apps/` and reading each app manifest, and B6 by checking the standard script
+  names for every app.
+- **Setup**: create only `apps/api`, `apps/cli`, and `apps/www`; do not move
+  source code in this slice.
+- **Assertions**: each app manifest is private, named `@vooster/<app>`, and
+  declares `build`, `test`, and `typecheck` scripts so relocation can replace
+  the temporary shell commands later.

@@ -42,13 +42,13 @@ cleanup() {
     fi
   done
   printf 'DROP SCHEMA IF EXISTS "%s" CASCADE;\n' "$SCHEMA" \
-    | npx --no-install prisma db execute --stdin --url "$ADMIN_DATABASE_URL" >/dev/null 2>&1 || true
+    | pnpm exec prisma db execute --schema apps/api/prisma/schema.prisma --stdin --url "$ADMIN_DATABASE_URL" >/dev/null 2>&1 || true
   rm -rf "$DB_DIR" "$LOG1" "$LOG2"
 }
 trap cleanup EXIT
 
 pnpm run --silent build >/dev/null 2>&1 || true
-npx --no-install prisma db push --skip-generate >/dev/null 2>&1 || {
+pnpm exec prisma db push --schema apps/api/prisma/schema.prisma --skip-generate >/dev/null 2>&1 || {
   echo "✗ check-persistence: schema setup failed."
   exit 1
 }

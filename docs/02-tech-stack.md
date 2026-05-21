@@ -78,9 +78,11 @@ in `docs/decisions/`.
 
 | Concern    | Choice            | Why                                            |
 | ---------- | ----------------- | ---------------------------------------------- |
-| Framework  | Next.js 14 (App Router) | SSR + RSC + good defaults.               |
+| Framework  | Next.js 15 (App Router) | SSR + RSC + async request APIs + good defaults. |
 | UI         | Tailwind CSS + shadcn/ui | Fast composition.                       |
 | Data       | Server actions + fetch | No client state library needed for MVP.   |
+| Hosting    | Vercel (GitHub-linked)  | Zero-config Next.js deploys + preview URLs per branch. |
+| E2E        | Playwright (chromium only) | Honest browser-driven tests; gated behind VSPEC_GATES_SKIP_DEEP. |
 
 The web UI is **deliberately small** in MVP — list, view, comment, resolve merge
 conflicts. Editing happens in markdown files via the CLI.

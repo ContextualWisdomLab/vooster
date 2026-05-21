@@ -18,10 +18,10 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-EXPOSE 3000
+EXPOSE 8080
 CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/index.js"]

@@ -9,9 +9,9 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       VSPEC_AUTH_STUB: ${VSPEC_AUTH_STUB:-}
-      PORT: "3000"
+      PORT: "8080"
     ports:
-      - "${VSPEC_DEPLOY_HOST_PORT:-4400}:3000"
+      - "${VSPEC_DEPLOY_HOST_PORT:-4400}:8080"
     depends_on:
       db:
         condition: service_healthy

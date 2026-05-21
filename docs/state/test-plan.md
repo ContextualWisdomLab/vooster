@@ -377,7 +377,7 @@ write. This guides your TDD cycles within an iteration._
 
 ### Goal 1 Bootable
 
-- **MAIN**: `npm start` listens on `$PORT` (default 3000), serves `GET /healthz` as `200 {"status":"ok"}`, and exits cleanly on `SIGTERM`.
+- **MAIN**: `npm start` listens on `$PORT` (default 8080), serves `GET /healthz` as `200 {"status":"ok"}`, and exits cleanly on `SIGTERM`.
 
 ### Goal 1 Persistence
 

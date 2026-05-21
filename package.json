@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "predev": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --skip-generate; fi",
     "dev": "tsx watch src/index.ts",
     "format:check": "prettier --check .",
     "lint": "eslint .",

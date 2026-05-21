@@ -1,7 +1,7 @@
 import { createServer } from "./http/server.js";
 import { createPrismaSignupStore } from "./infrastructure/prisma-signup-store.js";
 
-const defaultPort = 3000;
+const defaultPort = 8080;
 
 async function main() {
   const app = await createServer({

@@ -47,7 +47,7 @@ and use:
 npm start
 ```
 
-The server exposes `GET /healthz` on `http://localhost:3000` unless `PORT` is
+The server exposes `GET /healthz` on `http://localhost:8080` unless `PORT` is
 set.
 
 ## Deploy

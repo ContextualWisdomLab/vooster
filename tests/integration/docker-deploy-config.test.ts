@@ -13,7 +13,7 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(dockerfile).toContain("FROM node:20-alpine AS deps");
     expect(dockerfile).toContain("FROM node:20-alpine AS build");
     expect(dockerfile).toContain("FROM node:20-alpine AS runtime");
-    expect(dockerfile).toContain("EXPOSE 3000");
+    expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain("prisma db push --skip-generate");
     expect(dockerfile).toContain("dist/src/index.js");
 
@@ -21,7 +21,7 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(compose).toContain("db:");
     expect(compose).toContain("DATABASE_URL");
     expect(compose).toContain("${DATABASE_URL:-");
-    expect(compose).toContain("${VSPEC_DEPLOY_HOST_PORT:-4400}:3000");
+    expect(compose).toContain("${VSPEC_DEPLOY_HOST_PORT:-4400}:8080");
     expect(compose).toContain("postgres:16-alpine");
   });
 });

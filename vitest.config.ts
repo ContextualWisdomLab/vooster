@@ -3,7 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     coverage: {
-      exclude: ["apps/cli/src/**", "apps/api/src/infrastructure/prisma-*-store.ts"],
+      exclude: ["apps/api/src/infrastructure/prisma-*-store.ts"],
+      include: ["apps/api/src/**/*.ts"],
       provider: "v8",
       reporter: ["text", "lcov"],
       thresholds: {

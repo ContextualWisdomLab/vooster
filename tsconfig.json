@@ -22,5 +22,10 @@
     "vitest.config.ts",
     "eslint.config.js"
   ],
-  "exclude": ["dist", "node_modules", "apps/api/tests/e2e/_template.test.ts"]
+  "exclude": [
+    "**/*.fixture.ts",
+    "dist",
+    "node_modules",
+    "apps/api/tests/e2e/_template.test.ts"
+  ]
 }

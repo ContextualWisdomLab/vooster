@@ -4,7 +4,14 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "coverage/**", "node_modules/**", "apps/api/tests/e2e/_template.test.ts"]
+    ignores: [
+      "**/.astro/**",
+      "**/.state/**",
+      "coverage/**",
+      "dist/**",
+      "node_modules/**",
+      "apps/api/tests/e2e/_template.test.ts"
+    ]
   },
   {
     files: ["**/*.{js,mjs}"],
@@ -15,7 +22,7 @@ export default tseslint.config(
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     languageOptions: {
       parserOptions: {
-        project: "./tsconfig.json",
+        project: "./tsconfig.eslint.json",
         tsconfigRootDir: import.meta.dirname
       }
     },

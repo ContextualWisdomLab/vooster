@@ -17,8 +17,30 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="5-monorepo"
 
-if gate_cache_hit "$GOAL_NAME"; then
-  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+# Inputs that determine this goal's gate result.
+# Gates exercised: pnpm-workspace.yaml + root package.json structure,
+# apps/{api,cli,www} skeletons + per-app package.json scripts, lockfile
+# uniqueness, B7/B8/C6 builds (DEEP), Astro landing sections + Hangul
+# sweep, gate-rigor on goal 5 md, plus regression chain into goal-0..4.
+# Prior gate scripts are listed so a change to D1 inputs invalidates here.
+GATE_INPUTS=(
+  pnpm-workspace.yaml
+  pnpm-lock.yaml
+  package.json
+  apps
+  scripts/check-gate-rigor.sh
+  goals/0-init.gates.sh
+  goals/1-runnable.gates.sh
+  goals/2-shippable.gates.sh
+  goals/3-managed-db.gates.sh
+  goals/4-honest-boundaries.gates.sh
+  goals/5-monorepo.gates.sh
+  goals/5-monorepo.md
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
   exit 0
 fi
 
@@ -356,7 +378,7 @@ fi
 
 if [ "$PASS" = true ]; then
   if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME"
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

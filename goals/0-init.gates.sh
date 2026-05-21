@@ -18,8 +18,37 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="0-init"
 
-if gate_cache_hit "$GOAL_NAME"; then
-  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+# Inputs whose contents determine this goal's gate result.
+# Gates exercised: vitest run --coverage (all tests + apps/api/src),
+# tsc --noEmit, eslint ., check-bypass.sh, dogfood-test.sh, and the
+# structural UC-presence sweep.
+GATE_INPUTS=(
+  apps/api/src
+  apps/api/tests
+  apps/api/prisma
+  apps/api/package.json
+  apps/api/tsconfig.json
+  apps/cli/src
+  apps/cli/tests
+  apps/cli/bin
+  apps/cli/package.json
+  apps/cli/tsconfig.json
+  docs/usecases
+  package.json
+  pnpm-lock.yaml
+  tsconfig.json
+  tsconfig.eslint.json
+  vitest.config.ts
+  eslint.config.js
+  scripts/check-bypass.sh
+  scripts/dogfood-test.sh
+  scripts/dogfood-smoke.ts
+  goals/0-init.gates.sh
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
   exit 0
 fi
 
@@ -98,7 +127,7 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  gate_cache_save "$GOAL_NAME"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   exit 0
 else
   exit 1

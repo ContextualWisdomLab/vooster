@@ -16,8 +16,54 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="2-shippable"
 
-if gate_cache_hit "$GOAL_NAME"; then
-  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+# Inputs that determine this goal's gate result.
+# Gates exercised: SignupState/route scans, Prisma model→adapter sweep,
+# persistence-matrix vitest, UC-001 real OAuth vitest, README sections,
+# 150-line route cap, ≥18-modules/tests cap, ESLint boundary fixtures,
+# Docker deploy (DEEP), check-db-consistency.sh, gate-rigor on goal 2 md,
+# plus regression chain into goal-0/1.
+GATE_INPUTS=(
+  apps/api/src
+  apps/api/tests
+  apps/api/prisma
+  apps/api/package.json
+  apps/api/tsconfig.json
+  apps/cli/src
+  apps/cli/tests
+  apps/cli/bin
+  apps/cli/package.json
+  apps/cli/tsconfig.json
+  docs/usecases
+  README.md
+  Dockerfile
+  docker-compose.yml
+  docker-compose.prod.yml
+  .env.example
+  package.json
+  pnpm-lock.yaml
+  tsconfig.json
+  tsconfig.eslint.json
+  vitest.config.ts
+  eslint.config.js
+  scripts/check-bootable.sh
+  scripts/check-persistence.sh
+  scripts/check-cli.sh
+  scripts/check-layers.sh
+  scripts/check-bypass.sh
+  scripts/check-db-consistency.sh
+  scripts/check-deployable.sh
+  scripts/check-gate-rigor.sh
+  scripts/dogfood-test.sh
+  scripts/dogfood-smoke.ts
+  goals/0-init.gates.sh
+  goals/1-runnable.gates.sh
+  goals/2-shippable.gates.sh
+  goals/2-shippable.md
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
   exit 0
 fi
 
@@ -259,7 +305,7 @@ run_gate "2.D3 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/2-ship
 
 if [ "$PASS" = true ]; then
   if [ "$DEEP_SKIPPED" = false ]; then
-    gate_cache_save "$GOAL_NAME"
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

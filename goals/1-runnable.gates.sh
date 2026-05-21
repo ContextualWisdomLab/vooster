@@ -12,8 +12,43 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="1-runnable"
 
-if gate_cache_hit "$GOAL_NAME"; then
-  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+# Inputs that determine this goal's gate result.
+# Gates exercised: check-bootable.sh, check-persistence.sh, check-cli.sh,
+# CLI E2E vitest run, check-layers.sh, plus goal-0 regression (whose own
+# input list covers its own surface — we still re-list shared files so a
+# tsconfig/eslint tweak invalidates here too).
+GATE_INPUTS=(
+  apps/api/src
+  apps/api/tests
+  apps/api/prisma
+  apps/api/package.json
+  apps/api/tsconfig.json
+  apps/cli/src
+  apps/cli/tests
+  apps/cli/bin
+  apps/cli/package.json
+  apps/cli/tsconfig.json
+  docs/usecases
+  package.json
+  pnpm-lock.yaml
+  tsconfig.json
+  tsconfig.eslint.json
+  vitest.config.ts
+  eslint.config.js
+  scripts/check-bootable.sh
+  scripts/check-persistence.sh
+  scripts/check-cli.sh
+  scripts/check-layers.sh
+  scripts/check-bypass.sh
+  scripts/dogfood-test.sh
+  scripts/dogfood-smoke.ts
+  goals/0-init.gates.sh
+  goals/1-runnable.gates.sh
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
   exit 0
 fi
 
@@ -62,7 +97,7 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  gate_cache_save "$GOAL_NAME"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   exit 0
 else
   exit 1

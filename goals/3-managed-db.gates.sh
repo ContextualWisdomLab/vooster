@@ -15,8 +15,57 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="3-managed-db"
 
-if gate_cache_hit "$GOAL_NAME"; then
-  echo "[cache hit] goal $GOAL_NAME passed at $(gate_cache_sha "$GOAL_NAME")"
+# Inputs that determine this goal's gate result.
+# Gates exercised: Postgres helper sweep, schema provider check, sqlite
+# literal scan, Dockerfile migration check, check-managed-db.sh,
+# .github/workflows/ CI inspection, check-ci.sh, gate-rigor on goal 3 md,
+# plus regression chain into goal-0/1/2.
+GATE_INPUTS=(
+  apps/api/src
+  apps/api/tests
+  apps/api/prisma
+  apps/api/package.json
+  apps/api/tsconfig.json
+  apps/cli/src
+  apps/cli/tests
+  apps/cli/bin
+  apps/cli/package.json
+  apps/cli/tsconfig.json
+  docs/usecases
+  README.md
+  Dockerfile
+  docker-compose.yml
+  docker-compose.prod.yml
+  .env.example
+  .github/workflows
+  package.json
+  pnpm-lock.yaml
+  tsconfig.json
+  tsconfig.eslint.json
+  vitest.config.ts
+  eslint.config.js
+  scripts/check-bootable.sh
+  scripts/check-persistence.sh
+  scripts/check-cli.sh
+  scripts/check-layers.sh
+  scripts/check-bypass.sh
+  scripts/check-db-consistency.sh
+  scripts/check-deployable.sh
+  scripts/check-gate-rigor.sh
+  scripts/check-managed-db.sh
+  scripts/check-ci.sh
+  scripts/dogfood-test.sh
+  scripts/dogfood-smoke.ts
+  goals/0-init.gates.sh
+  goals/1-runnable.gates.sh
+  goals/2-shippable.gates.sh
+  goals/3-managed-db.gates.sh
+  goals/3-managed-db.md
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
   exit 0
 fi
 
@@ -282,7 +331,7 @@ run_gate "3.D4 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/3-mana
 
 if [ "$PASS" = true ]; then
   if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME"
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

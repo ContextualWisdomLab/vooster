@@ -111,11 +111,22 @@ goal-0/1). 이전 단계가 깨졌으면 현재 goal도 실패로 간주.
 
 각 goal의 gate 스크립트는 `scripts/_gate-cache.sh`를 source 한다.
 
-- 캐시 key = 현재 `git rev-parse HEAD` + **clean working tree**
-  (modified나 untracked 파일이 있으면 캐시 무효)
-- 캐시 hit이면 gate 스크립트 즉시 `exit 0` (메시지: `[cache hit] goal …`)
-- gate suite가 성공하면 현재 SHA를 `.state/gate-cache/<goal-name>`에 저장
-- `.state/`는 `.gitignore`에 들어있어 커밋되지 않음
+- 각 gate 스크립트는 상단에 `GATE_INPUTS=(...)` 배열을 선언한다 — 그
+  goal의 게이트가 실제로 의존하는 파일/디렉터리/글롭 목록이다.
+- 캐시 key = `GATE_INPUTS`로 결정되는 **파일 내용의 sha256 fingerprint**.
+  디렉터리는 재귀적으로 해시 (단 `node_modules`, `dist`, `.git`, `.state`,
+  `.next`, `.turbo`, `coverage`, `.astro` 는 prune). git 상태는 보지 않는다.
+- 캐시 hit이면 gate 스크립트 즉시 `exit 0` (메시지:
+  `[cache hit] goal … inputs unchanged`).
+- gate suite가 성공하면 현재 fingerprint를 `.state/gate-cache/<goal-name>`
+  에 저장한다.
+- `.state/`는 `.gitignore`에 들어있어 커밋되지 않음.
+
+이 설계의 핵심은 **병렬 작업 안전성**이다. 한 에이전트가 `apps/www/`를
+편집하는 동안 다른 에이전트가 goal-0 gate를 돌릴 때, goal-0의
+`GATE_INPUTS`가 `apps/www/`를 포함하지 않으므로 fingerprint가 동일하고
+캐시가 그대로 hit한다. in-scope 파일이 바뀌면 (committed든 아니든)
+fingerprint가 달라져 자동으로 invalidate.
 
 수동 무효화:
 

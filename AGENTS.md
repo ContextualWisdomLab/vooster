@@ -119,10 +119,31 @@ If any fails, fix before proceeding.
 
 ```
 bash scripts/update-state.sh
+bash scripts/active-check.sh
 ```
+
+`active-check.sh` runs only the **active goal**'s gates (~5–30 s) plus
+the rigor sweep. If the active goal turns green, it auto-advances the
+pointer by exec-ing into the full `completion-check.sh`. Prior-goal
+regression is NOT checked at iteration level — that's what the
+pre-commit hook is for (see below).
 
 If you discovered something important, append one bullet to
 `docs/state/learnings.md`.
+
+### Phase 7: Commit (boundary check)
+
+`git commit` is the regression boundary. Install the pre-commit hook
+once per checkout:
+
+```
+ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+```
+
+From then on, every `git commit` runs `scripts/completion-check.sh`
+and blocks the commit if any prior goal regressed. Use
+`git commit --no-verify` only when you knowingly want a broken
+intermediate state on the branch.
 
 ## Tech Stack (do not deviate)
 
@@ -318,13 +339,21 @@ read it before each iteration, follow its forbidden-actions list, satisfy its
 completion conditions via TDD. When its gates pass, the next goal becomes
 active automatically.
 
-### Single-goal vs. full-chain checks
+### Single-goal vs. active-goal vs. full-chain checks
 
-`bash goals/<n>-*.gates.sh` checks **only that goal's own surface** —
-it does not chain into prior goals. To confirm the whole chain is still
-green, run `bash scripts/diagnose.sh` (cheap) or
-`bash scripts/completion-check.sh` (authoritative). Do not declare a
-TDD cycle done from a single-goal pass alone; the orchestrator is the
-contract.
+Three different scopes, three different commands:
+
+| Command | Scope | Cost | When |
+| --- | --- | --- | --- |
+| `bash goals/<n>-*.gates.sh` | one goal | seconds–minutes | manual probe of one goal |
+| `bash scripts/active-check.sh` | active goal + rigor sweep | ~5–30 s | every TDD cycle (Phase 6) |
+| `bash scripts/completion-check.sh` | every goal | 1–2 min (cached) | commit boundary (pre-commit hook), CI, manual full sweep |
+
+`diagnose.sh` is cheaper still — it just reads `.state/active-goal`,
+which was written by the last orchestrator run. It does not run gates
+itself.
+
+Do not declare a TDD cycle done from a single-goal pass alone; the
+orchestrator is the contract.
 
 Now run `bash scripts/diagnose.sh` and read the active goal file it points to.

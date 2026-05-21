@@ -91,6 +91,28 @@ wait_for_slot() {
 echo "=== COMPLETION CHECK (parallel, concurrency=$CONCURRENCY) ==="
 echo
 
+OVERALL_PASS=true
+FIRST_FAIL_MD=""
+
+# Meta: orchestrator-owned rigor sweep. Closes the leak where a prior
+# goal's .md is not in its own GATE_INPUTS (goals 0/1) — direct edits to
+# those .md files would otherwise sit behind a stale cache. Cheap, runs
+# before the parallel goal workers so doc/gate drift fails fast.
+echo "--- Meta: gate rigor sweep (every .md ↔ .gates.sh) ---"
+if bash "$ROOT/scripts/check-gate-rigor.sh" --all; then
+  echo "    ✓ every goal's universal claims match an iterating gate"
+else
+  echo "    ✗ rigor mismatch — fix .md or its gate before continuing"
+  OVERALL_PASS=false
+  while IFS= read -r md; do
+    if ! bash "$ROOT/scripts/check-gate-rigor.sh" "$md" >/dev/null 2>&1; then
+      FIRST_FAIL_MD="$md"
+      break
+    fi
+  done < <(find goals -maxdepth 1 -name '*.md' -type f | sort)
+fi
+echo
+
 idx=0
 for goal_md in "${GOALS[@]}"; do
   wait_for_slot
@@ -101,9 +123,6 @@ done
 echo
 echo "--- collecting results ---"
 echo
-
-OVERALL_PASS=true
-FIRST_FAIL_MD=""
 
 idx=0
 for goal_md in "${GOALS[@]}"; do

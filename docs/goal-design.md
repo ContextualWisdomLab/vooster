@@ -56,8 +56,12 @@
 
 ## 한 iteration의 흐름
 
+회귀 감지를 **iteration 내부** 가 아니라 **commit 경계** 로 모은 구조다.
+iteration 중엔 활성 goal 만 빠르게 검사 (~5–30 s), 커밋할 때만 전체 chain
+풀 sweep (~1–2 분).
+
 ```
-bash scripts/diagnose.sh              # 어디까지 왔는지 출력 (내부에서 next-task.sh 호출)
+bash scripts/diagnose.sh              # cheap: .state/active-goal 만 읽고 표시
    └─ next-task.sh
         └─ .state/active-goal 읽음
         └─ goals/<active>.next-task.sh exec → "다음 할 일" 출력
@@ -66,10 +70,31 @@ bash scripts/diagnose.sh              # 어디까지 왔는지 출력 (내부에
 
 bash scripts/verify-tdd.sh            # TDD 프로토콜 위반 검사
 bash scripts/update-state.sh          # docs/state/* 갱신
-bash scripts/completion-check.sh      # 모든 goal의 gate를 다시 평가
-   └─ 통과한 가장 낮은 번호의 다음 goal이 active가 됨
-   └─ 전부 통과면 .state/active-goal = "ALL_DONE", exit 0
+bash scripts/active-check.sh          # 활성 goal 만 검사 + rigor sweep
+   └─ rigor 실패 → exit 1 (의미 drift)
+   └─ 활성 goal 아직 fail → exit 1, .state/active-goal 유지
+   └─ 활성 goal pass → 자동으로 completion-check.sh 로 exec
+        └─ 다음 active goal 결정 + 모든 prior goal 회귀 점검
+
+# 커밋 경계 (.git/hooks/pre-commit 설치된 상태)
+git commit
+   └─ pre-commit hook → bash scripts/completion-check.sh   # 풀 sweep
+        └─ 전체 chain 통과해야 commit 성공
+        └─ 실패 시 commit 거부 (--no-verify 로 우회 가능)
 ```
+
+비용 모델:
+
+| 명령 | 범위 | 비용 | 호출 시점 |
+| --- | --- | --- | --- |
+| `diagnose.sh` | state 표시만 | sub-sec | 매 iter 시작 |
+| `active-check.sh` | active goal + rigor sweep | ~5–30 s | 매 iter 끝 |
+| `completion-check.sh` | 모든 goal | ~1–2 분 (캐시 hit 비율 의존) | commit, CI, 수동 |
+
+설계 의도: 풀 sweep 이 매 iter 마다 돌면 1:36 × N 으로 누적되어 100 goals
+시점엔 사실상 불가능. 그러나 prior goal 회귀 감지는 포기할 수 없는
+자산. 그래서 **자주 일어나는 사건(edit)** 에서는 가벼운 검사를 하고,
+**드물게 일어나는 사건(commit)** 에서 무거운 검사를 한다.
 
 ## 핵심 설계 원칙
 
@@ -122,6 +147,54 @@ Sources of truth와 그 iteration 명령:
 3. **standalone 의미가 정직해진다**. "이 게이트가 통과하면 이 goal 이
    되는가" 만 검사. "그리고 전체 chain 이 healthy 한가" 는 별개 질문이
    고 별개 도구가 답한다.
+
+### 4. Orchestrator 가 rigor sweep 도 책임진다
+
+`completion-check.sh` 는 parallel goal 워커를 띄우기 *전에*
+`bash scripts/check-gate-rigor.sh --all` 을 한 번 돌린다. 이유:
+
+- goal 0/1 은 자기 `.md` 를 자기 `GATE_INPUTS` 에 안 넣어둔 상태였고
+  Tranche D 에 rigor 도 없었다 → `.md` 본문에 새 universal claim
+  ("every X must Y")을 추가하면 캐시가 hit 한 채로 통과해버린다.
+- goal 2~5 는 자기 Tranche D 에서 자기 `.md` 만 rigor 한다. 다른 goal
+  의 `.md` 가 직접 수정돼도 보지 못한다.
+- orchestrator 에서 한 번 전부 훑으면 위 두 leak 이 동시에 닫힌다.
+  비용은 `O(goals)` 의 grep 한 번이라 사실상 공짜.
+
+이 sweep 이 실패하면 orchestrator 는 첫 실패한 `.md` 를
+`.state/active-goal` 에 쓰고, parallel 워커를 띄우긴 하지만 전체
+`OVERALL_PASS` 는 false 로 굳는다 — 게이트 워커는 진단 정보를 위해 계속
+출력된다.
+
+한계: rigor 가 잡는 건 "universal claim 이 있는데 iteration 이 아예
+없음" 이다. `for` 루프 안에 `continue` 를 끼워 enumeration 을 우회하는
+류의 미세 weakening 은 못 잡는다. 그런 케이스는 코드 리뷰 / `.md` ↔
+gate 같은 커밋 정책으로 막아야 한다.
+
+### 5. 이전 goal 의 게이트는 immutable 이 기본값
+
+새 goal 이 기존 goal 의 invariant 를 깨뜨릴 수 있다 (기획 변경,
+아키텍처 교체, 기능 제거). 무작정 약화시키거나 삭제하는 건 금지. 다음
+세 케이스만 허용:
+
+| 케이스 | 예 | 허용된 조치 |
+| --- | --- | --- |
+| **(a) Retarget** — invariant 그대로, 경로/도구만 변경 | monorepo 이동 (`src/` → `apps/api/src/`) | 같은 goal 작업 안에서 prior `*.gates.sh` 경로 수정. prior `.md` 는 손대지 않음. 커밋: `fix(<scope>): retarget <goal> gate` |
+| **(b) Loosen invariant** — 검사 로직 자체가 바뀌어야 함 | "한 파일에 모든 모델" → "여러 파일 중 하나에 등장" | 별도 scoped 커밋. prior `.md` 본문도 같은 커밋에서 수정해 universal claim 과 gate 를 다시 일치시킴. retarget 같은 다른 의도와 conflate 금지 |
+| **(c) Supersede** — invariant 가 새 아키텍처에서 의미 상실 | Fastify → Hono 교체 시 goal-1 Fastify 부팅 게이트 | 새 goal `.md` 에 **`## Supersedes`** 섹션을 만들어 "goal N 의 gate X.Y 를 대체한다" 를 명시. prior gate 는 새 invariant 로 교체하거나 삭제 — 단, 새 goal `.md` 의 명시적 선언 없이는 불가 |
+
+금지:
+
+- 커밋 메시지는 retarget 인데 enumeration 로직이 함께 약화되는 것
+- prior `.md` 본문은 그대로 두고 gate 만 느슨하게 만드는 것
+  (gate 가 더 이상 `.md` 의 universal claim 을 enforce 하지 않게 됨 —
+  orchestrator rigor sweep 이 일부는 잡지만 미세 weakening 은 못 잡음)
+- 새 goal `.md` 의 명시적 선언 없이 prior gate 파일을 삭제하는 것
+
+선례: `docs/findings-test-perf-debt.md` 가 케이스 (b) 를 어떻게
+큐잉했는지 참고 — Goal 5 의 path retarget (케이스 a) 과 분리해 별도 PR
+로 미뤘다. 두 의도를 한 커밋에 섞으면 리뷰어가 "이게 단순 이동인지
+invariant 약화인지" 구분할 수 없게 된다.
 
 ## Gate 실행 최적화
 
@@ -212,3 +285,21 @@ goals/4-<name>.next-task.sh  # 다음 액션 hint (chmod +x)
 ```
 
 다음 `completion-check.sh` 실행이 이걸 active로 잡는다.
+
+### 작성 전 self-audit
+
+새 goal `.md` 를 쓰기 전에 다음을 자문한다 (원칙 5 의 케이스 분류를
+미리 적용하는 단계):
+
+1. 이 goal 이 이전 게이트의 **경로/도구**만 바꿔도 통과 가능한가?
+   → 케이스 (a). 같은 goal 작업 안에서 retarget 하면 끝.
+2. 이 goal 이 이전 게이트의 **검사 로직 자체**를 바꿔야 통과 가능한가?
+   → 케이스 (b). `docs/findings-*.md` 에 일단 큐잉하고 별도 PR 로
+   분리한다. 이 goal 의 메인 작업과 섞지 말 것.
+3. 이 goal 로 인해 이전 게이트의 **존재 이유 자체가 사라지는가**?
+   → 케이스 (c). `.md` 본문 상단에 `## Supersedes` 섹션을 작성하고,
+   대체되는 gate 번호를 enumerate. 이게 없으면 prior gate 수정 금지.
+
+이 self-audit 이 누락된 채 새 goal 이 들어가면 `completion-check` 는
+초록일 수 있어도 시스템의 의미가 조용히 무너진다 — gate 가 무엇을
+약속하는지 아무도 더 이상 보장하지 않게 된다.

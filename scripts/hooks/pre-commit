@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# pre-commit hook — full prior-goal regression catch at commit boundary.
+#
+# Why this exists:
+#   The per-iteration loop (scripts/active-check.sh) only runs the
+#   active goal's gates for speed. That lets silent prior-goal
+#   regressions accumulate between commits. This hook closes that
+#   window by running the full orchestrator before every commit.
+#
+# Install:
+#   cd <repo root>
+#   ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+#
+# Bypass (rare, knowingly broken intermediate state):
+#   git commit --no-verify
+#
+# Cost: 1–2 min on this repo today (less when prior goals cache-hit).
+# Acceptable because it runs at commit boundary, not every save.
+
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if bash scripts/completion-check.sh; then
+  exit 0
+fi
+
+cat <<'EOF'
+
+✗ commit blocked: completion-check failed.
+
+  Either:
+    - Fix the failing goal(s) and re-commit, or
+    - git commit --no-verify   # only if you know you need a broken
+                               # intermediate state on the branch
+EOF
+exit 1

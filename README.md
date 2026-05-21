@@ -5,6 +5,8 @@ human and AI contributors around explicit, versioned product behavior. It
 ships a Fastify API, Prisma persistence, and an oclif CLI for authoring,
 reviewing, and exporting use case specifications.
 
+> [한국어 README](./README.ko.md)
+
 ## Install
 
 Use the CLI directly from npm:

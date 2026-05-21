@@ -1,4 +1,4 @@
-# Goal 5: Monorepo (pnpm workspaces) with API, CLI, and Astro landing
+# Goal 5: Monorepo (pnpm workspaces) with API, CLI, web app, and Astro landing
 
 ## Why This Goal Exists
 
@@ -6,11 +6,12 @@ Goals 0–4 shipped a single-package CLI + Fastify server with Prisma and
 an enforceable layered architecture. Everything still lives in one
 `package.json` managed by `npm`. To prepare for the marketing landing
 page (and for future shared packages) the codebase moves to a
-**pnpm workspaces monorepo** with three apps:
+**pnpm workspaces monorepo** with four apps:
 
 - `apps/api` — Fastify HTTP server + the inner layers
   (`domain`, `ports`, `application`, `infrastructure`, `http`) + Prisma
 - `apps/cli` — the `vspec` oclif CLI (current `src/cli/` + `bin/run.js`)
+- `apps/web` — a Next.js authenticated product UI for reading specs
 - `apps/www` — a new Astro site that hosts the Korean landing page,
   modeled after https://www.conductor.build/ (hero → social-proof
   logos → features → workflow → showcase → pricing/CTA → footer)
@@ -55,8 +56,8 @@ A2. **The root `package.json` is a workspace root, not a deployable
     `dependencies`. The gate parses the JSON with `node -e`, not by
     string-matching.
 
-A3. **`apps/` contains exactly three subdirectories: `api`, `cli`,
-    `www`.** The gate enumerates `find apps -maxdepth 1 -mindepth 1
+A3. **`apps/` contains exactly four subdirectories: `api`, `cli`,
+    `web`, `www`.** The gate enumerates `find apps -maxdepth 1 -mindepth 1
     -type d` and compares the sorted basenames against the required
     set. Extras fail just like omissions.
 
@@ -97,7 +98,7 @@ B5. **No file lives at both root `src/` and an `apps/<n>/src/`
 
 B6. **Every app declares standard scripts** — `build`, `test`,
     `typecheck`. The gate iterates the cartesian product of
-    `(api, cli, www) × (build, test, typecheck)` and reads each
+    `(api, cli, web, www) × (build, test, typecheck)` and reads each
     `package.json` with `node -e`.
 
 B7. **(DEEP) `pnpm --filter @vooster/api build` exits 0.** The build

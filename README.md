@@ -41,13 +41,6 @@ docker compose up -d db
 pnpm run dev
 ```
 
-For a no-Docker local run, keep the SQLite `DATABASE_URL` from `.env.example`
-and use:
-
-```bash
-pnpm start
-```
-
 The server exposes `GET /healthz` on `http://localhost:8080` unless `PORT` is
 set.
 

@@ -8,6 +8,7 @@ pnpm-debug.log*
 # Builds
 dist/
 build/
+.next/
 *.tsbuildinfo
 .astro/
 .turbo/
@@ -27,6 +28,9 @@ coverage/
 *.lcov
 .nyc_output/
 .stryker-tmp/
+test-results/
+playwright-report/
+playwright/.cache/
 
 # Local agent state (kept ignored to avoid leaking between agent runs)
 .state/

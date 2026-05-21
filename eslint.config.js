@@ -6,10 +6,12 @@ export default tseslint.config(
   {
     ignores: [
       "**/.astro/**",
+      "**/.next/**",
       "**/.state/**",
       "coverage/**",
       "dist/**",
       "node_modules/**",
+      "apps/web/next-env.d.ts",
       "apps/api/tests/e2e/_template.test.ts"
     ]
   },

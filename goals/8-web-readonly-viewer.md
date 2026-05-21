@@ -190,9 +190,10 @@ E3. **The most recent production deployment of `vooster-new-web`
     at `vercel login`).
 
 E4. **The Vercel project is GitHub-linked.** Source of truth:
-    `vercel project inspect vooster-new-web --json` returns a
-    `link.type` of `github` (or the analogous nested key — the gate
-    accommodates the CLI's actual JSON shape; a single string match
+    Vercel project JSON (`vercel api /v9/projects/vooster-new-web`,
+    or `vercel project inspect vooster-new-web --json` when supported)
+    returns a `link.type` of `github` (or the analogous nested key —
+    the gate accommodates the CLI's actual JSON shape; a string match
     on `"type":"github"` suffices). Deep gate.
 
 ### Tranche F — Meta: rigor

@@ -15,7 +15,12 @@ export default defineConfig({
         statements: 80
       }
     },
-    exclude: ["**/node_modules/**", "**/dist/**", "apps/api/tests/e2e/_template.test.ts"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "apps/api/tests/e2e/_template.test.ts",
+      "apps/web/tests/e2e-web/**"
+    ],
     globals: true,
     passWithNoTests: true,
     testTimeout: 15_000

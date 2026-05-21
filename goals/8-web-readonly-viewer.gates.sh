@@ -477,10 +477,12 @@ elif ! vercel whoami >/dev/null 2>&1; then
   echo "    ⊘ skipped — vercel CLI not authenticated"
 else
   INSPECT_OUT=$(vercel project inspect "$VERCEL_PROJECT_NAME" 2>&1 || true)
+  PROJECT_JSON=$(vercel api "/v9/projects/$VERCEL_PROJECT_NAME" 2>&1 || true)
   # The output mentions the linked Git repo when the project is GitHub-
   # connected. Accept either the explicit "github" type marker or the
   # repo URL/path in the inspect output.
-  if echo "$INSPECT_OUT" | grep -qiE 'github'; then
+  if echo "$INSPECT_OUT" | grep -qiE 'github' \
+      || echo "$PROJECT_JSON" | tr -d '[:space:]' | grep -qiE '"type":"github"'; then
     echo "    ✓ pass"
   else
     echo "    ✗ fail — vercel project inspect $VERCEL_PROJECT_NAME shows no github link"

@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { patchJson, postJson } from "../http-client.js";
 
 type StepCliFlags = {
@@ -148,18 +148,18 @@ function stepCreateFlagsFrom(flags: StepCliFlags, scenarioId: string | undefined
   return {
     action: requiredFlag(flags, "action"),
     actor: requiredFlag(flags, "actor"),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     scenarioId: requiredArgument(scenarioId, "scenario-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
 
 function stepEditFlagsFrom(flags: StepCliFlags, stepId: string | undefined): StepEditFlags {
   return {
     action: requiredFlag(flags, "action"),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     baseRevision: requiredFlag(flags, "base-revision"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     stepId: requiredArgument(stepId, "step-id")
   };
 }

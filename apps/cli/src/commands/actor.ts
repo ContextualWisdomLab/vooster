@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredFlag } from "../flag-values.js";
+import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type ActorCliFlags = {
@@ -91,11 +91,11 @@ export async function runActor(
 function actorFlagsFrom(flags: ActorCliFlags): ActorFlags {
   return {
     aliases: aliasesFrom(flags.aliases),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     description: flags.description ?? "",
     name: requiredFlag(flags, "name"),
     projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type: actorType(requiredFlag(flags, "type"))
   };
 }

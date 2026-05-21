@@ -1,6 +1,7 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredFlag } from "../flag-values.js";
+import { writeConfig } from "../config-store.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type ProjectCliFlags = {
@@ -26,6 +27,7 @@ type ProjectResponse = {
     name: string;
   };
   project: {
+    id: string;
     key: string;
     name: string;
   };
@@ -58,10 +60,15 @@ export class ProjectCommand extends Command {
 export async function runProject(
   flags: ProjectCliFlags,
   action: string | undefined,
-  writeLine: (message: string) => void
+  writeLine: (message: string) => void,
+  projectKeyArg?: string
 ): Promise<void> {
   if (action === "create") {
     await createProject(flags, writeLine);
+    return;
+  }
+  if (action === "switch") {
+    switchProject(projectKeyArg, writeLine);
     return;
   }
 
@@ -86,19 +93,31 @@ async function createProject(
   );
   const body = response.body as ProjectResponse;
 
-  writeLine(`Project ${body.project.name} ${body.project.key}`);
+  writeConfig({
+    current_project_id: body.project.id,
+    current_project_key: body.project.key
+  });
+  writeLine(`Project ${body.project.name} ${body.project.key} ${body.project.id}`);
   writeLine(`Branch ${body.default_branch.name}`);
   writeLine(body.recommended_next_command);
 }
 
+function switchProject(projectKeyArg: string | undefined, writeLine: (message: string) => void): void {
+  const projectKey = requiredArgument(projectKeyArg, "project key");
+  writeConfig({
+    current_project_key: projectKey
+  });
+  writeLine(`Project ${projectKey}`);
+}
+
 function projectFlagsFrom(flags: ProjectCliFlags): ProjectFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     key: requiredFlag(flags, "key"),
     name: requiredFlag(flags, "name"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
-    workspaceId: requiredFlag(flags, "workspace-id")
+    workspaceId: resolveContextFlag(flags, "workspace-id")
   };
 }
 

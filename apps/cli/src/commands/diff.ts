@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
 type DiffCliFlags = {
@@ -136,10 +136,10 @@ function diffFlagsFrom(
   toRevision: string | undefined
 ): DiffFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     format: diffFormat(flags.format ?? "human"),
     fromRevision: requiredArgument(fromRevision, "from-revision"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     toRevision: requiredArgument(toRevision, "to-revision"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };

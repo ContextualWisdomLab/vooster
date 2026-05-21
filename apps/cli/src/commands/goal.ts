@@ -8,7 +8,7 @@ import {
   type GoalPromotionResponse,
   type GoalResponse
 } from "./goal-output.js";
-import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { fetchJson, postJson } from "../http-client.js";
 
 type GoalCliFlags = {
@@ -148,21 +148,21 @@ async function promoteGoal(
 function goalCreateFlagsFrom(flags: GoalCliFlags): GoalCreateFlags {
   return {
     actorId: requiredFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     description: requiredFlag(flags, "description"),
     level: goalLevel(requiredFlag(flags, "level")),
     priority: goalPriority(requiredFlag(flags, "priority")),
     projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
 
 function goalListFlagsFrom(flags: GoalCliFlags): GoalListFlags {
   return {
     actorId: optionalFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
 
@@ -171,9 +171,9 @@ function goalPromoteFlagsFrom(
   goalId: string | undefined
 ): GoalPromoteFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     goalId: requiredArgument(goalId, "goal-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
 

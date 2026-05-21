@@ -85,6 +85,29 @@ export async function fetchGithubProfile(
   }
 }
 
+export async function fetchGithubProfileByAccessToken(
+  options: ServerOptions,
+  accessToken: string
+): Promise<GithubProfile | undefined> {
+  try {
+    if (options.authStub) {
+      if (!accessToken.startsWith("stub-access-token-")) {
+        throw new GithubNetworkError("Stub access token was invalid.");
+      }
+
+      return githubProfile(options, accessToken.slice("stub-access-token-".length));
+    }
+
+    return await fetchRealGithubProfileByAccessToken(options, accessToken);
+  } catch (error) {
+    if (error instanceof GithubNetworkError) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
 async function fetchRealGithubProfile(
   options: ServerOptions,
   code: string
@@ -100,6 +123,29 @@ async function fetchRealGithubProfile(
     headers: {
       accept: "application/json",
       authorization: `Bearer ${token}`,
+      "user-agent": "vspec"
+    }
+  });
+  if (!response.ok) {
+    throw new GithubNetworkError("GitHub profile request failed.");
+  }
+
+  return profileFromGithubUser(await response.json());
+}
+
+async function fetchRealGithubProfileByAccessToken(
+  options: ServerOptions,
+  accessToken: string
+): Promise<GithubProfile> {
+  if (options.githubOAuth === undefined) {
+    throw new GithubNetworkError("GitHub OAuth is not configured.");
+  }
+
+  const response = await fetch("https://api.github.com/user", {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${accessToken}`,
       "user-agent": "vspec"
     }
   });

@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredFlag } from "../flag-values.js";
+import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type MemberFlags = {
@@ -90,11 +90,11 @@ async function inviteMember(
 
 function inviteFlagsFrom(flags: MemberFlags): InviteFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     email: requiredFlag(flags, "email"),
     role: invitationRole(requiredFlag(flags, "role")),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    workspaceId: requiredFlag(flags, "workspace-id")
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    workspaceId: resolveContextFlag(flags, "workspace-id")
   };
 }
 

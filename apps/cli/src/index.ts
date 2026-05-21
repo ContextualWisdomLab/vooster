@@ -13,6 +13,7 @@ import { runGoal } from "./commands/goal.js";
 import { runHistory } from "./commands/history.js";
 import { runImpact } from "./commands/impact.js";
 import { runLogin } from "./commands/login.js";
+import { runLogout } from "./commands/logout.js";
 import { runLock } from "./commands/lock.js";
 import { runMember } from "./commands/member.js";
 import { runMerge } from "./commands/merge.js";
@@ -25,6 +26,8 @@ import { runSession } from "./commands/session.js";
 import { runStakeholder } from "./commands/stakeholder.js";
 import { runStep } from "./commands/step.js";
 import { runSync } from "./commands/sync.js";
+import { runStatus } from "./commands/status.js";
+import { runWorkspace } from "./commands/workspace.js";
 import { runUsecase } from "./commands/usecase.js";
 import { runWho } from "./commands/who.js";
 
@@ -60,7 +63,6 @@ export class VspecCommand extends Command {
     force: Flags.boolean(),
     format: Flags.string(),
     from: Flags.string(),
-    "github-code": Flags.string(),
     help: Flags.help({ char: "h" }),
     intent: Flags.string(),
     into: Flags.string(),
@@ -112,6 +114,14 @@ export class VspecCommand extends Command {
       await runLogin(parsed.flags, this.log.bind(this));
       return;
     }
+    if (parsed.args.command === "logout") {
+      await runLogout(parsed.flags, this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "status") {
+      runStatus(parsed.flags, this.log.bind(this));
+      return;
+    }
     if (parsed.args.command === "ai-guide") {
       await runAiGuide(parsed.flags, this.log.bind(this));
       return;
@@ -134,6 +144,14 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "project" && this.argv[1] === "create") {
       await runProject(parsed.flags, this.argv[1], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "project" && this.argv[1] === "switch") {
+      await runProject(parsed.flags, this.argv[1], this.log.bind(this), this.argv[2]);
+      return;
+    }
+    if (parsed.args.command === "workspace" && this.argv[1] === "switch") {
+      runWorkspace(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "branch" && this.argv[1] === "create") {

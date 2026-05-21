@@ -33,10 +33,10 @@ export async function startNetworkServer(prefix: string) {
   };
 }
 
-export async function runCli(args: string[]) {
+export async function runCli(args: string[], env: Record<string, string> = {}) {
   const child = spawn(process.execPath, ["apps/cli/bin/run.js", ...args], {
     cwd: process.cwd(),
-    env: { ...process.env, VSPEC_CLI_SOURCE: "1" }
+    env: { ...process.env, ...env, VSPEC_CLI_SOURCE: "1" }
   });
   let stdout = "";
   let stderr = "";

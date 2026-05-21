@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
 type WhoCliFlags = {
@@ -105,8 +105,8 @@ export async function runWho(
 
 function whoFlagsFrom(flags: WhoCliFlags, usecaseId: string | undefined): WhoFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }

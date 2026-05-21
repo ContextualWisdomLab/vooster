@@ -130,7 +130,7 @@ if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
   echo "    (skipped — VSPEC_GATES_SKIP_DEEP=1)"
 else
   B2_LOG=$(mktemp)
-  if node -e "
+  if node --import tsx -e "
     process.env.VSPEC_AUTH_STUB = '1';
     (async () => {
       const { createServer } = await import('./apps/api/src/http/server.js');

@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type RevertCliFlags = {
@@ -112,10 +112,10 @@ function revertFlagsFrom(
   usecaseId: string | undefined
 ): RevertFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     force: flags.force ?? false,
     revisionId: requiredFlag(flags, "to"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     summary: optionalFlag(flags, "summary"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };

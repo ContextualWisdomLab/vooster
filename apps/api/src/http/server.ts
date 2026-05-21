@@ -21,6 +21,7 @@ import { registerAiGuideRoutes } from "./ai-guide-routes.js";
 import { registerApiKeyRoutes } from "./api-key-routes.js";
 import { registerActorTestRoutes } from "./actor-test-routes.js";
 import { registerActorRoutes } from "./actor-routes.js";
+import { registerDeviceAuthRoutes } from "./auth-device-routes.js";
 import { registerBranchRoutes } from "./branch-routes.js";
 import { registerBranchTestRoutes } from "./branch-test-routes.js";
 import { registerChangeCommitRoutes } from "./change-commit-routes.js";
@@ -97,6 +98,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore, apiKeyStore);
   registerSignupRoutes(app, serverOptions, state, membershipStore, userStore, workspaceStore);
+  registerDeviceAuthRoutes(app, serverOptions, state, membershipStore, userStore, workspaceStore);
   registerProjectRoutes(
     app,
     state,
@@ -393,7 +395,18 @@ function githubOAuthFromEnv(): GithubOAuthConfig | undefined {
 }
 
 async function seedStubZeroWorkspaceUser(userStore: UserStore) {
-  if (await userStore.findUserByGithubId("stub-zero-workspace-user") !== undefined) {
+  let existingUser;
+  try {
+    existingUser = await userStore.findUserByGithubId("stub-zero-workspace-user");
+  } catch (error) {
+    if (isMissingDatabaseTable(error)) {
+      return;
+    }
+
+    throw error;
+  }
+
+  if (existingUser !== undefined) {
     return;
   }
 
@@ -404,4 +417,8 @@ async function seedStubZeroWorkspaceUser(userStore: UserStore) {
     name: "Stub Zero Workspace User",
     avatar_url: "https://github.com/identicons/stub-zero-workspace-user.png"
   });
+}
+
+function isMissingDatabaseTable(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "P2021";
 }

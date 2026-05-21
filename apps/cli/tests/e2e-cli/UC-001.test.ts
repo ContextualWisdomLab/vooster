@@ -16,11 +16,13 @@ describe("UC-001 CLI - Sign up for a workspace", () => {
           "CLI Workspace",
           "--workspace-slug",
           "cli-workspace",
-          "--github-code",
-          "stub-cli-user",
           "--api-url",
           server.apiUrl
-        ]
+        ],
+        {
+          VSPEC_AUTH_STUB: "1",
+          VSPEC_AUTH_STUB_ID: "stub-cli-user"
+        }
       );
 
       expect(result.stderr).toBe("");

@@ -7,7 +7,7 @@ import {
   type ChangeCommitResponse,
   type ChangePreviewResponse
 } from "./change-output.js";
-import { requiredFlag } from "../flag-values.js";
+import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type ChangeCliFlags = {
@@ -119,20 +119,20 @@ async function commitChange(
 
 function changeProposeFlagsFrom(flags: ChangeCliFlags): ChangeProposeFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     autoCommit: flags["auto-commit"] ?? false,
     baseRevision: requiredFlag(flags, "base-revision"),
     patchPath: requiredFlag(flags, "patch"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseKey: requiredFlag(flags, "usecase")
   };
 }
 
 function changeCommitFlagsFrom(flags: ChangeCliFlags): ChangeCommitFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     previewId: requiredFlag(flags, "preview-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
 

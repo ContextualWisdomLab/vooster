@@ -6,7 +6,7 @@ import {
   type MergeOpenResponse,
   type MergeResolveResponse
 } from "./merge-output.js";
-import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type MergeCliFlags = {
@@ -138,8 +138,8 @@ function mergeOpenFlagsFrom(
   sourceBranchId: string | undefined
 ): MergeOpenFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     sourceBranchId: requiredArgument(sourceBranchId, "branch-id"),
     strategy: mergeStrategy(optionalFlag(flags, "strategy")),
     target: mergeTarget(flags.into ?? "main")
@@ -148,12 +148,12 @@ function mergeOpenFlagsFrom(
 
 function mergeResolveFlagsFrom(flags: MergeCliFlags, mergeId: string | undefined): MergeResolveFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     baseRevision: requiredFlag(flags, "base-revision"),
     entityId: requiredFlag(flags, "entity-id"),
     field: requiredFlag(flags, "field"),
     mergeId: requiredArgument(mergeId, "merge-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     strategy: resolutionStrategy(requiredFlag(flags, "strategy")),
     value: optionalFlag(flags, "value")
   };

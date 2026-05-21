@@ -15,20 +15,22 @@ describe("UC-002 CLI - Log in", () => {
         "Returning Workspace",
         "--workspace-slug",
         "returning-workspace",
-        "--github-code",
-        "stub-cli-returning-user",
         "--api-url",
         server.apiUrl
-      ]);
+      ], {
+        VSPEC_AUTH_STUB: "1",
+        VSPEC_AUTH_STUB_ID: "stub-cli-returning-user"
+      });
       expect(signup.status).toBe(0);
 
       const login = await runCli([
         "login",
-        "--github-code",
-        "stub-cli-returning-user",
         "--api-url",
         server.apiUrl
-      ]);
+      ], {
+        VSPEC_AUTH_STUB: "1",
+        VSPEC_AUTH_STUB_ID: "stub-cli-returning-user"
+      });
 
       expect(login.stderr).toBe("");
       expect(login.status).toBe(0);

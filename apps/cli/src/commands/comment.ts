@@ -6,7 +6,7 @@ import {
   type CommentListResponse,
   type CommentResponse
 } from "./comment-output.js";
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 type CommentCliFlags = {
@@ -170,8 +170,8 @@ function commentTargetFlagsFrom(
   argumentName: string
 ): CommentTargetFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     targetId: requiredArgument(targetId, argumentName)
   };
 }

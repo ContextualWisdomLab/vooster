@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { Args, Command, Flags } from "@oclif/core";
 
-import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { postText } from "../http-client.js";
 
 type ExportCliFlags = {
@@ -121,11 +121,11 @@ async function writeExportResponse(
 
 function exportFlagsFrom(flags: ExportCliFlags, usecaseId: string | undefined): ExportFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     force: flags.force ?? false,
     output: optionalFlag(flags, "output"),
     revision: optionalFlag(flags, "revision"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }

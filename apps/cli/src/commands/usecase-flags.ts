@@ -1,4 +1,4 @@
-import { optionalFlag, requiredArgument, requiredFlag } from "../flag-values.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 
 export type UsecaseCliFlags = {
   "actor-id"?: string;
@@ -66,10 +66,10 @@ export type StakeholderInterestFlags = {
 
 export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     primaryActor: requiredFlag(flags, "primary-actor"),
     projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     title: requiredFlag(flags, "title")
   };
 }
@@ -77,13 +77,13 @@ export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFla
 export function usecaseListFlagsFrom(flags: UsecaseCliFlags): UsecaseListFlags {
   return {
     actorId: optionalFlag(flags, "actor-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     cursor: optionalFlag(flags, "cursor"),
     level: optionalFlag(flags, "level"),
     limit: optionalFlag(flags, "limit"),
     projectId: requiredFlag(flags, "project-id"),
     q: optionalFlag(flags, "q"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status")
   };
 }
@@ -93,11 +93,11 @@ export function usecaseShowFlagsFrom(
   usecaseId: string | undefined
 ): UsecaseShowFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     format: usecaseFormat(flags.format ?? "human"),
     revision: optionalFlag(flags, "revision"),
     session: optionalFlag(flags, "session"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
@@ -107,8 +107,8 @@ export function usecaseArchiveFlagsFrom(
   usecaseId: string | undefined
 ): UsecaseArchiveFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };
 }
@@ -118,10 +118,10 @@ export function stakeholderInterestFlagsFrom(
   usecaseId: string | undefined
 ): StakeholderInterestFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     interest: requiredFlag(flags, "interest"),
     protectionMechanism: flags["protection-mechanism"] ?? "",
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     stakeholder: requiredFlag(flags, "stakeholder"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };

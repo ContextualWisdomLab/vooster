@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type BranchCliFlags = {
@@ -109,10 +109,10 @@ function branchCreateFlagsFrom(
   name: string | undefined
 ): BranchCreateFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     from: flags.from ?? "main",
     name: requiredArgument(name, "branch-name"),
     projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }

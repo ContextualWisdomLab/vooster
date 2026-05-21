@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { Command, Flags } from "@oclif/core";
 
 import { applySyncResults, localSyncFiles, writeSyncFile } from "./sync-files.js";
-import { requiredFlag } from "../flag-values.js";
+import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type SyncCliFlags = {
@@ -151,11 +151,11 @@ async function pushFiles(
 
 function syncFlagsFrom(flags: SyncCliFlags): SyncFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     branch: flags.branch ?? "main",
     dryRun: flags["dry-run"] ?? false,
     projectId: requiredFlag(flags, "project-id"),
     root: resolve(flags.root ?? process.cwd()),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }

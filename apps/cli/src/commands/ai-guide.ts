@@ -1,5 +1,6 @@
 import { Command, Flags } from "@oclif/core";
 
+import { resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 const cliVersion = "1.0.0";
@@ -67,7 +68,7 @@ function aiGuideFlagsFrom(flags: AiGuideFlags): ParsedAiGuideFlags {
   }
 
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     format
   };
 }
@@ -76,15 +77,6 @@ function optionalFlag(values: AiGuideFlags, name: keyof AiGuideFlags): string | 
   const value = values[name];
   if (typeof value !== "string" || value.trim() === "") {
     return undefined;
-  }
-
-  return value;
-}
-
-function requiredFlag(values: AiGuideFlags, name: keyof AiGuideFlags): string {
-  const value = values[name];
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`Missing --${name}.`);
   }
 
   return value;

@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, postJson } from "../http-client.js";
 
 type ApiKeyFlags = {
@@ -168,9 +168,9 @@ function printApiKey(apiKey: ApiKey, writeLine: (message: string) => void): void
 
 function apiKeyWorkspaceFlagsFrom(flags: ApiKeyFlags): ApiKeyWorkspaceFlags {
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
-    workspaceId: requiredFlag(flags, "workspace-id")
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    workspaceId: resolveContextFlag(flags, "workspace-id")
   };
 }
 
@@ -191,7 +191,7 @@ function apiKeyRevokeFlagsFrom(
 ): ApiKeyRevokeFlags {
   return {
     apiKeyId: requiredArgument(apiKeyId, "api-key-id"),
-    apiUrl: requiredFlag(flags, "api-url"),
-    sessionCookie: requiredFlag(flags, "session-cookie")
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }

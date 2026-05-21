@@ -1,6 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredArgument, requiredFlag } from "../flag-values.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type ScenarioCliFlags = {
@@ -103,11 +103,11 @@ function scenarioCreateFlagsFrom(
 ): ScenarioCreateFlags {
   const type = scenarioType(requiredFlag(flags, "type"));
   return {
-    apiUrl: requiredFlag(flags, "api-url"),
+    apiUrl: resolveContextFlag(flags, "api-url"),
     condition: scenarioCondition(flags, type),
     extensionPoint: scenarioExtensionPoint(flags, type),
     outcome: scenarioOutcome(flags.outcome),
-    sessionCookie: requiredFlag(flags, "session-cookie"),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type,
     usecaseId: requiredArgument(usecaseId, "usecase-id")
   };

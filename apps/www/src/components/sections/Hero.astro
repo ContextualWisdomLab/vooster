@@ -1,394 +1,148 @@
 ---
 const navLinks = [
-  { label: "기능", href: "#features" },
+  { label: "진단", href: "#intro" },
   { label: "워크플로우", href: "#how" },
-  { label: "사용 예시", href: "#showcase" },
-  { label: "가격", href: "#pricing" },
+  { label: "시작하기", href: "#get-started" },
+  { label: "FAQ", href: "#faq" },
 ];
+
+const stages = [
+  {
+    kind: "prompt",
+    icon: "💬",
+    label: "당신",
+    body: '"로그인 만들어줘"',
+  },
+  {
+    kind: "spec",
+    icon: "📄",
+    label: "vspec",
+    chip: "specs/UC-013.md",
+    code: true,
+  },
+  {
+    kind: "result",
+    icon: "✓",
+    label: "agent",
+    chip: "PR #214",
+    body: "UC-013 · 6/6 steps",
+    meta: "git: feat(login): add github oauth",
+  },
+] as const;
 ---
 
-<header class="hero">
-  <nav class="hero__nav" aria-label="주요 메뉴">
-    <div class="section-shell hero__nav-inner">
-      <a class="hero__brand" href="#top" aria-label="Vooster 홈">
-        <span class="hero__brand-mark" aria-hidden="true"></span>
-        <span class="hero__brand-word">vooster</span>
-        <span class="hero__brand-tag">/ko</span>
+<header class="relative bg-canvas border-b border-hairline">
+  <nav class="sticky top-0 z-10 bg-canvas/85 backdrop-blur border-b border-hairline" aria-label="주요 메뉴">
+    <div class="shell flex items-center justify-between gap-6 h-16">
+      <a href="#top" class="inline-flex items-baseline gap-2 font-mono text-[15px] font-semibold tracking-tight text-ink-strong" aria-label="Vooster 홈">
+        <span class="w-2.5 h-2.5 self-center rounded-[2px] bg-primary shadow-[0_0_0_4px_rgba(45,212,191,0.18)]" aria-hidden="true"></span>
+        <span>vooster</span>
+        <span class="text-mute text-xs">/ko</span>
       </a>
-      <ul class="hero__nav-links">
+
+      <ul class="hidden md:flex gap-7 m-0 p-0 list-none text-body text-sm">
         {navLinks.map((link) => (
-          <li><a href={link.href}>{link.label}</a></li>
+          <li><a href={link.href} class="transition-colors hover:text-ink-strong">{link.label}</a></li>
         ))}
       </ul>
-      <div class="hero__nav-cta">
-        <a class="btn btn--ghost hero__nav-ghost" href="https://github.com/vibemafiaclub/vooster" rel="noopener">
+
+      <div class="flex items-center gap-2">
+        <a href="https://github.com/vibemafiaclub/vooster" rel="noopener" class="hidden sm:inline-flex btn-ghost min-h-10 px-3.5 py-2.5 text-sm">
           GitHub
         </a>
-        <a class="btn btn--primary" href="#pricing">시작하기</a>
+        <a href="#get-started" class="btn-primary min-h-10 px-4 py-2.5 text-sm">시작하기</a>
       </div>
     </div>
   </nav>
 
-  <section id="top" class="hero__band" aria-labelledby="hero-title">
-    <div class="section-shell hero__content">
-      <span class="pill hero__pill">
-        <span class="pill__dot" aria-hidden="true"></span>
+  <section id="top" class="relative overflow-hidden pt-32 pb-24 md:pt-32 md:pb-24" aria-labelledby="hero-title">
+    <div
+      class="absolute -top-[20%] right-[30%] w-[540px] h-[540px] rounded-full blur-[20px] pointer-events-none"
+      style="background: radial-gradient(circle at center, rgba(45,212,191,0.12) 0%, rgba(45,212,191,0) 60%);"
+      aria-hidden="true"
+    ></div>
+
+    <div class="shell relative max-w-[860px]">
+      <span class="pill mb-6">
+        <span class="pill-dot" aria-hidden="true"></span>
         v0.1 · 한국어 우선
       </span>
-      <p class="eyebrow-mono">WORKSPACE FOR AGENTS &amp; HUMANS</p>
-      <h1 id="hero-title" class="hero__title">
-        팀과 에이전트가<br />
-        같은 맥락에서 <em>움직입니다</em>.
+      <p class="eyebrow">SPEC MANAGER FOR VIBE CODERS</p>
+      <h1
+        id="hero-title"
+        class="text-ink-strong font-normal tracking-tight m-0"
+        style="font-size: clamp(2.75rem, 7vw, 5.5rem); line-height: 1.06; letter-spacing: -0.025em;"
+      >
+        “이게 아닌데”를<br />
+        오늘 몇 번 <em class="not-italic text-primary-soft">말하셨나요</em>?
       </h1>
-      <p class="hero__copy">
-        Vooster는 한국어 유스케이스, 빨간 테스트, 커밋 이력을 한 작업실에 모읍니다.
-        6개 이상의 AI 에이전트가 동시에 편집해도 누구도 맥락을 잃지 않습니다.
+      <p class="max-w-[620px] mt-8 text-body text-lg leading-[1.65]">
+        Vooster는 vibe coder를 위한 Spec 관리자입니다.<br class="hidden sm:inline" />
+        AI가 기획을 맘대로 해석할 여지를 없앱니다.
       </p>
-      <div class="hero__actions" aria-label="주요 작업">
-        <a class="btn btn--primary" href="#pricing">
-          무료로 시작하기
+      <div class="flex flex-wrap gap-3 mt-10">
+        <a href="#get-started" class="btn-primary">
+          무료로 시작
           <span aria-hidden="true">→</span>
         </a>
-        <a class="btn btn--outline" href="#showcase">사용 예시 보기</a>
+        <a href="#how" class="btn-outline">3분 데모</a>
       </div>
-      <ul class="hero__stats" aria-label="현재 진행">
-        <li>
-          <span class="hero__stat-num mono-num">35</span>
-          <span class="hero__stat-label">완료된 유스케이스</span>
-        </li>
-        <li>
-          <span class="hero__stat-num mono-num">475</span>
-          <span class="hero__stat-label">통과 테스트</span>
-        </li>
-        <li>
-          <span class="hero__stat-num mono-num">6</span>
-          <span class="hero__stat-label">합격 게이트 단계</span>
-        </li>
-      </ul>
     </div>
 
-    <div class="section-shell hero__mockup-shell">
-      <article class="hero__mockup" aria-label="Vooster CLI 미리보기">
-        <header class="hero__mockup-bar">
-          <span class="hero__mockup-dots" aria-hidden="true">
-            <span></span><span></span><span></span>
-          </span>
-          <span class="hero__mockup-file">~/vooster · vspec spec ls</span>
-          <span class="pill hero__mockup-pill" aria-label="실시간 상태">
-            <span class="pill__dot" aria-hidden="true"></span>
-            live
-          </span>
-        </header>
-        <pre class="hero__mockup-code"><code><span class="c-mute">$</span> <span class="c-key">vspec</span> spec ls --workspace=team
-<span class="c-mute">┌──────────┬──────────────────────────┬─────────────┐</span>
-<span class="c-mute">│</span> <span class="c-key">UC-012</span>   <span class="c-mute">│</span> 리뷰 요청 보내기         <span class="c-mute">│</span> <span class="c-warn">● red</span>     <span class="c-mute">│</span>
-<span class="c-mute">│</span> <span class="c-key">UC-013</span>   <span class="c-mute">│</span> GitHub OAuth 로그인      <span class="c-mute">│</span> <span class="c-ok">● green</span>   <span class="c-mute">│</span>
-<span class="c-mute">│</span> <span class="c-key">UC-014</span>   <span class="c-mute">│</span> 세션 타임라인            <span class="c-mute">│</span> <span class="c-accent">● gated</span>   <span class="c-mute">│</span>
-<span class="c-mute">└──────────┴──────────────────────────┴─────────────┘</span>
-<span class="c-mute">→</span> <span class="c-accent">3</span> use cases · 빨강 1 · 초록 1 · 게이트 통과 1
-</code></pre>
-      </article>
+    <div class="shell relative max-w-[720px] mt-24">
+      <ol class="flex flex-col items-center gap-3 m-0 p-0 list-none" aria-label="Vooster 워크플로우 미리보기">
+        {stages.map((stage, idx) => (
+          <>
+            <li class:list={[
+              "w-full px-6 py-5 rounded-md border transition-colors",
+              stage.kind === "spec"
+                ? "border-primary-deep bg-canvas shadow-[0_0_0_1px_rgba(45,212,191,0.06),0_24px_60px_-32px_rgba(45,212,191,0.2)]"
+                : "border-hairline bg-canvas-soft",
+            ]}>
+              <header class="flex items-center gap-2.5 mb-3">
+                <span class:list={[
+                  "inline-flex items-center justify-center w-7 h-7 rounded-sm border text-sm leading-none",
+                  stage.kind === "result"
+                    ? "bg-success/15 border-success/40 text-success font-bold"
+                    : "bg-canvas border-hairline",
+                ]} aria-hidden="true">
+                  {stage.icon}
+                </span>
+                <span class="text-mute font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  {stage.label}
+                </span>
+                {"chip" in stage && (
+                  <span class="code-chip ml-auto text-[11px]">{stage.chip}</span>
+                )}
+              </header>
+
+              {stage.kind === "prompt" && (
+                <p class="m-0 text-ink-strong text-lg font-medium leading-snug">{stage.body}</p>
+              )}
+
+              {stage.kind === "spec" && (
+                <pre class="m-0 p-4 bg-canvas border border-hairline rounded-sm text-code-ink font-mono text-[12.5px] leading-[1.7] overflow-x-auto"><code><span class="text-mute"># UC-013 GitHub OAuth 로그인</span>
+<span class="text-primary-soft">Goal:</span>   30초 안에 OAuth 로그인
+<span class="text-primary-soft">Actor:</span>  미로그인 방문자
+<span class="text-primary-soft">Main success:</span>
+  1. /login 접속
+  2. GitHub 인증 ...</code></pre>
+              )}
+
+              {stage.kind === "result" && (
+                <p class="m-0 text-ink-strong leading-snug">
+                  {stage.body}<br />
+                  <span class="mono-num inline-block mt-1.5 text-mute text-xs">{stage.meta}</span>
+                </p>
+              )}
+            </li>
+
+            {idx < stages.length - 1 && (
+              <li class="text-hairline font-mono text-lg leading-none select-none" aria-hidden="true">↓</li>
+            )}
+          </>
+        ))}
+      </ol>
     </div>
   </section>
 </header>
-
-<style>
-  .hero {
-    position: relative;
-    background: var(--color-canvas);
-    border-bottom: var(--hairline);
-  }
-
-  .hero__nav {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: rgba(12, 16, 14, 0.86);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: var(--hairline);
-  }
-
-  .hero__nav-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2xl);
-    height: 64px;
-  }
-
-  .hero__brand {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--color-ink-strong);
-  }
-
-  .hero__brand-mark {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    background: var(--color-primary);
-    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.18);
-    align-self: center;
-  }
-
-  .hero__brand-tag {
-    color: var(--color-mute);
-    font-size: 12px;
-  }
-
-  .hero__nav-links {
-    display: flex;
-    gap: 28px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    color: var(--color-body);
-    font-size: 14px;
-  }
-
-  .hero__nav-links a {
-    transition: color 140ms ease-out;
-  }
-
-  .hero__nav-links a:hover {
-    color: var(--color-ink-strong);
-  }
-
-  .hero__nav-cta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .hero__nav-ghost {
-    min-height: 40px;
-    padding: 10px 14px;
-    font-size: 14px;
-  }
-
-  .hero__nav-cta .btn--primary {
-    min-height: 40px;
-    padding: 10px 16px;
-    font-size: 14px;
-  }
-
-  .hero__band {
-    padding: var(--space-8xl) 0 var(--space-7xl);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero__band::before {
-    content: "";
-    position: absolute;
-    inset: -20% 30% auto auto;
-    height: 540px;
-    width: 540px;
-    background: radial-gradient(
-      circle at center,
-      rgba(45, 212, 191, 0.12) 0%,
-      rgba(45, 212, 191, 0) 60%
-    );
-    filter: blur(20px);
-    pointer-events: none;
-  }
-
-  .hero__content {
-    position: relative;
-    z-index: 1;
-    max-width: 860px;
-  }
-
-  .hero__pill {
-    margin-bottom: var(--space-2xl);
-  }
-
-  .hero__title {
-    margin: 0;
-    color: var(--color-ink-strong);
-    font-family: var(--font-sans);
-    font-size: clamp(2.75rem, 7vw, 5.5rem);
-    font-weight: 400;
-    letter-spacing: -0.025em;
-    line-height: 1.02;
-  }
-
-  .hero__title em {
-    font-style: normal;
-    color: var(--color-primary-soft);
-  }
-
-  .hero__copy {
-    max-width: 620px;
-    margin: var(--space-3xl) 0 0;
-    color: var(--color-body);
-    font-size: 1.125rem;
-    line-height: 1.65;
-  }
-
-  .hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin: var(--space-4xl) 0 0;
-  }
-
-  .hero__stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-2xl);
-    max-width: 540px;
-    margin: var(--space-6xl) 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .hero__stats li {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-left: 14px;
-    border-left: 1px solid var(--color-hairline);
-  }
-
-  .hero__stat-num {
-    color: var(--color-ink-strong);
-    font-size: 1.6rem;
-    line-height: 1;
-  }
-
-  .hero__stat-label {
-    color: var(--color-mute);
-    font-size: 12px;
-    letter-spacing: 0.02em;
-  }
-
-  .hero__mockup-shell {
-    position: relative;
-    z-index: 1;
-    margin-top: var(--space-7xl);
-  }
-
-  .hero__mockup {
-    border: var(--hairline);
-    border-radius: var(--radius-md);
-    background: var(--color-canvas-soft);
-    box-shadow:
-      0 0 0 1px rgba(45, 212, 191, 0.06),
-      0 24px 60px -32px rgba(45, 212, 191, 0.18);
-    overflow: hidden;
-  }
-
-  .hero__mockup-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    padding: 12px 16px;
-    border-bottom: var(--hairline);
-    background: var(--color-canvas);
-  }
-
-  .hero__mockup-dots {
-    display: inline-flex;
-    gap: 6px;
-  }
-
-  .hero__mockup-dots span {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--color-hairline);
-  }
-
-  .hero__mockup-file {
-    flex: 1;
-    color: var(--color-mute);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    text-align: center;
-  }
-
-  .hero__mockup-pill {
-    font-size: 11px;
-    padding: 4px 10px;
-  }
-
-  .hero__mockup-code {
-    margin: 0;
-    padding: var(--space-2xl);
-    background: var(--color-canvas);
-    color: var(--color-code-ink);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 1.7;
-    overflow-x: auto;
-  }
-
-  .hero__mockup-code .c-key {
-    color: var(--color-primary-soft);
-  }
-
-  .hero__mockup-code .c-mute {
-    color: var(--color-mute);
-  }
-
-  .hero__mockup-code .c-accent {
-    color: var(--color-primary);
-  }
-
-  .hero__mockup-code .c-ok {
-    color: var(--color-success);
-  }
-
-  .hero__mockup-code .c-warn {
-    color: var(--color-error);
-  }
-
-  @media (max-width: 880px) {
-    .hero__nav-links {
-      display: none;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .hero__band {
-      padding: var(--space-7xl) 0 var(--space-6xl);
-    }
-
-    .hero__nav-ghost {
-      display: none;
-    }
-
-    .hero__title {
-      font-size: clamp(2.25rem, 9vw, 3rem);
-    }
-
-    .hero__actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .hero__actions .btn {
-      width: 100%;
-    }
-
-    .hero__stats {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .hero__stats li:last-child {
-      grid-column: span 2;
-    }
-
-    .hero__mockup-code {
-      font-size: 11.5px;
-    }
-  }
-</style>

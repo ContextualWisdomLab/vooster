@@ -2,177 +2,88 @@
 const steps = [
   {
     n: "01",
-    tag: "Orient",
-    title: "목표를 정렬합니다",
-    body: "diagnose.sh 가 진행 상황과 다음 작업을 짚어주면, 한 번에 하나의 유스케이스만 고릅니다.",
+    pain: "AI가 기획의 빈칸을 마음대로 채우는 문제",
+    body: "한국어 자연어로 쓴 기획을 유스케이스 형식으로 구조화해, 이해관계자·목표·시나리오·확장을 1급 필드로 박습니다. 빈칸 자체가 사라지므로, AI가 해석으로 채울 여지가 없습니다.",
+    visual: "spec",
   },
   {
     n: "02",
-    tag: "Plan",
-    title: "테스트를 먼저 적습니다",
-    body: "필요한 E2E 경로, 준비 데이터, 관찰할 결과를 test-plan.md 큐에 올려 둡니다.",
+    pain: "멀티 에이전트 환경에서 스펙이 꼬이는 문제",
+    body: "여러 에이전트가 동시에 작업을 하다보면 문서도, 코드도 꼬이기 쉽습니다. Vooster는 작업중인 기능을 Lock 상태로 전환해서, 다른 에이전트가 침범할 수 없게 만듭니다. 결과적으로 몇십 개의 에이전트도 충돌없이 작업할 수 있게 됩니다.",
+    visual: "lock",
   },
   {
     n: "03",
-    tag: "Cycle",
-    title: "RED → GREEN → REFACTOR",
-    body: "빨간 테스트를 만들고 최소 변경으로 통과시킨 뒤, 중복과 이름만큼만 다듬습니다.",
+    pain: "AI가 spec 일부를 빼먹어도 모르는 문제",
+    body: "시간이 지나면 코드와 spec은 따로 놀게 됩니다. spec은 점점 거짓말이 되고, \"분명히 시켰는데\"가 반복됩니다. Vooster는 spec과 코드의 일치를 CI에서 자동 검증해, 어긋난 PR을 통과시키지 않습니다.",
+    visual: "drift",
   },
-  {
-    n: "04",
-    tag: "Verify",
-    title: "게이트로 증거를 남깁니다",
-    body: "빌드·타입체크·E2E·보안 검사가 같은 커밋에 묶여 다음 세션이 그대로 이어받습니다.",
-  },
-];
+] as const;
 ---
 
-<section id="how" class="how" aria-labelledby="how-title">
-  <div class="section-shell">
-    <div class="how__head">
-      <div>
-        <p class="eyebrow-mono">HOW IT WORKS</p>
-        <h2 id="how-title" class="section-heading">
-          작업은 항상 같은 리듬으로<br />
-          <em>전진합니다</em>.
-        </h2>
-      </div>
-      <p class="how__lead">
-        Kent Beck 식 TDD 사이클을 도구가 강제합니다. RED 커밋이 없으면 GREEN 커밋이
-        생성되지 않고, 게이트가 빨간 채로 머지가 차단됩니다.
-      </p>
+<section id="how" class="section bg-canvas">
+  <div class="shell">
+    <div class="max-w-[760px]">
+      <p class="eyebrow">HOW IT WORKS</p>
+      <h2 class="section-heading">
+        바이브코딩을<br />
+        <em>spec-driven coding</em>으로 바꾸는 3단계.
+      </h2>
     </div>
 
-    <ol class="how__steps">
-      {steps.map((step, index) => (
-        <li class="how__step">
-          <div class="how__step-head">
-            <span class="how__step-num mono-num">{step.n}</span>
-            <span class="how__step-tag code-chip">{step.tag}</span>
+    <ol class="mt-16 grid gap-5 md:grid-cols-3 list-none p-0">
+      {steps.map((step) => (
+        <li class="card flex flex-col gap-5 p-7 hover:border-primary-deep">
+          <header class="flex items-baseline gap-3">
+            <span class="mono-num text-primary-soft text-2xl">{step.n}</span>
+            <span class="text-mute font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+              Problem → Fix
+            </span>
+          </header>
+
+          <h3 class="text-ink-strong text-lg font-semibold tracking-tight leading-snug m-0">
+            {step.pain}
+          </h3>
+
+          <p class="text-body text-[15px] leading-relaxed m-0">
+            {step.body}
+          </p>
+
+          <div class="mt-auto pt-2">
+            {step.visual === "spec" && (
+              <pre class="m-0 p-4 bg-canvas-raised border border-hairline rounded-sm text-code-ink font-mono text-[11.5px] leading-[1.65] overflow-x-auto"><code><span class="text-mute">specs/UC-013.md</span>
+<span class="text-primary-soft"># UC-013</span> GitHub OAuth
+  Goal:  30초 안에 로그인
+  Actor: 미로그인 방문자
+  Steps:
+   1. /login 접속
+   2. GitHub 인증 ...</code></pre>
+            )}
+
+            {step.visual === "lock" && (
+              <div class="p-4 bg-canvas-raised border border-hairline rounded-sm font-mono text-[12px] leading-relaxed">
+                <div class="flex items-center gap-2 text-ink-strong">
+                  <span aria-hidden="true">🔒</span>
+                  <span>UC-013 · Locked</span>
+                </div>
+                <div class="mt-2.5 text-body">claude-code 작업 중 (45m)</div>
+                <div class="text-body">cursor 침범 2회 차단</div>
+              </div>
+            )}
+
+            {step.visual === "drift" && (
+              <div class="p-4 bg-canvas-raised border border-error/40 rounded-sm font-mono text-[12px] leading-relaxed">
+                <div class="flex items-center gap-2 text-error">
+                  <span aria-hidden="true">❌</span>
+                  <span>spec drift detected</span>
+                </div>
+                <div class="mt-2.5 text-body">UC-013 · step 3 미구현</div>
+                <div class="text-body">PR #214 blocked</div>
+              </div>
+            )}
           </div>
-          <h3 class="how__step-title">{step.title}</h3>
-          <p class="how__step-body">{step.body}</p>
-          {index < steps.length - 1 && (
-            <span class="how__step-arrow" aria-hidden="true">→</span>
-          )}
         </li>
       ))}
     </ol>
   </div>
 </section>
-
-<style>
-  .how {
-    padding: var(--space-7xl) 0;
-    background: var(--color-canvas-soft);
-    border-bottom: var(--hairline);
-  }
-
-  .how__head {
-    display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: var(--space-4xl);
-    align-items: end;
-    margin-bottom: var(--space-5xl);
-  }
-
-  .how__lead {
-    margin: 0;
-    color: var(--color-body);
-    font-size: 1rem;
-    line-height: 1.65;
-  }
-
-  .how__steps {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-lg);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    counter-reset: step;
-  }
-
-  .how__step {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-    min-height: 240px;
-    padding: var(--space-2xl);
-    border: var(--hairline);
-    border-radius: var(--radius-md);
-    background: var(--color-canvas);
-  }
-
-  .how__step-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-  }
-
-  .how__step-num {
-    color: var(--color-primary-soft);
-    font-size: 1.5rem;
-    font-weight: 500;
-  }
-
-  .how__step-tag {
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
-  }
-
-  .how__step-title {
-    margin: var(--space-md) 0 0;
-    color: var(--color-ink-strong);
-    font-family: var(--font-sans);
-    font-size: 1.15rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-
-  .how__step-body {
-    margin: 0;
-    color: var(--color-body);
-    font-size: 0.95rem;
-    line-height: 1.6;
-  }
-
-  .how__step-arrow {
-    position: absolute;
-    right: -22px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--color-hairline);
-    font-family: var(--font-mono);
-    font-size: 20px;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  @media (max-width: 1024px) {
-    .how__head {
-      grid-template-columns: 1fr;
-    }
-
-    .how__steps {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .how__step-arrow {
-      display: none;
-    }
-  }
-
-  @media (max-width: 560px) {
-    .how__steps {
-      grid-template-columns: 1fr;
-    }
-
-    .how__step {
-      min-height: auto;
-    }
-  }
-</style>

@@ -1,0 +1,152 @@
+---
+import { ONBOARDING_PROMPT } from "../../lib/copy";
+
+const steps = [
+  {
+    n: "01",
+    actor: "당신",
+    time: "1회 · 30초",
+    title: "coding agent에 vooster 연결",
+    kind: "copy" as const,
+  },
+  {
+    n: "02",
+    actor: "당신",
+    time: "매 작업",
+    title: "평소처럼 자연어로 요청",
+    kind: "chat" as const,
+    body: '"로그인 기능 만들어줘"',
+    speaker: "Claude Code",
+  },
+  {
+    n: "03",
+    actor: "agent",
+    time: "자동",
+    title: "agent가 spec 구조화 + Lock",
+    kind: "chat" as const,
+    body: '"UC-013으로 정리했습니다. 이대로 구현할까요?"',
+    speaker: "agent",
+  },
+  {
+    n: "04",
+    actor: "vspec",
+    time: "자동",
+    title: "코드와 spec 일치 검증",
+    kind: "result" as const,
+  },
+];
+---
+
+<section id="get-started" class="section bg-canvas-soft">
+  <div class="shell">
+    <div class="max-w-[760px]">
+      <p class="eyebrow">GET STARTED</p>
+      <h2 class="section-heading">
+        agent와 평소처럼 대화하세요.<br />
+        spec 작업은 <em>agent가 알아서</em> 합니다.
+      </h2>
+    </div>
+
+    <ol class="mt-16 grid gap-5 md:grid-cols-2 list-none p-0">
+      {steps.map((step) => (
+        <li class="card flex flex-col gap-4 p-7">
+          <header class="flex items-baseline justify-between gap-2">
+            <div class="flex items-baseline gap-3">
+              <span class="mono-num text-primary-soft text-2xl">{step.n}</span>
+              <span class="text-mute font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+                {step.actor}
+              </span>
+            </div>
+            <span class="text-mute font-mono text-[11px]">{step.time}</span>
+          </header>
+
+          <h3 class="text-ink-strong text-lg font-semibold tracking-tight leading-snug m-0">
+            {step.title}
+          </h3>
+
+          {step.kind === "copy" && (
+            <div class="flex flex-col gap-3 mt-1" data-onboarding-copy>
+              <div class="relative">
+                <pre class="m-0 p-4 pr-12 bg-canvas-raised border border-hairline rounded-sm text-ink text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words" data-onboarding-prompt>{ONBOARDING_PROMPT}</pre>
+                <button
+                  type="button"
+                  class="absolute top-2 right-2 inline-flex items-center justify-center w-9 h-9 rounded-sm border border-hairline bg-canvas text-mute hover:text-primary-soft hover:border-primary-deep transition-colors"
+                  aria-label="프롬프트 복사"
+                  data-onboarding-copy-btn
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M5 15V5a2 2 0 012-2h10" />
+                  </svg>
+                </button>
+              </div>
+              <p class="m-0 text-body text-sm leading-relaxed">
+                <span class="text-mute mr-1">②</span>
+                Claude Code / Cursor 채팅창에 붙여넣기. 끝.
+                나머지는 agent가 가이드를 보고 알아서 합니다.
+              </p>
+            </div>
+          )}
+
+          {step.kind === "chat" && (
+            <div class="mt-1 p-4 bg-canvas-raised border border-hairline rounded-sm">
+              <div class="text-mute font-mono text-[11px] uppercase tracking-[0.14em] mb-2">
+                💬 {step.speaker}
+              </div>
+              <p class="m-0 text-ink-strong text-[15px] leading-snug">{step.body}</p>
+            </div>
+          )}
+
+          {step.kind === "result" && (
+            <div class="mt-1 p-4 bg-canvas-raised border border-success/40 rounded-sm font-mono text-[12px] leading-relaxed">
+              <div class="flex items-center gap-2 text-success">
+                <span aria-hidden="true">✓</span>
+                <span>UC-013 · 6/6 steps</span>
+              </div>
+              <div class="mt-2.5 text-body">PR #214 ready</div>
+            </div>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<div
+  id="copy-toast"
+  role="status"
+  aria-live="polite"
+  class="pointer-events-none fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-md border border-primary-deep bg-canvas-raised text-ink-strong text-sm shadow-[0_24px_60px_-32px_rgba(45,212,191,0.4)] opacity-0 transition-opacity duration-200"
+>
+  복사됨 · IDE 채팅창에 붙여넣으세요
+</div>
+
+<script>
+  const copyButtons = document.querySelectorAll<HTMLButtonElement>("[data-onboarding-copy-btn], [data-onboarding-cta]");
+  const toast = document.getElementById("copy-toast");
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function showToast(message: string): void {
+    if (!toast) return;
+    toast.textContent = message;
+    toast.style.opacity = "1";
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.style.opacity = "0";
+    }, 2000);
+  }
+
+  async function copyPrompt(): Promise<void> {
+    const promptEl = document.querySelector<HTMLElement>("[data-onboarding-prompt]");
+    if (!promptEl) return;
+    const text = promptEl.textContent ?? "";
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("복사됨 · IDE 채팅창에 붙여넣으세요");
+    } catch {
+      showToast("복사 실패 · 수동으로 선택해주세요");
+    }
+  }
+
+  copyButtons.forEach((btn) => btn.addEventListener("click", copyPrompt));
+</script>

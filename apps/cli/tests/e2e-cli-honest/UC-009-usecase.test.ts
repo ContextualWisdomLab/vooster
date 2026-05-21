@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
-import { seedViaCli } from "./cli-setup.js";
+import { expectOk, seedViaCli } from "./cli-setup.js";
 
 describe("UC-009 honest CLI - Author a use case", () => {
   test("creates a draft use case through the CLI", async () => {
@@ -13,10 +13,18 @@ describe("UC-009 honest CLI - Author a use case", () => {
         usecaseTitle: "Places an order"
       });
 
+      const shown = await expectOk(runCli([
+        "usecase",
+        "show",
+        seed.usecaseKey
+      ], seed.env));
+
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(seed.usecaseKey).toBe("USC-001");
+      expect(shown.stdout).toContain(seed.usecaseKey);
+      expect(shown.stdout).toContain("Places an order");
     } finally {
       await server.stop();
     }
-  });
+  }, 30_000);
 });

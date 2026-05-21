@@ -29,6 +29,9 @@ coverage/
 .vspec/session.json
 .omc/
 
+# Generated from AGENTS.md by SessionStart hook
+CLAUDE.md
+
 # OS
 .DS_Store
 Thumbs.db

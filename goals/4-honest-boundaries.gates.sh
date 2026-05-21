@@ -95,7 +95,7 @@ while IFS= read -r f; do
       && ! grep -qE 'JSON\.parse|yaml\.|safe_load|ESLint\(|new Linter' "$f" 2>/dev/null; then
     DISHONEST_TESTS+=("$f")
   fi
-done < <(find tests -type f -name '*.test.ts' 2>/dev/null)
+done < <(find apps/api/tests apps/cli/tests -type f -name '*.test.ts' 2>/dev/null)
 if [ "${#DISHONEST_TESTS[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
@@ -230,7 +230,7 @@ while IFS= read -r line; do
   if [ "$size" -gt 1000 ] 2>/dev/null; then
     GIANT_FILES+=("$size $path")
   fi
-done < <(find src -name '*.ts' -exec wc -l {} +)
+done < <(find apps/api/src apps/cli/src apps/web/app -name '*.ts' -exec wc -l {} +)
 if [ "${#GIANT_FILES[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else

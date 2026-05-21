@@ -27,7 +27,7 @@ cd "$ROOT"
 mkdir -p "$ROOT/.state"
 ACTIVE_FILE="$ROOT/.state/active-goal"
 
-CONCURRENCY="${VSPEC_GATES_CONCURRENCY:-2}"
+CONCURRENCY="${VSPEC_GATES_CONCURRENCY:-4}"
 case "$CONCURRENCY" in
   ''|*[!0-9]*) CONCURRENCY=2 ;;
   0) CONCURRENCY=1 ;;
@@ -99,17 +99,58 @@ FIRST_FAIL_MD=""
 # those .md files would otherwise sit behind a stale cache. Cheap, runs
 # before the parallel goal workers so doc/gate drift fails fast.
 echo "--- Meta: gate rigor sweep (every .md ↔ .gates.sh) ---"
-if bash "$ROOT/scripts/check-gate-rigor.sh" --all; then
-  echo "    ✓ every goal's universal claims match an iterating gate"
-else
-  echo "    ✗ rigor mismatch — fix .md or its gate before continuing"
-  OVERALL_PASS=false
-  while IFS= read -r md; do
-    if ! bash "$ROOT/scripts/check-gate-rigor.sh" "$md" >/dev/null 2>&1; then
-      FIRST_FAIL_MD="$md"
-      break
+
+RIGOR_CACHE_DIR="$ROOT/.state/gate-cache"
+RIGOR_CACHE_FILE="$RIGOR_CACHE_DIR/_meta-rigor"
+
+rigor_inputs() {
+  find goals -maxdepth 1 \( -name '*.md' -o -name '*.gates.sh' \) -type f 2>/dev/null | sort
+}
+
+rigor_fingerprint() {
+  local files=()
+  while IFS= read -r f; do
+    files+=("$f")
+  done < <(rigor_inputs)
+  if [ "${#files[@]}" -eq 0 ]; then
+    echo ""
+    return
+  fi
+  cat "${files[@]}" 2>/dev/null | shasum -a 256 | awk '{print $1}'
+}
+
+rigor_cache_fresh() {
+  [ -f "$RIGOR_CACHE_FILE" ] || return 1
+  local cached current
+  cached=$(cat "$RIGOR_CACHE_FILE" 2>/dev/null || true)
+  current=$(rigor_fingerprint)
+  [ -n "$cached" ] && [ "$cached" = "$current" ] || return 1
+  # Defensive: cache file mtime must be newer than every input.
+  while IFS= read -r f; do
+    if [ "$f" -nt "$RIGOR_CACHE_FILE" ]; then
+      return 1
     fi
-  done < <(find goals -maxdepth 1 -name '*.md' -type f | sort)
+  done < <(rigor_inputs)
+  return 0
+}
+
+if rigor_cache_fresh; then
+  echo "    ✓ cache hit — rigor sweep skipped (fingerprint unchanged)"
+else
+  if bash "$ROOT/scripts/check-gate-rigor.sh" --all; then
+    echo "    ✓ every goal's universal claims match an iterating gate"
+    mkdir -p "$RIGOR_CACHE_DIR"
+    rigor_fingerprint > "$RIGOR_CACHE_FILE"
+  else
+    echo "    ✗ rigor mismatch — fix .md or its gate before continuing"
+    OVERALL_PASS=false
+    while IFS= read -r md; do
+      if ! bash "$ROOT/scripts/check-gate-rigor.sh" "$md" >/dev/null 2>&1; then
+        FIRST_FAIL_MD="$md"
+        break
+      fi
+    done < <(find goals -maxdepth 1 -name '*.md' -type f | sort)
+  fi
 fi
 echo
 

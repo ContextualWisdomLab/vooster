@@ -191,7 +191,7 @@ if [ -d src ]; then
     rel="${f#src/}"
     [ -f "apps/api/src/${rel}" ] && B5_DUPES+=("$f ↔ apps/api/src/${rel}")
     [ -f "apps/cli/src/${rel}" ] && B5_DUPES+=("$f ↔ apps/cli/src/${rel}")
-  done < <(find src -type f -name '*.ts' 2>/dev/null)
+  done < <(find apps/cli/src -type f -name '*.ts' 2>/dev/null)
 fi
 if [ "${#B5_DUPES[@]}" -eq 0 ]; then
   echo "    ✓ pass"

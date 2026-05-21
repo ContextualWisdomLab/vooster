@@ -66,7 +66,7 @@ run_gate() {
 }
 
 # Directories the "no sqlite literal" scan covers. Each is iterated.
-SQLITE_FORBIDDEN_DIRS=(prisma src scripts tests)
+SQLITE_FORBIDDEN_DIRS=(apps/api/prisma apps/api/src scripts apps/api/tests apps/cli/src apps/cli/tests)
 SQLITE_FORBIDDEN_FILES=(.env.example package.json docker-compose.yml docker-compose.prod.yml Dockerfile)
 
 # ─── Tranche A — Test infrastructure rides Postgres ──────────────────────
@@ -100,7 +100,7 @@ echo "[3.A2] No file: or .sqlite URL remains in tests/"
 LEFTOVER_FILES=()
 while IFS= read -r f; do
   LEFTOVER_FILES+=("$f")
-done < <(grep -rlE '\.sqlite\b|\bfile:\$\{' tests/ 2>/dev/null || true)
+done < <(grep -rlE '\.sqlite\b|\bfile:\$\{' apps/api/tests/ 2>/dev/null || true)
 if [ "${#LEFTOVER_FILES[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
@@ -181,7 +181,7 @@ while IFS= read -r f; do
   if grep -q 'DATABASE_URL' "$f" && ! grep -q 'postgres-db' "$f"; then
     SPAWN_VIOLATORS+=("$f")
   fi
-done < <(grep -rlE '\bspawn\s*\(' tests/ 2>/dev/null || true)
+done < <(grep -rlE '\bspawn\s*\(' apps/api/tests/ 2>/dev/null || true)
 # The helper file itself is allowed to mention DATABASE_URL without
 # importing itself.
 FILTERED=()

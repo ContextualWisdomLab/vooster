@@ -38,6 +38,7 @@ PORT=${VSPEC_DEPLOY_TEST_PORT:-4400}
 PROJECT=${VSPEC_DEPLOY_TEST_PROJECT:-vspec-deploy-check}
 export VSPEC_DEPLOY_HOST_PORT="$PORT"
 export VSPEC_AUTH_STUB=1
+export DATABASE_URL="${VSPEC_DEPLOY_DATABASE_URL:-postgresql://vspec:vspec@db:5432/vspec}"
 LOG=$(mktemp)
 
 compose() {

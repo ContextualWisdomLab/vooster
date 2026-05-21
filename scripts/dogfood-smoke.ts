@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import type { InjectOptions, Response as InjectResponse } from "light-my-request";
+import type { InjectOptions, LightMyRequestResponse } from "fastify";
 import { createServer } from "../apps/api/src/http/server.js";
 
 const app = await createServer({ authStub: true });
@@ -131,7 +131,7 @@ type DogfoodMethod = "GET" | "POST";
 function request(
   path: string,
   options: { body?: string; headers?: Record<string, string>; method?: DogfoodMethod } = {}
-): Promise<InjectResponse> {
+): Promise<LightMyRequestResponse> {
   const requestOptions: InjectOptions = {
     method: options.method ?? "GET",
     url: path,
@@ -142,7 +142,7 @@ function request(
   return app.inject(requestOptions);
 }
 
-function cookieHeader(response: InjectResponse): string {
+function cookieHeader(response: LightMyRequestResponse): string {
   const cookies = response.cookies.map((cookie) => `${cookie.name}=${cookie.value}`);
   if (cookies.length === 0) {
     throw new Error("dogfood response did not set a cookie");
@@ -150,7 +150,7 @@ function cookieHeader(response: InjectResponse): string {
   return cookies.join("; ");
 }
 
-function ensureOk(path: string, response: InjectResponse) {
+function ensureOk(path: string, response: LightMyRequestResponse) {
   if (response.statusCode >= 400) {
     throw new Error(`${path} failed: ${String(response.statusCode)} ${response.payload}`);
   }

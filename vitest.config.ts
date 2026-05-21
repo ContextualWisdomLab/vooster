@@ -7,6 +7,7 @@ export default defineConfig({
       include: ["apps/api/src/**/*.ts"],
       provider: "v8",
       reporter: ["text", "lcov"],
+      reportsDirectory: process.env.VSPEC_COVERAGE_DIR ?? "coverage",
       thresholds: {
         branches: 75,
         functions: 80,

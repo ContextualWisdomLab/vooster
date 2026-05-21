@@ -44,10 +44,13 @@ fi
 # ---------- Gate 2: tests + coverage ----------
 echo "[0.2/5] Tests + coverage check..."
 if [ -f package.json ]; then
-  if pnpm exec vitest run --coverage >/dev/null 2>&1; then
+  COVERAGE_DIR=$(mktemp -d)
+  if VSPEC_COVERAGE_DIR="$COVERAGE_DIR" pnpm exec vitest run --coverage >/dev/null 2>&1; then
     echo "    ✓ All tests pass and coverage thresholds met"
+    rm -rf "$COVERAGE_DIR"
   else
     echo "    ✗ Tests failing or coverage below thresholds (per vitest.config.ts)"
+    rm -rf "$COVERAGE_DIR"
     PASS=false
   fi
 else

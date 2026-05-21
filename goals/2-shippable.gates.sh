@@ -115,8 +115,8 @@ fi
 # ─── Tranche B — Auth + Deploy ───────────────────────────────────────────
 
 echo "[2.B1] GitHub OAuth without stub"
-if ! grep -rq 'GITHUB_CLIENT_ID' src/ 2>/dev/null; then
-  echo "    ✗ fail — GITHUB_CLIENT_ID never read in src/"
+if ! grep -rq 'GITHUB_CLIENT_ID' apps/api/src/ 2>/dev/null; then
+  echo "    ✗ fail — GITHUB_CLIENT_ID never read in apps/api/src/"
   PASS=false
 elif [ ! -f apps/api/tests/e2e/UC-001-real-oauth.test.ts ]; then
   echo "    ✗ fail — apps/api/tests/e2e/UC-001-real-oauth.test.ts missing"
@@ -202,7 +202,7 @@ const cases = [
   },
   {
     code: [
-      'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
+      'import { createMemoryUserStore } from "../../api/src/infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
     filePath: "apps/cli/src/__goal2_rejects_infrastructure.test-fixture.ts"

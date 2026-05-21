@@ -2,6 +2,8 @@
   "name": "vooster",
   "version": "1.0.0",
   "description": "Cockburn-style use case management for environments with **6+ concurrent AI coding agents**.",
+  "private": true,
+  "packageManager": "pnpm@11.0.5",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -52,9 +54,7 @@
     "tsx": "^4.22.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.3",
-    "vitest": "^4.1.6"
-  },
-  "dependencies": {
+    "vitest": "^4.1.6",
     "@oclif/core": "^4.11.3",
     "argon2": "^0.44.0",
     "boxen": "^8.0.1",

@@ -1083,3 +1083,14 @@ write. This guides your TDD cycles within an iteration._
 - **Assertions**: the persistence matrix keeps covering restart behavior for
   every model while avoiding health checks against another parallel test server.
 - **Verification**: run the focused persistence matrix and the full test suite.
+
+### Goal 5 Monorepo - Workspace Bootstrap
+
+- **Gate evidence**: `goals/5-monorepo.gates.sh` covers workspace bootstrap via
+  A1/A2/A5/A6: `pnpm-workspace.yaml`, root package metadata, sole pnpm lockfile,
+  and `node_modules/.pnpm`.
+- **Setup**: start from the current npm-root package and run the Goal 5 gate
+  with `VSPEC_GATES_NO_CACHE=1 VSPEC_GATES_SKIP_DEEP=1` to confirm the tranche
+  is red before changing files.
+- **Assertions**: after the bootstrap slice, A1/A2/A5/A6 pass while later
+  monorepo relocation and Astro gates remain red until their own iterations.

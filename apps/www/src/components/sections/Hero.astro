@@ -5,30 +5,6 @@ const navLinks = [
   { label: "시작하기", href: "#get-started" },
   { label: "FAQ", href: "#faq" },
 ];
-
-const stages = [
-  {
-    kind: "prompt",
-    icon: "💬",
-    label: "당신",
-    body: '"로그인 만들어줘"',
-  },
-  {
-    kind: "spec",
-    icon: "📄",
-    label: "vspec",
-    chip: "specs/UC-013.md",
-    code: true,
-  },
-  {
-    kind: "result",
-    icon: "✓",
-    label: "agent",
-    chip: "PR #214",
-    body: "UC-013 · 6/6 steps",
-    meta: "git: feat(login): add github oauth",
-  },
-] as const;
 ---
 
 <header class="relative bg-canvas border-b border-hairline">
@@ -89,60 +65,5 @@ const stages = [
       </div>
     </div>
 
-    <div class="shell relative max-w-[720px] mt-24">
-      <ol class="flex flex-col items-center gap-3 m-0 p-0 list-none" aria-label="Vooster 워크플로우 미리보기">
-        {stages.map((stage, idx) => (
-          <>
-            <li class:list={[
-              "w-full px-6 py-5 rounded-md border transition-colors",
-              stage.kind === "spec"
-                ? "border-primary-deep bg-canvas shadow-[0_0_0_1px_rgba(45,212,191,0.06),0_24px_60px_-32px_rgba(45,212,191,0.2)]"
-                : "border-hairline bg-canvas-soft",
-            ]}>
-              <header class="flex items-center gap-2.5 mb-3">
-                <span class:list={[
-                  "inline-flex items-center justify-center w-7 h-7 rounded-sm border text-sm leading-none",
-                  stage.kind === "result"
-                    ? "bg-success/15 border-success/40 text-success font-bold"
-                    : "bg-canvas border-hairline",
-                ]} aria-hidden="true">
-                  {stage.icon}
-                </span>
-                <span class="text-mute font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
-                  {stage.label}
-                </span>
-                {"chip" in stage && (
-                  <span class="code-chip ml-auto text-[11px]">{stage.chip}</span>
-                )}
-              </header>
-
-              {stage.kind === "prompt" && (
-                <p class="m-0 text-ink-strong text-lg font-medium leading-snug">{stage.body}</p>
-              )}
-
-              {stage.kind === "spec" && (
-                <pre class="m-0 p-4 bg-canvas border border-hairline rounded-sm text-code-ink font-mono text-[12.5px] leading-[1.7] overflow-x-auto"><code><span class="text-mute"># UC-013 GitHub OAuth 로그인</span>
-<span class="text-primary-soft">Goal:</span>   30초 안에 OAuth 로그인
-<span class="text-primary-soft">Actor:</span>  미로그인 방문자
-<span class="text-primary-soft">Main success:</span>
-  1. /login 접속
-  2. GitHub 인증 ...</code></pre>
-              )}
-
-              {stage.kind === "result" && (
-                <p class="m-0 text-ink-strong leading-snug">
-                  {stage.body}<br />
-                  <span class="mono-num inline-block mt-1.5 text-mute text-xs">{stage.meta}</span>
-                </p>
-              )}
-            </li>
-
-            {idx < stages.length - 1 && (
-              <li class="text-hairline font-mono text-lg leading-none select-none" aria-hidden="true">↓</li>
-            )}
-          </>
-        ))}
-      </ol>
-    </div>
   </section>
 </header>

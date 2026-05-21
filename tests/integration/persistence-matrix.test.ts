@@ -1,5 +1,6 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
+import { createServer } from "node:net";
 import { promisify } from "node:util";
 import { spawn, type ChildProcess } from "node:child_process";
 
@@ -754,7 +755,7 @@ async function testDatabaseUrl(): Promise<string> {
 }
 
 async function bootServer(databaseUrl: string) {
-  const port = 42_000 + Math.floor(Math.random() * 1_000);
+  const port = await freeTcpPort();
   const child = spawn("npm", ["start"], {
     cwd: root,
     env: {
@@ -783,6 +784,26 @@ async function bootServer(databaseUrl: string) {
 
   await stopServer(child);
   throw new Error(`server did not become healthy: ${await outputFrom(child)}`);
+}
+
+async function freeTcpPort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (address === null || typeof address === "string") {
+        server.close(() => {
+          reject(new Error("Expected TCP address."));
+        });
+        return;
+      }
+      server.close(() => {
+        resolve(address.port);
+      });
+    });
+  });
 }
 
 async function signupWorkspace(baseUrl: string, githubCode: string) {

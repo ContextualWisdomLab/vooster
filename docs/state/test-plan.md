@@ -1074,3 +1074,12 @@ write. This guides your TDD cycles within an iteration._
   fixture reports none.
 - **Cleanup**: temporary fixture files are removed even when the assertion
   fails so the working tree stays clean after the test.
+
+### CI Persistence Matrix Port Isolation
+
+- **Server setup**: `tests/integration/persistence-matrix.test.ts` asks the OS
+  for an available TCP port before spawning the built server instead of using a
+  small fixed random range.
+- **Assertions**: the persistence matrix keeps covering restart behavior for
+  every model while avoiding health checks against another parallel test server.
+- **Verification**: run the focused persistence matrix and the full test suite.

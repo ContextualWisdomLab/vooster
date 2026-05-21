@@ -129,9 +129,13 @@ export function stakeholderInterestFlagsFrom(
 
 function usecaseFormat(rawFormat: string): "agent" | "human" | "json" {
   const format = rawFormat.toLowerCase();
-  if (format === "agent" || format === "human" || format === "json") {
+  if (isUsecaseFormat(format)) {
     return format;
   }
 
   throw new Error("Diff format must be human, json, or agent.");
+}
+
+function isUsecaseFormat(format: string): format is "agent" | "human" | "json" {
+  return ["agent", "human", "json"].includes(format);
 }

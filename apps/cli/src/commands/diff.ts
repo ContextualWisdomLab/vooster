@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
@@ -97,6 +98,31 @@ export async function runDiff(
     }
   });
   const body = response.body as DiffResponse;
+
+  if (diffFlags.format === "agent") {
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            revision: diffFlags.toRevision
+          },
+          suggested_next_actions: body.suggested_next_actions,
+          warnings: (body.warnings ?? []).map((warning) => ({
+            message: `Cross-branch diff from ${warning.from_branch} to ${warning.to_branch}`
+          }))
+        }),
+        null,
+        2
+      )
+    );
+    return;
+  }
+
+  if (diffFlags.format === "json") {
+    writeLine(JSON.stringify(body, null, 2));
+    return;
+  }
 
   writeLine(`UseCase ${body.usecase.key}`);
   writeLine(`Format ${body.format}`);

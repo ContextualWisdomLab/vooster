@@ -12,6 +12,7 @@ import { runExport } from "./commands/export.js";
 import { runGoal } from "./commands/goal.js";
 import { runHistory } from "./commands/history.js";
 import { runImpact } from "./commands/impact.js";
+import { runInit } from "./commands/init.js";
 import { runLogin } from "./commands/login.js";
 import { runLogout } from "./commands/logout.js";
 import { runLock } from "./commands/lock.js";
@@ -75,6 +76,7 @@ export class VspecCommand extends Command {
     output: Flags.string(),
     priority: Flags.string(),
     "primary-actor": Flags.string(),
+    project: Flags.string(),
     "project-id": Flags.string(),
     "proposed-change": Flags.string(),
     "protection-mechanism": Flags.string(),
@@ -124,6 +126,10 @@ export class VspecCommand extends Command {
     }
     if (parsed.args.command === "ai-guide") {
       await runAiGuide(parsed.flags, this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "init") {
+      runInit(parsed.flags, process.cwd(), this.log.bind(this));
       return;
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {

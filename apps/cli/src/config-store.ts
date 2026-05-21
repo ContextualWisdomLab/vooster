@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -12,13 +12,29 @@ export type VspecConfig = {
   current_workspace_slug?: string;
 };
 
-export function configPath(): string {
-  return process.env.VSPEC_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json");
+type ConfigStoreOptions = {
+  path?: string;
+};
+
+type WriteConfigOptions = ConfigStoreOptions & {
+  merge?: boolean;
+};
+
+export function configPath(options: ConfigStoreOptions = {}): string {
+  return options.path ?? process.env.VSPEC_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json");
 }
 
-export function readConfig(): VspecConfig {
+export function localConfigPath(cwd = process.cwd()): string {
+  return join(cwd, ".vspec", "config.json");
+}
+
+export function configExists(options: ConfigStoreOptions = {}): boolean {
+  return existsSync(configPath(options));
+}
+
+export function readConfig(options: ConfigStoreOptions = {}): VspecConfig {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(configPath(), "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(configPath(options), "utf8"));
     return isRecord(parsed) ? configFrom(parsed) : {};
   } catch (error) {
     if (isMissingFile(error)) {
@@ -29,12 +45,18 @@ export function readConfig(): VspecConfig {
   }
 }
 
-export function writeConfig(partial: Partial<VspecConfig>): void {
-  const next = {
-    ...readConfig(),
-    ...partial
-  };
-  const path = configPath();
+export function writeConfig(
+  partial: Partial<VspecConfig>,
+  options: WriteConfigOptions = {}
+): void {
+  const next =
+    options.merge === false
+      ? partial
+      : {
+          ...readConfig(options),
+          ...partial
+        };
+  const path = configPath(options);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
 }

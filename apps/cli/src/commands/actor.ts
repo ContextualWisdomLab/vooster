@@ -25,6 +25,7 @@ type ActorFlags = {
 
 type ActorResponse = {
   actor: {
+    id: string;
     name: string;
     type: string;
   };
@@ -84,6 +85,7 @@ export async function runActor(
   const body = response.body as ActorResponse;
 
   writeLine(`Actor ${body.actor.name} ${body.actor.type}`);
+  writeLine(`Actor id ${body.actor.id}`);
   writeLine(`Revision version ${String(body.revision.version_number)}`);
   writeLine(body.recommended_next_command);
 }

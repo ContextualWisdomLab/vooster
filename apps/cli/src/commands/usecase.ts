@@ -20,6 +20,7 @@ import {
   type UsecaseResponse,
   type UsecaseShowResponse
 } from "./usecase-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { deleteJson, fetchJson, postJson } from "../http-client.js";
 
 export class UsecaseCommand extends Command {
@@ -166,7 +167,24 @@ async function showUsecase(
     }
   });
 
-  if (showFlags.format === "agent" || showFlags.format === "json") {
+  if (showFlags.format === "agent") {
+    const agentBody = agentBodyFrom(response.body);
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: agentBody.data,
+          context: agentBody.context,
+          suggested_next_actions: agentBody.suggested_next_actions,
+          warnings: agentBody.warnings
+        }),
+        null,
+        2
+      )
+    );
+    return;
+  }
+
+  if (showFlags.format === "json") {
     writeLine(JSON.stringify(response.body, null, 2));
     return;
   }
@@ -194,4 +212,41 @@ function setSearchParam(url: URL, name: string, value: string | undefined): void
   if (value !== undefined) {
     url.searchParams.set(name, value);
   }
+}
+
+function agentBodyFrom(body: unknown): {
+  context?: {
+    branch?: string | null;
+    project_key?: string | null;
+    revision?: string | null;
+    session_id?: string | null;
+  };
+  data: unknown;
+  suggested_next_actions?: Array<{ command: string; reason?: string }>;
+  warnings?: Array<{ message: string }>;
+} {
+  if (!isRecord(body)) {
+    return { data: body };
+  }
+
+  return {
+    context: isRecord(body.context) ? body.context : undefined,
+    data: body.data ?? body,
+    suggested_next_actions: isSuggestedActions(body.suggested_next_actions)
+      ? body.suggested_next_actions
+      : undefined,
+    warnings: isWarnings(body.warnings) ? body.warnings : undefined
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isSuggestedActions(value: unknown): value is Array<{ command: string; reason?: string }> {
+  return Array.isArray(value) && value.every((item) => isRecord(item) && typeof item.command === "string");
+}
+
+function isWarnings(value: unknown): value is Array<{ message: string }> {
+  return Array.isArray(value) && value.every((item) => isRecord(item) && typeof item.message === "string");
 }

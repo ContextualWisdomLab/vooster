@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { error as logError } from "node:console";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const binDir = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
+const require = createRequire(import.meta.url);
 
 try {
   if (process.env.VSPEC_CLI_SOURCE === "1") {
@@ -21,7 +23,7 @@ try {
   }
 
   const sourceCli = resolve(binDir, "../src/index.ts");
-  const result = spawnSync(process.execPath, ["--import", "tsx", sourceCli, ...argv], {
+  const result = spawnSync(process.execPath, ["--import", require.resolve("tsx"), sourceCli, ...argv], {
     stdio: "inherit"
   });
 

@@ -29,6 +29,7 @@ type StepEditFlags = {
 
 type StepResponse = {
   revision: {
+    id: string;
     severity: string;
     version_number: number;
   };
@@ -38,6 +39,7 @@ type StepResponse = {
   }>;
   step: {
     action: string;
+    id: string;
     step_number: number;
   };
 };
@@ -113,7 +115,9 @@ async function addStep(
   );
   const body = response.body as StepResponse;
 
+  writeLine(`Step ${body.step.id}`);
   writeLine(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
+  writeLine(`Revision id ${body.revision.id}`);
   writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
   for (const step of body.scenario_steps) {
     writeLine(`${String(step.step_number)}. ${step.action}`);

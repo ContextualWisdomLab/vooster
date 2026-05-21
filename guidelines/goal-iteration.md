@@ -5,6 +5,21 @@ iteration 을 어떻게 돌리는지를 정리한다. `AGENTS.md` 의 일반 TDD
 스타일 / 커밋 위생은 여전히 적용되며, 이 문서는 **goal 스택을 사용해
 루프 작업을 할 때만** 추가로 참조한다.
 
+> 커밋 메시지 포맷·시크릿 스캔·푸시 정책 등 일반 규약은 `/commit`
+> 스킬(`.claude/skills/commit/SKILL.md`)이 단일 출처다. 이 문서는
+> iteration 루프 안에서 **언제** 커밋하는지만 보강한다.
+
+## Pre-flight (first iteration of a checkout)
+
+`scripts/hooks/pre-commit` 심볼릭 링크가 없으면 한 번 설치한다:
+
+```
+ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+```
+
+이 훅이 `completion-check.sh` 를 커밋 경계에서 돌리는 회귀 방어선이다.
+설치 안 된 상태로 커밋하지 말 것.
+
 ## Workflow Per Iteration
 
 ### Phase 1: Orient (5-10% of iteration)
@@ -56,6 +71,7 @@ For each test in your plan:
 1. RED phase:
    - Write the test.
    - Run it, confirm it fails.
+   - Commit: `red(<UC-ID>): <test-name>`.
 
 2. GREEN phase:
    - Write minimum production code.
@@ -64,13 +80,17 @@ For each test in your plan:
    - Delete the test's section from `docs/state/test-plan.md` (the
      plan is a queue — once GREEN, the committed test in `tests/` is
      the source of truth, and the planning entry would only rot).
+   - Commit: `green(<UC-ID>): <description>`.
 
 3. REFACTOR phase (only if there is duplication or unclear code):
    - Improve the code.
    - Run ALL tests after each change.
+   - Commit: `refactor(<UC-ID>): <description>`.
 
-Each phase ends with a commit. See the `/commit` skill for cadence,
-message format, and the pre-commit regression boundary.
+Each phase ends with **one** commit; if a commit message needs "and",
+the step was too big — split it. Never commit failing tests on a
+`green:` or `refactor:` commit. Full message format, type vocabulary,
+and the pre-commit regression boundary live in the `/commit` skill.
 
 ### Phase 5: Verify (5-10% of iteration)
 
@@ -98,11 +118,34 @@ pre-commit hook is for (see the `/commit` skill).
 If you discovered something important, append one bullet to
 `docs/state/learnings.md`.
 
+`docs/state/*` 와 `learnings.md` 변경분은 TDD 커밋과 섞지 말고 별도
+커밋으로 분리한다: `chore(state): update progress for <UC-ID>`.
+상태 파일 갱신 자체가 코드 변경의 일부가 아니기 때문이다.
+
 ### Phase 7: Commit (boundary check)
 
-The commit step is governed by the `/commit` skill — install the
-pre-commit hook, run completion-check on commit, follow the message
-format and push cadence documented there.
+이 시점에서 작업 트리는 모두 커밋되어 있어야 한다 (Phase 4 의 RED/
+GREEN/REFACTOR + Phase 6 의 `chore(state)` 커밋). 빠진 변경이 있는지
+확인:
+
+```
+git status            # 깨끗해야 함
+git log --oneline -5  # 이번 iteration 커밋들이 보여야 함
+```
+
+푸시 전 점검:
+
+- `git diff --cached` 로 시크릿/`.env`/대용량 산출물이 섞이지 않았는지
+  훑는다.
+- `.gitignore` 누락이 있으면 푸시 전에 잡고 별도 `chore: gitignore …`
+  커밋으로 처리한다.
+- 마지막 커밋의 pre-commit 훅이 `completion-check.sh` 를 통과했는지
+  확인한다. 실패했다면 푸시하지 않는다.
+- 통과했다면 푸시한다. 매 iteration 끝에 푸시하며, 로컬 커밋을
+  쌓아두지 않는다.
+
+세부 규약(메시지 포맷, `--no-verify` 사용 조건, 시크릿 유출 대응 등)
+은 `/commit` 스킬을 따른다.
 
 ## When You Are Stuck
 

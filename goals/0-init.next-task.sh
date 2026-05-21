@@ -114,7 +114,7 @@ for UC_ID in "${PRIORITY_ORDER[@]}"; do
     cat <<EOF
 TASK: Start $UC_ID.
   - Read: $SPEC_FILE
-  - Plan tests in docs/state/test-plan.md (one per main + one per extension)
+  - Plan tests in docs/state/test-plan.md (one per main + one per extension; delete each entry once GREEN)
   - Create $TEST_FILE with the first failing test (RED phase)
   - Commit: "red: $UC_ID <first scenario name>"
 EOF

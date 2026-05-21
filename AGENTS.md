@@ -76,6 +76,12 @@ Before writing tests, plan them. Append to `docs/state/test-plan.md`:
 
 This plan informs your TDD cycles.
 
+`test-plan.md` is a **living queue, not a log**: it holds only tests that
+are not yet GREEN. Sections are added in this phase and deleted in
+Phase 4 GREEN — see the prune rule below. The committed test files in
+`tests/` are the source of truth for what has been tested; the plan
+should never duplicate them.
+
 ### Phase 4: TDD Cycles (60-70% of iteration)
 
 For each test in your plan:
@@ -89,6 +95,9 @@ For each test in your plan:
    - Write minimum production code.
    - Run that test, confirm it passes.
    - Run ALL tests, confirm none broken.
+   - Delete the test's section from `docs/state/test-plan.md` (the
+     plan is a queue — once GREEN, the committed test in `tests/` is
+     the source of truth, and the planning entry would only rot).
    - `git commit` with `green: <UC-ID> <description>`.
 
 3. REFACTOR phase (only if there is duplication or unclear code):

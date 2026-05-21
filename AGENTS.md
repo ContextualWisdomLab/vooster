@@ -38,112 +38,12 @@ Choose the most boring solution that works. Cleverness is a debt.
 Once tests pass, look for duplication, unclear names, and complexity. Improve
 them. Run tests after every refactor.
 
-## Workflow Per Iteration
+## Goal-Looping Workflow
 
-### Phase 1: Orient (5-10% of iteration)
-
-```
-bash scripts/diagnose.sh
-cat docs/state/next-task.md
-```
-
-Understand:
-- What is done.
-- What is in progress.
-- What the current task is.
-
-### Phase 2: Read Spec (10-15% of iteration)
-
-Read the use case spec for the current task:
-
-```
-cat docs/usecases/<UC-ID>-*.md
-```
-
-Identify:
-- The main success scenario steps.
-- The extension scenarios.
-- The preconditions and guarantees.
-- Required entities and their relationships (cross-check `docs/05-data-model.md`).
-
-### Phase 3: Test Plan (5-10% of iteration)
-
-Before writing tests, plan them. Append to `docs/state/test-plan.md`:
-
-- Which E2E tests will exist for this use case.
-- What setup each needs.
-- What assertions each makes.
-
-This plan informs your TDD cycles.
-
-`test-plan.md` is a **living queue, not a log**: it holds only tests that
-are not yet GREEN. Sections are added in this phase and deleted in
-Phase 4 GREEN — see the prune rule below. The committed test files in
-`tests/` are the source of truth for what has been tested; the plan
-should never duplicate them.
-
-### Phase 4: TDD Cycles (60-70% of iteration)
-
-For each test in your plan:
-
-1. RED phase:
-   - Write the test.
-   - Run it, confirm it fails.
-   - `git commit` with `red: <UC-ID> <test-name>`.
-
-2. GREEN phase:
-   - Write minimum production code.
-   - Run that test, confirm it passes.
-   - Run ALL tests, confirm none broken.
-   - Delete the test's section from `docs/state/test-plan.md` (the
-     plan is a queue — once GREEN, the committed test in `tests/` is
-     the source of truth, and the planning entry would only rot).
-   - `git commit` with `green: <UC-ID> <description>`.
-
-3. REFACTOR phase (only if there is duplication or unclear code):
-   - Improve the code.
-   - Run ALL tests after each change.
-   - `git commit` with `refactor: <UC-ID> <description>`.
-
-### Phase 5: Verify (5-10% of iteration)
-
-```
-bash scripts/verify-tdd.sh
-bash scripts/check-bypass.sh
-bash scripts/run-tests.sh
-```
-
-If any fails, fix before proceeding.
-
-### Phase 6: Record (5% of iteration)
-
-```
-bash scripts/update-state.sh
-bash scripts/active-check.sh
-```
-
-`active-check.sh` runs only the **active goal**'s gates (~5–30 s) plus
-the rigor sweep. If the active goal turns green, it auto-advances the
-pointer by exec-ing into the full `completion-check.sh`. Prior-goal
-regression is NOT checked at iteration level — that's what the
-pre-commit hook is for (see below).
-
-If you discovered something important, append one bullet to
-`docs/state/learnings.md`.
-
-### Phase 7: Commit (boundary check)
-
-`git commit` is the regression boundary. Install the pre-commit hook
-once per checkout:
-
-```
-ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
-```
-
-From then on, every `git commit` runs `scripts/completion-check.sh`
-and blocks the commit if any prior goal regressed. Use
-`git commit --no-verify` only when you knowingly want a broken
-intermediate state on the branch.
+When working inside the autonomous build harness (`docs/goal-design.md`),
+follow the per-iteration workflow, state-file rules, gate-design
+principles, and active-goal lookup documented in
+`guidelines/goal-iteration.md`. The general rules below still apply.
 
 ## Tech Stack (do not deviate)
 
@@ -208,18 +108,6 @@ Workspace verbs: `pnpm install`, `pnpm --filter @vooster/<app> <script>`, `pnpm 
 - Tests that assert implementation details.
 - "TODO" comments without an actual entry in `docs/state/blockers.md`.
 
-## When You Are Stuck
-
-If you have spent more than 3 TDD cycles without progress on a single test:
-
-1. Stop.
-2. Append to `docs/state/blockers.md`:
-   - What you are trying to do.
-   - What you have tried.
-   - What is going wrong.
-3. Move to a different task via `scripts/next-task.sh`.
-4. Come back later with fresh context.
-
 ## When Tests Are Hard to Write
 
 Hard-to-test code is a design smell. If you cannot easily test something:
@@ -230,130 +118,15 @@ Hard-to-test code is a design smell. If you cannot easily test something:
 
 The test is showing you the design problem. Listen to it.
 
-## Commit Hygiene
+## Commit & Repo Hygiene
 
-- One logical change per commit.
-- Follow [Conventional Commits](https://www.conventionalcommits.org/): subject is
-  `<type>(<scope>)?: <description>`, where `<type>` is one of `red`, `green`,
-  `refactor`, `setup`, `docs`, `chore`, `fix`, `feat`, `test`, `perf`, `build`,
-  `ci`, or `revert`.
-- Subject ≤ 72 chars, imperative mood, no trailing period.
-- Body explains the *why* when not obvious. Use `BREAKING CHANGE:` footer for
-  incompatible changes.
-- Never commit failing tests on green or refactor commits.
-- Never commit secrets or local config (use `.env.example` only).
-
-### Commit & Push Cadence
-
-- Commit at every meaningful checkpoint (each RED, GREEN, REFACTOR step is its
-  own commit). If a commit message needs "and" to describe it, split it.
-- Push after each TDD cycle completes (RED → GREEN → REFACTOR), or at minimum
-  at the end of every iteration. Do not let local commits pile up unpushed.
-- Never amend or force-push commits that have already been pushed.
-
-### Open Source Hygiene
-
-This repository is open source. Anything committed becomes permanent public
-history — even after deletion, the data lives on in git history and forks.
-
-- Maintain `.gitignore` proactively. Before adding any new tool, framework, or
-  workflow, ensure its generated artifacts (build output, caches, logs, local
-  config, IDE files, OS files, env files) are ignored *before* the first run.
-- Common patterns to ignore: `.env`, `.env.*` (except `.env.example`),
-  `node_modules/`, `dist/`, `build/`, `coverage/`, `.DS_Store`, `*.log`,
-  `.vscode/`, `.idea/`, local database files, credential files (`*.pem`,
-  `*.key`, `*.p12`), Prisma local dev artifacts.
-- Never commit: API keys, tokens, passwords, OAuth client secrets, database
-  URLs with credentials, personal identifiers, internal-only URLs, customer
-  data, or anything you would not paste into a public issue.
-- Before every commit: run `git diff --cached` and scan for secrets. If unsure,
-  check `git status` for unexpected files.
-- If a secret is ever committed: rotate the secret immediately, then purge from
-  history. Assume the secret is compromised the moment it touches a public
-  remote.
-
-## Working With State Files
-
-`docs/state/*` files are agent-managed scratch space.
-
-- `progress.md` — auto-generated by `update-state.sh`. Do not hand-edit.
-- `next-task.md` — auto-generated. You can override only with a one-line note at
-  the top explaining the override and a git commit.
-- `blockers.md` — append-only. Mark resolved blockers with `~~strikethrough~~`
-  rather than deleting.
-- `learnings.md` — append-only. One bullet per learning. Keep it terse.
+All commit-related rules — message format, TDD cadence, push policy,
+the pre-commit regression boundary, `.gitignore` discipline, secret
+scanning, and what to do if a secret is leaked — live in the `/commit`
+skill (`.claude/skills/commit/SKILL.md`). Read it before your first
+commit in a session.
 
 ## Final Note
 
 You are not racing. You are building correctly. Each commit is a tiny, verified
 step. The system grows as a series of small, correct moves.
-
-## Designing Gates
-
-Goal files declare conditions ("every entity is persisted", "every UC has
-a test"). The corresponding `goals/<n>-<name>.gates.sh` script is what
-mechanically checks those conditions. Gate scripts obey one rule:
-
-**If the goal text claims universality, the gate must enumerate.**
-
-- Bad: `curl /workspaces/foo` — samples one entity. Allows the
-  implementation to satisfy only one example.
-- Good: `for m in $(grep '^model ' apps/api/prisma/schema.prisma | awk '{print $2}'); do …` —
-  iterates the source of truth. Every model has to be addressed.
-
-Sources of truth and their iteration commands:
-
-- Entities → `grep '^model ' apps/api/prisma/schema.prisma | awk '{print $2}'`
-- Use cases → `find docs/usecases -name 'UC-*.md'`
-- Routes → `find apps/api/src/http -name '*-routes.ts'`
-- Advertised CLI commands → `grep -oE '"vspec [^"]+"' apps/api/src/http`
-
-If you find yourself typing entity names into a gate, you are recreating
-the narrow-gate cheat — stop and replace them with an enumeration.
-
-`scripts/check-gate-rigor.sh` runs as part of every goal's meta-tranche
-(from goal 2 onward) and flags any goal whose markdown contains
-"every X" while its gate script has no `for` / `while` / `find` / `xargs`
-construct. Do not silence this check by deleting the "every" language —
-either tighten the gate or honestly narrow the goal.
-
-The same principle applies to the goal text itself: don't claim "every X"
-when you mean "at least one X." Universal claims trigger universal gates.
-
-## Active Goal Lookup
-
-Goals are versioned files under `goals/` (e.g., `goals/0-init.md`,
-`goals/1-runnable.md`, `goals/2-shippable.md`). The active goal is
-whichever goal is currently failing its `<n>-<name>.gates.sh`,
-lowest-numbered first.
-
-To find it:
-
-```
-bash scripts/diagnose.sh        # prints active goal path
-cat .state/active-goal           # written by scripts/completion-check.sh
-```
-
-Treat the active goal file as the equivalent of the old top-level `GOAL.md` —
-read it before each iteration, follow its forbidden-actions list, satisfy its
-completion conditions via TDD. When its gates pass, the next goal becomes
-active automatically.
-
-### Single-goal vs. active-goal vs. full-chain checks
-
-Three different scopes, three different commands:
-
-| Command | Scope | Cost | When |
-| --- | --- | --- | --- |
-| `bash goals/<n>-*.gates.sh` | one goal | seconds–minutes | manual probe of one goal |
-| `bash scripts/active-check.sh` | active goal + rigor sweep | ~5–30 s | every TDD cycle (Phase 6) |
-| `bash scripts/completion-check.sh` | every goal | 1–2 min (cached) | commit boundary (pre-commit hook), CI, manual full sweep |
-
-`diagnose.sh` is cheaper still — it just reads `.state/active-goal`,
-which was written by the last orchestrator run. It does not run gates
-itself.
-
-Do not declare a TDD cycle done from a single-goal pass alone; the
-orchestrator is the contract.
-
-Now run `bash scripts/diagnose.sh` and read the active goal file it points to.

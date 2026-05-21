@@ -1,6 +1,8 @@
 # Node
 node_modules/
 npm-debug.log*
+pnpm-debug.log*
+*.log
 .npm
 
 # Builds
@@ -8,6 +10,9 @@ dist/
 build/
 *.tsbuildinfo
 .astro/
+.turbo/
+.cache/
+tmp/
 
 # Environments
 .env
@@ -28,6 +33,9 @@ coverage/
 .vspec/cache/
 .vspec/session.json
 .omc/
+
+# Vercel (contains projectId/orgId — Vercel docs say do not commit)
+.vercel/
 
 # Generated from AGENTS.md by SessionStart hook
 CLAUDE.md

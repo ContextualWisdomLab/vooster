@@ -4,15 +4,13 @@ import { ONBOARDING_PROMPT } from "../../lib/copy";
 const steps = [
   {
     n: "01",
-    actor: "당신",
-    time: "1회 · 30초",
-    title: "coding agent에 vooster 연결",
+    actor: "USER",
+    title: "coding agent에 vooster 연결 (프롬프트 붙여넣기)",
     kind: "copy" as const,
   },
   {
     n: "02",
-    actor: "당신",
-    time: "매 작업",
+    actor: "USER",
     title: "평소처럼 자연어로 요청",
     kind: "chat" as const,
     body: '"로그인 기능 만들어줘"',
@@ -20,8 +18,7 @@ const steps = [
   },
   {
     n: "03",
-    actor: "agent",
-    time: "자동",
+    actor: "AGENT",
     title: "agent가 spec 구조화 + Lock",
     kind: "chat" as const,
     body: '"UC-013으로 정리했습니다. 이대로 구현할까요?"',
@@ -29,8 +26,7 @@ const steps = [
   },
   {
     n: "04",
-    actor: "vspec",
-    time: "자동",
+    actor: "VOOSTER",
     title: "코드와 spec 일치 검증",
     kind: "result" as const,
   },
@@ -42,9 +38,15 @@ const steps = [
     <div class="max-w-[760px]">
       <p class="eyebrow">GET STARTED</p>
       <h2 class="section-heading">
-        agent와 평소처럼 대화하세요.<br />
-        spec 작업은 <em>agent가 알아서</em> 합니다.
+        내 에이전트가<br />
+        <em>Spec 전문가가 됩니다.</em>
       </h2>
+      <p class="mt-6 max-w-[640px] text-body text-base md:text-lg leading-[1.7]">
+        PM에게 <em class="not-italic text-ink-strong font-medium">Jira</em>를,
+        개발자에게 <em class="not-italic text-ink-strong font-medium">Git</em>을 주는 것과 마찬가지입니다.<br />
+        같은 에이전트라도 <em class="not-italic text-primary-soft font-medium">Vooster와 함께라면</em>
+        훨씬 구체적인 기획을 할 수 있게 됩니다.
+      </p>
     </div>
 
     <ol class="mt-16 grid gap-5 md:grid-cols-2 list-none p-0">
@@ -57,7 +59,6 @@ const steps = [
                 {step.actor}
               </span>
             </div>
-            <span class="text-mute font-mono text-[11px]">{step.time}</span>
           </header>
 
           <h3 class="text-ink-strong text-lg font-semibold tracking-tight leading-snug m-0">
@@ -80,11 +81,6 @@ const steps = [
                   </svg>
                 </button>
               </div>
-              <p class="m-0 text-body text-sm leading-relaxed">
-                <span class="text-mute mr-1">②</span>
-                Claude Code / Cursor 채팅창에 붙여넣기. 끝.
-                나머지는 agent가 가이드를 보고 알아서 합니다.
-              </p>
             </div>
           )}
 

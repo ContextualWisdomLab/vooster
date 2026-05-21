@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
-# completion-check.sh — Are we done?
+# completion-check.sh — Parallel orchestrator for all goal gate suites.
 #
-# Iterates every goal in goals/ in numeric order and runs that goal's
-# `<n>-<name>.gates.sh`. Writes the path of the first failing goal to
-# .state/active-goal so diagnose.sh and next-task.sh can route correctly.
-# Exit 0 only when every gate of every goal passes.
+# Discovers every goals/<n>-<name>.md, launches each matching
+# <n>-<name>.gates.sh as a background worker (bounded by
+# $VSPEC_GATES_CONCURRENCY, default 2), then aggregates per-goal stdout
+# in numeric order. Writes the first numerically-failing goal's path to
+# .state/active-goal so diagnose.sh / next-task.sh route correctly. Exit
+# 0 only when every gate of every goal passes.
+#
+# This script is now the only owner of the "no prior-goal regression"
+# semantics: per-goal scripts no longer chain into earlier goals
+# (commit removing Tranche D regression chains). Running a single
+# `bash goals/<n>-*.gates.sh` checks that goal's surface only — run
+# this orchestrator for the full chain.
+#
+# Env:
+#   VSPEC_GATES_CONCURRENCY  default 2; cap on parallel workers
+#   VSPEC_GATES_SKIP_DEEP    propagated to workers
+#   VSPEC_GATES_NO_CACHE     propagated to workers
 
 set -uo pipefail
 
@@ -13,6 +26,12 @@ cd "$ROOT"
 
 mkdir -p "$ROOT/.state"
 ACTIVE_FILE="$ROOT/.state/active-goal"
+
+CONCURRENCY="${VSPEC_GATES_CONCURRENCY:-2}"
+case "$CONCURRENCY" in
+  ''|*[!0-9]*) CONCURRENCY=2 ;;
+  0) CONCURRENCY=1 ;;
+esac
 
 GOALS=()
 while IFS= read -r f; do
@@ -25,39 +44,100 @@ if [ "${#GOALS[@]}" -eq 0 ]; then
   exit 1
 fi
 
-OVERALL_PASS=true
-ACTIVE_RECORDED=false
+STAGE_DIR=$(mktemp -d)
+trap 'rm -rf "$STAGE_DIR"' EXIT
 
-echo "=== COMPLETION CHECK ==="
-echo ""
+# Parallel arrays indexed by goal position.
+GOAL_NAMES=()
+GOAL_OUT_FILES=()
+GOAL_PIDS=()
+GOAL_LAUNCH_FAILED=()
 
-for goal_md in "${GOALS[@]}"; do
+launch_goal() {
+  local idx="$1"
+  local goal_md="$2"
+  local goal_name
   goal_name=$(basename "$goal_md" .md)
-  gate_script="goals/${goal_name}.gates.sh"
-  echo "--- Goal: $goal_name ($goal_md) ---"
+  local gate_script="goals/${goal_name}.gates.sh"
+  local out_file="$STAGE_DIR/${goal_name}.out"
 
-  if [ ! -x "$gate_script" ] && [ ! -f "$gate_script" ]; then
-    echo "    ✗ missing gate script: $gate_script"
-    OVERALL_PASS=false
-    if [ "$ACTIVE_RECORDED" = false ]; then
-      echo "$goal_md" > "$ACTIVE_FILE"
-      ACTIVE_RECORDED=true
-    fi
-    echo ""
-    continue
+  GOAL_NAMES[$idx]="$goal_name"
+  GOAL_OUT_FILES[$idx]="$out_file"
+
+  if [ ! -f "$gate_script" ] && [ ! -x "$gate_script" ]; then
+    printf '✗ missing gate script: %s\n' "$gate_script" > "$out_file"
+    GOAL_PIDS[$idx]=0
+    GOAL_LAUNCH_FAILED[$idx]=1
+    return
   fi
 
-  if bash "$gate_script"; then
-    echo "    ✓ goal $goal_name passes all gates."
+  GOAL_LAUNCH_FAILED[$idx]=0
+  bash "$gate_script" >"$out_file" 2>&1 &
+  GOAL_PIDS[$idx]=$!
+  printf '▷ %s (pid %s)\n' "$goal_name" "${GOAL_PIDS[$idx]}"
+}
+
+wait_for_slot() {
+  while :; do
+    local running
+    running=$(jobs -rp 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$running" -lt "$CONCURRENCY" ]; then
+      return 0
+    fi
+    sleep 0.2
+  done
+}
+
+echo "=== COMPLETION CHECK (parallel, concurrency=$CONCURRENCY) ==="
+echo
+
+idx=0
+for goal_md in "${GOALS[@]}"; do
+  wait_for_slot
+  launch_goal "$idx" "$goal_md"
+  idx=$((idx + 1))
+done
+
+echo
+echo "--- collecting results ---"
+echo
+
+OVERALL_PASS=true
+FIRST_FAIL_MD=""
+
+idx=0
+for goal_md in "${GOALS[@]}"; do
+  pid="${GOAL_PIDS[$idx]}"
+  goal_name="${GOAL_NAMES[$idx]}"
+  out_file="${GOAL_OUT_FILES[$idx]}"
+  launch_failed="${GOAL_LAUNCH_FAILED[$idx]}"
+
+  if [ "$launch_failed" = "1" ]; then
+    goal_exit=1
   else
-    echo "    ✗ goal $goal_name has failing gates."
-    OVERALL_PASS=false
-    if [ "$ACTIVE_RECORDED" = false ]; then
-      echo "$goal_md" > "$ACTIVE_FILE"
-      ACTIVE_RECORDED=true
+    if wait "$pid"; then
+      goal_exit=0
+    else
+      goal_exit=$?
     fi
   fi
-  echo ""
+
+  echo "--- Goal: $goal_name ($goal_md) ---"
+  if [ -f "$out_file" ]; then
+    cat "$out_file"
+  fi
+  if [ "$goal_exit" -eq 0 ]; then
+    printf '    ✓ goal %s passes all gates.\n' "$goal_name"
+  else
+    printf '    ✗ goal %s has failing gates.\n' "$goal_name"
+    OVERALL_PASS=false
+    if [ -z "$FIRST_FAIL_MD" ]; then
+      FIRST_FAIL_MD="$goal_md"
+    fi
+  fi
+  printf '\n'
+
+  idx=$((idx + 1))
 done
 
 if [ "$OVERALL_PASS" = true ]; then
@@ -66,6 +146,7 @@ if [ "$OVERALL_PASS" = true ]; then
   exit 0
 fi
 
+echo "$FIRST_FAIL_MD" > "$ACTIVE_FILE"
 echo "⚠ Active goal: $(cat "$ACTIVE_FILE")"
 echo "  Continue iterating against that goal."
 exit 1

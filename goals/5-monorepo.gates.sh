@@ -21,19 +21,14 @@ GOAL_NAME="5-monorepo"
 # Gates exercised: pnpm-workspace.yaml + root package.json structure,
 # apps/{api,cli,www} skeletons + per-app package.json scripts, lockfile
 # uniqueness, B7/B8/C6 builds (DEEP), Astro landing sections + Hangul
-# sweep, gate-rigor on goal 5 md, plus regression chain into goal-0..4.
-# Prior gate scripts are listed so a change to D1 inputs invalidates here.
+# sweep, gate-rigor on goal 5 md.
+# Prior-goal regression lives in scripts/completion-check.sh.
 GATE_INPUTS=(
   pnpm-workspace.yaml
   pnpm-lock.yaml
   package.json
   apps
   scripts/check-gate-rigor.sh
-  goals/0-init.gates.sh
-  goals/1-runnable.gates.sh
-  goals/2-shippable.gates.sh
-  goals/3-managed-db.gates.sh
-  goals/4-honest-boundaries.gates.sh
   goals/5-monorepo.gates.sh
   goals/5-monorepo.md
   scripts/_gate-cache.sh
@@ -52,7 +47,6 @@ REQUIRED_API_LAYERS=(domain ports application infrastructure http)
 REQUIRED_SCRIPTS=(build test typecheck)
 REQUIRED_SECTIONS=(Hero LogoCloud Features HowItWorks Showcase Pricing Footer)
 LEGACY_ROOT_DIRS=(src bin prisma tests)
-PRIOR_GOALS=(0-init 1-runnable 2-shippable 3-managed-db 4-honest-boundaries)
 
 # ─── Tranche A — Workspace skeleton ──────────────────────────────────────
 
@@ -350,25 +344,10 @@ else
   fi
 fi
 
-# ─── Tranche D — Meta: regression + rigor ────────────────────────────────
+# ─── Tranche D — Meta: gate rigor ────────────────────────────────────────
+# Prior-goal regression is enforced by scripts/completion-check.sh.
 
-echo "[5.D1 No goal-0..4 regression]"
-D1_REGRESSED=()
-for g in "${PRIOR_GOALS[@]}"; do
-  if ! bash "$ROOT/goals/${g}.gates.sh" >/dev/null 2>&1; then
-    D1_REGRESSED+=("$g")
-  fi
-done
-if [ "${#D1_REGRESSED[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — these prior goal suites are now red:"
-  printf '        %s\n' "${D1_REGRESSED[@]}"
-  echo "        Likely cause: they still reference root src/, prisma/, bin/, tests/ paths."
-  PASS=false
-fi
-
-echo "[5.D2 Gate rigor on goal 5 markdown]"
+echo "[5.D1 Gate rigor on goal 5 markdown]"
 if bash "$ROOT/scripts/check-gate-rigor.sh" "$ROOT/goals/5-monorepo.md" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else

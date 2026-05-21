@@ -318,4 +318,13 @@ read it before each iteration, follow its forbidden-actions list, satisfy its
 completion conditions via TDD. When its gates pass, the next goal becomes
 active automatically.
 
+### Single-goal vs. full-chain checks
+
+`bash goals/<n>-*.gates.sh` checks **only that goal's own surface** —
+it does not chain into prior goals. To confirm the whole chain is still
+green, run `bash scripts/diagnose.sh` (cheap) or
+`bash scripts/completion-check.sh` (authoritative). Do not declare a
+TDD cycle done from a single-goal pass alone; the orchestrator is the
+contract.
+
 Now run `bash scripts/diagnose.sh` and read the active goal file it points to.

@@ -95,17 +95,38 @@ Sources of truth와 그 iteration 명령:
 `.state/active-goal`에 쓰고, 이후 모든 도구가 그 한 파일을 신호로 사용.
 새 goal을 추가하면 자동으로 흐름이 거기로 흘러간다.
 
-### 3. Tranche D = 회귀 금지
+### 3. Tranche D = 자체 검사 (회귀는 orchestrator 가 담당)
 
-goal 1 이후의 모든 gate suite는 마지막에 **이전 goal들의 gate를 통째로
-재실행**한다 (`1.6` = goal-0, `2.D1/2.D2` = goal-0/1, `3.D1/3.D2` =
-goal-0/1). 이전 단계가 깨졌으면 현재 goal도 실패로 간주.
+각 goal의 Tranche D 는 이제 그 goal의 **자체 메타 체크**만 한다 —
+`check-gate-rigor.sh` (markdown enumeration), goal 4의 경우는 추가로
+`check-honest-gates.sh`. 이전 goal에 대한 회귀 검사는 `*.gates.sh`
+밖으로 빠지고 `scripts/completion-check.sh` 가 단독으로 책임진다.
+
+즉:
+
+- `bash goals/3-managed-db.gates.sh` 를 단독 실행하면 goal 3의 A/B/C/D
+  만 검사한다. goal 0/1/2 가 깨졌는지는 모름.
+- "전체 체인 green" 을 보려면 `bash scripts/completion-check.sh` 를
+  돌려야 한다. 이게 모든 goal 의 gate 를 병렬로 (기본 동시성 2) 띄우고
+  하나라도 fail 이면 첫 실패 goal 을 `.state/active-goal` 에 기록.
+
+이 분리의 이유:
+
+1. **N² → N**. 예전엔 goal 5 D1 이 goal 0..4 를 재귀 호출했고, 각각이
+   다시 자기 D 트랜치를 돌리면서 nested 호출이 폭발했다. 캐시가 데워
+   있으면 O(N) 이지만 cold 일 땐 O(N²). orchestrator 가 단일 진입점이면
+   goal 당 정확히 1번 실행.
+2. **병렬화 가능**. 각 goal 이 standalone 이므로 의존성 없이 동시에
+   실행할 수 있다. CPU/디스크 자원 충돌이 우려되면
+   `VSPEC_GATES_CONCURRENCY=1` 로 시리얼로 회귀.
+3. **standalone 의미가 정직해진다**. "이 게이트가 통과하면 이 goal 이
+   되는가" 만 검사. "그리고 전체 chain 이 healthy 한가" 는 별개 질문이
+   고 별개 도구가 답한다.
 
 ## Gate 실행 최적화
 
-`*.gates.sh`를 그대로 두면 `completion-check.sh` 한 번 호출로
-`goal-0` gate suite가 6번 돈다 (Tranche D에서 lower goal을 재귀적으로
-호출). 이를 줄이기 위해 다음 메커니즘이 들어가 있다.
+`scripts/completion-check.sh` 는 goal 당 정확히 1번 실행한다. 이 위에
+다음 메커니즘이 얹혀 있다.
 
 ### 1. Per-goal cache
 
@@ -139,12 +160,13 @@ VSPEC_GATES_NO_CACHE=1 bash goals/0-init.gates.sh   # 일회성 우회
 ### 2. Deep-gate skip flag
 
 `VSPEC_GATES_SKIP_DEEP=1`을 export 하면 무거운 외부-시스템 gate를
-스킵한다 (현재는 goal-2.B3의 `docker compose build / up`).
+스킵한다 (예: goal-2.B3의 `docker compose build / up`, goal-5의
+`pnpm --filter ... build`).
 
-- 스킵된 run은 **캐시를 저장하지 않는다** — partial run은 authoritative가
-  아니므로 다음 full run을 강제한다.
-- Tranche D 회귀 호출에도 env가 전파되므로, goal-3에서 goal-2를 호출할
-  때도 skip이 유효하다. 이때도 goal-3 자체 캐시는 저장되지 않는다.
+- 스킵된 run은 **캐시를 저장하지 않는다** — partial run은 authoritative
+  가 아니므로 다음 full run을 강제한다.
+- `completion-check.sh` 가 worker 에게 env 를 전파하므로 모든 goal 에
+  동시에 적용된다.
 
 빠른 iteration:
 
@@ -156,6 +178,13 @@ VSPEC_GATES_SKIP_DEEP=1 bash scripts/completion-check.sh
 
 ```
 bash scripts/completion-check.sh
+```
+
+병렬도 조정:
+
+```
+VSPEC_GATES_CONCURRENCY=1 bash scripts/completion-check.sh   # 시리얼
+VSPEC_GATES_CONCURRENCY=4 bash scripts/completion-check.sh   # 자원 여유 있을 때
 ```
 
 ### 3. Gate 0.2 = Tests + Coverage (병합됨)

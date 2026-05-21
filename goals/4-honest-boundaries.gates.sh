@@ -20,8 +20,8 @@ GOAL_NAME="4-honest-boundaries"
 # Gates exercised: dishonest-test scan, ESLint full pass, boundaries
 # config audit vs docs/01-architecture.md, Stored<Model>/upward-import
 # sweeps, 1000-line cap, per-port Prisma adapter map, CLI command split,
-# check-honest-gates.sh, gate-rigor on goal 4 md, regression chain into
-# goal-0/1/2/3.
+# check-honest-gates.sh, gate-rigor on goal 4 md.
+# Prior-goal regression lives in scripts/completion-check.sh.
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
@@ -29,42 +29,18 @@ GATE_INPUTS=(
   apps/api/package.json
   apps/api/tsconfig.json
   apps/cli/src
-  apps/cli/tests
-  apps/cli/bin
   apps/cli/package.json
   apps/cli/tsconfig.json
-  docs/usecases
   docs/01-architecture.md
-  README.md
-  Dockerfile
-  docker-compose.yml
-  docker-compose.prod.yml
-  .env.example
-  .github/workflows
   package.json
   pnpm-lock.yaml
   tsconfig.json
   tsconfig.eslint.json
   vitest.config.ts
   eslint.config.js
-  scripts/check-bootable.sh
-  scripts/check-persistence.sh
-  scripts/check-cli.sh
-  scripts/check-layers.sh
-  scripts/check-bypass.sh
-  scripts/check-db-consistency.sh
-  scripts/check-deployable.sh
   scripts/check-gate-rigor.sh
-  scripts/check-managed-db.sh
-  scripts/check-ci.sh
   scripts/check-honest-gates.sh
   scripts/check-progress-diversity.sh
-  scripts/dogfood-test.sh
-  scripts/dogfood-smoke.ts
-  goals/0-init.gates.sh
-  goals/1-runnable.gates.sh
-  goals/2-shippable.gates.sh
-  goals/3-managed-db.gates.sh
   goals/4-honest-boundaries.gates.sh
   goals/4-honest-boundaries.md
   scripts/_gate-cache.sh
@@ -317,7 +293,8 @@ else
   fi
 fi
 
-# ─── Tranche D — Meta: honest gates and no regression ───────────────────
+# ─── Tranche D — Meta: honest gates + gate rigor ────────────────────────
+# Prior-goal regression is enforced by scripts/completion-check.sh.
 
 echo "[4.D1 Honest-gates meta check]"
 if [ ! -f "$ROOT/scripts/check-honest-gates.sh" ]; then
@@ -330,39 +307,7 @@ else
   PASS=false
 fi
 
-echo "[4.D2 No goal-0 regression]"
-if bash "$ROOT/goals/0-init.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 0 regressed"
-  PASS=false
-fi
-
-echo "[4.D3 No goal-1 regression]"
-if bash "$ROOT/goals/1-runnable.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 1 regressed"
-  PASS=false
-fi
-
-echo "[4.D4 No goal-2 regression]"
-if bash "$ROOT/goals/2-shippable.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 2 regressed"
-  PASS=false
-fi
-
-echo "[4.D5 No goal-3 regression]"
-if bash "$ROOT/goals/3-managed-db.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 3 regressed"
-  PASS=false
-fi
-
-run_gate "4.D6 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/4-honest-boundaries.md"
+run_gate "4.D2 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/4-honest-boundaries.md"
 
 if [ "$PASS" = true ]; then
   if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then

@@ -3,8 +3,24 @@
 _Captured 2026-05-21 after `bb07214` ("perf(gates): key per-goal cache on
 input fingerprint, not clean tree"). The cache fix solves the dominant
 pain (re-runs while editing in parallel); this document records a
-second-order improvement that was investigated, scoped, and deferred
-because Goal 5 is still iterating on the same files._
+second-order improvement that was investigated, scoped, and originally
+deferred because Goal 5 was still iterating on the same files._
+
+> **RESOLVED 2026-05-21** — Goal 5 closed (`16aa79e docs(state): record
+> monorepo goal completion`) within an hour of this finding being
+> filed; refactor landed immediately after in the same session.
+> Acceptance numbers measured on the same hardware as the 15:39
+> baseline:
+>
+> | Scenario | Target | Actual |
+> | --- | --- | --- |
+> | Cold full run (`rm -rf .state/gate-cache`) | < 6 min | **3:33** (4.4× faster than 15:39) |
+> | Warm re-run | < 3 s | **1.18 s** |
+> | Selective bust (one goal's cache) | only that goal | confirmed (goal-3 alone re-ran) |
+>
+> Kept for historical context: the conflict-surface audit and the
+> design rationale below explain *why* the refactor takes the shape it
+> does, which the implementing commit can't carry in a message.
 
 ## TL;DR
 

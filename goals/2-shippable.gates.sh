@@ -20,8 +20,8 @@ GOAL_NAME="2-shippable"
 # Gates exercised: SignupState/route scans, Prisma model→adapter sweep,
 # persistence-matrix vitest, UC-001 real OAuth vitest, README sections,
 # 150-line route cap, ≥18-modules/tests cap, ESLint boundary fixtures,
-# Docker deploy (DEEP), check-db-consistency.sh, gate-rigor on goal 2 md,
-# plus regression chain into goal-0/1.
+# Docker deploy (DEEP), check-db-consistency.sh, gate-rigor on goal 2 md.
+# Prior-goal regression lives in scripts/completion-check.sh.
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
@@ -33,7 +33,6 @@ GATE_INPUTS=(
   apps/cli/bin
   apps/cli/package.json
   apps/cli/tsconfig.json
-  docs/usecases
   README.md
   Dockerfile
   docker-compose.yml
@@ -45,18 +44,9 @@ GATE_INPUTS=(
   tsconfig.eslint.json
   vitest.config.ts
   eslint.config.js
-  scripts/check-bootable.sh
-  scripts/check-persistence.sh
-  scripts/check-cli.sh
-  scripts/check-layers.sh
-  scripts/check-bypass.sh
   scripts/check-db-consistency.sh
   scripts/check-deployable.sh
   scripts/check-gate-rigor.sh
-  scripts/dogfood-test.sh
-  scripts/dogfood-smoke.ts
-  goals/0-init.gates.sh
-  goals/1-runnable.gates.sh
   goals/2-shippable.gates.sh
   goals/2-shippable.md
   scripts/_gate-cache.sh
@@ -283,25 +273,10 @@ else
   PASS=false
 fi
 
-# ─── Tranche D — Meta: no regression and gate rigor ──────────────────────
+# ─── Tranche D — Meta: gate rigor ────────────────────────────────────────
+# Prior-goal regression is enforced by scripts/completion-check.sh.
 
-echo "[2.D1 No goal-0 regression]"
-if bash "$ROOT/goals/0-init.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 0 regressed"
-  PASS=false
-fi
-
-echo "[2.D2 No goal-1 regression]"
-if bash "$ROOT/goals/1-runnable.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 1 regressed"
-  PASS=false
-fi
-
-run_gate "2.D3 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/2-shippable.md"
+run_gate "2.D1 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/2-shippable.md"
 
 if [ "$PASS" = true ]; then
   if [ "$DEEP_SKIPPED" = false ]; then

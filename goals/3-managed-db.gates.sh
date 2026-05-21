@@ -18,8 +18,8 @@ GOAL_NAME="3-managed-db"
 # Inputs that determine this goal's gate result.
 # Gates exercised: Postgres helper sweep, schema provider check, sqlite
 # literal scan, Dockerfile migration check, check-managed-db.sh,
-# .github/workflows/ CI inspection, check-ci.sh, gate-rigor on goal 3 md,
-# plus regression chain into goal-0/1/2.
+# .github/workflows/ CI inspection, check-ci.sh, gate-rigor on goal 3 md.
+# Prior-goal regression lives in scripts/completion-check.sh.
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
@@ -30,9 +30,6 @@ GATE_INPUTS=(
   apps/cli/tests
   apps/cli/bin
   apps/cli/package.json
-  apps/cli/tsconfig.json
-  docs/usecases
-  README.md
   Dockerfile
   docker-compose.yml
   docker-compose.prod.yml
@@ -40,25 +37,10 @@ GATE_INPUTS=(
   .github/workflows
   package.json
   pnpm-lock.yaml
-  tsconfig.json
-  tsconfig.eslint.json
   vitest.config.ts
-  eslint.config.js
-  scripts/check-bootable.sh
-  scripts/check-persistence.sh
-  scripts/check-cli.sh
-  scripts/check-layers.sh
-  scripts/check-bypass.sh
-  scripts/check-db-consistency.sh
-  scripts/check-deployable.sh
-  scripts/check-gate-rigor.sh
   scripts/check-managed-db.sh
   scripts/check-ci.sh
-  scripts/dogfood-test.sh
-  scripts/dogfood-smoke.ts
-  goals/0-init.gates.sh
-  goals/1-runnable.gates.sh
-  goals/2-shippable.gates.sh
+  scripts/check-gate-rigor.sh
   goals/3-managed-db.gates.sh
   goals/3-managed-db.md
   scripts/_gate-cache.sh
@@ -301,33 +283,10 @@ fi
 
 run_gate "3.C4 CI workflow YAML parses" "$ROOT/scripts/check-ci.sh"
 
-# ─── Tranche D — Meta: no regression and gate rigor ──────────────────────
+# ─── Tranche D — Meta: gate rigor ────────────────────────────────────────
+# Prior-goal regression is enforced by scripts/completion-check.sh.
 
-echo "[3.D1 No goal-0 regression]"
-if bash "$ROOT/goals/0-init.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 0 regressed"
-  PASS=false
-fi
-
-echo "[3.D2 No goal-1 regression]"
-if bash "$ROOT/goals/1-runnable.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 1 regressed"
-  PASS=false
-fi
-
-echo "[3.D3 No goal-2 regression]"
-if bash "$ROOT/goals/2-shippable.gates.sh" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — goal 2 regressed"
-  PASS=false
-fi
-
-run_gate "3.D4 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/3-managed-db.md"
+run_gate "3.D1 Gate rigor" "$ROOT/scripts/check-gate-rigor.sh $ROOT/goals/3-managed-db.md"
 
 if [ "$PASS" = true ]; then
   if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then

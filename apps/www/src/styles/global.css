@@ -58,42 +58,55 @@
 
 /* ── Base ───────────────────────────────────────────────────────── */
 
-:root {
-  color-scheme: dark;
-}
+/**
+ * 베이스 룰은 반드시 @layer base 안에 둔다.
+ * 그렇지 않으면 unlayered author > layered author 규칙에 의해
+ * `a { color: inherit }` 가 `@layer components` 안의
+ * `.btn-primary { color: var(--color-on-primary) }` 를 specificity 와
+ * 무관하게 이겨버려서, 버튼 글씨가 body 의 ink 색을 상속한다.
+ *
+ * `color-scheme: dark` 는 "다크 모드 강제"가 아니라
+ * Chrome Auto Dark Mode 가 페이지 색을 알고리즘으로 인버트하지 못하게
+ * 막는 힌트. 캔버스가 #0c100e 라 페이지 자체가 다크인 건 별개.
+ */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
-  line-height: 1.6;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-::selection {
-  background: rgba(45, 212, 191, 0.28);
-  color: var(--color-ink-strong);
-}
+  ::selection {
+    background: rgba(45, 212, 191, 0.28);
+    color: var(--color-ink-strong);
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-button,
-input,
-textarea {
-  font: inherit;
-  color: inherit;
+  button,
+  input,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 /* ── Reusable component recipes ─────────────────────────────────── */
@@ -133,14 +146,26 @@ textarea {
 
   /* Buttons — base styles repeated in each variant for v4 compatibility */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-primary text-on-primary hover:bg-primary-soft cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-primary hover:bg-primary-soft cursor-pointer;
+    color: var(--color-on-primary);
+  }
+  .btn-primary:visited,
+  .btn-primary:hover,
+  .btn-primary:active {
+    color: var(--color-on-primary);
   }
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent border border-hairline text-ink hover:border-primary-soft hover:text-ink-strong cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent border border-hairline hover:border-primary-soft cursor-pointer;
+    color: var(--color-ink);
   }
+  .btn-outline:visited { color: var(--color-ink); }
+  .btn-outline:hover { color: var(--color-ink-strong); }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-4 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent text-primary-soft hover:text-ink-strong cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-4 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent cursor-pointer;
+    color: var(--color-primary-soft);
   }
+  .btn-ghost:visited { color: var(--color-primary-soft); }
+  .btn-ghost:hover { color: var(--color-ink-strong); }
   .btn-primary:focus-visible,
   .btn-outline:focus-visible,
   .btn-ghost:focus-visible {

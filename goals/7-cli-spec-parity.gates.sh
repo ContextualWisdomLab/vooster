@@ -293,6 +293,65 @@ else
   PASS=false
 fi
 
+echo "[7.B6 per-repo binding is read by subsequent commands]"
+if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
+  B6_TMP="$(mktemp -d)"
+  B6_STDOUT="$(mktemp)"
+  B6_STATUS_OK=false
+  B6_KEY_OK=false
+  (
+    cd "$B6_TMP"
+    node "$ROOT/$CLI_BIN" init --project BOUND >/dev/null 2>&1 \
+      && node "$ROOT/$CLI_BIN" status >"$B6_STDOUT" 2>&1
+  )
+  if [ -f "$B6_TMP/.vspec/config.json" ]; then
+    B6_STATUS_OK=true
+  fi
+  if grep -qE 'current_project_key[[:space:]]+BOUND' "$B6_STDOUT"; then
+    B6_KEY_OK=true
+  fi
+  if [ "$B6_STATUS_OK" = true ] && [ "$B6_KEY_OK" = true ]; then
+    echo "    ✓ pass"
+  else
+    if [ "$B6_STATUS_OK" = false ]; then
+      echo "    ✗ fail — init did not create $B6_TMP/.vspec/config.json"
+    fi
+    if [ "$B6_KEY_OK" = false ]; then
+      echo "    ✗ fail — vspec status from same cwd did not surface current_project_key BOUND"
+      echo "       stdout was:"
+      while IFS= read -r line; do
+        echo "         $line"
+      done <"$B6_STDOUT"
+    fi
+    PASS=false
+  fi
+  rm -rf "$B6_TMP" "$B6_STDOUT"
+else
+  echo "    ✗ fail — preconditions for B6 unmet"
+  PASS=false
+fi
+
+echo "[7.B7 init --help prints init-specific synopsis]"
+B7_STDOUT="$(mktemp)"
+node "$ROOT/$CLI_BIN" init --help >"$B7_STDOUT" 2>&1
+B7_STATUS=$?
+B7_OK=false
+if [ "$B7_STATUS" -eq 0 ] \
+    && grep -qE 'vspec init --project' "$B7_STDOUT" \
+    && grep -qE 'force' "$B7_STDOUT"; then
+  B7_OK=true
+fi
+if [ "$B7_OK" = true ]; then
+  echo "    ✓ pass"
+else
+  echo "    ✗ fail — init --help should exit 0 and mention 'vspec init --project' + 'force'"
+  while IFS= read -r line; do
+    echo "         $line"
+  done <"$B7_STDOUT"
+  PASS=false
+fi
+rm -f "$B7_STDOUT"
+
 # ─── Tranche C — Honest E2E expansion ────────────────────────────────────
 
 echo "[7.C1 e2e-cli-honest/cli-setup.ts exists and is fetch-free]"

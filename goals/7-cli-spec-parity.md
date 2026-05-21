@@ -104,6 +104,21 @@ B5. **Reading the per-repo config is gated through `config-store.ts`.**
     goes through the store API). Source of truth: every file under
     `apps/cli/src/commands/`.
 
+B6. **The per-repo `.vspec/config.json` is actually read by subsequent
+    commands run from the same cwd.** "Binding" means the file is not
+    just written but observed. The gate runs `vspec init --project BOUND`
+    in a tmp directory, then `vspec status` from the same directory, and
+    asserts stdout contains `current_project_key BOUND`. Without the
+    `config-store.ts` cwd-discovery overlay, status falls back to the
+    global config and the assertion fails.
+
+B7. **`vspec init --help` prints init-specific usage, not the global
+    `VspecCommand` help dump.** The gate runs `vspec init --help`,
+    asserts exit 0, and requires stdout to contain both
+    `vspec init --project` and `force`. A regression to the global
+    help (which lacks the `--project`/`--force` synopsis lines) fails
+    the gate.
+
 ### Tranche C — Honest E2E coverage expansion
 
 C1. **`apps/cli/tests/e2e-cli-honest/cli-setup.ts` exists.** It exports

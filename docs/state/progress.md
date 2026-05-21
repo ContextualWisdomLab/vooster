@@ -1,11 +1,11 @@
 # Progress Matrix
 
-_Last updated: 2026-05-20T22:04:27Z_
+_Last updated: 2026-05-21T13:34:31Z_
 
 ## Overall
 
-- Commits: 996
-- Last commit: d78b530 fix(gates): restore regression gate isolation
+- Commits: 1019
+- Last commit: 79e130d fix(monorepo): retarget managed db gate
 - Use cases complete: 35 / 35
 - Active goal: ALL_DONE
 
@@ -13,7 +13,7 @@ _Last updated: 2026-05-20T22:04:27Z_
 
 | Gate | Status |
 | --- | --- |
-| Bootable (npm start, /healthz) | ✓ |
+| Bootable (pnpm start, /healthz) | ✓ |
 | Persistence (restart survival) | ✓ |
 | CLI binary + subcommands | ✓ |
 | Layered architecture | ✓ |

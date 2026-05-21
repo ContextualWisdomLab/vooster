@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { describe, expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 const fixtureRoot = path.join(tmpdir(), "vooster-honest-gates-test");
 
 type ExecResult = {

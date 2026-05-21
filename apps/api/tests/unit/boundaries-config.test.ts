@@ -11,7 +11,7 @@ describe("Goal 2 boundary config", () => {
           "export type BoundaryFixture = StoredUser;"
         ].join("\n"),
         expectedBoundaryErrors: 1,
-        filePath: "src/ports/__boundary_rejects_http.fixture.ts"
+        filePath: "apps/api/src/ports/__boundary_rejects_http.fixture.ts"
       },
       {
         code: [
@@ -19,7 +19,7 @@ describe("Goal 2 boundary config", () => {
           "export type BoundaryFixture = StartGithubOAuthResult;"
         ].join("\n"),
         expectedBoundaryErrors: 0,
-        filePath: "src/cli/__boundary_allows_application.fixture.ts"
+        filePath: "apps/cli/src/__boundary_allows_application.fixture.ts"
       }
     ];
 

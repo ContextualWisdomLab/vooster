@@ -58,7 +58,7 @@ vspec --help
 ```bash
 npm install
 cp .env.example .env
-npm run build
+pnpm run build
 ```
 
 ## 실행
@@ -68,14 +68,14 @@ npm run build
 ```bash
 cp .env.example .env
 docker compose up -d db
-npm run dev
+pnpm run dev
 ```
 
 Docker 없이 로컬 실행하려면 `.env.example`의 SQLite `DATABASE_URL`을 그대로
 두고 다음을 사용합니다.
 
 ```bash
-npm start
+pnpm start
 ```
 
 `PORT`를 별도로 지정하지 않으면 서버는 `http://localhost:3000`에서

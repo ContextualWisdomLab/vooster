@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
-import { createServer } from "../src/http/server.js";
+import { createServer } from "../apps/api/src/http/server.js";
 
 const app = await createServer({ authStub: true });
 

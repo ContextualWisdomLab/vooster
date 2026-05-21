@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
-import { createServer } from "../../src/http/server.js";
-import { createPrismaSignupStore } from "../../src/infrastructure/prisma-signup-store.js";
-import { withTestDatabase } from "../helpers/postgres-db.js";
+import { createServer } from "../../../api/src/http/server.js";
+import { createPrismaSignupStore } from "../../../api/src/infrastructure/prisma-signup-store.js";
+import { withTestDatabase } from "../../../api/tests/helpers/postgres-db.js";
 
 export function cleanupCliE2e() {
   return undefined;
@@ -34,7 +34,7 @@ export async function startNetworkServer(prefix: string) {
 }
 
 export async function runCli(args: string[]) {
-  const child = spawn(process.execPath, ["bin/run.js", ...args], {
+  const child = spawn(process.execPath, ["apps/cli/bin/run.js", ...args], {
     cwd: process.cwd(),
     env: { ...process.env, VSPEC_CLI_SOURCE: "1" }
   });

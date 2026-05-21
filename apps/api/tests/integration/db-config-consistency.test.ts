@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { describe, expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 
 describe("Goal 2 DB configuration consistency", () => {
   test("schema, env example, package scripts, and compose agree", async () => {

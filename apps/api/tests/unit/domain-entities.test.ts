@@ -6,14 +6,14 @@ import { promisify } from "node:util";
 import { describe, expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 const fixtureDir = path.join(root, ".state/domain-entity-test");
 const fixturePath = path.join(fixtureDir, "domain-entity-imports.test-fixture.ts");
 const tsconfigPath = path.join(fixtureDir, "tsconfig.json");
 
 describe("domain entity vocabulary", () => {
   test("exports a Stored<Model> type for every Prisma model", async () => {
-    const schema = await readFile(path.join(root, "prisma/schema.prisma"), "utf8");
+    const schema = await readFile(path.join(root, "apps/api/prisma/schema.prisma"), "utf8");
     const storedTypes = [...schema.matchAll(/^model\s+(\w+)/gm)].map(
       ([, model]) => `Stored${model ?? ""}`
     );
@@ -42,7 +42,7 @@ function domainEntityTsconfig(): string {
   return `${JSON.stringify(
     {
       extends: "../../tsconfig.json",
-      include: ["domain-entity-imports.test-fixture.ts", "../../src/domain/**/*.ts"]
+      include: ["domain-entity-imports.test-fixture.ts", "../../apps/api/src/domain/**/*.ts"]
     },
     null,
     2
@@ -56,7 +56,7 @@ function typeImportFixture(storedTypes: string[]): string {
   return [
     "import type {",
     imports,
-    '} from "../../src/domain/entities/index.js";',
+    '} from "../../apps/api/src/domain/entities/index.js";',
     "",
     "type DomainEntityImports = [",
     tupleItems,

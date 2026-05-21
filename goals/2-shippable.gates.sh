@@ -2,7 +2,7 @@
 # goals/2-shippable.gates.sh — Gate suite for goal 2 (shippable vspec).
 #
 # Anti-cheat principle: every gate enumerates from a source of truth
-# (prisma/schema.prisma, the SignupState type, the filesystem) rather than
+# (apps/api/prisma/schema.prisma, the SignupState type, the filesystem) rather than
 # hardcoding one example. If the goal text says "every X," the gate iterates
 # X. This is the rule Goal 1's persistence gate violated.
 
@@ -38,13 +38,13 @@ run_gate() {
 # Whitelist of fields allowed to remain in SignupState (truly ephemeral).
 SIGNUP_STATE_WHITELIST='^(pendingOAuth|sessionsByToken|readOnlyMemberships)$'
 
-# Entity-name regex used for grep-leak scans across src/http/*-routes.ts.
+# Entity-name regex used for grep-leak scans across apps/api/src/http/*-routes.ts.
 ROUTE_STATE_PATTERN='state\.(actorsBy|branchesBy|goalsBy|mergeRequestsBy|projectKeysBy|projectsBy|scenariosBy|stepLocksBy|stakeholdersBy|stakeholderInterestsBy|stepsBy|revisionsBy|usecasesBy|usersBy|workSessionsBy|workspaceArchivedAt|workspacesBy|workspaceSlugs)'
 
 # ─── Tranche A — Persistence ─────────────────────────────────────────────
 
 echo "[2.A1] No entity Maps remain in SignupState"
-LEFTOVER=$(awk '/^export type SignupState = \{/,/^\};/' src/http/signup-types.ts \
+LEFTOVER=$(awk '/^export type SignupState = \{/,/^\};/' apps/api/src/http/signup-types.ts \
   | grep -E '^\s+[a-zA-Z]+\s*:\s*(Map|Set)<' \
   | awk -F: '{gsub(/^[ \t]+/,"",$1); print $1}' \
   | grep -vE "$SIGNUP_STATE_WHITELIST" || true)
@@ -57,7 +57,7 @@ else
 fi
 
 echo "[2.A2] No direct state.<entity> access in route files"
-LEAKS=$(grep -nE "$ROUTE_STATE_PATTERN" src/http/*-routes.ts 2>/dev/null || true)
+LEAKS=$(grep -nE "$ROUTE_STATE_PATTERN" apps/api/src/http/*-routes.ts 2>/dev/null || true)
 if [ -z "$LEAKS" ]; then
   echo "    ✓ pass"
 else
@@ -66,16 +66,16 @@ else
   PASS=false
 fi
 
-echo "[2.A3] Every Prisma model has an adapter in src/infrastructure/"
-MODELS=$(grep -E '^model ' prisma/schema.prisma | awk '{print $2}')
+echo "[2.A3] Every Prisma model has an adapter in apps/api/src/infrastructure/"
+MODELS=$(grep -E '^model ' apps/api/prisma/schema.prisma | awk '{print $2}')
 if [ -z "$MODELS" ]; then
-  echo "    ✗ fail — prisma/schema.prisma has no models"
+  echo "    ✗ fail — apps/api/prisma/schema.prisma has no models"
   PASS=false
 else
   UNUSED=()
   for m in $MODELS; do
     lower=$(echo "$m" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')
-    if ! grep -rq "prisma\.${lower}\." src/infrastructure/ 2>/dev/null; then
+    if ! grep -rq "prisma\.${lower}\." apps/api/src/infrastructure/ 2>/dev/null; then
       UNUSED+=("$m")
     fi
   done
@@ -89,7 +89,7 @@ else
 fi
 
 echo "[2.A4] persistence-matrix test enumerates every model"
-MATRIX=tests/integration/persistence-matrix.test.ts
+MATRIX=apps/api/tests/integration/persistence-matrix.test.ts
 if [ ! -f "$MATRIX" ]; then
   echo "    ✗ fail — missing $MATRIX"
   PASS=false
@@ -104,7 +104,7 @@ else
     echo "    ✗ fail — $MATRIX does not reference these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! npx --no-install vitest run "$MATRIX" >/dev/null 2>&1; then
+  elif ! pnpm exec vitest run "$MATRIX" >/dev/null 2>&1; then
     echo "    ✗ fail — $MATRIX is red"
     PASS=false
   else
@@ -118,10 +118,10 @@ echo "[2.B1] GitHub OAuth without stub"
 if ! grep -rq 'GITHUB_CLIENT_ID' src/ 2>/dev/null; then
   echo "    ✗ fail — GITHUB_CLIENT_ID never read in src/"
   PASS=false
-elif [ ! -f tests/e2e/UC-001-real-oauth.test.ts ]; then
-  echo "    ✗ fail — tests/e2e/UC-001-real-oauth.test.ts missing"
+elif [ ! -f apps/api/tests/e2e/UC-001-real-oauth.test.ts ]; then
+  echo "    ✗ fail — apps/api/tests/e2e/UC-001-real-oauth.test.ts missing"
   PASS=false
-elif ! npx --no-install vitest run tests/e2e/UC-001-real-oauth.test.ts >/dev/null 2>&1; then
+elif ! pnpm exec vitest run apps/api/tests/e2e/UC-001-real-oauth.test.ts >/dev/null 2>&1; then
   echo "    ✗ fail — UC-001-real-oauth test red"
   PASS=false
 else
@@ -155,12 +155,12 @@ fi
 
 # ─── Tranche C — Real layers ─────────────────────────────────────────────
 
-echo "[2.C1] No src/http/*-routes.ts exceeds 150 lines"
+echo "[2.C1] No apps/api/src/http/*-routes.ts exceeds 150 lines"
 OVER=()
 while IFS= read -r f; do
   lines=$(wc -l <"$f" | tr -d ' ')
   if [ "$lines" -gt 150 ]; then OVER+=("$f ($lines lines)"); fi
-done < <(find src/http -name '*-routes.ts' -type f)
+done < <(find apps/api/src/http -name '*-routes.ts' -type f)
 if [ "${#OVER[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
@@ -169,8 +169,8 @@ else
   PASS=false
 fi
 
-echo "[2.C2] src/application/ has ≥ 18 modules"
-APP_COUNT=$(find src/application -name '*.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
+echo "[2.C2] apps/api/src/application/ has ≥ 18 modules"
+APP_COUNT=$(find apps/api/src/application -name '*.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
 if [ "$APP_COUNT" -ge 18 ]; then
   echo "    ✓ pass ($APP_COUNT modules)"
 else
@@ -178,12 +178,12 @@ else
   PASS=false
 fi
 
-echo "[2.C3] tests/unit/application/ has ≥ 18 test files"
-UNIT_COUNT=$(find tests/unit/application -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+echo "[2.C3] apps/api/tests/unit/application/ has ≥ 18 test files"
+UNIT_COUNT=$(find apps/api/tests/unit/application -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$UNIT_COUNT" -ge 18 ]; then
   echo "    ✓ pass ($UNIT_COUNT tests)"
 else
-  echo "    ✗ fail — only $UNIT_COUNT unit tests under tests/unit/application/"
+  echo "    ✗ fail — only $UNIT_COUNT unit tests under apps/api/tests/unit/application/"
   PASS=false
 fi
 
@@ -198,14 +198,14 @@ const cases = [
       'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
-    filePath: "src/http/__goal2_rejects_infrastructure.test-fixture.ts"
+    filePath: "apps/api/src/http/__goal2_rejects_infrastructure.test-fixture.ts"
   },
   {
     code: [
       'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
-    filePath: "src/cli/__goal2_rejects_infrastructure.test-fixture.ts"
+    filePath: "apps/cli/src/__goal2_rejects_infrastructure.test-fixture.ts"
   }
 ];
 

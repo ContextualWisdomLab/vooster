@@ -2,7 +2,7 @@
 # goals/3-managed-db.gates.sh — Gate suite for goal 3 (managed Postgres).
 #
 # Anti-cheat principle: every gate enumerates from a source of truth
-# (the filesystem, prisma/schema.prisma, .github/workflows/). If the goal
+# (the filesystem, apps/api/prisma/schema.prisma, .github/workflows/). If the goal
 # text says "every X," the gate iterates X.
 
 set -uo pipefail
@@ -41,7 +41,7 @@ SQLITE_FORBIDDEN_FILES=(.env.example package.json docker-compose.yml docker-comp
 # ─── Tranche A — Test infrastructure rides Postgres ──────────────────────
 
 echo "[3.A1] Single Postgres test helper exists"
-HELPER=tests/helpers/postgres-db.ts
+HELPER=apps/api/tests/helpers/postgres-db.ts
 if [ ! -f "$HELPER" ]; then
   echo "    ✗ fail — $HELPER missing"
   PASS=false
@@ -77,22 +77,22 @@ else
 fi
 
 echo "[3.A3] CLI E2E helper routes through the Postgres helper"
-CLI_HELPER=tests/e2e-cli/helpers.ts
+CLI_HELPER=apps/cli/tests/e2e-cli/helpers.ts
 if [ ! -f "$CLI_HELPER" ]; then
   echo "    ✗ fail — $CLI_HELPER missing"
   PASS=false
 elif ! grep -qE 'postgres-db' "$CLI_HELPER"; then
   echo "    ✗ fail — $CLI_HELPER does not import the Postgres helper"
   PASS=false
-elif ! npx --no-install vitest run tests/e2e-cli >/dev/null 2>&1; then
-  echo "    ✗ fail — tests/e2e-cli is red (run: npx vitest run tests/e2e-cli)"
+elif ! pnpm exec vitest run apps/cli/tests/e2e-cli >/dev/null 2>&1; then
+  echo "    ✗ fail — apps/cli/tests/e2e-cli is red (run: npx vitest run apps/cli/tests/e2e-cli)"
   PASS=false
 else
   echo "    ✓ pass"
 fi
 
 echo "[3.A4] persistence-matrix test routes through the Postgres helper"
-MATRIX=tests/integration/persistence-matrix.test.ts
+MATRIX=apps/api/tests/integration/persistence-matrix.test.ts
 if [ ! -f "$MATRIX" ]; then
   echo "    ✗ fail — $MATRIX missing"
   PASS=false
@@ -100,7 +100,7 @@ elif ! grep -qE 'postgres-db' "$MATRIX"; then
   echo "    ✗ fail — $MATRIX does not import the Postgres helper"
   PASS=false
 else
-  MODELS=$(grep -E '^model ' prisma/schema.prisma | awk '{print $2}')
+  MODELS=$(grep -E '^model ' apps/api/prisma/schema.prisma | awk '{print $2}')
   MISSING_REFS=()
   for m in $MODELS; do
     if ! grep -q "\b${m}\b" "$MATRIX"; then
@@ -111,7 +111,7 @@ else
     echo "    ✗ fail — $MATRIX does not reference these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! npx --no-install vitest run "$MATRIX" >/dev/null 2>&1; then
+  elif ! pnpm exec vitest run "$MATRIX" >/dev/null 2>&1; then
     echo "    ✗ fail — $MATRIX is red against Postgres"
     PASS=false
   else
@@ -134,7 +134,7 @@ FILTERED=()
 if [ "${#SPAWN_VIOLATORS[@]}" -gt 0 ]; then
   for f in "${SPAWN_VIOLATORS[@]}"; do
     case "$f" in
-      tests/helpers/postgres-db.ts) ;;
+      apps/api/tests/helpers/postgres-db.ts) ;;
       *) FILTERED+=("$f") ;;
     esac
   done
@@ -150,9 +150,9 @@ fi
 # ─── Tranche B — Production schema is Postgres ───────────────────────────
 
 echo "[3.B1] Provider is postgresql and no sqlite literal remains"
-PROVIDER=$(grep -E 'provider\s*=\s*"(postgresql|postgres|sqlite|mysql|mongodb|sqlserver|cockroachdb)"' prisma/schema.prisma | head -1 | sed -E 's/.*"([a-z]+)".*/\1/')
+PROVIDER=$(grep -E 'provider\s*=\s*"(postgresql|postgres|sqlite|mysql|mongodb|sqlserver|cockroachdb)"' apps/api/prisma/schema.prisma | head -1 | sed -E 's/.*"([a-z]+)".*/\1/')
 if [ "$PROVIDER" != "postgresql" ]; then
-  echo "    ✗ fail — prisma/schema.prisma provider is '$PROVIDER' (want postgresql)"
+  echo "    ✗ fail — apps/api/prisma/schema.prisma provider is '$PROVIDER' (want postgresql)"
   PASS=false
 else
   SQLITE_HITS=()
@@ -233,7 +233,7 @@ if [ "${#CI_FILES[@]}" -gt 0 ]; then
   for f in "${CI_FILES[@]}"; do
     grep -qE 'npm (run )?lint|npx eslint' "$f" 2>/dev/null && HAS_LINT=true
     grep -qE 'npm (run )?typecheck|tsc --noEmit' "$f" 2>/dev/null && HAS_TYPECHECK=true
-    grep -qE 'npm test|npm (run )?test|vitest run' "$f" 2>/dev/null && HAS_TEST=true
+    grep -qE 'pnpm test|npm (run )?test|vitest run' "$f" 2>/dev/null && HAS_TEST=true
     grep -qE 'completion-check\.sh' "$f" 2>/dev/null && HAS_COMPLETION=true
   done
 fi

@@ -31,7 +31,7 @@ MISSING_TESTS=0
 for f in docs/usecases/UC-*.md; do
   [ -f "$f" ] || continue
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
-  if [ ! -f "tests/e2e/${UC_ID}.test.ts" ]; then
+  if [ ! -f "apps/api/tests/e2e/${UC_ID}.test.ts" ]; then
     echo "    ✗ Missing test for $UC_ID"
     MISSING_TESTS=$((MISSING_TESTS+1))
     PASS=false
@@ -44,7 +44,7 @@ fi
 # ---------- Gate 2: tests + coverage ----------
 echo "[0.2/5] Tests + coverage check..."
 if [ -f package.json ]; then
-  if npx --no-install vitest run --coverage >/dev/null 2>&1; then
+  if pnpm exec vitest run --coverage >/dev/null 2>&1; then
     echo "    ✓ All tests pass and coverage thresholds met"
   else
     echo "    ✗ Tests failing or coverage below thresholds (per vitest.config.ts)"
@@ -68,13 +68,13 @@ fi
 # ---------- Gate 4: lint + type ----------
 echo "[0.4/5] Lint & type check..."
 if [ -f package.json ]; then
-  if npx --no-install tsc --noEmit >/dev/null 2>&1; then
+  if pnpm exec tsc --noEmit >/dev/null 2>&1; then
     echo "    ✓ TypeScript clean"
   else
     echo "    ✗ TypeScript errors"
     PASS=false
   fi
-  if npx --no-install eslint . >/dev/null 2>&1; then
+  if pnpm exec eslint . >/dev/null 2>&1; then
     echo "    ✓ ESLint clean"
   else
     echo "    ✗ ESLint errors"

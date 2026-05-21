@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { PrismaClient } from "@prisma/client";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 const defaultTestDatabaseUrl = "postgresql://vspec:vspec@127.0.0.1:5433/vspec_test";
 
 export type TestDatabase = {
@@ -19,12 +19,24 @@ export async function withTestDatabase(): Promise<TestDatabase> {
   const schema = `test_${randomUUID().replaceAll("-", "_")}`;
   const databaseUrl = databaseUrlForSchema(schema);
 
-  // Keep this command aligned with the goal gate: prisma db push --skip-generate.
-  await execFileAsync("npx", ["prisma", "db", "push", "--skip-generate"], {
-    cwd: root,
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    maxBuffer: 10 * 1024 * 1024
-  });
+  // Keep this command aligned with the goal gate's relocated Prisma schema.
+  await execFileAsync(
+    "pnpm",
+    [
+      "exec",
+      "prisma",
+      "db",
+      "push",
+      "--schema",
+      "apps/api/prisma/schema.prisma",
+      "--skip-generate"
+    ],
+    {
+      cwd: root,
+      env: { ...process.env, DATABASE_URL: databaseUrl },
+      maxBuffer: 10 * 1024 * 1024
+    }
+  );
 
   return {
     databaseUrl,

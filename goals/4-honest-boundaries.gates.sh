@@ -3,7 +3,7 @@
 # (honest layered architecture).
 #
 # Anti-cheat principle: every gate enumerates from a source of truth
-# (the filesystem, prisma/schema.prisma, ls src/ports/). If the goal
+# (the filesystem, apps/api/prisma/schema.prisma, ls apps/api/src/ports/). If the goal
 # text says "every X," the gate iterates X.
 
 set -uo pipefail
@@ -40,7 +40,7 @@ CONFIG_FILES=(
   eslint.config.js
   tsconfig.json
   package.json
-  prisma/schema.prisma
+  apps/api/prisma/schema.prisma
   docker-compose.yml
   docker-compose.prod.yml
   vitest.config.ts
@@ -75,7 +75,7 @@ else
 fi
 
 echo "[4.A2] ESLint passes with zero violations"
-if npx --no-install eslint . --max-warnings 0 >/tmp/4-a2-eslint.log 2>&1; then
+if pnpm exec eslint . --max-warnings 0 >/tmp/4-a2-eslint.log 2>&1; then
   echo "    ✓ pass"
 else
   COUNT=$(grep -cE '(error|warning)' /tmp/4-a2-eslint.log 2>/dev/null || echo 0)
@@ -137,28 +137,28 @@ fi
 
 # ─── Tranche B — Domain owns the entity vocabulary ──────────────────────
 
-echo "[4.B1] Every Prisma model has a Stored<Model> type under src/domain/"
-MODELS=$(grep -E '^model ' prisma/schema.prisma | awk '{print $2}')
+echo "[4.B1] Every Prisma model has a Stored<Model> type under apps/api/src/domain/"
+MODELS=$(grep -E '^model ' apps/api/prisma/schema.prisma | awk '{print $2}')
 UNDECLARED=()
 for m in $MODELS; do
-  if ! grep -rqE "(^|[[:space:]])(export[[:space:]]+)?(type|interface)[[:space:]]+Stored${m}\b" src/domain/ 2>/dev/null; then
+  if ! grep -rqE "(^|[[:space:]])(export[[:space:]]+)?(type|interface)[[:space:]]+Stored${m}\b" apps/api/src/domain/ 2>/dev/null; then
     UNDECLARED+=("$m")
   fi
 done
 if [ "${#UNDECLARED[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — Stored<Model> missing under src/domain/ for:"
+  echo "    ✗ fail — Stored<Model> missing under apps/api/src/domain/ for:"
   printf '        %s\n' "${UNDECLARED[@]}"
   PASS=false
 fi
 
-echo "[4.B2] src/http/ no longer exports Stored* types"
-HTTP_STORED=$(grep -rE '^export[[:space:]]+(type|interface)[[:space:]]+Stored' src/http/ 2>/dev/null || true)
+echo "[4.B2] apps/api/src/http/ no longer exports Stored* types"
+HTTP_STORED=$(grep -rE '^export[[:space:]]+(type|interface)[[:space:]]+Stored' apps/api/src/http/ 2>/dev/null || true)
 if [ -z "$HTTP_STORED" ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — Stored* types still declared under src/http/:"
+  echo "    ✗ fail — Stored* types still declared under apps/api/src/http/:"
   echo "$HTTP_STORED" | head -20 | sed 's/^/        /'
   PASS=false
 fi
@@ -169,7 +169,7 @@ while IFS= read -r f; do
   if grep -qE 'from "(\.\.\/)+http/' "$f" 2>/dev/null; then
     UPWARD_VIOLATORS+=("$f")
   fi
-done < <(find src/ports src/application src/infrastructure -name '*.ts' 2>/dev/null)
+done < <(find apps/api/src/ports apps/api/src/application apps/api/src/infrastructure -name '*.ts' 2>/dev/null)
 if [ "${#UPWARD_VIOLATORS[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
@@ -179,12 +179,12 @@ else
   PASS=false
 fi
 
-echo "[4.B4] src/domain/ imports nothing from sibling layers"
-DOMAIN_LEAKS=$(grep -rE 'from "(\.\.\/)+(cli|http|application|ports|infrastructure)/' src/domain/ 2>/dev/null || true)
+echo "[4.B4] apps/api/src/domain/ imports nothing from sibling layers"
+DOMAIN_LEAKS=$(grep -rE 'from "(\.\.\/)+(cli|http|application|ports|infrastructure)/' apps/api/src/domain/ 2>/dev/null || true)
 if [ -z "$DOMAIN_LEAKS" ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — src/domain/ leaks outward:"
+  echo "    ✗ fail — apps/api/src/domain/ leaks outward:"
   echo "$DOMAIN_LEAKS" | head -10 | sed 's/^/        /'
   PASS=false
 fi
@@ -209,7 +209,7 @@ else
   PASS=false
 fi
 
-echo "[4.C2] One Prisma adapter per port under src/infrastructure/"
+echo "[4.C2] One Prisma adapter per port under apps/api/src/infrastructure/"
 MISSING_ADAPTERS=()
 while IFS= read -r port_file; do
   base=$(basename "$port_file" .ts)
@@ -219,10 +219,10 @@ while IFS= read -r port_file; do
     # below cover its members.
     signup-store) continue ;;
   esac
-  if [ ! -f "src/infrastructure/prisma-${base}.ts" ]; then
-    MISSING_ADAPTERS+=("src/infrastructure/prisma-${base}.ts")
+  if [ ! -f "apps/api/src/infrastructure/prisma-${base}.ts" ]; then
+    MISSING_ADAPTERS+=("apps/api/src/infrastructure/prisma-${base}.ts")
   fi
-done < <(find src/ports -name '*-store.ts' 2>/dev/null)
+done < <(find apps/api/src/ports -name '*-store.ts' 2>/dev/null)
 if [ "${#MISSING_ADAPTERS[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
@@ -232,32 +232,32 @@ else
 fi
 
 echo "[4.C3] CLI split into one file per top-level command"
-if [ ! -d src/cli/commands ]; then
-  echo "    ✗ fail — src/cli/commands/ does not exist"
+if [ ! -d apps/cli/src/commands ]; then
+  echo "    ✗ fail — apps/cli/src/commands/ does not exist"
   PASS=false
 else
   # Source of truth: top-level subcommands the project advertises via
-  # README + http strings. We extract candidates from src/cli/index.ts
+  # README + http strings. We extract candidates from apps/cli/src/index.ts
   # (the current monolith); once C3 is satisfied those branches are
   # gone, so this enumeration switches to the commands/ directory itself
   # — naturally green.
-  COMMAND_SOURCE=src/cli/index.ts
+  COMMAND_SOURCE=apps/cli/src/index.ts
   CMDS=$(grep -oE 'parsed\.args\.command === "[a-z][a-z0-9-]+"' "$COMMAND_SOURCE" 2>/dev/null \
          | sed -E 's/.*"([^"]+)".*/\1/' | sort -u)
   if [ -z "$CMDS" ]; then
     # Monolith dissolved — discover from the directory itself.
-    CMDS=$(find src/cli/commands -maxdepth 1 -name '*.ts' -exec basename {} .ts \; | sort -u)
+    CMDS=$(find apps/cli/src/commands -maxdepth 1 -name '*.ts' -exec basename {} .ts \; | sort -u)
   fi
   MISSING_CMDS=()
   for c in $CMDS; do
-    if ! find src/cli/commands -maxdepth 2 -name "${c}.ts" -o -name "${c}/index.ts" 2>/dev/null | grep -q .; then
+    if ! find apps/cli/src/commands -maxdepth 2 -name "${c}.ts" -o -name "${c}/index.ts" 2>/dev/null | grep -q .; then
       MISSING_CMDS+=("$c")
     fi
   done
   if [ "${#MISSING_CMDS[@]}" -eq 0 ]; then
     echo "    ✓ pass"
   else
-    echo "    ✗ fail — these subcommands have no file under src/cli/commands/:"
+    echo "    ✗ fail — these subcommands have no file under apps/cli/src/commands/:"
     printf '        %s\n' "${MISSING_CMDS[@]}"
     PASS=false
   fi

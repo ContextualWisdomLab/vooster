@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo \"api shell: build waits for relocation\"",
-    "test": "echo \"api shell: tests wait for relocation\"",
-    "typecheck": "echo \"api shell: typecheck waits for relocation\""
+    "build": "cd ../.. && tsc -p tsconfig.json",
+    "test": "cd ../.. && vitest run apps/api/tests",
+    "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
   }
 }

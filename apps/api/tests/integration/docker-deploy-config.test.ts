@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 
 describe("Goal 2 Docker deploy configuration", () => {
   test("Dockerfile and production compose describe the deploy stack", async () => {
@@ -14,8 +14,8 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(dockerfile).toContain("FROM node:20-alpine AS build");
     expect(dockerfile).toContain("FROM node:20-alpine AS runtime");
     expect(dockerfile).toContain("EXPOSE 8080");
-    expect(dockerfile).toContain("prisma db push --skip-generate");
-    expect(dockerfile).toContain("dist/src/index.js");
+    expect(dockerfile).toContain("prisma db push --schema apps/api/prisma/schema.prisma --skip-generate");
+    expect(dockerfile).toContain("dist/apps/api/src/index.js");
 
     expect(compose).toContain("app:");
     expect(compose).toContain("db:");

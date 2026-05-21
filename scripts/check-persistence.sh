@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if [ ! -f package.json ] || ! grep -qE '"start"\s*:' package.json; then
-  echo "✗ check-persistence: prerequisite missing (npm start). Pass check-bootable first."
+  echo "✗ check-persistence: prerequisite missing (pnpm start). Pass check-bootable first."
   exit 1
 fi
 
@@ -47,7 +47,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-npm run --silent build >/dev/null 2>&1 || true
+pnpm run --silent build >/dev/null 2>&1 || true
 npx --no-install prisma db push --skip-generate >/dev/null 2>&1 || {
   echo "✗ check-persistence: schema setup failed."
   exit 1
@@ -55,7 +55,7 @@ npx --no-install prisma db push --skip-generate >/dev/null 2>&1 || {
 
 boot() {
   local log="$1"
-  ( npm start >"$log" 2>&1 ) &
+  ( pnpm start >"$log" 2>&1 ) &
   local pid=$!
   for _ in $(seq 1 50); do
     if curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1; then

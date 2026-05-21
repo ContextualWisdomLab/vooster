@@ -17,11 +17,10 @@
     "types": ["node", "vitest/globals"]
   },
   "include": [
-    "src/**/*.ts",
+    "apps/**/*.ts",
     "scripts/**/*.ts",
-    "tests/**/*.ts",
     "vitest.config.ts",
     "eslint.config.js"
   ],
-  "exclude": ["dist", "node_modules", "tests/e2e/_template.test.ts"]
+  "exclude": ["dist", "node_modules", "apps/api/tests/e2e/_template.test.ts"]
 }

@@ -9,12 +9,12 @@ import { afterEach, beforeAll, describe, expect, test } from "vitest";
 import { withTestDatabase, type TestDatabase } from "../helpers/postgres-db.js";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(import.meta.dirname, "../..");
+const root = path.resolve(import.meta.dirname, "../../../..");
 const testDatabases: TestDatabase[] = [];
 
 describe("Goal 2 persistence matrix", () => {
   beforeAll(async () => {
-    await execFileAsync("npm", ["run", "build"], { cwd: root });
+    await execFileAsync("pnpm", ["run", "build"], { cwd: root });
   }, 60_000);
 
   afterEach(async () => {
@@ -756,7 +756,7 @@ async function testDatabaseUrl(): Promise<string> {
 
 async function bootServer(databaseUrl: string) {
   const port = await freeTcpPort();
-  const child = spawn("npm", ["start"], {
+  const child = spawn("pnpm", ["start"], {
     cwd: root,
     env: {
       ...process.env,

@@ -13,14 +13,14 @@ try {
     throw Object.assign(new Error("Use source CLI"), { code: "ERR_MODULE_NOT_FOUND" });
   }
 
-  const cli = await import("../dist/src/cli/index.js");
+  const cli = await import("../../dist/apps/cli/src/index.js");
   await cli.runCli(argv);
 } catch (error) {
   if (!isMissingBuiltCli(error)) {
     throw error;
   }
 
-  const sourceCli = resolve(binDir, "../src/cli/index.ts");
+  const sourceCli = resolve(binDir, "../src/index.ts");
   const result = spawnSync(process.execPath, ["--import", "tsx", sourceCli, ...argv], {
     stdio: "inherit"
   });

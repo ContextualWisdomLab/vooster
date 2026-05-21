@@ -20,7 +20,7 @@ declare -a ROWS
 
 UC_STATUS_FILE=$(mktemp)
 trap 'rm -f "$UC_STATUS_FILE"' EXIT
-node "$ROOT/scripts/_uc-status.mjs" tests/e2e tests/e2e-cli >"$UC_STATUS_FILE" 2>/dev/null || true
+node "$ROOT/scripts/_uc-status.mjs" apps/api/tests/e2e apps/cli/tests/e2e-cli >"$UC_STATUS_FILE" 2>/dev/null || true
 
 uc_status() {
   grep -F "$1"$'\t' "$UC_STATUS_FILE" | awk -F'\t' '{print $2}' | head -1
@@ -30,8 +30,8 @@ for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
   TOTAL=$((TOTAL+1))
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
   TITLE=$(grep -m1 '^title:' "$f" 2>/dev/null | sed 's/^title:[[:space:]]*//' || echo "")
-  TEST_FILE="tests/e2e/${UC_ID}.test.ts"
-  CLI_FILE="tests/e2e-cli/${UC_ID}.test.ts"
+  TEST_FILE="apps/api/tests/e2e/${UC_ID}.test.ts"
+  CLI_FILE="apps/cli/tests/e2e-cli/${UC_ID}.test.ts"
   STATUS="○ NOT STARTED"
   TESTS="0/0"
   CLI="○"
@@ -95,7 +95,7 @@ fi
   echo ""
   echo "| Gate | Status |"
   echo "| --- | --- |"
-  echo "| Bootable (npm start, /healthz) | $RUN_BOOT |"
+  echo "| Bootable (pnpm start, /healthz) | $RUN_BOOT |"
   echo "| Persistence (restart survival) | $RUN_PERSIST |"
   echo "| CLI binary + subcommands | $RUN_CLI |"
   echo "| Layered architecture | $RUN_LAYERS |"

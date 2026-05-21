@@ -12,4 +12,4 @@ if [ ! -f package.json ]; then
 fi
 
 # Pass through any extra arguments (e.g. a specific file).
-npx --no-install vitest run "$@"
+pnpm exec vitest run "$@"

@@ -45,10 +45,10 @@ for f in $TESTS; do
 done
 
 # 4. E2E mocking application/domain
-E2E=$(find tests/e2e -name '*.test.ts' 2>/dev/null)
+E2E=$(find apps/api/tests/e2e -name '*.test.ts' 2>/dev/null)
 if [ -n "$E2E" ]; then
   if grep -nE "vi\.mock\(['\"](\.\./)*(\.\./)*src/(application|domain)/" $E2E 2>/dev/null; then
-    echo "✗ check-bypass: E2E test mocks src/application or src/domain."
+    echo "✗ check-bypass: E2E test mocks apps/api/src/application or apps/api/src/domain."
     FAIL=1
   fi
 fi

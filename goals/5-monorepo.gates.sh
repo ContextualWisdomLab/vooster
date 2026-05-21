@@ -145,7 +145,7 @@ else
   PASS=false
 fi
 
-echo "[5.B4] apps/cli has src/, bin/run.js, and package.json bin.vspec"
+echo "[5.B4] apps/cli has src/, apps/cli/bin/run.js, and package.json bin.vspec"
 B4_OK=true
 [ -d apps/cli/src ] || B4_OK=false
 [ -f apps/cli/bin/run.js ] || B4_OK=false
@@ -163,7 +163,7 @@ fi
 if [ "$B4_OK" = true ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — apps/cli/{src,bin/run.js} and package.json bin.vspec required"
+  echo "    ✗ fail — apps/cli/{src,apps/cli/bin/run.js} and package.json bin.vspec required"
   PASS=false
 fi
 

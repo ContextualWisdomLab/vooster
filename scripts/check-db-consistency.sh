@@ -8,12 +8,14 @@ cd "$ROOT"
 
 FAIL=0
 
-SCHEMA_PROVIDER=$(grep -E 'provider\s*=\s*"(postgres|postgresql)"' prisma/schema.prisma 2>/dev/null \
+SCHEMA="apps/api/prisma/schema.prisma"
+
+SCHEMA_PROVIDER=$(grep -E 'provider\s*=\s*"(postgres|postgresql)"' "$SCHEMA" 2>/dev/null \
   | head -1 \
   | sed -E 's/.*"([a-z]+)".*/\1/')
 
 if [ "$SCHEMA_PROVIDER" != postgresql ]; then
-  echo "✗ check-db-consistency: prisma/schema.prisma provider must be postgresql"
+  echo "✗ check-db-consistency: $SCHEMA provider must be postgresql"
   FAIL=1
 fi
 

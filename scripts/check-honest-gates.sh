@@ -11,7 +11,7 @@ CONFIG_FILES=(
   eslint.config.js
   tsconfig.json
   package.json
-  prisma/schema.prisma
+  apps/api/prisma/schema.prisma
   docker-compose.yml
   docker-compose.prod.yml
   vitest.config.ts

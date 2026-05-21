@@ -66,15 +66,15 @@ echo "=== Scaffolding ==="
 [ -f vitest.config.ts ]  && echo "  ✓ vitest.config.ts"  || echo "  ✗ vitest.config.ts"
 [ -d prisma ]            && echo "  ✓ prisma/"           || echo "  ✗ prisma/"
 [ -d src ]               && echo "  ✓ src/"              || echo "  ✗ src/"
-[ -d tests/e2e ]         && echo "  ✓ tests/e2e/"        || echo "  ✗ tests/e2e/"
-[ -d tests/e2e-cli ]     && echo "  ✓ tests/e2e-cli/"    || echo "  ⊘ tests/e2e-cli/ (goal 1)"
-[ -f bin/run.js ]        && echo "  ✓ bin/run.js"        || echo "  ⊘ bin/run.js (goal 1)"
+[ -d apps/api/tests/e2e ]         && echo "  ✓ apps/api/tests/e2e/"        || echo "  ✗ apps/api/tests/e2e/"
+[ -d apps/cli/tests/e2e-cli ]     && echo "  ✓ apps/cli/tests/e2e-cli/"    || echo "  ⊘ apps/cli/tests/e2e-cli/ (goal 1)"
+[ -f apps/cli/bin/run.js ]        && echo "  ✓ apps/cli/bin/run.js"        || echo "  ⊘ apps/cli/bin/run.js (goal 1)"
 [ -s src/index.ts ]      && echo "  ✓ src/index.ts non-empty" || echo "  ⊘ src/index.ts empty (goal 1)"
 echo ""
 
 echo "=== Test Status ==="
 if [ -f package.json ] && command -v npm >/dev/null 2>&1; then
-  if npm run --silent test -- --run >/tmp/vspec_test_out.txt 2>&1; then
+  if pnpm run --silent test -- --run >/tmp/vspec_test_out.txt 2>&1; then
     echo "  ✓ Tests passing"
     grep -E "Tests +[0-9]" /tmp/vspec_test_out.txt | tail -5 || true
   else
@@ -95,13 +95,13 @@ NOT_STARTED=0
 
 UC_STATUS_FILE=$(mktemp)
 trap 'rm -f "$UC_STATUS_FILE"' EXIT
-node "$ROOT/scripts/_uc-status.mjs" tests/e2e >"$UC_STATUS_FILE" 2>/dev/null || true
+node "$ROOT/scripts/_uc-status.mjs" apps/api/tests/e2e >"$UC_STATUS_FILE" 2>/dev/null || true
 
 for f in docs/usecases/UC-*.md; do
   [ -f "$f" ] || continue
   TOTAL=$((TOTAL+1))
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
-  TEST_FILE="tests/e2e/${UC_ID}.test.ts"
+  TEST_FILE="apps/api/tests/e2e/${UC_ID}.test.ts"
   if [ -f "$TEST_FILE" ]; then
     STATUS=$(grep -F "${TEST_FILE}"$'\t' "$UC_STATUS_FILE" | awk -F'\t' '{print $2}' | head -1)
     if [ "$STATUS" = "PASS" ]; then
@@ -119,38 +119,38 @@ echo "  Not started: $NOT_STARTED"
 echo ""
 
 echo "=== Goal 2 Coverage (shippability) ==="
-if [ -f prisma/schema.prisma ] && [ -d src/infrastructure ]; then
-  MODELS=$(grep -E '^model ' prisma/schema.prisma | awk '{print $2}')
+if [ -f apps/api/prisma/schema.prisma ] && [ -d apps/api/src/infrastructure ]; then
+  MODELS=$(grep -E '^model ' apps/api/prisma/schema.prisma | awk '{print $2}')
   TOTAL_M=0; PERSISTED_M=0
   for m in $MODELS; do
     TOTAL_M=$((TOTAL_M+1))
     lower=$(echo "$m" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')
-    if grep -rq "prisma\.${lower}\." src/infrastructure/ 2>/dev/null; then
+    if grep -rq "prisma\.${lower}\." apps/api/src/infrastructure/ 2>/dev/null; then
       PERSISTED_M=$((PERSISTED_M+1))
     fi
   done
-  echo "  Persistence:    $PERSISTED_M / $TOTAL_M Prisma models wired in src/infrastructure/"
+  echo "  Persistence:    $PERSISTED_M / $TOTAL_M Prisma models wired in apps/api/src/infrastructure/"
 else
-  echo "  Persistence:    (prisma or src/infrastructure missing)"
+  echo "  Persistence:    (prisma or apps/api/src/infrastructure missing)"
 fi
 
-if [ -f src/http/signup-types.ts ]; then
+if [ -f apps/api/src/http/signup-types.ts ]; then
   ALLOWED='^(pendingOAuth|sessionsByToken|readOnlyMemberships)$'
-  LEFT=$(awk '/^export type SignupState = \{/,/^\};/' src/http/signup-types.ts \
+  LEFT=$(awk '/^export type SignupState = \{/,/^\};/' apps/api/src/http/signup-types.ts \
     | grep -E '^\s+[a-zA-Z]+\s*:\s*(Map|Set)<' \
     | awk -F: '{gsub(/^[ \t]+/,"",$1); print $1}' \
     | grep -vcE "$ALLOWED" || true)
   echo "  SignupState:    $LEFT non-ephemeral in-memory field(s) still to migrate"
 fi
 
-if [ -d src/http ]; then
-  OVER=$(find src/http -name '*-routes.ts' -type f -exec wc -l {} \; 2>/dev/null \
+if [ -d apps/api/src/http ]; then
+  OVER=$(find apps/api/src/http -name '*-routes.ts' -type f -exec wc -l {} \; 2>/dev/null \
     | awk '$1>150 {n++} END {print n+0}')
   echo "  Fat routes:     $OVER file(s) over 150 lines"
 fi
 
-APP_C=$(find src/application -name '*.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
-UNIT_C=$(find tests/unit/application -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+APP_C=$(find apps/api/src/application -name '*.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
+UNIT_C=$(find apps/api/tests/unit/application -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
 echo "  Application:    $APP_C modules, $UNIT_C unit tests (target ≥ 18 each)"
 
 if grep -rq 'GITHUB_CLIENT_ID' src/ 2>/dev/null; then
@@ -170,8 +170,8 @@ fi
 echo ""
 
 echo "=== Goal 3 Coverage (managed Postgres) ==="
-if [ -f prisma/schema.prisma ]; then
-  PROVIDER=$(grep -E 'provider\s*=' prisma/schema.prisma | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+if [ -f apps/api/prisma/schema.prisma ]; then
+  PROVIDER=$(grep -E 'provider\s*=' apps/api/prisma/schema.prisma | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
   echo "  Prisma provider: $PROVIDER"
 else
   echo "  Prisma provider: (schema missing)"
@@ -182,8 +182,8 @@ if [ -d tests ]; then
   echo "  Test file URL refs: $FILE_URL_REFS"
 fi
 
-if [ -f tests/helpers/postgres-db.ts ]; then
-  echo "  Test DB helper:  ✓ tests/helpers/postgres-db.ts"
+if [ -f apps/api/tests/helpers/postgres-db.ts ]; then
+  echo "  Test DB helper:  ✓ apps/api/tests/helpers/postgres-db.ts"
 else
   echo "  Test DB helper:  ✗ missing"
 fi

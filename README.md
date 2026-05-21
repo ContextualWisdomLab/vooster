@@ -27,7 +27,7 @@ For development from a clean clone:
 ```bash
 npm install
 cp .env.example .env
-npm run build
+pnpm run build
 ```
 
 ## Run
@@ -37,14 +37,14 @@ Start the optional local Postgres service, then run the development server:
 ```bash
 cp .env.example .env
 docker compose up -d db
-npm run dev
+pnpm run dev
 ```
 
 For a no-Docker local run, keep the SQLite `DATABASE_URL` from `.env.example`
 and use:
 
 ```bash
-npm start
+pnpm start
 ```
 
 The server exposes `GET /healthz` on `http://localhost:8080` unless `PORT` is

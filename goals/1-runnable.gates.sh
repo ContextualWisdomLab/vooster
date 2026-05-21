@@ -36,18 +36,18 @@ run_gate "1.2/6 Persistence" "$ROOT/scripts/check-persistence.sh"
 run_gate "1.3/6 CLI binary"  "$ROOT/scripts/check-cli.sh"
 
 echo "[1.4/6 CLI E2E]"
-if [ -d tests/e2e-cli ] && [ "$(find tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')" -gt 0 ]; then
+if [ -d apps/cli/tests/e2e-cli ] && [ "$(find apps/cli/tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')" -gt 0 ]; then
   UC_COUNT=$(ls docs/usecases/UC-*.md 2>/dev/null | wc -l | tr -d ' ')
-  CLI_COUNT=$(find tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
+  CLI_COUNT=$(find apps/cli/tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
   if [ "$CLI_COUNT" -ge "$UC_COUNT" ] \
-      && npx --no-install vitest run tests/e2e-cli >/dev/null 2>&1; then
+      && pnpm exec vitest run apps/cli/tests/e2e-cli >/dev/null 2>&1; then
     echo "    ✓ pass ($CLI_COUNT/$UC_COUNT CLI E2E files, all green)"
   else
     echo "    ✗ fail — expected $UC_COUNT CLI E2E files, found $CLI_COUNT (or tests failing)"
     PASS=false
   fi
 else
-  echo "    ✗ fail — tests/e2e-cli/ is missing or empty"
+  echo "    ✗ fail — apps/cli/tests/e2e-cli/ is missing or empty"
   PASS=false
 fi
 

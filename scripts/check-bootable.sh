@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# check-bootable.sh — Goal 1 gate: `npm start` boots Fastify and /healthz works.
+# check-bootable.sh — Goal 1 gate: `pnpm start` boots Fastify and /healthz works.
 #
 # Failure modes (in order):
 #   - package.json has no "start" script
-#   - src/index.ts is empty / does not boot a server
+#   - apps/api/src/index.ts is empty / does not boot a server
 #   - server starts but /healthz does not return 200 within timeout
 #
 # Exits 0 only when the server boots and answers /healthz with status 200.
@@ -24,9 +24,9 @@ if ! grep -qE '"start"\s*:' package.json; then
   exit 1
 fi
 
-if [ ! -s src/index.ts ] || ! grep -qE '(listen|createServer|Fastify)' src/index.ts; then
-  echo "✗ check-bootable: src/index.ts does not appear to boot a server."
-  echo "  Expected: imports createServer from src/http/server.ts and calls app.listen."
+if [ ! -s apps/api/src/index.ts ] || ! grep -qE '(listen|createServer|Fastify)' apps/api/src/index.ts; then
+  echo "✗ check-bootable: apps/api/src/index.ts does not appear to boot a server."
+  echo "  Expected: imports createServer from apps/api/src/http/server.ts and calls app.listen."
   exit 1
 fi
 
@@ -36,8 +36,8 @@ LOG=$(mktemp)
 mkdir -p .state
 
 # Start the server in the background; allow generous TS build time on first run.
-npm run --silent build >/dev/null 2>&1 || true
-( npm start >"$LOG" 2>&1 ) &
+pnpm run --silent build >/dev/null 2>&1 || true
+( pnpm start >"$LOG" 2>&1 ) &
 PID=$!
 
 cleanup() {

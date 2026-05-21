@@ -6,8 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-MUTATE_TARGET="${1:-src/http/usecase-from-goal.ts}"
-TEST_FILES="${2:-tests/e2e/UC-009*.test.ts}"
+MUTATE_TARGET="${1:-apps/api/src/http/usecase-from-goal.ts}"
+TEST_FILES="${2:-apps/api/tests/e2e/UC-009*.test.ts}"
 CONCURRENCY="${STRYKER_CONCURRENCY:-2}"
 TIMEOUT_MS="${STRYKER_TIMEOUT_MS:-10000}"
 

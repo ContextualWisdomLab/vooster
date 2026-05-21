@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "coverage/**", "node_modules/**", "tests/e2e/_template.test.ts"]
+    ignores: ["dist/**", "coverage/**", "node_modules/**", "apps/api/tests/e2e/_template.test.ts"]
   },
   {
     files: ["**/*.{js,mjs}"],
@@ -24,12 +24,12 @@ export default tseslint.config(
     },
     settings: {
       "boundaries/elements": [
-        { type: "cli", pattern: "src/cli" },
-        { type: "http", pattern: "src/http" },
-        { type: "application", pattern: "src/application" },
-        { type: "domain", pattern: "src/domain" },
-        { type: "ports", pattern: "src/ports" },
-        { type: "infrastructure", pattern: "src/infrastructure" }
+        { type: "cli", pattern: "apps/cli/src" },
+        { type: "http", pattern: "apps/api/src/http" },
+        { type: "application", pattern: "apps/api/src/application" },
+        { type: "domain", pattern: "apps/api/src/domain" },
+        { type: "ports", pattern: "apps/api/src/ports" },
+        { type: "infrastructure", pattern: "apps/api/src/infrastructure" }
       ]
     },
     rules: {

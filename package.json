@@ -5,23 +5,15 @@
   "private": true,
   "packageManager": "pnpm@11.0.5",
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "vspec": "./bin/run.js"
-  },
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
   "scripts": {
     "build": "tsc",
-    "predev": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --skip-generate; fi",
-    "dev": "tsx watch src/index.ts",
+    "predev": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --schema apps/api/prisma/schema.prisma --skip-generate; fi",
+    "dev": "tsx watch apps/api/src/index.ts",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "postinstall": "prisma generate",
-    "prestart": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --skip-generate; fi",
-    "start": "node dist/src/index.js",
+    "postinstall": "prisma generate --schema apps/api/prisma/schema.prisma",
+    "prestart": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --schema apps/api/prisma/schema.prisma --skip-generate; fi",
+    "start": "node dist/apps/api/src/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

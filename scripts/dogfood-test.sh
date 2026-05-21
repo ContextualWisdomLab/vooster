@@ -13,6 +13,6 @@ mkdir -p "$(dirname "$LOG")"
 note() { echo "[dogfood] $*" | tee -a "$LOG"; }
 
 note "Run in-memory dogfood smoke"
-npm run --silent build >>"$LOG" 2>&1
+pnpm run --silent build >>"$LOG" 2>&1
 node dist/scripts/dogfood-smoke.js >>"$LOG" 2>&1
 note "✓ dogfood test passed"

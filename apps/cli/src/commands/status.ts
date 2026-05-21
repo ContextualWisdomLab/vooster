@@ -18,5 +18,6 @@ export function runStatus(
   const config = readConfig();
   writeLine(`api_url ${config.api_url ?? ""}`);
   writeLine(`current_workspace_id ${config.current_workspace_id ?? ""}`);
+  writeLine(`current_project_key ${config.current_project_key ?? ""}`);
   writeLine(`profile ${config.profile ?? ""}`);
 }

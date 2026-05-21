@@ -13,6 +13,7 @@ export type VspecConfig = {
 };
 
 type ConfigStoreOptions = {
+  cwd?: string;
   path?: string;
 };
 
@@ -21,11 +22,30 @@ type WriteConfigOptions = ConfigStoreOptions & {
 };
 
 export function configPath(options: ConfigStoreOptions = {}): string {
-  return options.path ?? process.env.VSPEC_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json");
+  return options.path ?? process.env.VSPEC_CONFIG_PATH ?? globalConfigPath();
+}
+
+export function globalConfigPath(): string {
+  return process.env.VSPEC_GLOBAL_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json");
 }
 
 export function localConfigPath(cwd = process.cwd()): string {
   return join(cwd, ".vspec", "config.json");
+}
+
+export function discoverLocalConfigPath(start: string = process.cwd()): string | null {
+  let dir = start;
+  let parent = dirname(dir);
+  while (parent !== dir) {
+    const candidate = join(dir, ".vspec", "config.json");
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    dir = parent;
+    parent = dirname(dir);
+  }
+  const rootCandidate = join(dir, ".vspec", "config.json");
+  return existsSync(rootCandidate) ? rootCandidate : null;
 }
 
 export function configExists(options: ConfigStoreOptions = {}): boolean {
@@ -33,8 +53,33 @@ export function configExists(options: ConfigStoreOptions = {}): boolean {
 }
 
 export function readConfig(options: ConfigStoreOptions = {}): VspecConfig {
+  if (options.path !== undefined || process.env.VSPEC_CONFIG_PATH !== undefined) {
+    return readSingleConfig(configPath(options));
+  }
+
+  const base = readSingleConfig(globalConfigPath());
+  const localPath = discoverLocalConfigPath(options.cwd ?? process.cwd());
+  if (localPath === null) {
+    return base;
+  }
+
+  const local = readSingleConfig(localPath);
+  return { ...base, ...stripUndefined(local) };
+}
+
+function stripUndefined(config: VspecConfig): Partial<VspecConfig> {
+  const result: Partial<VspecConfig> = {};
+  for (const [key, value] of Object.entries(config) as Array<[keyof VspecConfig, string | undefined]>) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+function readSingleConfig(path: string): VspecConfig {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(configPath(options), "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
     return isRecord(parsed) ? configFrom(parsed) : {};
   } catch (error) {
     if (isMissingFile(error)) {
@@ -49,14 +94,14 @@ export function writeConfig(
   partial: Partial<VspecConfig>,
   options: WriteConfigOptions = {}
 ): void {
+  const path = configPath(options);
   const next =
     options.merge === false
       ? partial
       : {
-          ...readConfig(options),
+          ...readSingleConfig(path),
           ...partial
         };
-  const path = configPath(options);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
 }

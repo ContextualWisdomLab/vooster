@@ -1,0 +1,104 @@
+---
+const steps = [
+  {
+    title: "목표를 고릅니다",
+    body: "실패 중인 게이트와 다음 작업을 기준으로 한 번에 하나의 유스케이스를 정합니다.",
+  },
+  {
+    title: "테스트 계획을 남깁니다",
+    body: "필요한 E2E 경로, 준비 데이터, 관찰할 결과를 먼저 적습니다.",
+  },
+  {
+    title: "작게 구현합니다",
+    body: "빨간 테스트를 만들고 최소 변경으로 통과시킨 뒤 중복을 줄입니다.",
+  },
+  {
+    title: "증거를 공유합니다",
+    body: "빌드, 테스트, 게이트 결과를 커밋과 함께 남겨 다음 세션이 이어받습니다.",
+  },
+];
+---
+
+<section class="how" aria-labelledby="how-title">
+  <div class="section-shell">
+    <p class="section-kicker">작동 방식</p>
+    <h2 id="how-title" class="section-heading">작업은 항상 같은 리듬으로 전진합니다</h2>
+    <ol>
+      {
+        steps.map((step, index) => (
+          <li>
+            <span class="step-number">{String(index + 1).padStart(2, "0")}</span>
+            <div>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .how {
+    padding: 86px 0;
+    background: #eef5f1;
+  }
+
+  ol {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin: 38px 0 0;
+    padding: 0;
+    list-style: none;
+    background: #c8d6cf;
+    border: 1px solid #c8d6cf;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  li {
+    min-height: 260px;
+    padding: 24px;
+    background: #f9fcfa;
+  }
+
+  .step-number {
+    display: inline-block;
+    color: #c2410c;
+    font-size: 0.84rem;
+    font-weight: 900;
+  }
+
+  h3 {
+    margin: 58px 0 12px;
+    color: #17201c;
+    font-size: 1.15rem;
+  }
+
+  p {
+    margin: 0;
+    color: #536057;
+  }
+
+  @media (max-width: 920px) {
+    ol {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 620px) {
+    ol {
+      grid-template-columns: 1fr;
+    }
+
+    li {
+      min-height: auto;
+    }
+
+    h3 {
+      margin-top: 28px;
+    }
+  }
+</style>

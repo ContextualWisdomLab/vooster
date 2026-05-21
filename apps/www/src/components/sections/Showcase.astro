@@ -1,0 +1,135 @@
+---
+const rows = [
+  ["UC-012", "리뷰 요청", "테스트 계획 작성 중"],
+  ["UC-013", "GitHub OAuth", "빨간 테스트 확인"],
+  ["UC-014", "세션 타임라인", "게이트 통과"],
+];
+---
+
+<section id="showcase" class="showcase" aria-labelledby="showcase-title">
+  <div class="section-shell showcase__layout">
+    <div>
+      <p class="section-kicker">사용 예시</p>
+      <h2 id="showcase-title" class="section-heading">한 화면에서 요구사항, 테스트, 변경 이력을 비교합니다</h2>
+      <p class="section-copy">
+        프로젝트 리더는 진행 중인 유스케이스를 보고, 개발자는 실패한 테스트를
+        바로 찾아가며, 다음 에이전트는 이전 세션의 판단을 놓치지 않습니다.
+      </p>
+    </div>
+    <div class="showcase__panel" aria-label="Vooster 작업 현황 예시">
+      <div class="panel-header">
+        <span>오늘의 작업실</span>
+        <strong>3개 목표 진행</strong>
+      </div>
+      <div class="panel-board">
+        {
+          rows.map(([code, title, status]) => (
+            <article>
+              <span>{code}</span>
+              <h3>{title}</h3>
+              <p>{status}</p>
+            </article>
+          ))
+        }
+      </div>
+      <div class="panel-footer">
+        <span class="dot"></span>
+        <p>마지막 검증: 빌드, 타입체크, E2E 통과</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .showcase {
+    padding: 92px 0;
+    background: #17201c;
+    color: #fffaf1;
+  }
+
+  .showcase :global(.section-heading),
+  .showcase :global(.section-copy) {
+    color: inherit;
+  }
+
+  .showcase :global(.section-copy) {
+    color: #d7e3dc;
+  }
+
+  .showcase__layout {
+    display: grid;
+    grid-template-columns: 0.88fr 1.12fr;
+    gap: 42px;
+    align-items: center;
+  }
+
+  .showcase__panel {
+    border: 1px solid rgba(255, 250, 241, 0.16);
+    border-radius: 8px;
+    padding: 18px;
+    background: #24302a;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  }
+
+  .panel-header,
+  .panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .panel-header span,
+  .panel-footer p {
+    margin: 0;
+    color: #cddbd4;
+  }
+
+  .panel-header strong {
+    color: #a7f3d0;
+  }
+
+  .panel-board {
+    display: grid;
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  article {
+    border: 1px solid rgba(255, 250, 241, 0.12);
+    border-radius: 8px;
+    padding: 18px;
+    background: #fffaf1;
+    color: #17201c;
+  }
+
+  article span {
+    color: #0f766e;
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  h3 {
+    margin: 10px 0 6px;
+    font-size: 1.14rem;
+  }
+
+  article p {
+    margin: 0;
+    color: #536057;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 860px) {
+    .showcase__layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

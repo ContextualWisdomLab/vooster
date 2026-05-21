@@ -1,0 +1,121 @@
+---
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__image" aria-hidden="true"></div>
+  <div class="hero__shade" aria-hidden="true"></div>
+  <div class="hero__content section-shell">
+    <p class="hero__eyebrow">요구사항부터 테스트까지 한 흐름으로</p>
+    <h1 id="hero-title">Vooster</h1>
+    <p class="hero__copy">
+      한국어 유스케이스, 에이전트 세션, 커밋 이력을 한 작업실에 모아 팀이 같은
+      맥락으로 구현하고 검증하게 합니다.
+    </p>
+    <div class="hero__actions" aria-label="주요 작업">
+      <a class="hero__button hero__button--primary" href="#pricing">시작하기</a>
+      <a class="hero__button hero__button--secondary" href="#showcase">흐름 보기</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 84svh;
+    overflow: hidden;
+    display: grid;
+    align-items: end;
+    padding: 112px 0 72px;
+    background: #18221e;
+  }
+
+  .hero__image {
+    position: absolute;
+    inset: 0;
+    background-image: url("/images/hero-workspace.png");
+    background-position: center;
+    background-size: cover;
+    transform: scale(1.02);
+  }
+
+  .hero__shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(12, 19, 16, 0.9) 0%, rgba(12, 19, 16, 0.54) 48%, rgba(12, 19, 16, 0.18) 100%),
+      linear-gradient(0deg, rgba(12, 19, 16, 0.64) 0%, rgba(12, 19, 16, 0.04) 56%);
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    color: #fffaf1;
+  }
+
+  .hero__eyebrow {
+    margin: 0 0 14px;
+    color: #a7f3d0;
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  h1 {
+    margin: 0;
+    max-width: 760px;
+    font-size: clamp(4rem, 16vw, 9.2rem);
+    line-height: 0.88;
+  }
+
+  .hero__copy {
+    width: min(680px, 100%);
+    margin: 28px 0 0;
+    color: #f6ead8;
+    font-size: clamp(1.08rem, 3vw, 1.4rem);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .hero__button {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 250, 241, 0.36);
+    border-radius: 8px;
+    padding: 0 18px;
+    font-weight: 800;
+  }
+
+  .hero__button--primary {
+    border-color: #2dd4bf;
+    background: #2dd4bf;
+    color: #10201d;
+  }
+
+  .hero__button--secondary {
+    color: #fffaf1;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  @media (max-width: 720px) {
+    .hero {
+      min-height: 78svh;
+      padding: 92px 0 48px;
+    }
+
+    .hero__shade {
+      background:
+        linear-gradient(90deg, rgba(12, 19, 16, 0.94) 0%, rgba(12, 19, 16, 0.72) 100%),
+        linear-gradient(0deg, rgba(12, 19, 16, 0.72) 0%, rgba(12, 19, 16, 0.08) 56%);
+    }
+
+    .hero__button {
+      flex: 1 1 144px;
+    }
+  }
+</style>

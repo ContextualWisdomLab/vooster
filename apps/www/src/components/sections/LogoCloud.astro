@@ -1,0 +1,73 @@
+---
+const partners = ["GitHub", "Fastify", "Prisma", "Vitest", "oclif", "Astro"];
+---
+
+<section class="logo-cloud" aria-labelledby="logo-cloud-title">
+  <div class="section-shell logo-cloud__inner">
+    <div>
+      <p class="section-kicker">팀이 이미 쓰는 도구 위에서</p>
+      <h2 id="logo-cloud-title">오픈소스 개발 흐름에 맞춘 협업 기반</h2>
+    </div>
+    <ul aria-label="연동 기술">
+      {
+        partners.map((partner) => (
+          <li>
+            <span>{partner}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .logo-cloud {
+    padding: 34px 0 56px;
+    background: #f7f4ee;
+  }
+
+  .logo-cloud__inner {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.7fr) 1fr;
+    gap: 30px;
+    align-items: center;
+  }
+
+  h2 {
+    margin: 0;
+    max-width: 430px;
+    color: #26322d;
+    font-size: clamp(1.35rem, 4vw, 2.1rem);
+    line-height: 1.12;
+  }
+
+  ul {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    min-height: 62px;
+    place-items: center;
+    border: 1px solid #d7d0c0;
+    border-radius: 8px;
+    background: #fffaf1;
+    color: #425047;
+    font-weight: 800;
+  }
+
+  @media (max-width: 760px) {
+    .logo-cloud__inner {
+      grid-template-columns: 1fr;
+    }
+
+    ul {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

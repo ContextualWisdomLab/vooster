@@ -1,0 +1,72 @@
+---
+const links = ["문서", "GitHub", "보안", "문의"];
+---
+
+<footer class="footer">
+  <div class="section-shell footer__inner">
+    <div>
+      <strong>Vooster</strong>
+      <p>요구사항과 테스트가 같은 방향을 보게 하는 한국어 개발 작업실입니다.</p>
+    </div>
+    <nav aria-label="푸터 링크">
+      {
+        links.map((link) => (
+          <a href="/">{link}</a>
+        ))
+      }
+    </nav>
+    <small>© 2026 Vooster. 모든 권리 보유.</small>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    padding: 42px 0;
+    background: #111815;
+    color: #fffaf1;
+  }
+
+  .footer__inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+
+  strong {
+    font-size: 1.2rem;
+  }
+
+  p {
+    max-width: 470px;
+    margin: 10px 0 0;
+    color: #cddbd4;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: flex-end;
+  }
+
+  a {
+    color: #d7e3dc;
+    font-weight: 700;
+  }
+
+  small {
+    grid-column: 1 / -1;
+    color: #9ca9a2;
+  }
+
+  @media (max-width: 680px) {
+    .footer__inner {
+      grid-template-columns: 1fr;
+    }
+
+    nav {
+      justify-content: flex-start;
+    }
+  }
+</style>

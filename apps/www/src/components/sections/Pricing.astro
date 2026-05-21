@@ -1,0 +1,102 @@
+---
+const tiers = [
+  {
+    name: "오픈소스",
+    price: "무료",
+    detail: "개인 저장소와 공개 프로젝트를 위한 기본 작업실",
+  },
+  {
+    name: "팀",
+    price: "월 49,000원",
+    detail: "공유 세션, 게이트 리포트, 팀 권한 관리",
+  },
+  {
+    name: "조직",
+    price: "상담",
+    detail: "사내 워크플로, 감사 로그, 배포 환경 분리",
+  },
+];
+---
+
+<section id="pricing" class="pricing" aria-labelledby="pricing-title">
+  <div class="section-shell">
+    <p class="section-kicker">가격</p>
+    <h2 id="pricing-title" class="section-heading">작게 시작하고 팀 흐름에 맞춰 넓힙니다</h2>
+    <div class="pricing__grid">
+      {
+        tiers.map((tier) => (
+          <article>
+            <h3>{tier.name}</h3>
+            <strong>{tier.price}</strong>
+            <p>{tier.detail}</p>
+            <a href="mailto:hello@vooster.local">문의하기</a>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .pricing {
+    padding: 86px 0;
+    background: #fffaf1;
+  }
+
+  .pricing__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 36px;
+  }
+
+  article {
+    display: flex;
+    min-height: 282px;
+    flex-direction: column;
+    border: 1px solid #ded6c7;
+    border-radius: 8px;
+    padding: 24px;
+    background: #ffffff;
+  }
+
+  h3 {
+    margin: 0 0 16px;
+    color: #17201c;
+    font-size: 1.15rem;
+  }
+
+  strong {
+    color: #0f766e;
+    font-size: 1.8rem;
+    line-height: 1.1;
+  }
+
+  p {
+    margin: 18px 0 24px;
+    color: #536057;
+  }
+
+  a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    border: 1px solid #17201c;
+    border-radius: 8px;
+    padding: 0 16px;
+    color: #17201c;
+    font-weight: 800;
+  }
+
+  @media (max-width: 820px) {
+    .pricing__grid {
+      grid-template-columns: 1fr;
+    }
+
+    article {
+      min-height: auto;
+    }
+  }
+</style>

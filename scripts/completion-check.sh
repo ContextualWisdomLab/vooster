@@ -15,7 +15,7 @@
 # this orchestrator for the full chain.
 #
 # Env:
-#   VSPEC_GATES_CONCURRENCY  default 2; cap on parallel workers
+#   VSPEC_GATES_CONCURRENCY  default 4; cap on parallel workers
 #   VSPEC_GATES_SKIP_DEEP    propagated to workers
 #   VSPEC_GATES_NO_CACHE     propagated to workers
 

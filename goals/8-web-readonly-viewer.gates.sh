@@ -255,7 +255,7 @@ echo "[8.B4 no write API call in apps/web/app/]"
 B4_OFFENDERS=()
 if [ -d "$WEB_APP_DIR" ]; then
   while IFS= read -r f; do
-    if grep -qE 'method:[[:space:]]*"(POST|PUT|PATCH|DELETE)"' "$f"; then
+    if grep -qE 'method:[[:space:]]*["'"'"'](POST|PUT|PATCH|DELETE)["'"'"']' "$f"; then
       B4_OFFENDERS+=("$f")
     fi
   done < <(find "$WEB_APP_DIR" \( -name '*.ts' -o -name '*.tsx' \) -type f 2>/dev/null)

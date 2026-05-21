@@ -140,3 +140,22 @@ Resolve in this order, in a single focused PR:
 1. Add (d) to `docs/goal-design.md §5` (option 1 from Item 1).
 2. Add tiebreaker rule to `harness-engineer.md` Step 4 (option 3 from Item 2).
 3. Run harness-engineer once to verify both no longer surface as ambiguity.
+
+## Item 3 — HONEST_UC_SET requires manual sync when adding UCs to docs/usecases/
+
+`goals/7-cli-spec-parity.gates.sh` lines ~53–64 hardcode `HONEST_UC_SET` as a
+literal array of 10 UC IDs (UC-004, UC-005, UC-006, UC-007, UC-009, UC-011,
+UC-013, UC-016, UC-019, UC-022). By design, `docs/usecases/` is not listed in
+`GATE_INPUTS` for goal 7 — adding a new UC.md there does not invalidate the
+goal-7 cache and does not extend the parity surface the gate iterates over.
+
+Consequence: if a future contributor adds a new `UC-XXX.md` under
+`docs/usecases/` without simultaneously editing `HONEST_UC_SET`, goal-7 gates
+will silently continue to enforce CLI parity for only the original ten UCs.
+The new UC is invisible to the rigor check.
+
+Recommended mitigation: when a future goal introduces new UCs, that goal's
+own gates file must explicitly append the new UC IDs to `HONEST_UC_SET` (or,
+preferably, convert `HONEST_UC_SET` to a derived list — e.g., the result of
+`ls docs/usecases/UC-*.md` — with a documented allow-list of legacy gaps for
+UC IDs that intentionally remain outside the honest-flow surface).

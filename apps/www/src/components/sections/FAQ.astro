@@ -24,22 +24,24 @@ function renderInline(text: string): string {
 ---
 
 <section id="faq" class="section bg-canvas">
-  <div class="shell max-w-[840px]">
+  <div class="shell">
+   <div class="max-w-[840px]">
     <p class="eyebrow">FAQ</p>
     <h2 class="section-heading">
       시작 전에 자주<br />
       <em>묻는 것들</em>.
     </h2>
 
-    <dl class="mt-14 flex flex-col gap-8">
+    <dl class="mt-14 flex flex-col gap-10">
       {faqs.map((item) => (
         <div class="border-t border-hairline pt-8">
-          <dt class="text-ink-strong text-lg md:text-xl font-semibold tracking-tight leading-snug">
+          <dt class="text-ink-strong text-xl md:text-2xl font-semibold tracking-tight leading-snug">
             {item.q}
           </dt>
-          <dd class="mt-3 m-0 text-body text-[15px] leading-relaxed" set:html={renderInline(item.a)} />
+          <dd class="mt-4 m-0 text-body text-base leading-[1.7]" set:html={renderInline(item.a)} />
         </div>
       ))}
     </dl>
+   </div>
   </div>
 </section>

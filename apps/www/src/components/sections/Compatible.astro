@@ -1,0 +1,39 @@
+---
+// 호환되는 coding agent 라인 — conductor.build 의 logo cloud 자리에 대응.
+// 가상의 고객 로고 대신 실제 호환 가능한 agent 워드마크를 보여준다.
+const agents = [
+  { name: "Claude Code", note: "Anthropic" },
+  { name: "Cursor", note: "AI Editor" },
+  { name: "Codex CLI", note: "OpenAI" },
+  { name: "Aider", note: "Pair-programmer" },
+  { name: "Cline", note: "VS Code" },
+  { name: "Continue", note: "Open-source" },
+] as const;
+---
+
+<section id="compatible" class="section-tight bg-canvas border-b border-hairline" aria-labelledby="compatible-title">
+  <div class="shell">
+    <div class="text-center">
+      <p class="eyebrow justify-center">COMPATIBLE WITH</p>
+      <p id="compatible-title" class="text-body text-[15px] md:text-base leading-[1.7] m-0">
+        당신이 이미 쓰는 <em class="not-italic text-ink-strong font-medium">coding agent</em> 와 그대로 연결됩니다.
+      </p>
+    </div>
+
+    <ul class="mt-10 md:mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-hairline rounded-[8px] overflow-hidden border border-hairline list-none p-0">
+      {agents.map((agent) => (
+        <li class="bg-canvas px-4 py-6 flex flex-col items-center justify-center gap-1 transition-colors duration-200 hover:bg-canvas-soft">
+          <span class="text-ink-strong text-[15px] font-semibold tracking-tight">{agent.name}</span>
+          <span class="font-mono text-[10.5px] text-mute uppercase tracking-[0.16em]">{agent.note}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .eyebrow.justify-center::before {
+    /* center variant: hide the leading bar so the label stays centered */
+    display: none;
+  }
+</style>

@@ -26,38 +26,98 @@ const navLinks = [
         <a href="https://github.com/vibemafiaclub/vooster" rel="noopener" class="hidden sm:inline-flex btn-ghost min-h-10 px-3.5 py-2.5 text-sm">
           GitHub
         </a>
-        <a href="#get-started" class="btn-primary min-h-10 px-4 py-2.5 text-sm">시작하기</a>
+        <a href="https://tally.so/r/J9Wd9K" target="_blank" rel="noopener noreferrer" class="btn-primary min-h-10 px-4 py-2.5 text-sm">시작하기</a>
       </div>
     </div>
   </nav>
 
-  <section id="top" class="relative overflow-hidden pt-32 pb-24 md:pt-32 md:pb-24" aria-labelledby="hero-title">
+  <section id="top" class="relative overflow-hidden pt-24 md:pt-28 pb-20 md:pb-24" aria-labelledby="hero-title">
     <div
-      class="absolute -top-[20%] right-[30%] w-[540px] h-[540px] rounded-full blur-[20px] pointer-events-none"
-      style="background: radial-gradient(circle at center, rgba(45,212,191,0.12) 0%, rgba(45,212,191,0) 60%);"
+      class="absolute -top-[18%] left-1/2 -translate-x-1/2 w-[820px] h-[820px] rounded-full blur-[40px] pointer-events-none"
+      style="background: radial-gradient(circle at center, rgba(45,212,191,0.10) 0%, rgba(45,212,191,0) 60%);"
       aria-hidden="true"
     ></div>
 
-    <div class="shell relative max-w-[860px]">
-      <h1
-        id="hero-title"
-        class="text-ink-strong font-normal tracking-tight m-0"
-        style="font-size: clamp(2.75rem, 7vw, 5.5rem); line-height: 1.06; letter-spacing: -0.025em;"
+    <div class="shell relative">
+      <div class="max-w-[860px]">
+        <p class="eyebrow">v0.1 · 오픈소스 · 한국어 작업실</p>
+
+        <h1
+          id="hero-title"
+          class="text-ink-strong font-normal tracking-tight m-0"
+          style="font-size: clamp(2.5rem, 6.6vw, 5.25rem); line-height: 1.04; letter-spacing: -0.025em;"
+        >
+          AI 에이전트를 위한<br />
+          <em class="not-italic text-primary-soft">기획·하네스 도구</em>
+        </h1>
+
+        <p class="max-w-[640px] mt-8 text-body text-lg md:text-xl leading-[1.65]">
+          느낌으로 짜는 코딩은 이제 그만.<br />
+          스펙 기반으로 정확하게 개발하세요.
+        </p>
+
+        <div class="flex flex-wrap gap-3 mt-10">
+          <a href="https://tally.so/r/J9Wd9K" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            사전신청하기
+            <span aria-hidden="true">→</span>
+          </a>
+          <a href="#how" class="btn-outline">워크플로우 보기</a>
+        </div>
+      </div>
+
+      <!-- Hero anchor mockup: 자연어 → spec 자동 구조화 채팅 -->
+      <div
+        class="relative mt-16 md:mt-20 mx-auto max-w-[920px] rounded-[10px] border border-hairline bg-canvas-soft overflow-hidden"
+        style="box-shadow: 0 24px 80px -32px rgba(45,212,191,0.18), 0 0 0 1px rgba(255,255,255,0.02) inset;"
+        aria-label="에이전트가 자연어 요청을 spec으로 자동 구조화하는 예시"
       >
-        AI 에이전트를 위한<br />
-        <em class="not-italic text-primary-soft">기획/하네스 도구</em>
-      </h1>
-      <p class="max-w-[620px] mt-8 text-body text-lg leading-[1.65]">
-        느낌으로 짜는 코딩은 이제 그만, 스펙 기반으로 정확하게 개발하세요.
-      </p>
-      <div class="flex flex-wrap gap-3 mt-10">
-        <a href="#get-started" class="btn-primary">
-          무료로 시작
-          <span aria-hidden="true">→</span>
-        </a>
-        <a href="#how" class="btn-outline">워크플로우 보기</a>
+        <!-- traffic-light header -->
+        <div class="flex items-center gap-2 px-4 py-3 border-b border-hairline bg-canvas">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#3a3f3d]" aria-hidden="true"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-[#3a3f3d]" aria-hidden="true"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-[#3a3f3d]" aria-hidden="true"></span>
+          <span class="ml-3 font-mono text-[12px] text-mute tracking-[0.04em]">claude-code · vooster session</span>
+          <span class="ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] text-primary-soft uppercase tracking-[0.14em]">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary" style="box-shadow: 0 0 0 3px rgba(45,212,191,0.18);" aria-hidden="true"></span>
+            Live
+          </span>
+        </div>
+
+        <div class="px-5 md:px-8 py-7 md:py-9 grid gap-5">
+          <!-- user bubble -->
+          <div class="flex flex-col gap-2">
+            <span class="font-mono text-[11px] text-mute uppercase tracking-[0.14em]">💬 You</span>
+            <p class="m-0 text-ink-strong text-[15px] md:text-base leading-relaxed">
+              로그인 기능 만들어줘
+            </p>
+          </div>
+
+          <!-- agent bubble -->
+          <div class="flex flex-col gap-2 mt-1 p-4 md:p-5 rounded-[8px] border border-hairline bg-canvas-raised">
+            <span class="font-mono text-[11px] text-primary-soft uppercase tracking-[0.14em]">🤖 claude-code · vspec</span>
+            <p class="m-0 text-ink text-[15px] leading-relaxed">
+              <span class="code-chip">UC-013</span> 으로 정리했습니다.
+            </p>
+            <pre class="m-0 mt-1 font-mono text-[12.5px] leading-[1.7] text-code-ink whitespace-pre-wrap"><span class="text-mute">Goal:</span>   30초 안에 로그인
+<span class="text-mute">Actor:</span>  미로그인 방문자
+<span class="text-mute">Steps:</span>  1. /login 접속
+        2. GitHub 인증
+        3. /dash 리디렉트</pre>
+            <p class="m-0 mt-1 text-body text-[14px]">이대로 진행할까요?</p>
+          </div>
+
+          <!-- status footer -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-hairline-soft">
+            <div class="flex items-center gap-2 font-mono text-[11.5px] text-mute uppercase tracking-[0.14em]">
+              <span aria-hidden="true">🔒</span>
+              <span>UC-013 locked · 다른 에이전트 침범 차단</span>
+            </div>
+            <div class="font-mono text-[11.5px] text-primary-soft">
+              specs/UC-013.md
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
   </section>
 </header>

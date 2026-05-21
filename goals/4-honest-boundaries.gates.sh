@@ -221,7 +221,7 @@ fi
 
 # ─── Tranche C — No god files ───────────────────────────────────────────
 
-echo "[4.C1] No file under src/ exceeds 1000 lines"
+echo "[4.C1] No file under apps/*/src or apps/web/app exceeds 1000 lines"
 GIANT_FILES=()
 while IFS= read -r line; do
   size=$(echo "$line" | awk '{print $1}')
@@ -230,7 +230,7 @@ while IFS= read -r line; do
   if [ "$size" -gt 1000 ] 2>/dev/null; then
     GIANT_FILES+=("$size $path")
   fi
-done < <(find apps/api/src apps/cli/src apps/web/app -name '*.ts' -exec wc -l {} +)
+done < <(find apps/api/src apps/cli/src apps/web/app \( -name '*.ts' -o -name '*.tsx' \) -exec wc -l {} +)
 if [ "${#GIANT_FILES[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else

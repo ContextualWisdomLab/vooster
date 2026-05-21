@@ -7,10 +7,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 FAIL=0
-TESTS=$(find tests -name '*.test.ts' 2>/dev/null)
+TESTS=$(find apps/api/tests apps/cli/tests -name '*.test.ts' 2>/dev/null)
 
 if [ -z "$TESTS" ]; then
-  echo "check-bypass: no tests yet — OK."
+  echo "check-bypass: no tests yet in apps/api/tests or apps/cli/tests — OK."
   exit 0
 fi
 

@@ -125,7 +125,7 @@ _gate_cache_fingerprint() {
               \) -prune -o \
               -type f -print0 2>/dev/null \
           | LC_ALL=C sort -z \
-          | xargs -0 $_GATE_CACHE_SHA_CMD 2>/dev/null \
+          | xargs -0 $_GATE_CACHE_SHA_CMD -- 2>/dev/null \
           > "$listing"
         local dh
         dh=$(_gate_cache_sha256 < "$listing" | awk '{print $1}')

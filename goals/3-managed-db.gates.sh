@@ -96,7 +96,7 @@ else
   fi
 fi
 
-echo "[3.A2] No file: or .sqlite URL remains in tests/"
+echo "[3.A2] No file: or .sqlite URL remains in apps/api/tests/"
 LEFTOVER_FILES=()
 while IFS= read -r f; do
   LEFTOVER_FILES+=("$f")

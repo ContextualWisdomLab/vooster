@@ -3,7 +3,7 @@
 #
 # Discovers every goals/<n>-<name>.md, launches each matching
 # <n>-<name>.gates.sh as a background worker (bounded by
-# $VSPEC_GATES_CONCURRENCY, default 2), then aggregates per-goal stdout
+# $VSPEC_GATES_CONCURRENCY, default 4), then aggregates per-goal stdout
 # in numeric order. Writes the first numerically-failing goal's path to
 # .state/active-goal so diagnose.sh / next-task.sh route correctly. Exit
 # 0 only when every gate of every goal passes.

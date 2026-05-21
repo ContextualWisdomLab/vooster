@@ -153,20 +153,30 @@ why, then install.
 ## Repository Layout
 
 ```
-src/
-  domain/          # Pure types and business rules (no I/O)
-  application/     # Use case orchestration (depends on domain + ports)
-  ports/           # Interfaces for infrastructure
-  infrastructure/  # Prisma, Fastify, GitHub, filesystem adapters
-  cli/             # oclif command modules
-  http/            # Fastify routes and controllers
-tests/
-  e2e/             # One file per UC-ID; black-box against real server
-  integration/     # Adapter-level (DB, OAuth, filesystem)
-  unit/            # Pure domain and application logic
-  fixtures/        # Seed data, factory helpers
-  setup.ts         # Vitest global hooks
+apps/
+  api/                       # @vooster/api — Fastify HTTP server + layers
+    prisma/schema.prisma
+    src/
+      domain/                # Pure types and business rules (no I/O)
+      application/           # Use case orchestration (depends on domain + ports)
+      ports/                 # Interfaces for infrastructure
+      infrastructure/        # Prisma, Fastify, GitHub, filesystem adapters
+      http/                  # Fastify routes and controllers
+    tests/
+      e2e/                   # One file per UC-ID; black-box against real server
+      integration/           # Adapter-level (DB, OAuth, filesystem)
+      unit/                  # Pure domain and application logic
+      fixtures/              # Seed data, factory helpers
+  cli/                       # @vooster/cli — oclif CLI (`vspec`)
+    bin/run.js
+    src/commands/
+    tests/e2e-cli/
+  www/                       # @vooster/www — Astro Korean landing page
+    src/pages/
+    src/components/sections/
 ```
+
+Workspace verbs: `pnpm install`, `pnpm --filter @vooster/<app> <script>`, `pnpm -r <script>`.
 
 ## Anti-Patterns to Avoid
 
@@ -267,15 +277,15 @@ mechanically checks those conditions. Gate scripts obey one rule:
 
 - Bad: `curl /workspaces/foo` — samples one entity. Allows the
   implementation to satisfy only one example.
-- Good: `for m in $(grep '^model ' prisma/schema.prisma | awk '{print $2}'); do …` —
+- Good: `for m in $(grep '^model ' apps/api/prisma/schema.prisma | awk '{print $2}'); do …` —
   iterates the source of truth. Every model has to be addressed.
 
 Sources of truth and their iteration commands:
 
-- Entities → `grep '^model ' prisma/schema.prisma | awk '{print $2}'`
+- Entities → `grep '^model ' apps/api/prisma/schema.prisma | awk '{print $2}'`
 - Use cases → `find docs/usecases -name 'UC-*.md'`
-- Routes → `find src/http -name '*-routes.ts'`
-- Advertised CLI commands → `grep -oE '"vspec [^"]+"' src/http`
+- Routes → `find apps/api/src/http -name '*-routes.ts'`
+- Advertised CLI commands → `grep -oE '"vspec [^"]+"' apps/api/src/http`
 
 If you find yourself typing entity names into a gate, you are recreating
 the narrow-gate cheat — stop and replace them with an enumeration.

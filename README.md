@@ -25,9 +25,10 @@ vspec --help
 For development from a clean clone:
 
 ```bash
-npm install
+corepack enable
+pnpm install
 cp .env.example .env
-pnpm run build
+pnpm -r build
 ```
 
 ## Run

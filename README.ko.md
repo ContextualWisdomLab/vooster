@@ -56,9 +56,10 @@ vspec --help
 새로 클론한 저장소에서 개발 환경 구성:
 
 ```bash
-npm install
+corepack enable
+pnpm install
 cp .env.example .env
-pnpm run build
+pnpm -r build
 ```
 
 ## 실행

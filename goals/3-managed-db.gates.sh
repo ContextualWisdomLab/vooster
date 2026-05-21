@@ -53,7 +53,9 @@ else
   MISSING=()
   if ! grep -qE 'postgresql://' "$HELPER"; then MISSING+=("postgresql://"); fi
   if ! grep -qE 'randomUUID|crypto\.|uuid|cuid|Date\.now\(\)' "$HELPER"; then MISSING+=("unique schema id"); fi
-  if ! grep -qE 'prisma db push' "$HELPER"; then MISSING+=("prisma db push"); fi
+  if ! grep -qE '"prisma"' "$HELPER" \
+      || ! grep -qE '"db"' "$HELPER" \
+      || ! grep -qE '"push"' "$HELPER"; then MISSING+=("prisma db push"); fi
   if [ "${#MISSING[@]}" -eq 0 ]; then
     echo "    ✓ pass"
   else

@@ -1,91 +1,192 @@
 ---
 const features = [
   {
-    title: "유스케이스 중심 작업",
-    body: "성공 시나리오, 확장 흐름, 보증 조건을 구현 단위와 함께 유지합니다.",
+    icon: "spec",
+    title: "Cockburn 충실성",
+    body: "이해관계자, 관심사, 레벨, 확장 시나리오를 자유 텍스트가 아닌 1급 엔티티로 다룹니다.",
+    code: "UC-012 · 확장 3",
   },
   {
-    title: "테스트 우선 진행",
-    body: "빨간 테스트, 최소 구현, 리팩터링 기록이 같은 맥락에 남습니다.",
+    icon: "snapshot",
+    title: "세션 스냅샷 고정",
+    body: "각 에이전트는 불변 리비전을 기준으로 작업하므로 다른 곳의 편집이 진행을 깨지 않습니다.",
+    code: "rev: 7a3f.locked",
+    emphasized: true,
   },
   {
-    title: "에이전트 세션 기록",
-    body: "누가 어떤 목표로 무엇을 검증했는지 다음 작업자가 바로 이어받습니다.",
+    icon: "branch",
+    title: "명세 브랜치 + 영향 인식 머지",
+    body: "충돌은 머지 시점에만 드러나며 COSMETIC / NON_BREAKING / BREAKING 으로 자동 분류됩니다.",
+    code: "merge: NON_BREAKING",
   },
   {
-    title: "커밋 단위 추적",
-    body: "작은 변경의 이유와 검증 결과를 유스케이스별로 연결합니다.",
+    icon: "lock",
+    title: "3단계 락",
+    body: "SOFT 정보, SEMANTIC 의미 변경 차단, HARD 모든 변경 차단. 필요한 만큼만 멈춥니다.",
+    code: "lock: SEMANTIC",
   },
   {
-    title: "게이트 기반 품질",
-    body: "목표 파일과 게이트 스크립트가 완료 조건을 기계적으로 확인합니다.",
+    icon: "cli",
+    title: "스스로 가르치는 CLI",
+    body: "모든 오류 메시지에 다음 추천 명령이 포함되고, --format=agent 는 JSON과 next actions를 함께 출력합니다.",
+    code: "$ vspec ai-guide",
   },
   {
-    title: "오픈소스 공개 준비",
-    body: "비밀값, 로컬 산출물, 임시 상태가 기록에 섞이지 않도록 점검합니다.",
+    icon: "file",
+    title: "파일 우선 워크플로우",
+    body: "명세는 저장소의 마크다운(specs/*.md)으로 존재하며 서버와 양방향 동기화됩니다.",
+    code: "specs/UC-014.md",
   },
 ];
 ---
 
-<section class="features" aria-labelledby="features-title">
+<section id="features" class="features" aria-labelledby="features-title">
   <div class="section-shell">
-    <p class="section-kicker">핵심 기능</p>
-    <h2 id="features-title" class="section-heading">요구사항이 코드로 바뀌는 경로를 보이게 합니다</h2>
+    <p class="eyebrow-mono">WHY VOOSTER</p>
+    <h2 id="features-title" class="section-heading">
+      요구사항이 코드로 바뀌는 경로를<br />
+      <em>보이게</em> 합니다.
+    </h2>
+    <p class="section-copy">
+      Notion·Confluence·Linear가 사람 속도에 맞춰져 있다면, Vooster는 6개 이상의 에이전트가
+      동시에 편집해도 무너지지 않는 분산 다중 에이전트 시스템을 첫째 관심사로 둡니다.
+    </p>
     <div class="features__grid">
-      {
-        features.map((feature) => (
-          <article>
-            <span class="feature-mark" aria-hidden="true"></span>
-            <h3>{feature.title}</h3>
-            <p>{feature.body}</p>
-          </article>
-        ))
-      }
+      {features.map((feature) => (
+        <article class={`feature-card${feature.emphasized ? " feature-card--emphasized" : ""}`}>
+          <span class="feature-card__icon" aria-hidden="true" data-icon={feature.icon}>
+            {feature.icon === "spec" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M5 4h10l4 4v12H5z" stroke-linejoin="round" />
+                <path d="M15 4v4h4" />
+                <path d="M8 12h8M8 16h6" stroke-linecap="round" />
+              </svg>
+            )}
+            {feature.icon === "snapshot" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="6" width="18" height="13" rx="2" />
+                <circle cx="12" cy="13" r="3.2" />
+                <path d="M9 6l2-2h2l2 2" stroke-linejoin="round" />
+              </svg>
+            )}
+            {feature.icon === "branch" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="6" cy="6" r="2" />
+                <circle cx="6" cy="18" r="2" />
+                <circle cx="18" cy="12" r="2" />
+                <path d="M6 8v8M8 18h6a4 4 0 004-4" stroke-linecap="round" />
+              </svg>
+            )}
+            {feature.icon === "lock" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 018 0v3" />
+              </svg>
+            )}
+            {feature.icon === "cli" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M7 10l3 2-3 2M13 14h4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {feature.icon === "file" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M6 3h9l4 4v14H6z" stroke-linejoin="round" />
+                <path d="M9 12h6M9 16h6M9 8h3" stroke-linecap="round" />
+              </svg>
+            )}
+          </span>
+          <h3 class="feature-card__title">{feature.title}</h3>
+          <p class="feature-card__body">{feature.body}</p>
+          <span class="feature-card__code code-chip">{feature.code}</span>
+        </article>
+      ))}
     </div>
   </div>
 </section>
 
 <style>
   .features {
-    padding: 78px 0;
-    background: #fffaf1;
+    padding: var(--space-7xl) 0;
+    background: var(--color-canvas);
+    border-bottom: var(--hairline);
+  }
+
+  .features .section-copy {
+    margin-bottom: var(--space-5xl);
   }
 
   .features__grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 34px;
+    gap: var(--space-lg);
   }
 
-  article {
-    min-height: 218px;
-    border: 1px solid #ded6c7;
-    border-radius: 8px;
-    padding: 24px;
-    background: #ffffff;
+  .feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-height: 244px;
+    padding: var(--space-2xl);
+    border: var(--hairline);
+    border-radius: var(--radius-md);
+    background: var(--color-canvas);
+    transition:
+      border-color 200ms ease-out,
+      transform 200ms ease-out;
   }
 
-  .feature-mark {
-    display: block;
-    width: 34px;
-    height: 5px;
-    border-radius: 999px;
-    background: #0f766e;
+  .feature-card:hover {
+    border-color: var(--color-primary-deep);
+    transform: translateY(-1px);
   }
 
-  h3 {
-    margin: 28px 0 10px;
-    color: #17201c;
+  .feature-card--emphasized {
+    background: var(--color-canvas-raised);
+    border-color: var(--color-primary-deep);
+    box-shadow: 0 24px 60px -32px rgba(45, 212, 191, 0.18);
+  }
+
+  .feature-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--color-canvas-soft);
+    color: var(--color-primary-soft);
+    border: var(--hairline);
+  }
+
+  .feature-card__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .feature-card__title {
+    margin: 6px 0 0;
+    color: var(--color-ink-strong);
+    font-family: var(--font-sans);
     font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
-  p {
+  .feature-card__body {
     margin: 0;
-    color: #536057;
+    color: var(--color-body);
+    font-size: 0.95rem;
+    line-height: 1.6;
   }
 
-  @media (max-width: 920px) {
+  .feature-card__code {
+    margin-top: auto;
+    align-self: flex-start;
+    font-size: 12px;
+  }
+
+  @media (max-width: 960px) {
     .features__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -96,7 +197,7 @@ const features = [
       grid-template-columns: 1fr;
     }
 
-    article {
+    .feature-card {
       min-height: auto;
     }
   }

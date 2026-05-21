@@ -1,104 +1,178 @@
 ---
 const steps = [
   {
-    title: "목표를 고릅니다",
-    body: "실패 중인 게이트와 다음 작업을 기준으로 한 번에 하나의 유스케이스를 정합니다.",
+    n: "01",
+    tag: "Orient",
+    title: "목표를 정렬합니다",
+    body: "diagnose.sh 가 진행 상황과 다음 작업을 짚어주면, 한 번에 하나의 유스케이스만 고릅니다.",
   },
   {
-    title: "테스트 계획을 남깁니다",
-    body: "필요한 E2E 경로, 준비 데이터, 관찰할 결과를 먼저 적습니다.",
+    n: "02",
+    tag: "Plan",
+    title: "테스트를 먼저 적습니다",
+    body: "필요한 E2E 경로, 준비 데이터, 관찰할 결과를 test-plan.md 큐에 올려 둡니다.",
   },
   {
-    title: "작게 구현합니다",
-    body: "빨간 테스트를 만들고 최소 변경으로 통과시킨 뒤 중복을 줄입니다.",
+    n: "03",
+    tag: "Cycle",
+    title: "RED → GREEN → REFACTOR",
+    body: "빨간 테스트를 만들고 최소 변경으로 통과시킨 뒤, 중복과 이름만큼만 다듬습니다.",
   },
   {
-    title: "증거를 공유합니다",
-    body: "빌드, 테스트, 게이트 결과를 커밋과 함께 남겨 다음 세션이 이어받습니다.",
+    n: "04",
+    tag: "Verify",
+    title: "게이트로 증거를 남깁니다",
+    body: "빌드·타입체크·E2E·보안 검사가 같은 커밋에 묶여 다음 세션이 그대로 이어받습니다.",
   },
 ];
 ---
 
-<section class="how" aria-labelledby="how-title">
+<section id="how" class="how" aria-labelledby="how-title">
   <div class="section-shell">
-    <p class="section-kicker">작동 방식</p>
-    <h2 id="how-title" class="section-heading">작업은 항상 같은 리듬으로 전진합니다</h2>
-    <ol>
-      {
-        steps.map((step, index) => (
-          <li>
-            <span class="step-number">{String(index + 1).padStart(2, "0")}</span>
-            <div>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-            </div>
-          </li>
-        ))
-      }
+    <div class="how__head">
+      <div>
+        <p class="eyebrow-mono">HOW IT WORKS</p>
+        <h2 id="how-title" class="section-heading">
+          작업은 항상 같은 리듬으로<br />
+          <em>전진합니다</em>.
+        </h2>
+      </div>
+      <p class="how__lead">
+        Kent Beck 식 TDD 사이클을 도구가 강제합니다. RED 커밋이 없으면 GREEN 커밋이
+        생성되지 않고, 게이트가 빨간 채로 머지가 차단됩니다.
+      </p>
+    </div>
+
+    <ol class="how__steps">
+      {steps.map((step, index) => (
+        <li class="how__step">
+          <div class="how__step-head">
+            <span class="how__step-num mono-num">{step.n}</span>
+            <span class="how__step-tag code-chip">{step.tag}</span>
+          </div>
+          <h3 class="how__step-title">{step.title}</h3>
+          <p class="how__step-body">{step.body}</p>
+          {index < steps.length - 1 && (
+            <span class="how__step-arrow" aria-hidden="true">→</span>
+          )}
+        </li>
+      ))}
     </ol>
   </div>
 </section>
 
 <style>
   .how {
-    padding: 86px 0;
-    background: #eef5f1;
+    padding: var(--space-7xl) 0;
+    background: var(--color-canvas-soft);
+    border-bottom: var(--hairline);
   }
 
-  ol {
+  .how__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-4xl);
+    align-items: end;
+    margin-bottom: var(--space-5xl);
+  }
+
+  .how__lead {
+    margin: 0;
+    color: var(--color-body);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .how__steps {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1px;
-    margin: 38px 0 0;
+    gap: var(--space-lg);
+    margin: 0;
     padding: 0;
     list-style: none;
-    background: #c8d6cf;
-    border: 1px solid #c8d6cf;
-    border-radius: 8px;
-    overflow: hidden;
+    counter-reset: step;
   }
 
-  li {
-    min-height: 260px;
-    padding: 24px;
-    background: #f9fcfa;
+  .how__step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-height: 240px;
+    padding: var(--space-2xl);
+    border: var(--hairline);
+    border-radius: var(--radius-md);
+    background: var(--color-canvas);
   }
 
-  .step-number {
-    display: inline-block;
-    color: #c2410c;
-    font-size: 0.84rem;
-    font-weight: 900;
+  .how__step-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
   }
 
-  h3 {
-    margin: 58px 0 12px;
-    color: #17201c;
+  .how__step-num {
+    color: var(--color-primary-soft);
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .how__step-tag {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+  }
+
+  .how__step-title {
+    margin: var(--space-md) 0 0;
+    color: var(--color-ink-strong);
+    font-family: var(--font-sans);
     font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
-  p {
+  .how__step-body {
     margin: 0;
-    color: #536057;
+    color: var(--color-body);
+    font-size: 0.95rem;
+    line-height: 1.6;
   }
 
-  @media (max-width: 920px) {
-    ol {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .how__step-arrow {
+    position: absolute;
+    right: -22px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-hairline);
+    font-family: var(--font-mono);
+    font-size: 20px;
+    pointer-events: none;
+    z-index: 1;
   }
 
-  @media (max-width: 620px) {
-    ol {
+  @media (max-width: 1024px) {
+    .how__head {
       grid-template-columns: 1fr;
     }
 
-    li {
-      min-height: auto;
+    .how__steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    h3 {
-      margin-top: 28px;
+    .how__step-arrow {
+      display: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .how__steps {
+      grid-template-columns: 1fr;
+    }
+
+    .how__step {
+      min-height: auto;
     }
   }
 </style>

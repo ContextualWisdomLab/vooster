@@ -1,72 +1,204 @@
 ---
-const links = ["문서", "GitHub", "보안", "문의"];
+const columns = [
+  {
+    title: "제품",
+    links: [
+      { label: "기능", href: "#features" },
+      { label: "워크플로우", href: "#how" },
+      { label: "사용 예시", href: "#showcase" },
+      { label: "가격", href: "#pricing" },
+    ],
+  },
+  {
+    title: "리소스",
+    links: [
+      { label: "문서", href: "https://github.com/vibemafiaclub/vooster/tree/main/docs" },
+      { label: "AGENTS.md", href: "https://github.com/vibemafiaclub/vooster/blob/main/AGENTS.md" },
+      { label: "GitHub", href: "https://github.com/vibemafiaclub/vooster" },
+      { label: "릴리스 노트", href: "https://github.com/vibemafiaclub/vooster/releases" },
+    ],
+  },
+  {
+    title: "회사",
+    links: [
+      { label: "문의", href: "mailto:hello@vooster.local" },
+      { label: "보안", href: "mailto:security@vooster.local" },
+      { label: "Discord", href: "#" },
+      { label: "이용약관", href: "#" },
+    ],
+  },
+];
 ---
 
 <footer class="footer">
   <div class="section-shell footer__inner">
-    <div>
-      <strong>Vooster</strong>
-      <p>요구사항과 테스트가 같은 방향을 보게 하는 한국어 개발 작업실입니다.</p>
+    <div class="footer__brand">
+      <a class="footer__brand-mark" href="#top" aria-label="Vooster 홈">
+        <span class="footer__brand-dot" aria-hidden="true"></span>
+        <span class="footer__brand-word">vooster</span>
+        <span class="footer__brand-tag">/ko</span>
+      </a>
+      <p class="footer__tagline">
+        요구사항과 테스트가 같은 방향을 보게 하는<br />
+        한국어 유스케이스 작업실.
+      </p>
+      <div class="footer__signal">
+        <span class="pill">
+          <span class="pill__dot" aria-hidden="true"></span>
+          모든 게이트 통과 · 2026-05-21
+        </span>
+      </div>
     </div>
-    <nav aria-label="푸터 링크">
-      {
-        links.map((link) => (
-          <a href="/">{link}</a>
-        ))
-      }
+
+    <nav class="footer__cols" aria-label="푸터 메뉴">
+      {columns.map((col) => (
+        <div class="footer__col">
+          <p class="footer__col-title">{col.title}</p>
+          <ul>
+            {col.links.map((link) => (
+              <li>
+                <a href={link.href}>{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </nav>
-    <small>© 2026 Vooster. 모든 권리 보유.</small>
+  </div>
+
+  <div class="section-shell footer__base">
+    <small class="footer__copyright">© 2026 Vooster · MIT License</small>
+    <small class="footer__build mono-num">
+      build: <span style="color: var(--color-primary-soft)">main@8a0e184</span> · v0.1
+    </small>
   </div>
 </footer>
 
 <style>
   .footer {
-    padding: 42px 0;
-    background: #111815;
-    color: #fffaf1;
+    padding: var(--space-6xl) 0 var(--space-4xl);
+    background: var(--color-canvas);
+    border-top: var(--hairline);
+    color: var(--color-body);
   }
 
   .footer__inner {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 24px;
-    align-items: start;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
+    gap: var(--space-6xl);
+    padding-bottom: var(--space-5xl);
+    border-bottom: var(--hairline);
   }
 
-  strong {
-    font-size: 1.2rem;
-  }
-
-  p {
-    max-width: 470px;
-    margin: 10px 0 0;
-    color: #cddbd4;
-  }
-
-  nav {
+  .footer__brand {
     display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    justify-content: flex-end;
+    flex-direction: column;
+    gap: var(--space-lg);
+    max-width: 360px;
   }
 
-  a {
-    color: #d7e3dc;
-    font-weight: 700;
+  .footer__brand-mark {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--color-ink-strong);
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
-  small {
-    grid-column: 1 / -1;
-    color: #9ca9a2;
+  .footer__brand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.18);
+    align-self: center;
   }
 
-  @media (max-width: 680px) {
+  .footer__brand-tag {
+    color: var(--color-mute);
+    font-size: 13px;
+  }
+
+  .footer__tagline {
+    margin: 0;
+    color: var(--color-body);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .footer__cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4xl);
+  }
+
+  .footer__col-title {
+    margin: 0 0 var(--space-lg);
+    color: var(--color-mute);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .footer__col ul {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .footer__col a {
+    color: var(--color-ink);
+    font-size: 14px;
+    transition: color 140ms ease-out;
+  }
+
+  .footer__col a:hover {
+    color: var(--color-primary-soft);
+  }
+
+  .footer__base {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-top: var(--space-2xl);
+  }
+
+  .footer__copyright,
+  .footer__build {
+    color: var(--color-mute);
+    font-size: 12px;
+  }
+
+  @media (max-width: 880px) {
     .footer__inner {
       grid-template-columns: 1fr;
+      gap: var(--space-4xl);
     }
 
-    nav {
-      justify-content: flex-start;
+    .footer__cols {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-2xl);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .footer__cols {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: var(--space-3xl);
+    }
+
+    .footer__base {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
     }
   }
 </style>

@@ -124,27 +124,33 @@ else
   fi
 fi
 
-echo "[2.A4] persistence-matrix test enumerates every model"
-MATRIX=apps/api/tests/integration/persistence-matrix.test.ts
-if [ ! -f "$MATRIX" ]; then
-  echo "    ✗ fail — missing $MATRIX"
+echo "[2.A4] persistence-matrix tests enumerate every model"
+# The matrix is split into per-cluster files for vitest file-level
+# parallelism. Each model must appear in at least one file, and the
+# full set must be green.
+MATRIX_FILES=()
+while IFS= read -r f; do
+  MATRIX_FILES+=("$f")
+done < <(find apps/api/tests/integration -maxdepth 1 -name 'persistence-matrix-*.test.ts' -type f 2>/dev/null | sort)
+if [ "${#MATRIX_FILES[@]}" -eq 0 ]; then
+  echo "    ✗ fail — no apps/api/tests/integration/persistence-matrix-*.test.ts files"
   PASS=false
 else
   MISSING_REFS=()
   for m in $MODELS; do
-    if ! grep -q "\b${m}\b" "$MATRIX"; then
+    if ! grep -lq "\b${m}\b" "${MATRIX_FILES[@]}"; then
       MISSING_REFS+=("$m")
     fi
   done
   if [ "${#MISSING_REFS[@]}" -ne 0 ]; then
-    echo "    ✗ fail — $MATRIX does not reference these models:"
+    echo "    ✗ fail — no persistence-matrix-*.test.ts file references these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! pnpm exec vitest run "$MATRIX" >/dev/null 2>&1; then
-    echo "    ✗ fail — $MATRIX is red"
+  elif ! pnpm exec vitest run "${MATRIX_FILES[@]}" >/dev/null 2>&1; then
+    echo "    ✗ fail — persistence-matrix-*.test.ts suite is red"
     PASS=false
   else
-    echo "    ✓ pass"
+    echo "    ✓ pass (${#MATRIX_FILES[@]} files)"
   fi
 fi
 

@@ -124,31 +124,52 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[3.A4] persistence-matrix test routes through the Postgres helper"
-MATRIX=apps/api/tests/integration/persistence-matrix.test.ts
-if [ ! -f "$MATRIX" ]; then
-  echo "    ✗ fail — $MATRIX missing"
-  PASS=false
-elif ! grep -qE 'postgres-db' "$MATRIX"; then
-  echo "    ✗ fail — $MATRIX does not import the Postgres helper"
+echo "[3.A4] persistence-matrix tests route through the Postgres helper"
+# Iterate every persistence-matrix-*.test.ts: each must import the
+# Postgres helper (directly or via persistence-matrix-helpers.ts), and
+# the full suite must be green against Postgres. Every Prisma model
+# must appear in at least one matrix file.
+MATRIX_FILES=()
+while IFS= read -r f; do
+  MATRIX_FILES+=("$f")
+done < <(find apps/api/tests/integration -maxdepth 1 -name 'persistence-matrix-*.test.ts' -type f 2>/dev/null | sort)
+MATRIX_SUPPORT=apps/api/tests/integration/persistence-matrix-helpers.ts
+if [ "${#MATRIX_FILES[@]}" -eq 0 ]; then
+  echo "    ✗ fail — no apps/api/tests/integration/persistence-matrix-*.test.ts files"
   PASS=false
 else
+  PG_GAPS=()
+  for f in "${MATRIX_FILES[@]}"; do
+    # A file routes through Postgres if it imports postgres-db directly
+    # or imports the shared helpers module (which itself imports postgres-db).
+    if grep -qE 'postgres-db' "$f"; then continue; fi
+    if grep -qE 'persistence-matrix-helpers' "$f" \
+        && [ -f "$MATRIX_SUPPORT" ] \
+        && grep -qE 'postgres-db' "$MATRIX_SUPPORT"; then continue; fi
+    PG_GAPS+=("$f")
+  done
+
   MODELS=$(grep -E '^model ' apps/api/prisma/schema.prisma | awk '{print $2}')
   MISSING_REFS=()
   for m in $MODELS; do
-    if ! grep -q "\b${m}\b" "$MATRIX"; then
+    if ! grep -lq "\b${m}\b" "${MATRIX_FILES[@]}"; then
       MISSING_REFS+=("$m")
     fi
   done
-  if [ "${#MISSING_REFS[@]}" -ne 0 ]; then
-    echo "    ✗ fail — $MATRIX does not reference these models:"
+
+  if [ "${#PG_GAPS[@]}" -ne 0 ]; then
+    echo "    ✗ fail — these matrix files do not route through the Postgres helper:"
+    printf '        %s\n' "${PG_GAPS[@]}"
+    PASS=false
+  elif [ "${#MISSING_REFS[@]}" -ne 0 ]; then
+    echo "    ✗ fail — no persistence-matrix-*.test.ts file references these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! pnpm exec vitest run "$MATRIX" >/dev/null 2>&1; then
-    echo "    ✗ fail — $MATRIX is red against Postgres"
+  elif ! pnpm exec vitest run "${MATRIX_FILES[@]}" >/dev/null 2>&1; then
+    echo "    ✗ fail — persistence-matrix-*.test.ts suite is red against Postgres"
     PASS=false
   else
-    echo "    ✓ pass"
+    echo "    ✓ pass (${#MATRIX_FILES[@]} files)"
   fi
 fi
 

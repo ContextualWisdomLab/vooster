@@ -121,3 +121,29 @@ const navLinks = [
     </div>
   </section>
 </header>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('a[href="https://tally.so/r/J9Wd9K"].btn-primary').forEach(function (el) {
+      el.addEventListener('click', function () {
+        window.posthog?.capture('cta_clicked', {
+          location: el.classList.contains('min-h-10') ? 'hero_nav' : 'hero_section'
+        });
+      });
+    });
+
+    var workflowLink = document.querySelector('a[href="#how"].btn-outline');
+    if (workflowLink) {
+      workflowLink.addEventListener('click', function () {
+        window.posthog?.capture('workflow_link_clicked');
+      });
+    }
+
+    var githubLink = document.querySelector('a[href="https://github.com/vibemafiaclub/vooster"]');
+    if (githubLink) {
+      githubLink.addEventListener('click', function () {
+        window.posthog?.capture('github_clicked', { location: 'hero_nav' });
+      });
+    }
+  });
+</script>

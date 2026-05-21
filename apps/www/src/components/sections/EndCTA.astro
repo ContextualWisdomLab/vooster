@@ -51,3 +51,14 @@
     display: none;
   }
 </style>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', function () {
+    var endCta = document.querySelector('.section a[href="https://tally.so/r/J9Wd9K"].btn-primary');
+    if (endCta) {
+      endCta.addEventListener('click', function () {
+        window.posthog?.capture('end_cta_clicked');
+      });
+    }
+  });
+</script>

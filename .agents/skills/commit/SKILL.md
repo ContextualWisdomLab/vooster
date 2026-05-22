@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Commit protocol for vspec — when and how to make commits during TDD cycles, the pre-commit regression boundary, Conventional Commits format, push cadence, and open-source hygiene (secrets, .gitignore). Use whenever about to run `git commit`, install the pre-commit hook, push, or stage files in this repo.
+description: Commit protocol for vspec — when and how to make commits during TDD cycles, staged-impact pre-commit checks, full regression before push/merge, Conventional Commits format, push cadence, and open-source hygiene (secrets, .gitignore). Use whenever about to run `git commit`, install the pre-commit hook, push, or stage files in this repo.
 user-invocable: true
 allowed-tools:
   - Read
@@ -41,20 +41,45 @@ Never commit failing tests on a `green:` or `refactor:` commit.
 
 ## Commit boundary: the pre-commit hook
 
-`git commit` is the regression boundary for the goal harness. Install
-the pre-commit hook once per checkout:
+`git commit` is the staged-impact regression boundary for the goal
+harness. Install the pre-commit hook once per checkout:
 
 ```
 ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
 ```
 
-From then on, every `git commit` runs `scripts/completion-check.sh` and
-blocks the commit if any prior goal regressed. Use
-`git commit --no-verify` only when you knowingly want a broken
+From then on, every `git commit` runs `scripts/commit-check.sh`, which
+checks staged hygiene, blocks obvious unsafe files, and runs the nearest
+impacted tests or goal gates it can select safely. Broad or unknown
+changes print a clear warning to run the full sweep:
+
+```
+bash scripts/completion-check.sh
+```
+
+Use `git commit --no-verify` only when you knowingly want a broken
 intermediate state on the branch.
 
-(See AGENTS.md → "Single-goal vs. active-goal vs. full-chain checks"
-for why per-iter checks are not enough — the orchestrator runs here.)
+## Full regression boundary: pre-push, CI, and manual verify
+
+Install the optional pre-push hook once per checkout when you want local
+pushes to enforce the full goal sweep:
+
+```
+ln -sf ../../scripts/hooks/pre-push .git/hooks/pre-push
+```
+
+The full prior-goal regression boundary is `scripts/completion-check.sh`.
+Run it manually with either of these commands:
+
+```
+pnpm verify
+bash scripts/completion-check.sh
+```
+
+CI also runs `scripts/completion-check.sh`; branch protection should
+require that status before merge. Use `git push --no-verify` only when
+you knowingly need to share a broken intermediate branch.
 
 ## Commit message format
 
@@ -71,7 +96,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `<type>` is one of: `red`, `green`, `refactor`, `setup`, `docs`,
   `chore`, `fix`, `feat`, `test`, `perf`, `build`, `ci`, `revert`.
 - Subject ≤ 72 chars, imperative mood, no trailing period.
-- Body explains the *why* when not obvious.
+- Body explains the _why_ when not obvious.
 - Use `BREAKING CHANGE:` footer for incompatible changes.
 - One logical change per commit.
 
@@ -93,7 +118,7 @@ and forks.
 Maintain `.gitignore` proactively. Before adding any new tool,
 framework, or workflow, ensure its generated artifacts (build output,
 caches, logs, local config, IDE files, OS files, env files) are ignored
-*before* the first run.
+_before_ the first run.
 
 Common patterns to ignore:
 

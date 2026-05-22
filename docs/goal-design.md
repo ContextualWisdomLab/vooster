@@ -27,11 +27,11 @@
 
 각 goal은 **세 파일 한 세트**:
 
-| 파일 | 역할 |
-| --- | --- |
-| `<n>-<name>.md` | 미션 선언. "완료" 조건들을 자연어로 기술 (universal claim 사용) |
-| `<n>-<name>.gates.sh` | 그 조건들을 기계적으로 검증. **goal text가 "every X"면 gate는 X를 source-of-truth에서 enumerate 해야 함** |
-| `<n>-<name>.next-task.sh` | 현재 어느 gate가 깨졌는지 보고 다음 RED/GREEN 액션을 출력 |
+| 파일                      | 역할                                                                                                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `<n>-<name>.md`           | 미션 선언. "완료" 조건들을 자연어로 기술 (universal claim 사용)                                           |
+| `<n>-<name>.gates.sh`     | 그 조건들을 기계적으로 검증. **goal text가 "every X"면 gate는 X를 source-of-truth에서 enumerate 해야 함** |
+| `<n>-<name>.next-task.sh` | 현재 어느 gate가 깨졌는지 보고 다음 RED/GREEN 액션을 출력                                                 |
 
 현재 stack:
 
@@ -42,14 +42,14 @@
 
 ### `scripts/` — goal-agnostic 하네스
 
-| 파일 | 역할 |
-| --- | --- |
-| `diagnose.sh` | 매 iteration 첫 단계. git 상태, active goal, scaffolding, 테스트, UC progress를 한 번에 출력 |
-| `completion-check.sh` | goal들을 번호순으로 돌면서 각 `<n>-*.gates.sh`를 실행. **첫 번째 실패한 goal을 `.state/active-goal`에 기록** |
-| `next-task.sh` | `.state/active-goal` 읽고 해당 goal의 `next-task.sh`로 dispatch |
-| `update-state.sh` | `docs/state/progress.md`, `next-task.md`를 git + 테스트 결과로 재생성 |
-| `check-*.sh` | gate들이 호출하는 building block (bootable, persistence, cli, layers, bypass, db-consistency, deployable, gate-rigor, ci) |
-| `verify-tdd.sh` | RED → GREEN 커밋 패턴 검증 |
+| 파일                  | 역할                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `diagnose.sh`         | 매 iteration 첫 단계. git 상태, active goal, scaffolding, 테스트, UC progress를 한 번에 출력                              |
+| `completion-check.sh` | goal들을 번호순으로 돌면서 각 `<n>-*.gates.sh`를 실행. **첫 번째 실패한 goal을 `.state/active-goal`에 기록**              |
+| `next-task.sh`        | `.state/active-goal` 읽고 해당 goal의 `next-task.sh`로 dispatch                                                           |
+| `update-state.sh`     | `docs/state/progress.md`, `next-task.md`를 git + 테스트 결과로 재생성                                                     |
+| `check-*.sh`          | gate들이 호출하는 building block (bootable, persistence, cli, layers, bypass, db-consistency, deployable, gate-rigor, ci) |
+| `verify-tdd.sh`       | RED → GREEN 커밋 패턴 검증                                                                                                |
 
 ### `.state/` — 하네스의 휘발성 상태
 
@@ -63,9 +63,10 @@
 
 ## 한 iteration의 흐름
 
-회귀 감지를 **iteration 내부** 가 아니라 **commit 경계** 로 모은 구조다.
-iteration 중엔 활성 goal 만 빠르게 검사 (~5–30 s), 커밋할 때만 전체 chain
-풀 sweep (~1–2 분).
+회귀 감지를 세 단계로 나눈 구조다. iteration 중엔 활성 goal 만 빠르게 검사
+(~5–30 s), 커밋할 때는 staged 파일의 impact set 만 검사(P50 <2 s,
+P95 <5 s 목표), 푸시/CI/명시적 verify 에서 전체 chain 풀 sweep(~1–3 분)을
+돌린다.
 
 ```
 bash scripts/diagnose.sh              # cheap: .state/active-goal 만 읽고 표시
@@ -85,23 +86,31 @@ bash scripts/active-check.sh          # 활성 goal 만 검사 + rigor sweep
 
 # 커밋 경계 (.git/hooks/pre-commit 설치된 상태)
 git commit
-   └─ pre-commit hook → bash scripts/completion-check.sh   # 풀 sweep
-        └─ 전체 chain 통과해야 commit 성공
+   └─ pre-commit hook → bash scripts/commit-check.sh
+        └─ staged hygiene + impacted tests/gates 만 통과해야 commit 성공
+        └─ broad/unknown impact 는 full sweep 필요 메시지 출력
         └─ 실패 시 commit 거부 (--no-verify 로 우회 가능)
+
+# 푸시/verify 경계
+git push
+   └─ optional pre-push hook → bash scripts/completion-check.sh
+pnpm verify
+   └─ bash scripts/completion-check.sh
 ```
 
 비용 모델:
 
-| 명령 | 범위 | 비용 | 호출 시점 |
-| --- | --- | --- | --- |
-| `diagnose.sh` | state 표시만 | sub-sec | 매 iter 시작 |
-| `active-check.sh` | active goal + rigor sweep | ~5–30 s | 매 iter 끝 |
-| `completion-check.sh` | 모든 goal | ~1–2 분 (캐시 hit 비율 의존) | commit, CI, 수동 |
+| 명령                  | 범위                      | 비용                         | 호출 시점          |
+| --------------------- | ------------------------- | ---------------------------- | ------------------ |
+| `diagnose.sh`         | state 표시만              | sub-sec                      | 매 iter 시작       |
+| `active-check.sh`     | active goal + rigor sweep | ~5–30 s                      | 매 iter 끝         |
+| `commit-check.sh`     | staged impact + hygiene   | P50 <2 s, P95 <5 s           | commit             |
+| `completion-check.sh` | 모든 goal                 | ~1–3 분 (캐시 hit 비율 의존) | pre-push, CI, 수동 |
 
 설계 의도: 풀 sweep 이 매 iter 마다 돌면 1:36 × N 으로 누적되어 100 goals
 시점엔 사실상 불가능. 그러나 prior goal 회귀 감지는 포기할 수 없는
-자산. 그래서 **자주 일어나는 사건(edit)** 에서는 가벼운 검사를 하고,
-**드물게 일어나는 사건(commit)** 에서 무거운 검사를 한다.
+자산. 그래서 **자주 일어나는 사건(edit/commit)** 에서는 가벼운 검사를 하고,
+**공유/병합 경계(push/CI)** 에서 무거운 검사를 한다.
 
 ## 핵심 설계 원칙
 
@@ -114,12 +123,12 @@ goal 텍스트가 "every entity is persisted"라고 쓰면 gate 스크립트는
 
 Sources of truth와 그 iteration 명령:
 
-| 대상 | 명령 |
-| --- | --- |
-| 엔티티 | `grep '^model ' prisma/schema.prisma \| awk '{print $2}'` |
-| 유스케이스 | `find docs/usecases -name 'UC-*.md'` |
-| 라우트 | `find src/http -name '*-routes.ts'` |
-| CLI 명령 | `grep -oE '"vspec [^"]+"' src/http` |
+| 대상       | 명령                                                      |
+| ---------- | --------------------------------------------------------- |
+| 엔티티     | `grep '^model ' prisma/schema.prisma \| awk '{print $2}'` |
+| 유스케이스 | `find docs/usecases -name 'UC-*.md'`                      |
+| 라우트     | `find src/http -name '*-routes.ts'`                       |
+| CLI 명령   | `grep -oE '"vspec [^"]+"' src/http`                       |
 
 ### 2. 첫 실패 goal = 작업 대상
 
@@ -157,7 +166,7 @@ Sources of truth와 그 iteration 명령:
 
 ### 4. Orchestrator 가 rigor sweep 도 책임진다
 
-`completion-check.sh` 는 parallel goal 워커를 띄우기 *전에*
+`completion-check.sh` 는 parallel goal 워커를 띄우기 _전에_
 `bash scripts/check-gate-rigor.sh --all` 을 한 번 돌린다. 이유:
 
 - goal 0/1 은 자기 `.md` 를 자기 `GATE_INPUTS` 에 안 넣어둔 상태였고
@@ -184,11 +193,11 @@ gate 같은 커밋 정책으로 막아야 한다.
 아키텍처 교체, 기능 제거). 무작정 약화시키거나 삭제하는 건 금지. 다음
 세 케이스만 허용:
 
-| 케이스 | 예 | 허용된 조치 |
-| --- | --- | --- |
-| **(a) Retarget** — invariant 그대로, 경로/도구만 변경 | monorepo 이동 (`src/` → `apps/api/src/`) | 같은 goal 작업 안에서 prior `*.gates.sh` 경로 수정. prior `.md` 는 손대지 않음. 커밋: `fix(<scope>): retarget <goal> gate` |
-| **(b) Loosen invariant** — 검사 로직 자체가 바뀌어야 함 | "한 파일에 모든 모델" → "여러 파일 중 하나에 등장" | 별도 scoped 커밋. prior `.md` 본문도 같은 커밋에서 수정해 universal claim 과 gate 를 다시 일치시킴. retarget 같은 다른 의도와 conflate 금지 |
-| **(c) Supersede** — invariant 가 새 아키텍처에서 의미 상실 | Fastify → Hono 교체 시 goal-1 Fastify 부팅 게이트 | 새 goal `.md` 에 **`## Supersedes`** 섹션을 만들어 "goal N 의 gate X.Y 를 대체한다" 를 명시. prior gate 는 새 invariant 로 교체하거나 삭제 — 단, 새 goal `.md` 의 명시적 선언 없이는 불가 |
+| 케이스                                                     | 예                                                 | 허용된 조치                                                                                                                                                                               |
+| ---------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a) Retarget** — invariant 그대로, 경로/도구만 변경      | monorepo 이동 (`src/` → `apps/api/src/`)           | 같은 goal 작업 안에서 prior `*.gates.sh` 경로 수정. prior `.md` 는 손대지 않음. 커밋: `fix(<scope>): retarget <goal> gate`                                                                |
+| **(b) Loosen invariant** — 검사 로직 자체가 바뀌어야 함    | "한 파일에 모든 모델" → "여러 파일 중 하나에 등장" | 별도 scoped 커밋. prior `.md` 본문도 같은 커밋에서 수정해 universal claim 과 gate 를 다시 일치시킴. retarget 같은 다른 의도와 conflate 금지                                               |
+| **(c) Supersede** — invariant 가 새 아키텍처에서 의미 상실 | Fastify → Hono 교체 시 goal-1 Fastify 부팅 게이트  | 새 goal `.md` 에 **`## Supersedes`** 섹션을 만들어 "goal N 의 gate X.Y 를 대체한다" 를 명시. prior gate 는 새 invariant 로 교체하거나 삭제 — 단, 새 goal `.md` 의 명시적 선언 없이는 불가 |
 
 금지:
 

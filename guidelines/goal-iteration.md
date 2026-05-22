@@ -17,8 +17,14 @@ iteration 을 어떻게 돌리는지를 정리한다. `AGENTS.md` 의 일반 TDD
 ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
 ```
 
-이 훅이 `completion-check.sh` 를 커밋 경계에서 돌리는 회귀 방어선이다.
-설치 안 된 상태로 커밋하지 말 것.
+이 훅은 staged impact 회귀 검사(`scripts/commit-check.sh`)와 시크릿/산출물
+차단을 커밋 경계에서 수행한다. 설치 안 된 상태로 커밋하지 말 것.
+
+풀 회귀 sweep을 로컬 푸시 전에 강제하려면 pre-push 훅도 설치한다:
+
+```
+ln -sf ../../scripts/hooks/pre-push .git/hooks/pre-push
+```
 
 ## Workflow Per Iteration
 
@@ -30,6 +36,7 @@ cat docs/state/next-task.md
 ```
 
 Understand:
+
 - What is done.
 - What is in progress.
 - What the current task is.
@@ -43,6 +50,7 @@ cat docs/usecases/<UC-ID>-*.md
 ```
 
 Identify:
+
 - The main success scenario steps.
 - The extension scenarios.
 - The preconditions and guarantees.
@@ -90,7 +98,8 @@ For each test in your plan:
 Each phase ends with **one** commit; if a commit message needs "and",
 the step was too big — split it. Never commit failing tests on a
 `green:` or `refactor:` commit. Full message format, type vocabulary,
-and the pre-commit regression boundary live in the `/commit` skill.
+the staged-impact pre-commit boundary, and the full pre-push/CI
+regression boundary live in the `/commit` skill.
 
 ### Phase 5: Verify (5-10% of iteration)
 
@@ -112,8 +121,9 @@ bash scripts/active-check.sh
 `active-check.sh` runs only the **active goal**'s gates (~5–30 s) plus
 the rigor sweep. If the active goal turns green, it auto-advances the
 pointer by exec-ing into the full `completion-check.sh`. Prior-goal
-regression is NOT checked at iteration level — that's what the
-pre-commit hook is for (see the `/commit` skill).
+regression is NOT checked at iteration level — staged impact is checked
+by pre-commit, and the full sweep is checked by pre-push/CI/manual
+verify (see the `/commit` skill).
 
 If you discovered something important, append one bullet to
 `docs/state/learnings.md`.
@@ -139,8 +149,9 @@ git log --oneline -5  # 이번 iteration 커밋들이 보여야 함
   훑는다.
 - `.gitignore` 누락이 있으면 푸시 전에 잡고 별도 `chore: gitignore …`
   커밋으로 처리한다.
-- 마지막 커밋의 pre-commit 훅이 `completion-check.sh` 를 통과했는지
-  확인한다. 실패했다면 푸시하지 않는다.
+- 마지막 커밋의 pre-commit 훅이 `scripts/commit-check.sh` 를 통과했는지
+  확인한다. broad/unknown 경고가 있었거나 푸시 전 전체 회귀를 확인해야
+  한다면 `pnpm verify` 또는 `bash scripts/completion-check.sh` 를 실행한다.
 - 통과했다면 푸시한다. 매 iteration 끝에 푸시하며, 로컬 커밋을
   쌓아두지 않는다.
 
@@ -225,11 +236,12 @@ active automatically.
 
 Three different scopes, three different commands:
 
-| Command | Scope | Cost | When |
-| --- | --- | --- | --- |
-| `bash goals/<n>-*.gates.sh` | one goal | seconds–minutes | manual probe of one goal |
-| `bash scripts/active-check.sh` | active goal + rigor sweep | ~5–30 s | every TDD cycle (Phase 6) |
-| `bash scripts/completion-check.sh` | every goal | 1–2 min (cached) | commit boundary (pre-commit hook), CI, manual full sweep |
+| Command                            | Scope                     | Cost               | When                              |
+| ---------------------------------- | ------------------------- | ------------------ | --------------------------------- |
+| `bash goals/<n>-*.gates.sh`        | one goal                  | seconds–minutes    | manual probe of one goal          |
+| `bash scripts/active-check.sh`     | active goal + rigor sweep | ~5–30 s            | every TDD cycle (Phase 6)         |
+| `bash scripts/commit-check.sh`     | staged impact + hygiene   | P50 <2 s, P95 <5 s | commit boundary (pre-commit hook) |
+| `bash scripts/completion-check.sh` | every goal                | 1–3 min (cached)   | pre-push, CI, manual full sweep   |
 
 `diagnose.sh` is cheaper still — it just reads `.state/active-goal`,
 which was written by the last orchestrator run. It does not run gates

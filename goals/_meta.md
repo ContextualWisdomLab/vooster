@@ -1,4 +1,4 @@
-# Goal _meta: Cross-cutting invariants
+# Goal \_meta: Cross-cutting invariants
 
 이 goal은 numeric goal 스택과 별개의 **메타 게이트 모음**이다. 모든 goal에
 공통으로 적용되는 universal claim — lint / typecheck / test+coverage / build
@@ -35,19 +35,19 @@
 
 각 condition 은 source-of-truth 로부터 enumerate 된다:
 
-| Condition | Source of truth | Iteration |
-| --- | --- | --- |
-| typecheck | `tsconfig.json` 의 transitive include | `pnpm exec tsc --noEmit` (sweep) |
-| lint | `eslint.config.js` 의 적용 범위 | `pnpm exec eslint .` (sweep) |
-| tests + coverage | `vitest.config.ts` | `pnpm exec vitest run --coverage` (sweep) |
-| builds | `find apps -maxdepth 2 -name package.json` 중 `scripts.build` 가진 것 | bash `for` loop over `pnpm --filter` |
+| Condition        | Source of truth                                                       | Iteration                                 |
+| ---------------- | --------------------------------------------------------------------- | ----------------------------------------- |
+| typecheck        | `tsconfig.json` 의 transitive include                                 | `pnpm exec tsc --noEmit` (sweep)          |
+| lint             | `eslint.config.js` 의 적용 범위                                       | `pnpm exec eslint .` (sweep)              |
+| tests + coverage | `vitest.config.ts`                                                    | `pnpm exec vitest run --coverage` (sweep) |
+| builds           | `find apps -maxdepth 2 -name package.json` 중 `scripts.build` 가진 것 | bash `for` loop over `pnpm --filter`      |
 
 ## Env flags
 
-| Env | Effect |
-| --- | --- |
-| `VSPEC_GATES_SKIP_DEEP=1` | M.3 (vitest + coverage) 와 M.4 (app builds) 를 스킵. 빠른 iteration 용. 풀 검증은 그 env 없이. |
-| `VSPEC_GATES_SKIP_META=1` | `completion-check.sh` 가 `_meta` 전체를 sweep 에서 제외. CI 워크플로우에서만 사용 — workflow step 들이 이미 lint/typecheck/test/build 를 명시적으로 돌리고 있으므로 중복 실행을 피한다. 로컬 pre-commit hook 에서는 이 env 가 unset 이므로 `_meta` 가 정상 실행된다. |
+| Env                       | Effect                                                                                                                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VSPEC_GATES_SKIP_DEEP=1` | M.3 (vitest + coverage) 와 M.4 (app builds) 를 스킵. 빠른 iteration 용. 풀 검증은 그 env 없이.                                                                                                                                                                                                   |
+| `VSPEC_GATES_SKIP_META=1` | `completion-check.sh` 가 `_meta` 전체를 sweep 에서 제외. CI 워크플로우에서만 사용 — workflow step 들이 이미 lint/typecheck/test/build 를 명시적으로 돌리고 있으므로 중복 실행을 피한다. 로컬 full sweep(`pnpm verify` 또는 pre-push hook)에서는 이 env 가 unset 이므로 `_meta` 가 정상 실행된다. |
 
 `SKIP_DEEP` 은 numeric goal 들의 `SKIP_DEEP` 정책과 동일한 의미 — 외부
 시스템 / 무거운 도구 호출을 빠른 iteration 에서만 우회.
@@ -55,13 +55,13 @@
 `SKIP_META` 는 환경별 책임 분리다. **"메타 claim 은 누가 enforce 하는가"**
 는 환경에 따라 다르다:
 
-- **로컬 (pre-commit hook)**: `_meta.gates.sh` 가 직접 enforce.
+- **로컬 full sweep (`pnpm verify` 또는 pre-push hook)**: `_meta.gates.sh` 가 직접 enforce.
 - **CI (GitHub Actions)**: `.github/workflows/ci.yml` 의 step 들이 분담
   enforce (각 step 이 Actions UI 에 분리되어 보이므로 디버깅이 쉽다).
 
 어느 쪽이든 4 가지 claim 은 모두 검증된다 — 다만 실행 주체가 다를 뿐.
 
-## Why this goal is "_" prefixed
+## Why this goal is "\_" prefixed
 
 `_meta` 는 numeric goal 스택과 별개의 메타 단계다. `_` ASCII (0x5F) 가
 숫자(0x30–0x39) 뒤에 정렬되므로 `sort -V` 기본 순서로는 마지막에 오지만,
@@ -75,15 +75,15 @@ launch** 한다. 이렇게 하면:
 
 ## Relation to numeric goals
 
-| Previous location | Now in _meta |
-| --- | --- |
-| `goals/0-init.gates.sh` — `vitest --coverage`, `tsc --noEmit`, `eslint .` | M.1, M.2, M.3 |
-| `goals/1-runnable.gates.sh` — `vitest run apps/cli/tests/e2e-cli` | M.3 (suite 의 일부) |
-| `goals/2-shippable.gates.sh` — `vitest run` matrix files, UC-001-real-oauth | M.3 |
-| `goals/3-managed-db.gates.sh` — `vitest run apps/cli/tests/e2e-cli`, matrix files | M.3 |
-| `goals/4-honest-boundaries.gates.sh` — `pnpm exec eslint . --max-warnings 0` | M.2 |
-| `goals/5-monorepo.gates.sh` — `pnpm --filter @vooster/{api,cli,www} build` | M.4 |
-| `goals/8-web-readonly-viewer.gates.sh` — `pnpm --filter @vooster/web build`, e2e | M.4 |
+| Previous location                                                                 | Now in \_meta       |
+| --------------------------------------------------------------------------------- | ------------------- |
+| `goals/0-init.gates.sh` — `vitest --coverage`, `tsc --noEmit`, `eslint .`         | M.1, M.2, M.3       |
+| `goals/1-runnable.gates.sh` — `vitest run apps/cli/tests/e2e-cli`                 | M.3 (suite 의 일부) |
+| `goals/2-shippable.gates.sh` — `vitest run` matrix files, UC-001-real-oauth       | M.3                 |
+| `goals/3-managed-db.gates.sh` — `vitest run apps/cli/tests/e2e-cli`, matrix files | M.3                 |
+| `goals/4-honest-boundaries.gates.sh` — `pnpm exec eslint . --max-warnings 0`      | M.2                 |
+| `goals/5-monorepo.gates.sh` — `pnpm --filter @vooster/{api,cli,www} build`        | M.4                 |
+| `goals/8-web-readonly-viewer.gates.sh` — `pnpm --filter @vooster/web build`, e2e  | M.4                 |
 
-각 numeric goal 의 `.md` 본문에서 cross-cutting 부분은 "see goals/_meta.md"
+각 numeric goal 의 `.md` 본문에서 cross-cutting 부분은 "see goals/\_meta.md"
 포인터로 대체되었고, 자신의 goal-specific universal claim 만 남았다.

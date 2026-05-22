@@ -93,12 +93,23 @@ A4. **The explicit allow-list is the architecture from
     - `ports → domain`
     - `domain → (nothing)`
 
-    The gate parses the rule list and asserts: for every layer pair
-    that is *not* in the allow-list above (e.g., `ports → http`,
-    `infrastructure → http`, `application → http`,
-    `application → infrastructure`), ESLint must reject it. The check
-    runs by feeding a tiny fixture import to ESLint, not by
-    string-matching the config.
+    The gate iterates every required arrow against the allow-list in
+    `eslint.config.js` and fails on any drift from the architecture
+    text. (A4 is the static-config half; A5 below proves the rule
+    actually fires.)
+
+A5. **The configured boundary rule actually fires at lint time.**
+    A separate `node` process drives ESLint through its Node API and
+    lints two fixture files — one forbidden upward import
+    (`ports → http`) and one allowed architecture arrow
+    (`cli → application`). The `boundaries/element-types` rule must
+    produce exactly one error on the forbidden fixture and zero on
+    the allowed one. This catches the failure mode where A4's text
+    matches but the rule itself is misconfigured. ESLint runs
+    out-of-band of vitest so the TypeScript Project build does not
+    compete with test workers — the previous unit-test version of
+    this check (`apps/api/tests/unit/boundaries-config.test.ts`)
+    timed out under CI load for exactly that reason.
 
 ### Tranche B — Domain owns the entity vocabulary
 

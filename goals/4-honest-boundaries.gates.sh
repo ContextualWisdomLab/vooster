@@ -153,6 +153,78 @@ else
   PASS=false
 fi
 
+echo "[4.A5] ESLint actually rejects upward imports and accepts allowed arrows"
+# Honest check: drive ESLint through its Node API in a *separate*
+# process (so the TS Project build does not compete with vitest workers
+# the way the old apps/api/tests/unit/boundaries-config.test.ts did)
+# and lint two fixture files — one forbidden upward import and one
+# allowed architecture arrow. The configured boundaries/element-types
+# rule must produce exactly one error for the forbidden case and zero
+# for the allowed case. This catches the failure mode where 4.A4's
+# allow-list text is correct but the rule itself is misconfigured.
+if node --input-type=module >/tmp/4-a5-eslint.log 2>&1 <<'NODE'
+import { unlink, writeFile } from "node:fs/promises";
+import { ESLint } from "eslint";
+
+const cases = [
+  {
+    code: [
+      'import type { StoredUser } from "../http/signup-types.ts";',
+      "export type BoundaryFixture = StoredUser;"
+    ].join("\n"),
+    expectedBoundaryErrors: 1,
+    filePath: "apps/api/src/ports/__boundary_rejects_http.fixture.ts"
+  },
+  {
+    code: [
+      'import type { StartGithubOAuthResult } from "../application/signup.ts";',
+      "export type BoundaryFixture = StartGithubOAuthResult;"
+    ].join("\n"),
+    expectedBoundaryErrors: 0,
+    filePath: "apps/cli/src/__boundary_allows_application.fixture.ts"
+  }
+];
+
+let failures = 0;
+try {
+  await Promise.all(
+    cases.map((c) => writeFile(c.filePath, c.code))
+  );
+
+  const eslint = new ESLint({ cwd: process.cwd() });
+  const results = await Promise.all(
+    cases.map((c) => eslint.lintFiles([c.filePath]))
+  );
+
+  for (let i = 0; i < cases.length; i++) {
+    const c = cases[i];
+    const boundaryErrors = (results[i][0]?.messages ?? []).filter(
+      (m) => m.ruleId === "boundaries/element-types"
+    );
+    if (boundaryErrors.length !== c.expectedBoundaryErrors) {
+      failures += 1;
+      console.error(
+        `  ${c.filePath}: expected ${c.expectedBoundaryErrors} boundary error(s), got ${boundaryErrors.length}`
+      );
+    }
+  }
+} finally {
+  await Promise.all(
+    cases.map((c) => unlink(c.filePath).catch(() => undefined))
+  );
+}
+
+if (failures > 0) {
+  process.exit(1);
+}
+NODE
+then
+  echo "    ✓ pass"
+else
+  echo "    ✗ fail — see /tmp/4-a5-eslint.log"
+  PASS=false
+fi
+
 # ─── Tranche B — Domain owns the entity vocabulary ──────────────────────
 
 echo "[4.B1] Every Prisma model has a Stored<Model> type under apps/api/src/domain/"

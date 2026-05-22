@@ -62,10 +62,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gate-cache-
       - run: pnpm install --frozen-lockfile
-      # _meta M.2 — strict lint (--max-warnings 0 matches _meta.gates.sh).
-      # The `pnpm run lint` form keeps goal 3.C3's CI-step grep happy.
-      - name: Lint (eslint --max-warnings 0)
-        run: pnpm run lint -- --max-warnings 0
+      # _meta M.2 — strict lint. `pnpm run lint` calls the root script
+      # which is `eslint . --max-warnings 0`, matching _meta.gates.sh.
+      - name: Lint
+        run: pnpm run lint
       # _meta M.1 — typecheck.
       - name: Typecheck (tsc --noEmit)
         run: pnpm run typecheck

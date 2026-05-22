@@ -10,7 +10,7 @@
     "predev": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --schema apps/api/prisma/schema.prisma --skip-generate; fi",
     "dev": "tsx watch apps/api/src/index.ts",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "postinstall": "prisma generate --schema apps/api/prisma/schema.prisma",
     "prestart": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --schema apps/api/prisma/schema.prisma --skip-generate; fi",
     "start": "node dist/apps/api/src/index.js",

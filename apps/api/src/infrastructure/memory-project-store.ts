@@ -5,6 +5,14 @@ export function createMemoryProjectStore(): ProjectStore {
   const projects = new Map<string, StoredProject>();
 
   return {
+    deleteProject(projectId) {
+      if (!projects.has(projectId)) {
+        return Promise.resolve("NOT_FOUND" as const);
+      }
+      projects.delete(projectId);
+      return Promise.resolve("DELETED" as const);
+    },
+
     findProjectById(projectId) {
       return Promise.resolve(projects.get(projectId));
     },
@@ -26,6 +34,16 @@ export function createMemoryProjectStore(): ProjectStore {
     saveProject(project) {
       projects.set(project.id, project);
       return Promise.resolve();
+    },
+
+    updateProjectName(projectId, name) {
+      const project = projects.get(projectId);
+      if (project === undefined) {
+        return Promise.resolve(undefined);
+      }
+      const updated: StoredProject = { ...project, name };
+      projects.set(projectId, updated);
+      return Promise.resolve(updated);
     }
   };
 }

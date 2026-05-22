@@ -228,6 +228,8 @@ function projectStore(projects: StoredProject[]): ProjectStore {
     findProjectByWorkspaceAndKey: () => Promise.resolve(undefined),
     listProjectsForWorkspace: (workspaceId) =>
       Promise.resolve(projects.filter((item) => item.workspace_id === workspaceId)),
+    deleteProject: () => Promise.resolve("NOT_FOUND" as const),
+    updateProjectName: () => Promise.resolve(undefined),
     saveProject: () => Promise.resolve()
   };
 }

@@ -26,7 +26,8 @@ export async function startServer(): Promise<TestServer> {
         payload: init?.body
       });
 
-      return new Response(response.payload, {
+      const nullBody = response.statusCode === 204 || response.statusCode === 205;
+      return new Response(nullBody ? null : response.payload, {
         status: response.statusCode,
         headers: responseHeaders(response.headers)
       });

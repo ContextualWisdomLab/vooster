@@ -190,6 +190,114 @@ describe("UC-004 - Create a project", () => {
     expect(retry.status).toBe(201);
   });
 
+  test("MAIN: signed-in member renames a project", async () => {
+    const signedUp = await signup("Renamer", "renamer", "stub-renamer");
+    const created = await createProject(signedUp, {
+      name: "Old Name",
+      key: "OLD",
+      visibility: "PRIVATE"
+    });
+    const createdBody = (await created.json()) as ProjectResponse;
+
+    const response = await server.fetch(`/v1/projects/${createdBody.project.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: signedUp.cookie
+      },
+      body: JSON.stringify({ name: "New Name" })
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { project: { id: string; name: string } };
+    expect(body.project).toMatchObject({ id: createdBody.project.id, name: "New Name" });
+  });
+
+  test("MAIN: signed-in member deletes an empty project", async () => {
+    const signedUp = await signup("Deleter", "deleter", "stub-deleter");
+    const created = await createProject(signedUp, {
+      name: "Trash",
+      key: "TRASH",
+      visibility: "PRIVATE"
+    });
+    const createdBody = (await created.json()) as ProjectResponse;
+
+    const response = await server.fetch(`/v1/projects/${createdBody.project.id}`, {
+      method: "DELETE",
+      headers: { Cookie: signedUp.cookie }
+    });
+
+    expect(response.status).toBe(204);
+
+    const after = await server.fetch("/v1/projects", {
+      headers: { Cookie: signedUp.cookie }
+    });
+    const list = (await after.json()) as ProjectListResponse;
+    expect(list.items.find((item) => item.id === createdBody.project.id)).toBeUndefined();
+  });
+
+  test("MAIN: signed-in member creates a project in their default workspace", async () => {
+    const signedUp = await signup(
+      "Default Workspace",
+      "default-workspace",
+      "stub-default-workspace"
+    );
+
+    const response = await server.fetch("/v1/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: signedUp.cookie
+      },
+      body: JSON.stringify({ name: "Quick Start", key: "QUICK", visibility: "PRIVATE" })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as ProjectResponse;
+    expect(body.project).toMatchObject({
+      workspace_id: signedUp.workspaceId,
+      key: "QUICK",
+      name: "Quick Start"
+    });
+  });
+
+  test("rename: non-member cannot rename a project", async () => {
+    const owner = await signup("Rename Owner", "rename-owner", "stub-rename-owner");
+    const outsider = await signup(
+      "Rename Outsider",
+      "rename-outsider",
+      "stub-rename-outsider"
+    );
+    const created = await createProject(owner, {
+      name: "Locked",
+      key: "LOCK",
+      visibility: "PRIVATE"
+    });
+    const createdBody = (await created.json()) as ProjectResponse;
+
+    const response = await server.fetch(`/v1/projects/${createdBody.project.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: outsider.cookie
+      },
+      body: JSON.stringify({ name: "Hijacked" })
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  test("delete: missing project returns 404", async () => {
+    const signedUp = await signup("Missing", "missing-project", "stub-missing-project");
+
+    const response = await server.fetch("/v1/projects/does-not-exist", {
+      method: "DELETE",
+      headers: { Cookie: signedUp.cookie }
+    });
+
+    expect(response.status).toBe(404);
+  });
+
   test("*a: archived workspace aborts project creation", async () => {
     const signedUp = await signup("Archived", "archived", "stub-archived");
     await server.fetch(`/__test/workspaces/${signedUp.workspaceId}/archive`, {

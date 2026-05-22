@@ -116,3 +116,124 @@ function mainBranch(
 function id(deps: ProjectCreationDeps): string {
   return (deps.idFactory ?? randomUUID)();
 }
+
+export type ProjectMutationDeps = {
+  membershipStore: MembershipStore;
+  projectStore: ProjectStore;
+  workspaceStore: WorkspaceStore;
+};
+
+export type ProjectRenameInput = {
+  name: string;
+  projectId: string;
+  userId: string | undefined;
+};
+
+export type ProjectRenameResult =
+  | { project: StoredProject; status: "RENAMED" }
+  | { status: "FORBIDDEN" }
+  | { status: "NOT_FOUND" }
+  | { status: "WORKSPACE_ARCHIVED" };
+
+export async function renameProject(
+  deps: ProjectMutationDeps,
+  input: ProjectRenameInput
+): Promise<ProjectRenameResult> {
+  const project = await deps.projectStore.findProjectById(input.projectId);
+  if (project === undefined) {
+    return { status: "NOT_FOUND" };
+  }
+
+  const membership = await membershipFor(
+    deps.membershipStore,
+    input.userId,
+    project.workspace_id
+  );
+  if (membership === undefined) {
+    return { status: "FORBIDDEN" };
+  }
+  if (await deps.workspaceStore.isWorkspaceArchived(project.workspace_id)) {
+    return { status: "WORKSPACE_ARCHIVED" };
+  }
+
+  const updated = await deps.projectStore.updateProjectName(input.projectId, input.name);
+  if (updated === undefined) {
+    return { status: "NOT_FOUND" };
+  }
+
+  return { project: updated, status: "RENAMED" };
+}
+
+export type ProjectDeletionInput = {
+  projectId: string;
+  userId: string | undefined;
+};
+
+export type ProjectDeletionResult =
+  | { status: "DELETED" }
+  | { status: "FORBIDDEN" }
+  | { status: "NOT_FOUND" }
+  | { status: "WORKSPACE_ARCHIVED" }
+  | { status: "HAS_DEPENDENCIES" };
+
+export async function deleteProject(
+  deps: ProjectMutationDeps,
+  input: ProjectDeletionInput
+): Promise<ProjectDeletionResult> {
+  const project = await deps.projectStore.findProjectById(input.projectId);
+  if (project === undefined) {
+    return { status: "NOT_FOUND" };
+  }
+
+  const membership = await membershipFor(
+    deps.membershipStore,
+    input.userId,
+    project.workspace_id
+  );
+  if (membership === undefined) {
+    return { status: "FORBIDDEN" };
+  }
+  if (await deps.workspaceStore.isWorkspaceArchived(project.workspace_id)) {
+    return { status: "WORKSPACE_ARCHIVED" };
+  }
+
+  const outcome = await deps.projectStore.deleteProject(input.projectId);
+  switch (outcome) {
+    case "DELETED":
+      return { status: "DELETED" };
+    case "HAS_DEPENDENCIES":
+      return { status: "HAS_DEPENDENCIES" };
+    case "NOT_FOUND":
+      return { status: "NOT_FOUND" };
+  }
+}
+
+export type DefaultWorkspaceProjectInput = {
+  dryRun?: boolean;
+  key: string;
+  name: string;
+  simulateBranchInsertFailure: boolean;
+  userId: string | undefined;
+  visibility: StoredProject["visibility"];
+};
+
+export type DefaultWorkspaceProjectResult =
+  | ProjectCreationResult
+  | { status: "NO_WORKSPACE" };
+
+export async function createProjectInDefaultWorkspace(
+  deps: ProjectCreationDeps,
+  input: DefaultWorkspaceProjectInput
+): Promise<DefaultWorkspaceProjectResult> {
+  if (input.userId === undefined) {
+    return { status: "FORBIDDEN" };
+  }
+
+  const memberships = await deps.membershipStore.membershipsForUser(input.userId);
+  const primary = memberships[0];
+  if (primary === undefined) {
+    return { status: "NO_WORKSPACE" };
+  }
+
+  return createProject(deps, { ...input, workspaceId: primary.workspace_id });
+}

@@ -1,10 +1,15 @@
 import type { FastifyReply } from "fastify";
-import type { ProjectCreationResult } from "../application/projects.js";
+import type {
+  DefaultWorkspaceProjectResult,
+  ProjectCreationResult,
+  ProjectDeletionResult,
+  ProjectRenameResult
+} from "../application/projects.js";
 import { problem } from "./signup-support.js";
 
 export function sendProjectCreationResult(
   reply: FastifyReply,
-  result: ProjectCreationResult
+  result: ProjectCreationResult | DefaultWorkspaceProjectResult
 ) {
   switch (result.status) {
     case "CREATED":
@@ -49,6 +54,61 @@ export function sendProjectCreationResult(
         problem(500, "Project creation failed", {
           request_id: result.requestId
         })
+      );
+    case "NO_WORKSPACE":
+      return reply.code(409).send(
+        problem(409, "No workspace available", {}, [
+          {
+            command: "vspec workspace create",
+            reason: "Create a workspace before creating a project."
+          }
+        ])
+      );
+  }
+}
+
+export function sendProjectRenameResult(
+  reply: FastifyReply,
+  result: ProjectRenameResult
+) {
+  switch (result.status) {
+    case "RENAMED":
+      return reply.send({ project: result.project });
+    case "FORBIDDEN":
+      return reply.code(403).send(problem(403, "Not a member of this workspace"));
+    case "NOT_FOUND":
+      return reply.code(404).send(problem(404, "Project not found"));
+    case "WORKSPACE_ARCHIVED":
+      return reply.code(409).send(problem(409, "Workspace has been archived"));
+  }
+}
+
+export function sendProjectDeletionResult(
+  reply: FastifyReply,
+  result: ProjectDeletionResult
+) {
+  switch (result.status) {
+    case "DELETED":
+      return reply.code(204).send();
+    case "FORBIDDEN":
+      return reply.code(403).send(problem(403, "Not a member of this workspace"));
+    case "NOT_FOUND":
+      return reply.code(404).send(problem(404, "Project not found"));
+    case "WORKSPACE_ARCHIVED":
+      return reply.code(409).send(problem(409, "Workspace has been archived"));
+    case "HAS_DEPENDENCIES":
+      return reply.code(409).send(
+        problem(
+          409,
+          "Project still has use cases, actors, or other data",
+          {},
+          [
+            {
+              command: "vspec project archive",
+              reason: "Archive instead of deleting when the project has data."
+            }
+          ]
+        )
       );
   }
 }

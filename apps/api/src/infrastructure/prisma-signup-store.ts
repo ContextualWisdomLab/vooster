@@ -1,4 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  deleteProjectViaPrisma,
+  updateProjectNameViaPrisma
+} from "./prisma-project-mutations.js";
+import type { DeleteProjectOutcome } from "../ports/project-store.js";
 import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
 import {
   apiKeyData,
@@ -643,6 +648,17 @@ class PrismaSignupStore implements SignupStore {
     await this.prisma.project.create({
       data: projectData(project)
     });
+  }
+
+  updateProjectName(
+    projectId: string,
+    name: string
+  ): Promise<StoredProject | undefined> {
+    return updateProjectNameViaPrisma(this.prisma, projectId, name);
+  }
+
+  deleteProject(projectId: string): Promise<DeleteProjectOutcome> {
+    return deleteProjectViaPrisma(this.prisma, projectId);
   }
 
   async saveScenario(scenario: StoredScenario): Promise<void> {

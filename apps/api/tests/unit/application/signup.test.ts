@@ -311,6 +311,8 @@ function signupStore(options: {
     saveGoal: () => Promise.resolve(),
     saveLock: () => Promise.resolve(),
     saveMergeRequest: () => Promise.resolve(),
+    deleteProject: () => Promise.resolve("NOT_FOUND" as const),
+    updateProjectName: () => Promise.resolve(undefined),
     saveProject: () => Promise.resolve(),
     saveProjectWithDefaultBranch: () => Promise.resolve(),
     saveRevision: () => Promise.resolve(),

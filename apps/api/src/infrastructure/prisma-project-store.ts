@@ -1,11 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
 
 import type { StoredProject } from "../domain/entities/index.js";
-import type { ProjectStore } from "../ports/project-store.js";
+import type { DeleteProjectOutcome, ProjectStore } from "../ports/project-store.js";
 import {
-  projectData,
-  storedProject
-} from "./prisma-signup-mappers.js";
+  deleteProjectViaPrisma,
+  updateProjectNameViaPrisma
+} from "./prisma-project-mutations.js";
+import { projectData, storedProject } from "./prisma-signup-mappers.js";
 
 export function createPrismaProjectStore(prisma: PrismaClient): ProjectStore {
   return new PrismaProjectStore(prisma);
@@ -13,6 +14,10 @@ export function createPrismaProjectStore(prisma: PrismaClient): ProjectStore {
 
 class PrismaProjectStore implements ProjectStore {
   constructor(private readonly prisma: PrismaClient) {}
+
+  deleteProject(projectId: string): Promise<DeleteProjectOutcome> {
+    return deleteProjectViaPrisma(this.prisma, projectId);
+  }
 
   async findProjectById(projectId: string): Promise<StoredProject | undefined> {
     const project = await this.prisma.project.findUnique({
@@ -51,5 +56,12 @@ class PrismaProjectStore implements ProjectStore {
     await this.prisma.project.create({
       data: projectData(project)
     });
+  }
+
+  updateProjectName(
+    projectId: string,
+    name: string
+  ): Promise<StoredProject | undefined> {
+    return updateProjectNameViaPrisma(this.prisma, projectId, name);
   }
 }

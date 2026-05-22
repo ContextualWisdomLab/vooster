@@ -58,17 +58,19 @@ GOAL5_MD=goals/5-monorepo.md
 VERCEL_PROJECT_NAME=vooster-new-web
 
 TIER1_PAGES=(
-  app/page.tsx
-  app/login/page.tsx
-  app/projects/[key]/page.tsx
-  app/projects/[key]/usecases/[ucKey]/page.tsx
+  'app/(app)/page.tsx'
+  'app/login/page.tsx'
+  'app/(app)/projects/[key]/page.tsx'
+  'app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
 )
 
 AUTH_PAGES=(
-  app/page.tsx
-  app/projects/[key]/page.tsx
-  app/projects/[key]/usecases/[ucKey]/page.tsx
+  'app/(app)/page.tsx'
+  'app/(app)/projects/[key]/page.tsx'
+  'app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
 )
+
+APP_LAYOUT='app/(app)/layout.tsx'
 
 CONFIG_FILES=(
   tsconfig.json
@@ -243,7 +245,7 @@ fi
 
 echo "[8.B3 UC detail page renders every Cockburn field]"
 B3_MISSING=()
-UC_DETAIL_DIR="$WEB_DIR/app/projects/[key]/usecases/[ucKey]"
+UC_DETAIL_DIR="$WEB_DIR/app/(app)/projects/[key]/usecases/[ucKey]"
 if [ -d "$UC_DETAIL_DIR" ]; then
   for field in "${UC_FIELDS[@]}"; do
     if ! grep -rqE "\\b${field}\\b" "$UC_DETAIL_DIR" 2>/dev/null; then
@@ -305,22 +307,33 @@ else
   PASS=false
 fi
 
-echo "[8.C3 every authenticated page redirects to /login when unauthed]"
+echo "[8.C3 authenticated routes go through redirect-enforcing (app) layout]"
 C3_OFFENDERS=()
+APP_LAYOUT_FILE="$WEB_DIR/$APP_LAYOUT"
+LAYOUT_REDIRECT_OK=false
+if [ -f "$APP_LAYOUT_FILE" ] \
+    && grep -qE 'redirect\(' "$APP_LAYOUT_FILE" \
+    && grep -qE '/login' "$APP_LAYOUT_FILE"; then
+  LAYOUT_REDIRECT_OK=true
+fi
 for page in "${AUTH_PAGES[@]}"; do
   f="$WEB_DIR/$page"
-  if [ -f "$f" ]; then
-    if ! grep -qE 'redirect\(' "$f" || ! grep -qE '/login' "$f"; then
-      C3_OFFENDERS+=("$page")
-    fi
-  else
+  if [ ! -f "$f" ]; then
     C3_OFFENDERS+=("$page (missing)")
+    continue
   fi
+  case "$page" in
+    'app/(app)/'*) : ;;
+    *) C3_OFFENDERS+=("$page (outside the (app) route group)") ;;
+  esac
 done
+if [ "$LAYOUT_REDIRECT_OK" = false ]; then
+  C3_OFFENDERS+=("$APP_LAYOUT (no redirect( + /login)")
+fi
 if [ "${#C3_OFFENDERS[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — these auth pages do not redirect to /login:"
+  echo "    ✗ fail — authenticated route invariants violated:"
   printf '        %s\n' "${C3_OFFENDERS[@]}"
   PASS=false
 fi
@@ -348,9 +361,12 @@ D2_MISSING=()
 for page in "${TIER1_PAGES[@]}"; do
   # Convert e.g. app/projects/page.tsx → /projects
   #         app/projects/[key]/page.tsx → /projects/  (dynamic segment lenient)
+  #         app/(app)/page.tsx → /  (route groups vanish from URLs)
   #         app/page.tsx → /
   route="${page#app}"
   route="${route%/page.tsx}"
+  # Strip Next.js route groups like "/(app)" — they don't appear in URLs.
+  route=$(echo "$route" | sed -E 's#/\([^)]+\)##g')
   route="${route:-/}"
   # Replace dynamic [seg] with a wildcard match for the regex
   route_pattern=$(echo "$route" | sed -E 's#\[[^]]+\]#[^"'\'']+#g')

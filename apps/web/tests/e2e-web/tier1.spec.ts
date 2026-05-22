@@ -3,8 +3,10 @@ import { expect, test } from "@playwright/test";
 test("home page lists projects in auth stub mode", async ({ page }) => {
   expect("VSPEC_AUTH_STUB").toBe("VSPEC_AUTH_STUB");
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Vooster home" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Checkout Review" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Project specs" })).toBeVisible();
+  await expect(
+    page.getByRole("list").getByRole("link", { name: "Checkout Review" })
+  ).toBeVisible();
 });
 
 test("login page links to the API GitHub flow", async ({ page }) => {

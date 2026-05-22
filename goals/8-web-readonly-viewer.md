@@ -97,14 +97,16 @@ A6. **`pnpm --filter @vooster/web build` produces `apps/web/.next/`.**
 B1. **Every Tier-1 page file exists.** Source of truth: the declared
     page set
     ```
-    app/page.tsx
+    app/(app)/page.tsx
     app/login/page.tsx
-    app/projects/[key]/page.tsx
-    app/projects/[key]/usecases/[ucKey]/page.tsx
+    app/(app)/projects/[key]/page.tsx
+    app/(app)/projects/[key]/usecases/[ucKey]/page.tsx
     ```
     The gate iterates and asserts each path under `apps/web/` exists.
-    `app/page.tsx` is the project list (the "home" surface); a separate
-    `app/projects/page.tsx` is intentionally absent.
+    `app/(app)/page.tsx` is the project list (the "home" surface); a
+    separate `app/projects/page.tsx` is intentionally absent. The
+    `(app)` route group wraps every authenticated surface under one
+    shared layout (chrome + auth).
 
 B2. **Every Tier-1 page is a Server Component.** The gate iterates the
     same page set and asserts the file does **not** open with
@@ -137,14 +139,17 @@ C2. **Server-side fetches in `apps/web/app/` forward the
     `cookies()` call (Next.js 15 async cookies API) within the same
     file. A file with `fetch(` but no `cookies()` fails the gate.
 
-C3. **Every authenticated page redirects unauthenticated requests to
-    `/login`.** Source of truth: the declared set
-    `(app/page.tsx app/projects/[key]/page.tsx
-      app/projects/[key]/usecases/[ucKey]/page.tsx)` (`/login`
-    excluded). The gate iterates and asserts each file references
-    `redirect(` from `next/navigation` and the string `/login`. The
-    home route `/` is now the project list and is therefore
-    authenticated.
+C3. **Every authenticated route is wrapped by the redirect-enforcing
+    `(app)` layout.** Source of truth: the declared set
+    `(app/(app)/page.tsx app/(app)/projects/[key]/page.tsx
+      app/(app)/projects/[key]/usecases/[ucKey]/page.tsx)` (`/login`
+    excluded). The gate iterates the set and asserts each file
+    resides under `app/(app)/` (i.e., shares the route group), and
+    separately asserts `app/(app)/layout.tsx` references `redirect(`
+    from `next/navigation` and the string `/login`. The layout
+    centralizes auth — individual pages no longer carry their own
+    redirect — and the iteration enforces that every authenticated
+    surface is structurally inside that layout.
 
 ### Tranche D — Playwright E2E (honest)
 

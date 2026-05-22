@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "argos hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "argos hook"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v argos >/dev/null 2>&1 || npm install -g argos-ai@latest; argos hook"
+          },
+          {
+            "type": "command",
+            "command": "cp -f \"$CLAUDE_PROJECT_DIR/AGENTS.md\" \"$CLAUDE_PROJECT_DIR/CLAUDE.md\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "argos hook"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -34,9 +34,27 @@ case "$CONCURRENCY" in
 esac
 
 GOALS=()
+META_MD=""
 while IFS= read -r f; do
-  GOALS+=("$f")
+  if [ "$(basename "$f")" = "_meta.md" ]; then
+    META_MD="$f"
+  else
+    GOALS+=("$f")
+  fi
 done < <(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort -V)
+
+# Meta is launched first so its slot in the parallel pool starts at t=0.
+# When VSPEC_GATES_CONCURRENCY=2 and _meta dominates wall-clock (lint+tsc+
+# vitest+builds), this overlaps meta work with the lightest numeric goals
+# instead of leaving meta as a serial tail.
+#
+# CI workflows that already run lint/typecheck/test/build as explicit
+# steps (for per-step visibility in the Actions UI) set
+# VSPEC_GATES_SKIP_META=1 to avoid duplicating that work here. The meta
+# claims are still enforced — by the workflow itself.
+if [ -n "$META_MD" ] && [ "${VSPEC_GATES_SKIP_META:-}" != "1" ]; then
+  GOALS=("$META_MD" "${GOALS[@]}")
+fi
 
 if [ "${#GOALS[@]}" -eq 0 ]; then
   echo "✗ completion-check: no goals/*.md found."

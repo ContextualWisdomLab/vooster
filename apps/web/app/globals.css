@@ -6,34 +6,18 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ────────────────────────────────────────────────────────────────
-   Tokens — exposed both as Tailwind theme vars (via @theme) and as
-   plain CSS custom properties for the semantic classes below.
+   Tokens — additions on top of the shadcn base palette.
+   shadcn owns surface / text / border / radius via @theme inline
+   (see below). We only declare what shadcn does not ship: the
+   Vooster brand color, pastel UC-section tints, and semantic
+   add-ons (success / warning) — destructive comes from shadcn.
    ──────────────────────────────────────────────────────────────── */
 @theme {
-  /* Surface */
-  --color-canvas: #ffffff;
-  --color-surface: #f7f8fb;
-  --color-surface-soft: #fbfbfd;
+  /* Brand */
+  --color-brand: #116a7b;
+  --color-brand-strong: #0a4d5b;
 
-  /* Hairlines */
-  --color-hairline: #e5e8ee;
-  --color-hairline-soft: #eef0f4;
-  --color-hairline-strong: #d9dee8;
-
-  /* Ink (text) */
-  --color-ink-deep: #0b1220;
-  --color-ink: #18202f;
-  --color-charcoal: #2a3243;
-  --color-slate: #4a5468;
-  --color-steel: #627089;
-  --color-stone: #8893a8;
-  --color-muted: #9aa3b8;
-
-  /* Brand / accent */
-  --color-accent: #116a7b;
-  --color-accent-strong: #0a4d5b;
-
-  /* Pastel tints */
+  /* Pastel tints (used to color-code Cockburn UC sections) */
   --color-tint-mint: #e6f4ec;
   --color-tint-peach: #fbeadb;
   --color-tint-lavender: #ece8f7;
@@ -42,22 +26,9 @@
   --color-tint-yellow: #faf2d8;
   --color-tint-gray: #f1f3f7;
 
-  /* Semantic */
+  /* Semantic add-ons */
   --color-success: #1f7a48;
   --color-warning: #8a5a00;
-  --color-danger: #b3261e;
-
-  /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.04);
-  --shadow-card: 0 4px 12px rgba(15, 15, 15, 0.06);
 }
 
 :root {
@@ -98,11 +69,9 @@
 
 /* ────────────────────────────────────────────────────────────────
    Base — Pretendard + reading-tuned defaults that also restore
-   things preflight strips.
+   things preflight strips. (bg/color come from shadcn @layer base.)
    ──────────────────────────────────────────────────────────────── */
 body {
-  background: var(--color-surface);
-  color: var(--color-ink);
   font-family:
     "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
@@ -115,7 +84,7 @@ body {
 }
 
 a {
-  color: var(--color-accent-strong);
+  color: var(--color-brand-strong);
 }
 
 a:hover {
@@ -153,7 +122,7 @@ p {
 
 .topbar {
   align-items: center;
-  border-bottom: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   margin-bottom: 24px;
@@ -181,8 +150,8 @@ p {
    Surfaces
    ──────────────────────────────────────────────────────────────── */
 .panel {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
 }
@@ -195,8 +164,8 @@ p {
 }
 
 .list-item {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   display: grid;
   gap: 6px;
@@ -208,12 +177,12 @@ p {
    Type utilities
    ──────────────────────────────────────────────────────────────── */
 .meta {
-  color: var(--color-steel);
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 
 .eyebrow {
-  color: var(--color-accent);
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
@@ -224,9 +193,9 @@ p {
    Components
    ──────────────────────────────────────────────────────────────── */
 .button {
-  background: var(--color-accent);
+  background: var(--color-brand);
   border-radius: var(--radius-md);
-  color: var(--color-canvas);
+  color: #ffffff;
   display: inline-flex;
   font-weight: 500;
   padding: 10px 18px;
@@ -239,12 +208,12 @@ p {
 }
 
 .field {
-  border-top: 1px solid var(--color-hairline);
+  border-top: 1px solid var(--border);
   padding-top: 10px;
 }
 
 .label {
-  color: var(--color-steel);
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
@@ -254,7 +223,7 @@ p {
 }
 
 .scenario {
-  border-left: 3px solid var(--color-accent);
+  border-left: 3px solid var(--color-brand);
   padding-left: 14px;
 }
 

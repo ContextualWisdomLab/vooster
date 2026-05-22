@@ -1,12 +1,12 @@
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-tint-gray text-charcoal",
+  DRAFT: "bg-tint-gray text-foreground",
   READY: "bg-tint-mint text-success",
-  IN_PROGRESS: "bg-tint-sky text-accent-strong",
+  IN_PROGRESS: "bg-tint-sky text-brand-strong",
   DONE: "bg-tint-mint text-success",
   BLOCKED: "bg-tint-peach text-warning"
 };
 
-const DEFAULT_STYLE = "bg-tint-gray text-charcoal";
+const DEFAULT_STYLE = "bg-tint-gray text-foreground";
 
 export function StatusPill({ status }: { status: string }) {
   const variant = STATUS_STYLES[status.toUpperCase()] ?? DEFAULT_STYLE;

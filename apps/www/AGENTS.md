@@ -11,8 +11,12 @@ Korean landing page (`@vooster/www`, Astro 5).
 
 ## OG / social card
 
-- `public/og.svg` — 1200×630 social card, generated to match the dark canvas + teal accent design system.
-- SVG works on previewers that fetch the resource directly (e.g. Discord, Slack). **X (Twitter) and Facebook scrapers commonly reject SVG.** If preview images are missing on those platforms, rasterize to `public/og.png` (1200×630) and swap `og:image` / `twitter:image` in `src/pages/index.astro`.
+- `public/og.png` — 1200×630 PNG, the canonical social card referenced by `og:image` / `twitter:image` in `src/pages/index.astro`.
+- `public/og.svg` — editable design source (dark canvas + teal accent). After editing, regenerate the PNG and commit both:
+  ```
+  pnpm --filter @vooster/www exec npx -y sharp-cli --input public/og.svg --output public/ --format png resize 1200 630
+  ```
+- PNG is the only published `og:image` because X (Twitter) and Facebook scrapers reject SVG. Discord/Slack accept SVG, but PNG works everywhere.
 
 ## Copy source of truth
 

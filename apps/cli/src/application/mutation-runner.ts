@@ -39,7 +39,7 @@ export async function runMutation<TData>(
       input.apiUrl,
       input.cookie,
       input.method,
-      input.path,
+      withDryRun(input.path, input.dryRun === true),
       input.body
     );
     const data = input.selectData ? input.selectData(responseBody) : (responseBody as TData);
@@ -70,6 +70,13 @@ export async function runMutation<TData>(
       failed: true
     };
   }
+}
+
+function withDryRun(path: string, dryRun: boolean): string {
+  if (!dryRun) {
+    return path;
+  }
+  return path.includes("?") ? `${path}&dry_run=true` : `${path}?dry_run=true`;
 }
 
 async function sendRequest(

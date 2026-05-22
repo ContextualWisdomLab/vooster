@@ -98,6 +98,7 @@ async function createUseCase(
         useCaseStore
       },
       {
+        dryRun: dryRunFromQuery(request.query),
         force: parsed.data.force,
         level: parsed.data.level,
         primaryActor: parsed.data.primary_actor,
@@ -110,4 +111,11 @@ async function createUseCase(
       }
     )
   );
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }

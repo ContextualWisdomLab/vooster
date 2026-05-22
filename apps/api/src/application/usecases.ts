@@ -21,6 +21,7 @@ export type UseCaseAuthoringDeps = {
 };
 
 export type UseCaseAuthoringInput = {
+  dryRun?: boolean;
   force: boolean;
   level: StoredUseCase["level"];
   primaryActor: string;
@@ -100,8 +101,10 @@ export async function authorUseCase(
   usecase.current_revision_id = revision.id;
   revision.snapshot = { ...usecase };
 
-  await deps.useCaseStore.saveUseCase(usecase);
-  await deps.revisionStore.saveRevision(revision);
+  if (input.dryRun !== true) {
+    await deps.useCaseStore.saveUseCase(usecase);
+    await deps.revisionStore.saveRevision(revision);
+  }
 
   return {
     revision,

@@ -11,13 +11,15 @@ export type AutoExportConfig = {
   root: string;
 };
 
+type SyncPullFile = {
+  content: string;
+  path: string;
+  revision: string;
+};
+
 type SyncPullResponse = {
-  cursor: string;
-  files: Array<{
-    content: string;
-    path: string;
-    revision: string;
-  }>;
+  cursor?: string;
+  files?: SyncPullFile[];
 };
 
 export async function autoExport(config: AutoExportConfig): Promise<AffectedFile[]> {
@@ -26,12 +28,27 @@ export async function autoExport(config: AutoExportConfig): Promise<AffectedFile
     { branch: config.branch },
     { Cookie: config.cookie }
   );
-  const body = response.body as SyncPullResponse;
+  const body = (response.body ?? {}) as SyncPullResponse;
+  const files = Array.isArray(body.files) ? body.files.filter(isPullFile) : [];
 
   await Promise.all(
-    body.files.map((file) => writeSyncFile(config.root, file.path, file.content))
+    files.map((file) => writeSyncFile(config.root, file.path, file.content))
   );
-  await writeSyncState(config.root, { cursor: body.cursor });
+  if (typeof body.cursor === "string") {
+    await writeSyncState(config.root, { cursor: body.cursor });
+  }
 
-  return body.files.map((file) => ({ path: file.path, revision: file.revision }));
+  return files.map((file) => ({ path: file.path, revision: file.revision }));
+}
+
+function isPullFile(value: unknown): value is SyncPullFile {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as { content?: unknown; path?: unknown; revision?: unknown };
+  return (
+    typeof candidate.content === "string" &&
+    typeof candidate.path === "string" &&
+    typeof candidate.revision === "string"
+  );
 }

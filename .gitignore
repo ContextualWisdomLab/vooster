@@ -38,6 +38,11 @@ playwright/.cache/
 .state/
 .vspec/cache/
 .vspec/session.json
+.vspec/sync-state.json
+# CLI auto-export materializes server specs into <root>/specs/ on each
+# mutating verb. In test runs without --root, the working tree becomes
+# the root, leaking spec files here that are not source.
+/specs/
 .omc/
 
 # Vercel (contains projectId/orgId — Vercel docs say do not commit)

@@ -28,7 +28,7 @@ export default async function UsecasePage({
           <div className="eyebrow">{ucKey}</div>
           <h1>{title}</h1>
         </div>
-        <section className="panel field-grid">
+        <section className="field-grid rounded-md bg-tint-gray p-5">
           <div className="field">
             <div className="label">primary_actor</div>
             <div className="value">{primary_actor.name}</div>
@@ -42,7 +42,7 @@ export default async function UsecasePage({
             <div className="value">{status}</div>
           </div>
         </section>
-        <section className="panel grid">
+        <section className="grid rounded-md bg-tint-mint p-5">
           <h2>main_scenario</h2>
           <div className="scenario">
             {main_scenario.steps.map((step) => (
@@ -52,7 +52,7 @@ export default async function UsecasePage({
             ))}
           </div>
         </section>
-        <section className="panel grid">
+        <section className="grid rounded-md bg-tint-peach p-5">
           <h2>extensions</h2>
           {extensions.map((extension) => (
             <p key={extension.condition}>
@@ -60,7 +60,7 @@ export default async function UsecasePage({
             </p>
           ))}
         </section>
-        <section className="panel grid">
+        <section className="grid rounded-md bg-tint-lavender p-5">
           <h2>stakeholder_interests</h2>
           {stakeholder_interests.map((item) => (
             <p key={`${item.stakeholder}-${item.interest}`}>

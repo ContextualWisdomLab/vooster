@@ -10,7 +10,7 @@
           },
           {
             "type": "command",
-            "command": "cp -f \"$CLAUDE_PROJECT_DIR/AGENTS.md\" \"$CLAUDE_PROJECT_DIR/CLAUDE.md\" 2>/dev/null || true"
+            "command": "find \"$CLAUDE_PROJECT_DIR\" -name AGENTS.md -not -path \"*/node_modules/*\" -not -path \"*/.git/*\" -exec sh -c 'cp -f \"$1\" \"$(dirname \"$1\")/CLAUDE.md\"' _ {} \\; 2>/dev/null || true"
           }
         ]
       }

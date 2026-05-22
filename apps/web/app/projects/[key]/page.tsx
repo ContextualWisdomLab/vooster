@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasSessionCookie } from "../../auth";
 import { Header } from "../../components/Header";
+import { StatusPill } from "../../components/StatusPill";
 import { fetchProjectUsecases } from "../../data";
 
 export default async function ProjectPage({ params }: { params: Promise<{ key: string }> }) {
@@ -25,9 +26,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
         <ul className="list">
           {usecases.map((usecase) => (
             <li className="list-item" key={usecase.key}>
-              <Link href={`/projects/${key}/usecases/${usecase.key}`}>{usecase.title}</Link>
+              <div className="flex items-center justify-between gap-3">
+                <Link href={`/projects/${key}/usecases/${usecase.key}`}>{usecase.title}</Link>
+                <StatusPill status={usecase.status} />
+              </div>
               <span className="meta">
-                {usecase.key} · {usecase.status} · {usecase.level} · {usecase.primary_actor}
+                {usecase.key} · {usecase.level} · {usecase.primary_actor}
               </span>
             </li>
           ))}

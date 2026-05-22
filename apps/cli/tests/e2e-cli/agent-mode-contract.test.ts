@@ -75,8 +75,11 @@ describe("vspec usecase create --format=agent — auto-export & error envelope &
         /^specs\/[A-Z]+-\d+\.md$/.test(file.path)
       );
       expect(usecaseFile).toBeDefined();
+      if (!usecaseFile) {
+        throw new Error("usecaseFile missing despite toBeDefined() above");
+      }
 
-      const content = await readFile(join(workdir, usecaseFile!.path), "utf8");
+      const content = await readFile(join(workdir, usecaseFile.path), "utf8");
       expect(content).toContain("Reviews auto-exported flow");
     } finally {
       await server.stop();

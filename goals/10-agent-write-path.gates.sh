@@ -21,7 +21,7 @@ GATE_INPUTS=(
   apps/cli/src/application/mutation-command.ts
   apps/cli/tests/unit
   apps/cli/tests/e2e-cli-honest
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   scripts/check-gate-rigor.sh
   goals/10-agent-write-path.gates.sh
   goals/10-agent-write-path.md
@@ -35,7 +35,7 @@ fi
 
 PASS=true
 
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 UNIT_TEST=apps/cli/tests/unit/agent-format-write-path.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts
 

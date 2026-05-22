@@ -122,10 +122,15 @@ B3. **Every Cockburn UC field is rendered on the detail page.** Source
     component file imported by it — the gate widens the grep to the
     UC detail subtree).
 
-B4. **No file under `apps/web/app/` performs a write API call.** The
-    gate iterates every `*.ts` / `*.tsx` under `apps/web/app/` and
-    asserts none contains `method: "POST"|"PUT"|"PATCH"|"DELETE"` or
-    the equivalent shorthand. Write-side UI is Goal 9's concern.
+B4. _Removed 2026-05-23._ The original B4 forbade write API calls under
+    `apps/web/app/`. The web app's scope has since expanded beyond
+    read-only viewer to include project CRUD (`createProject`,
+    `renameProject`, `deleteProject`) per commits 840b64f / 6b377a4.
+    The "no writes" invariant is therefore deleted outright rather
+    than reframed — write-side UI is a legitimate part of the web
+    surface now. No replacement invariant in this goal; any future
+    write-API discipline (e.g. "all writes route through
+    `mutateApi`") would be a new goal's concern.
 
 ### Tranche C — Auth (session-cookie reuse)
 
@@ -292,7 +297,7 @@ bash scripts/diagnose.sh
    smoke test, and `vercel.ts`. Verify
    `pnpm --filter @vooster/web build` passes locally.
 
-3. **Tier-1 pages (B1-B4).** Author each page in the declared set.
+3. **Tier-1 pages (B1-B3).** Author each page in the declared set.
    UC detail page renders all fields from B3. Use Server Components
    only.
 

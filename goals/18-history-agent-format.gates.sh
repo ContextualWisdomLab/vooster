@@ -17,7 +17,7 @@ GATE_INPUTS=(
   apps/cli/tests/unit
   apps/cli/tests/e2e-cli-honest
   docs/07-cli-spec.md
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   goals/14-step-agent-format.gates.sh
   goals/15-scenario-agent-format.gates.sh
@@ -36,7 +36,7 @@ fi
 
 PASS=true
 
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_SPEC=docs/07-cli-spec.md
 HISTORY_CMD=apps/cli/src/commands/history.ts
 UNIT_TEST=apps/cli/tests/unit/history-agent-format.test.ts

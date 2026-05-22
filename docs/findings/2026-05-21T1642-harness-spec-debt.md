@@ -1,3 +1,21 @@
+---
+title: harness-engineer / harness-advisor Spec Debt
+created_at: 2026-05-21T16:42:09Z
+resolved: false
+status_notes: |
+  Item 1 (case (d) in goal-design.md §5) — open.
+  Item 2 (Step 4 tiebreaker in harness-engineer.md) — open.
+  Item 3 (HONEST_UC_SET hardcoded in goals/7-cli-spec-parity.gates.sh) — open.
+  Item 4 (Goal-9 read-path routes missing) — CLOSED on 2026-05-23
+  (actor/stakeholder/goal management routes exist; check-honest-cli-e2e.sh
+  passes 39 files / 47 tests).
+related:
+  - docs/findings/2026-05-21T1635-perf-log.md
+  - docs/goal-design.md
+  - .claude/agents/harness-engineer.md
+  - goals/7-cli-spec-parity.gates.sh
+---
+
 # Findings — harness-engineer / harness-advisor Spec Debt
 
 _Captured 2026-05-22 during the 2nd validation invocation of `harness-engineer`
@@ -49,7 +67,7 @@ gate's invariant:
 
 advisor's (d) doesn't fit any of these cleanly. The closest is (a)
 (invariant unchanged, only the description shifts), but (a) is explicitly
-scoped to *paths/tools*, not prose. The result is that the next time a
+scoped to _paths/tools_, not prose. The result is that the next time a
 similar mismatch surfaces, two different harness-engineer invocations could
 classify it differently — one as (d), one as (a), one as "n/a" — and the
 audit log won't be comparable across runs.
@@ -68,7 +86,7 @@ audit log won't be comparable across runs.
    guarantees recurring drift.
 
 Recommendation when picked up: **option 1**. The (a)/(b)/(c)/(d) split is
-useful because each case has a different *who edits what* answer —
+useful because each case has a different _who edits what_ answer —
 (d) specifically means harness-engineer cannot self-resolve and must escalate
 to the user.
 
@@ -95,7 +113,7 @@ The current `harness-engineer.md` playbook implies a binary:
 - **Proposed changes**: edits harness-engineer can apply once the user
   OKs them.
 - **Out-of-scope queued to findings**: items harness-engineer cannot edit;
-  routed into a `docs/findings-*.md` doc.
+  routed into a `docs/findings/*.md` doc.
 
 A third category exists in practice: **harness-engineer can identify the
 fix concretely (the exact file:line and the replacement text) but cannot
@@ -129,7 +147,7 @@ routes the D1 prose item there.
 The path-retarget proposals P1–P5 (from the first audit) are the higher-
 value, blocking work — they fix actual `gate-correctness: broken /
 net-correctness: violations-currently-missed` findings on the codex loop.
-The two grey zones above only affect harness-engineer's *report shape*, not
+The two grey zones above only affect harness-engineer's _report shape_, not
 the correctness of its conclusions. Bundling them into a single small spec
 update is cheaper than threading them through the next P1–P5 apply pass.
 

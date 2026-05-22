@@ -16,8 +16,16 @@
 #
 # Env:
 #   VSPEC_GATES_CONCURRENCY  default 4; cap on parallel workers
-#   VSPEC_GATES_SKIP_DEEP    propagated to workers
+#   VSPEC_GATES_SKIP_DEEP    default 1 (skip external-system gates like
+#                            Docker spin-up and Vercel deploy state) —
+#                            see docs/findings/2026-05-23T1715-world-state-
+#                            separation.md. Set to 0 explicitly to run the
+#                            full world-state suite (manual release check
+#                            or dedicated scheduled job).
 #   VSPEC_GATES_NO_CACHE     propagated to workers
+#   VSPEC_GATES_SKIP_META    skip the cross-cutting _meta gate suite (CI
+#                            already runs lint/typecheck/test/build as
+#                            explicit steps)
 
 set -uo pipefail
 
@@ -32,6 +40,13 @@ case "$CONCURRENCY" in
   ''|*[!0-9]*) CONCURRENCY=2 ;;
   0) CONCURRENCY=1 ;;
 esac
+
+# Default to skipping external-system gates. The chain is meant to verify
+# the *code contract* deterministically; deploy/Docker/Vercel state is
+# checked by a separate scheduled job (see findings doc above). Callers
+# that genuinely need full world verification (release checklists, the
+# scheduled job itself) override with VSPEC_GATES_SKIP_DEEP=0.
+export VSPEC_GATES_SKIP_DEEP="${VSPEC_GATES_SKIP_DEEP:-1}"
 
 GOALS=()
 META_MD=""

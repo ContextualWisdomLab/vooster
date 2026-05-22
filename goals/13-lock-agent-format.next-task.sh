@@ -20,7 +20,7 @@ EOF
   exit 0
 fi
 
-if grep -F "lock (acquire/release/renew)" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "lock (acquire/release/renew)" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Split the broad lock findings bullet.
 

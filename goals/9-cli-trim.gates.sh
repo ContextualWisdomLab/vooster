@@ -24,7 +24,7 @@ GATE_INPUTS=(
   apps/cli/bin
   apps/cli/package.json
   docs/07-cli-spec.md
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   scripts/check-gate-rigor.sh
   goals/9-cli-trim.gates.sh
   goals/9-cli-trim.md
@@ -40,7 +40,7 @@ PASS=true
 
 # ─── Sources of truth ────────────────────────────────────────────────────
 CLI_SPEC=docs/07-cli-spec.md
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_INDEX=apps/cli/src/index.ts
 COMMANDS_DIR=apps/cli/src/commands
 DOCTOR_CMD=apps/cli/src/commands/doctor.ts

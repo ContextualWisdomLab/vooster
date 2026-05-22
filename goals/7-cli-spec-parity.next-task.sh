@@ -437,7 +437,7 @@ TASK: Extract the honest-flow setup helper (gate 7.C1).
       ["actor", "create", ...]; then ["usecase", "create", ...].
     - Parse identifiers (project key, usecase key) from stdout —
       every CLI command already prints them. If a parse target is
-      brittle, log it to docs/findings-cli-spec-gaps.md and pick a
+      brittle, log it to docs/findings/2026-05-21T1856-cli-spec-gaps.md and pick a
       different parse anchor.
 
   Migrate the existing login-to-usecase.test.ts to call seedViaCli so
@@ -496,7 +496,7 @@ EOF
   cat <<EOF
 
   IF you discover the CLI cannot drive this UC end-to-end:
-    1. Append a row to docs/findings-cli-spec-gaps.md describing the
+    1. Append a row to docs/findings/2026-05-21T1856-cli-spec-gaps.md describing the
        missing/broken verb (create the file if absent).
     2. Remove ${NEXT_UC} from HONEST_UC_SET in BOTH
        goals/7-cli-spec-parity.gates.sh and .next-task.sh.

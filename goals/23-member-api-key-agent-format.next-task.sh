@@ -9,7 +9,7 @@ cd "$ROOT"
 OLD_MEMBER_BULLET='`member invite`, `api-key create|list|revoke`'
 SYNC_BULLET='`lock release`'
 
-if grep -F "$OLD_MEMBER_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "$OLD_MEMBER_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Retarget prior member/API-key sentinels, then remove that findings debt.
 
@@ -45,9 +45,9 @@ EOF
   exit 0
 fi
 
-if ! grep -F "$SYNC_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if ! grep -F "$SYNC_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Restore the next remaining debt sentinel in docs/findings-cli-spec-gaps.md:
+TASK: Restore the next remaining debt sentinel in docs/findings/2026-05-21T1856-cli-spec-gaps.md:
   `lock release`
 EOF
   exit 0

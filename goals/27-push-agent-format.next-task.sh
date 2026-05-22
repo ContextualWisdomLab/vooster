@@ -9,7 +9,7 @@ cd "$ROOT"
 OLD_PUSH_BULLET='`push`'
 LOCK_BULLET='`lock release`'
 
-if grep -F "$OLD_PUSH_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "$OLD_PUSH_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Retarget prior push sentinels, then remove push from findings.
 

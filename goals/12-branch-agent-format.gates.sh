@@ -20,7 +20,7 @@ GATE_INPUTS=(
   apps/api/src/http/branch-routes.ts
   apps/api/src/http/branch-results.ts
   docs/07-cli-spec.md
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/12-branch-agent-format.gates.sh
@@ -36,7 +36,7 @@ fi
 PASS=true
 
 CLI_SPEC=docs/07-cli-spec.md
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 BRANCH_CMD=apps/cli/src/commands/branch.ts
 UNIT_TEST=apps/cli/tests/unit/branch-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/branch-agent-format.test.ts

@@ -41,16 +41,16 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The step agent-format debt is removed without clearing unrelated debt.**
-    The `step add` / `step edit` bullet is gone, later goals may continue
-    narrowing the queue, and `docs/findings-cli-spec-gaps.md` records that
-    `step edit` leaves `context.revision` null because the API response lacks
-    `revision.id`.
+The `step add` / `step edit` bullet is gone, later goals may continue
+narrowing the queue, and `docs/findings/2026-05-21T1856-cli-spec-gaps.md` records that
+`step edit` leaves `context.revision` null because the API response lacks
+`revision.id`.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents step agent format.** A marked
-    `### Agent Format — Steps` section exists under Scenarios & Steps and
-    includes examples for:
+`### Agent Format — Steps` section exists under Scenarios & Steps and
+includes examples for:
 
     ```
     vspec step add <scenario-id> --format=agent
@@ -63,38 +63,38 @@ B1. **`docs/07-cli-spec.md` documents step agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/step.ts` is discovered by the same source of truth
-    as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/step.ts` to appear.
+as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/step.ts` to appear.
 
 C2. **Both step handlers build an agent envelope.** The gate extracts `addStep`
-    and `editStep` from `apps/cli/src/commands/step.ts` and requires each body
-    to contain both `format === "agent"` and `buildAgentEnvelope`.
+and `editStep` from `apps/cli/src/commands/step.ts` and requires each body
+to contain both `format === "agent"` and `buildAgentEnvelope`.
 
 C3. **Scope stays on the two implemented step verbs.** The only
-    `action === "..."` branches in `step.ts` are `add` and `edit`.
+`action === "..."` branches in `step.ts` are `add` and `edit`.
 
 ### Tranche D — Unit Proof
 
 D1. **Step add/edit have focused unit proof for agent and human output.** The
-    file `apps/cli/tests/unit/step-agent-format.test.ts` contains test titles
-    `agent step add`, `agent step edit`, `human step add`, and
-    `human step edit`. Agent tests invoke commands with `--format=agent`, parse
-    JSON, assert `format_version`, assert `data.step.id`, and assert
-    `context.revision` is the revision id for add and null for edit.
+file `apps/cli/tests/unit/step-agent-format.test.ts` contains test titles
+`agent step add`, `agent step edit`, `human step add`, and
+`human step edit`. Agent tests invoke commands with `--format=agent`, parse
+JSON, assert `format_version`, assert `data.step.id`, and assert
+`context.revision` is the revision id for add and null for edit.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Step add/edit have honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/step-agent-format.test.ts` contains distinct
-    test titles `agent step add` and `agent step edit`, invokes
-    `runCli([ "step", ... ])` with `--format=agent`, uses `VSPEC_CONFIG_PATH`,
-    does not call `fetch(`, parses JSON, asserts `format_version`, and asserts
-    the same data/context keys as D1 against real seeded scenario/step setup.
+`apps/cli/tests/e2e-cli-honest/step-agent-format.test.ts` contains distinct
+test titles `agent step add` and `agent step edit`, invokes
+`runCli([ "step", ... ])` with `--format=agent`, uses `VSPEC_CONFIG_PATH`,
+does not call `fetch(`, parses JSON, asserts `format_version`, and asserts
+the same data/context keys as D1 against real seeded scenario/step setup.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no step-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no step-agent entry.
 
 ### Tranche F — Rigor
 

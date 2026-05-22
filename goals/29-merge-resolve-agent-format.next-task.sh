@@ -8,7 +8,7 @@ cd "$ROOT"
 
 OLD_MERGE_BULLET='`merge resolve`'
 
-if grep -F -- "- $OLD_MERGE_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F -- "- $OLD_MERGE_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Split merge resolve findings debt.
 

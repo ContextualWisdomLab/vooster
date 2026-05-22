@@ -18,7 +18,7 @@ GATE_INPUTS=(
   apps/cli/tests/unit
   apps/cli/tests/e2e-cli-honest
   docs/07-cli-spec.md
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/17-merge-open-agent-format.gates.sh
@@ -33,7 +33,7 @@ fi
 
 PASS=true
 
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_SPEC=docs/07-cli-spec.md
 MERGE_CMD=apps/cli/src/commands/merge.ts
 MERGE_OUTPUT=apps/cli/src/commands/merge-output.ts

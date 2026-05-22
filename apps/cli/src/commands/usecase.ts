@@ -26,8 +26,10 @@ import {
   type UsecaseUpdateResponse
 } from "./usecase-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { runMutation } from "../application/mutation-runner.js";
-import type { SuggestedNextAction } from "../domain/envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class UsecaseCommand extends Command {
@@ -146,56 +148,15 @@ async function createUsecase(
   flags: UsecaseCliFlags,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const usecaseFlags = usecaseCreateFlagsFrom(flags);
-  const result = await runMutation<UsecaseResponse>({
-    apiUrl: usecaseFlags.apiUrl,
-    cookie: usecaseFlags.sessionCookie,
-    method: "POST",
-    path: `/v1/projects/${usecaseFlags.projectId}/usecases`,
-    body: {
-      primary_actor: usecaseFlags.primaryActor,
-      title: usecaseFlags.title
+  const u = usecaseCreateFlagsFrom(flags);
+  await runMutationCommand<UsecaseResponse>(
+    {
+      body: { primary_actor: u.primaryActor, title: u.title },
+      method: "POST",
+      path: `/v1/projects/${u.projectId}/usecases`
     },
-    successHints: hintsFromResponse,
-    dryRun: usecaseFlags.dryRun,
-    autoExport: {
-      apiUrl: usecaseFlags.apiUrl,
-      branch: usecaseFlags.branch,
-      cookie: usecaseFlags.sessionCookie,
-      projectId: usecaseFlags.projectId,
-      root: usecaseFlags.root
-    }
-  });
-
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(result.envelope, null, 2));
-    if (result.failed) {
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  if (result.envelope.status === "error") {
-    throw new Error(result.envelope.error?.message ?? "Use case creation failed.");
-  }
-
-  const data = result.envelope.data;
-  if (data === null) {
-    throw new Error("Use case creation succeeded but returned no data.");
-  }
-  printUsecase(data, writeLine);
-}
-
-function hintsFromResponse(data: UsecaseResponse): SuggestedNextAction[] {
-  const hints = (data as { suggested_next_actions?: unknown }).suggested_next_actions;
-  if (!Array.isArray(hints)) {
-    return [];
-  }
-  return hints.filter(
-    (hint): hint is SuggestedNextAction =>
-      typeof hint === "object" &&
-      hint !== null &&
-      typeof (hint as { command?: unknown }).command === "string"
+    commonMutationContextFrom(u),
+    { format: flags.format, human: printUsecase, writeLine }
   );
 }
 

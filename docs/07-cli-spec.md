@@ -243,11 +243,21 @@ from the API response. `context.branch` is populated from
 `data.source_branch.name`. Merge open responses do not currently include API
 warnings, so `warnings` stays the default empty array.
 
-`merge resolve --format=agent` remains queued until the CLI has an honest
-public setup for resolvable conflicts.
-
 ```
 vspec merge open <branch-id> --format=agent [--into main] [--strategy fast-forward|squash]
+```
+
+### Agent Format - Merge Resolve
+
+`vspec merge resolve <id> --format=agent` returns the shared agent envelope
+with the existing API response as `data`. The payload exposes
+`data.merge_request`, `data.new_revisions`, and `data.source_branch`.
+`context.branch` is populated from `data.source_branch.name`, and
+`context.revision` is populated from the first `data.new_revisions` id when one
+is returned. `suggested_next_actions` is copied from the API response.
+
+```
+vspec merge resolve <id> --format=agent
 ```
 
 ## Locks

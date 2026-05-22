@@ -19,7 +19,7 @@ TASK: Retarget prior push sentinels, then remove push from findings.
 
   Findings should keep:
     `lock release`
-    `merge resolve`
+    `merge resolve public conflict setup`
 EOF
   exit 0
 fi

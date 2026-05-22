@@ -26,9 +26,12 @@ export type MergeResolveResponse = {
     id: string;
     status: string;
   };
-  new_revisions: unknown[];
+  new_revisions: Array<{
+    id: string;
+  }>;
   source_branch: {
     id: string;
+    name: string;
     status: string;
   };
   suggested_next_actions: Array<{

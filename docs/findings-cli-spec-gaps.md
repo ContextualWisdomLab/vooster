@@ -27,7 +27,6 @@ output mode applicable to every verb. Commands that still need an agent
 branch:
 
 - `lock release`
-- `merge resolve`
 
 Each candidate needs: a `--format` flag in its CLI flags, an agent
 branch routed through `buildAgentEnvelope`, plus the `data`/`context`
@@ -39,7 +38,13 @@ Note: `step edit` now supports `--format=agent`, but its API response lacks
 `revision.id`; the agent envelope's context.revision is therefore null. A later
 API contract goal can expose the revision id.
 
-Note: `merge open` now supports `--format=agent`; `merge resolve` remains queued because honest conflict setup currently depends on `__test` endpoints instead of public CLI-only setup.
+## Honest E2E setup gaps
+
+- `merge resolve public conflict setup`
+
+`merge resolve --format=agent` is implemented, but honest public CLI setup for
+resolvable conflicts remains queued because current conflict setup depends on
+`__test` endpoints instead of public CLI-only setup.
 
 ## Help system surface
 

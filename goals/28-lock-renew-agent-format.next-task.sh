@@ -19,7 +19,7 @@ TASK: Retarget prior lock sentinels, then split findings to lock release.
 
   Findings should keep:
     `lock release`
-    `merge resolve`
+    `merge resolve public conflict setup`
 EOF
   exit 0
 fi

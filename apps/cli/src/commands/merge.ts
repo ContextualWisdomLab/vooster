@@ -144,6 +144,18 @@ async function resolveMerge(
   );
   const body = response.body as MergeResolveResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        branch: body.source_branch.name,
+        revision: body.new_revisions.at(0)?.id ?? null
+      },
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
   printMergeResolve(body, writeLine);
 }
 

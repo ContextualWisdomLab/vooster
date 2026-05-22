@@ -25,8 +25,8 @@ if grep -F '`merge open` / `merge resolve`' docs/findings-cli-spec-gaps.md >/dev
 TASK: Narrow merge open/resolve debt to merge resolve only.
 
   Keep lock release/renew and the history/impact/comment debt.
-  Record that merge resolve remains queued because honest setup currently
-  depends on __test endpoints.
+  Record that merge resolve public conflict setup remains queued because honest
+  setup currently depends on __test endpoints.
 EOF
   exit 0
 fi

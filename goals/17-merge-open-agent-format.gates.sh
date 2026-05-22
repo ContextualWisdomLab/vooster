@@ -54,8 +54,8 @@ echo "[17.A1 merge findings narrowed]"
 if grep -F '`merge open` / `merge resolve`' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — old grouped merge open/resolve debt remains"
   PASS=false
-elif ! grep -F '`merge resolve`' "$FINDINGS" >/dev/null 2>&1; then
-  echo "    ✗ fail — narrowed merge resolve debt is missing"
+elif ! grep -F '`merge resolve public conflict setup`' "$FINDINGS" >/dev/null 2>&1; then
+  echo "    ✗ fail — merge resolve public setup debt is missing"
   PASS=false
 elif ! grep -F '`lock release`' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — unimplemented lock release/renew debt was removed"
@@ -63,7 +63,8 @@ elif ! grep -F '`lock release`' "$FINDINGS" >/dev/null 2>&1; then
 elif ! grep -F '`lock release`' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — unrelated pull/push/sync debt was removed"
   PASS=false
-elif ! grep -F '__test' "$FINDINGS" | grep -F 'merge resolve' >/dev/null 2>&1; then
+elif ! grep -F 'merge resolve public conflict setup' "$FINDINGS" >/dev/null 2>&1 ||
+     ! grep -F '__test' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — merge resolve deferral note is missing"
   PASS=false
 else
@@ -79,7 +80,7 @@ for token in \
   "context.branch" \
   "data.source_branch.name" \
   "warnings" \
-  "merge resolve --format=agent"; do
+  "vspec merge resolve <id> --format=agent"; do
   if ! grep -F -- "$token" "$CLI_SPEC" >/dev/null 2>&1; then
     B1_OFFENDERS+=("$token")
   fi
@@ -141,10 +142,13 @@ else
   PASS=false
 fi
 
-echo "[17.C5 merge resolve remains out of scope]"
+echo "[17.C5 merge resolve public setup remains out of scope]"
 RESOLVE_BLOCK=$(extract_function "$MERGE_CMD" "resolveMerge")
-if printf '%s\n' "$RESOLVE_BLOCK" | grep -E 'format === "agent"|buildAgentEnvelope' >/dev/null 2>&1; then
-  echo "    ✗ fail — resolveMerge grew an agent branch in Goal 17"
+if [ -f apps/cli/tests/e2e-cli-honest/merge-resolve-agent-format.test.ts ]; then
+  echo "    ✗ fail — merge resolve claimed honest public setup"
+  PASS=false
+elif ! grep -F '`merge resolve public conflict setup`' "$FINDINGS" >/dev/null 2>&1; then
+  echo "    ✗ fail — merge resolve public setup debt is missing"
   PASS=false
 else
   echo "    ✓ pass"

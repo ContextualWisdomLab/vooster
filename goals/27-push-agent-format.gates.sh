@@ -39,7 +39,7 @@ UNIT_TEST=apps/cli/tests/unit/push-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts
 OLD_PUSH_BULLET='`push`'
 LOCK_BULLET='`lock release`'
-MERGE_BULLET='`merge resolve`'
+MERGE_SETUP_BULLET='`merge resolve public conflict setup`'
 
 extract_function() {
   local file="$1"
@@ -58,8 +58,8 @@ if grep -F "$OLD_PUSH_BULLET" "$FINDINGS" >/dev/null 2>&1; then
 elif ! grep -F "$LOCK_BULLET" "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — lock release/renew debt was removed"
   PASS=false
-elif ! grep -F "$MERGE_BULLET" "$FINDINGS" >/dev/null 2>&1; then
-  echo "    ✗ fail — merge resolve debt was removed"
+elif ! grep -F "$MERGE_SETUP_BULLET" "$FINDINGS" >/dev/null 2>&1; then
+  echo "    ✗ fail — merge resolve public setup debt was removed"
   PASS=false
 else
   echo "    ✓ pass"

@@ -1,4 +1,9 @@
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 
 export type GoalCliFlags = {
   "actor-id"?: string;
@@ -49,7 +54,7 @@ export function goalCreateFlagsFrom(flags: GoalCliFlags): GoalCreateFlags {
     dryRun: flags["dry-run"] === true,
     level: goalLevel(requiredFlag(flags, "level")),
     priority: goalPriority(requiredFlag(flags, "priority")),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
@@ -59,7 +64,7 @@ export function goalListFlagsFrom(flags: GoalCliFlags): GoalListFlags {
   return {
     actorId: optionalFlag(flags, "actor-id"),
     apiUrl: resolveContextFlag(flags, "api-url"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
@@ -86,7 +91,12 @@ function goalLevel(rawLevel: string): "SUMMARY" | "USER_GOAL" | "SUBFUNCTION" {
 
 function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
   const priority = rawPriority.toUpperCase();
-  if (priority === "P0" || priority === "P1" || priority === "P2" || priority === "P3") {
+  if (
+    priority === "P0" ||
+    priority === "P1" ||
+    priority === "P2" ||
+    priority === "P3"
+  ) {
     return priority;
   }
 

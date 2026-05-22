@@ -166,10 +166,16 @@ async function editComment(
   );
   const body = response.body as CommentResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -191,10 +197,16 @@ async function resolveComment(
   );
   const body = response.body as CommentResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -207,15 +219,24 @@ async function deleteComment(
   writeLine: (message: string) => void
 ): Promise<void> {
   const commentFlags = commentTargetFlagsFrom(flags, targetId, "comment-id");
-  const response = await deleteJson(`${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`, {
-    Cookie: commentFlags.sessionCookie
-  });
+  const response = await deleteJson(
+    `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
+    {
+      Cookie: commentFlags.sessionCookie
+    }
+  );
   const body = response.body as CommentResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -255,7 +276,7 @@ function commentAddFlagsFrom(
     body: requiredFlag(flags, "body"),
     branch: flags.branch ?? "main",
     dryRun: flags["dry-run"] === true,
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     targetId: requiredArgument(targetId, "usecase-id")

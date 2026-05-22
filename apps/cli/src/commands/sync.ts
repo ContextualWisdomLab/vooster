@@ -3,7 +3,7 @@ import { Command, Flags } from "@oclif/core";
 
 import { applySyncResults, localSyncFiles, writeSyncFile } from "./sync-files.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type SyncCliFlags = {
@@ -144,10 +144,16 @@ async function pushFiles(
 
   await applySyncResults(syncFlags.root, files, body.results, syncFlags.dryRun);
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -173,7 +179,7 @@ function syncFlagsFrom(flags: SyncCliFlags): SyncFlags {
     apiUrl: resolveContextFlag(flags, "api-url"),
     branch: flags.branch ?? "main",
     dryRun: flags["dry-run"] ?? false,
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: resolve(flags.root ?? process.cwd()),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };

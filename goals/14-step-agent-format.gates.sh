@@ -48,6 +48,17 @@ extract_function() {
   ' "$file"
 }
 
+handler_builds_agent_envelope() {
+  local block="$1"
+  (
+    printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1
+  ) || (
+    printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "format: flags.format" >/dev/null 2>&1
+  )
+}
+
 echo "[14.A1 step findings narrowed]"
 if grep -F '`step add` / `step edit`' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — old step add/edit debt remains"
@@ -94,9 +105,7 @@ echo "[14.C2 addStep/editStep build agent envelopes]"
 C2_OFFENDERS=()
 for fn in addStep editStep; do
   block=$(extract_function "$STEP_CMD" "$fn")
-  if [ -z "$block" ] ||
-     ! printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 ||
-     ! printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1; then
+  if [ -z "$block" ] || ! handler_builds_agent_envelope "$block"; then
     C2_OFFENDERS+=("$fn")
   fi
 done

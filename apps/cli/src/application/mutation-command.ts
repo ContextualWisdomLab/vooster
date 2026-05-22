@@ -91,7 +91,7 @@ export function commonMutationContextFrom(flags: CommonContextFlags): CommonMuta
   };
 }
 
-function extractServerHints<TData>(data: TData): SuggestedNextAction[] {
+function extractServerHints(data: unknown): SuggestedNextAction[] {
   const hints = (data as { suggested_next_actions?: unknown }).suggested_next_actions;
   if (!Array.isArray(hints)) {
     return [];

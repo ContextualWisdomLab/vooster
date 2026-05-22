@@ -61,10 +61,24 @@ extract_function() {
 
 handler_calls_helper_or_envelope() {
   local block="$1"
-  printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
+  (
+    printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
+      (
+        printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1 ||
+        printf '%s\n' "$block" | grep -E "agent(Comment|List|Response|Envelope)" >/dev/null 2>&1
+      )
+  ) || (
+    printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "format: flags.format" >/dev/null 2>&1
+  )
+}
+
+handler_preserves_guidance() {
+  local block="$1"
+  printf '%s\n' "$block" | grep -F "suggested_next_actions: body.suggested_next_actions" >/dev/null 2>&1 ||
     (
-      printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1 ||
-      printf '%s\n' "$block" | grep -E "agent(Comment|List|Response|Envelope)" >/dev/null 2>&1
+      printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 &&
+        ! printf '%s\n' "$block" | grep -F "successHints" >/dev/null 2>&1
     )
 }
 
@@ -166,7 +180,7 @@ echo "[22.C3 comment write handlers preserve guidance]"
 C3_OFFENDERS=()
 for fn in addComment editComment resolveComment deleteComment; do
   block=$(extract_function "$COMMENT_CMD" "$fn")
-  if ! printf '%s\n' "$block" | grep -F "suggested_next_actions: body.suggested_next_actions" >/dev/null 2>&1; then
+  if ! handler_preserves_guidance "$block"; then
     C3_OFFENDERS+=("$fn")
   fi
 done

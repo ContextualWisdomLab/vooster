@@ -42,6 +42,7 @@ PASS=true
 # ─── Sources of truth ────────────────────────────────────────────────────
 COMMANDS_DIR=apps/cli/src/commands
 ENVELOPE_MODULE=apps/cli/src/agent-envelope.ts
+MUTATION_ENVELOPE_MODULE=apps/cli/src/domain/envelope.ts
 INIT_CMD=apps/cli/src/commands/init.ts
 CONFIG_STORE=apps/cli/src/config-store.ts
 HONEST_DIR=apps/cli/tests/e2e-cli-honest
@@ -92,6 +93,7 @@ A2_OFFENDERS=()
 while IFS= read -r f; do
   case "$f" in
     "$ENVELOPE_MODULE") continue ;;
+    "$MUTATION_ENVELOPE_MODULE") continue ;;
     apps/cli/tests/*) continue ;;
   esac
   if grep -qE '\bformat_version\b' "$f"; then
@@ -103,7 +105,13 @@ if [ -f "$ENVELOPE_MODULE" ] \
     && grep -qE 'format_version[[:space:]]*:[[:space:]]*1\b' "$ENVELOPE_MODULE"; then
   A2_LITERAL_OK=true
 fi
-if [ "${#A2_OFFENDERS[@]}" -eq 0 ] && [ "$A2_LITERAL_OK" = true ]; then
+V2_LITERAL_OK=false
+if [ -f "$MUTATION_ENVELOPE_MODULE" ] \
+    && grep -qE 'ENVELOPE_VERSION_V2[[:space:]]*=[[:space:]]*2[[:space:]]+as[[:space:]]+const' "$MUTATION_ENVELOPE_MODULE" \
+    && grep -qE '\bformat_version\b' "$MUTATION_ENVELOPE_MODULE"; then
+  V2_LITERAL_OK=true
+fi
+if [ "${#A2_OFFENDERS[@]}" -eq 0 ] && [ "$A2_LITERAL_OK" = true ] && [ "$V2_LITERAL_OK" = true ]; then
   echo "    ✓ pass"
 else
   if [ "${#A2_OFFENDERS[@]}" -gt 0 ]; then
@@ -112,6 +120,9 @@ else
   fi
   if [ "$A2_LITERAL_OK" = false ]; then
     echo "    ✗ fail — envelope module does not emit format_version: 1"
+  fi
+  if [ "$V2_LITERAL_OK" = false ]; then
+    echo "    ✗ fail — mutation envelope module does not emit format_version: 2"
   fi
   PASS=false
 fi

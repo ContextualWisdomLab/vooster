@@ -39,7 +39,7 @@ jobs:
       VSPEC_GATES_SKIP_META: "1"
       # Skip deep gates that require unavailable infrastructure on the
       # default runner — Playwright browsers (goal 8.D5), Docker deploy
-      # (goal 2.B3), Vercel CLI auth (goal 8.E3/E4).
+      # (goals 2.B3 and 3.B4), Vercel CLI auth (goal 8.E3/E4).
       VSPEC_GATES_SKIP_DEEP: "1"
       # ubuntu-latest is a 2-vCPU runner; matching concurrency avoids
       # CPU contention when goal workers spawn their own multi-threaded

@@ -77,8 +77,10 @@ B1. **Every core write-path handler builds an agent envelope when
     usecase create      -> apps/cli/src/commands/usecase.ts:createUsecase
     ```
 
-    The gate extracts each function body and requires both
-    `format === "agent"` and `buildAgentEnvelope` inside that function.
+    The gate extracts each function body and requires either a direct
+    `format === "agent"` / `buildAgentEnvelope` branch or delegation to
+    `runMutationCommand` with `format: flags.format`, which centralizes
+    the mutation agent envelope.
 
 ### Tranche C — Unit Proof
 

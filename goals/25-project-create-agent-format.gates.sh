@@ -55,11 +55,16 @@ extract_function() {
 
 handler_calls_helper_or_envelope() {
   local block="$1"
-  printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
-    (
-      printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1 ||
-      printf '%s\n' "$block" | grep -E "agent(Project|Envelope)" >/dev/null 2>&1
-    )
+  (
+    printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
+      (
+        printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1 ||
+        printf '%s\n' "$block" | grep -E "agent(Project|Envelope)" >/dev/null 2>&1
+      )
+  ) || (
+    printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "format: flags.format" >/dev/null 2>&1
+  )
 }
 
 echo "[25.A1 project-create findings removed]"

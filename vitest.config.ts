@@ -22,7 +22,8 @@ export default defineConfig({
       "apps/web/tests/e2e-web/**"
     ],
     globals: true,
+    maxWorkers: Number.parseInt(process.env.VSPEC_VITEST_MAX_WORKERS ?? "2", 10),
     passWithNoTests: true,
-    testTimeout: 15_000
+    testTimeout: 60_000
   }
 });

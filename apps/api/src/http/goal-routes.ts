@@ -1,14 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import {
-  goalIdFrom, projectIdFrom
-} from "./goal-support.js";
-import {
-  createGoal as createGoalUseCase, listGoals as listGoalsUseCase, patchGoal as patchGoalUseCase, type ActorGoalsDeps
-} from "../application/actor-goals.js";
-import {
-  sendCreateGoalResult, sendListGoalsResult, sendPatchGoalResult
-} from "./goal-results.js";
+import { goalIdFrom, projectIdFrom } from "./goal-support.js";
+import { createGoal as createGoalUseCase, listGoals as listGoalsUseCase, patchGoal as patchGoalUseCase, type ActorGoalsDeps } from "../application/actor-goals.js";
+import { sendCreateGoalResult, sendListGoalsResult, sendPatchGoalResult } from "./goal-results.js";
 import { showGoal } from "./goal-show-routes.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -107,10 +101,8 @@ async function createGoal(
 }
 
 function dryRunFromQuery(query: unknown): boolean {
-  if (typeof query !== "object" || query === null) {
-    return false;
-  }
-  return (query as { dry_run?: unknown }).dry_run === "true";
+  return typeof query === "object" && query !== null &&
+    (query as { dry_run?: unknown }).dry_run === "true";
 }
 
 async function patchGoal(

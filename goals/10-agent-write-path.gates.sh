@@ -18,6 +18,7 @@ GATE_INPUTS=(
   apps/cli/src/commands/goal.ts
   apps/cli/src/commands/stakeholder.ts
   apps/cli/src/commands/usecase.ts
+  apps/cli/src/application/mutation-command.ts
   apps/cli/tests/unit
   apps/cli/tests/e2e-cli-honest
   docs/findings-cli-spec-gaps.md
@@ -92,6 +93,10 @@ for site in "${CORE_AGENT_SITES[@]}"; do
   block=$(extract_function "$file" "$fn")
   if [ -z "$block" ]; then
     B1_OFFENDERS+=("$verb missing $fn")
+    continue
+  fi
+  if printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 \
+      && printf '%s\n' "$block" | grep -F "format: flags.format" >/dev/null 2>&1; then
     continue
   fi
   if ! printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1; then

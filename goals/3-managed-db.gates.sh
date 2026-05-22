@@ -235,7 +235,12 @@ else
   echo "    ✓ pass"
 fi
 
-run_gate "3.B4 Managed-DB deploy" "$ROOT/scripts/check-managed-db.sh"
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "[3.B4 Managed-DB deploy]"
+  echo "    ⚠ skipped (VSPEC_GATES_SKIP_DEEP=1)"
+else
+  run_gate "3.B4 Managed-DB deploy" "$ROOT/scripts/check-managed-db.sh"
+fi
 
 # ─── Tranche C — CI runs the suite against Postgres ──────────────────────
 

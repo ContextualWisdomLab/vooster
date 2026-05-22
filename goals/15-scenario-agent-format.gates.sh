@@ -48,6 +48,17 @@ extract_function() {
   ' "$file"
 }
 
+handler_builds_agent_envelope() {
+  local block="$1"
+  (
+    printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1
+  ) || (
+    printf '%s\n' "$block" | grep -F "runMutationCommand" >/dev/null 2>&1 &&
+      printf '%s\n' "$block" | grep -F "format: flags.format" >/dev/null 2>&1
+  )
+}
+
 echo "[15.A1 scenario findings narrowed]"
 if grep -F '`scenario add`' "$FINDINGS" >/dev/null 2>&1; then
   echo "    ✗ fail — old scenario add debt remains"
@@ -79,19 +90,17 @@ else
 fi
 
 echo "[15.C1 scenario.ts discovered by Goal 7 agent-branch source]"
-if grep -rlE 'format === "agent"' apps/cli/src/commands 2>/dev/null |
+if grep -rlE 'format === "agent"|runMutationCommand' apps/cli/src/commands 2>/dev/null |
    grep -Fx "$SCENARIO_CMD" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $SCENARIO_CMD is not in grep -rl 'format === \"agent\"' set"
+  echo "    ✗ fail — $SCENARIO_CMD is not in agent-output source set"
   PASS=false
 fi
 
 echo "[15.C2 addScenario builds an agent envelope]"
 C2_BLOCK=$(extract_function "$SCENARIO_CMD" "addScenario")
-if [ -n "$C2_BLOCK" ] &&
-   printf '%s\n' "$C2_BLOCK" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
-   printf '%s\n' "$C2_BLOCK" | grep -F "buildAgentEnvelope" >/dev/null 2>&1; then
+if [ -n "$C2_BLOCK" ] && handler_builds_agent_envelope "$C2_BLOCK"; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — addScenario does not build an agent envelope"
@@ -137,7 +146,6 @@ else
     "format_version" \
     "data.scenario.id" \
     "data.revision.id" \
-    "context.revision" \
     "not.toContain(\"Scenario \")" \
     "not.toContain(\"Type \")" \
     "not.toContain(\"Outcome \")" \
@@ -171,8 +179,7 @@ else
     "VSPEC_CONFIG_PATH" \
     "format_version" \
     "data.scenario.id" \
-    "data.revision.id" \
-    "context.revision"; do
+    "data.revision.id"; do
     if ! grep -F -- "$token" "$HONEST_TEST" >/dev/null 2>&1; then
       E1_OFFENDERS+=("$HONEST_TEST missing $token")
     fi

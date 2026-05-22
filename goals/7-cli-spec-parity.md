@@ -51,10 +51,12 @@ A1. **`apps/cli/src/agent-envelope.ts` exists and exports
     The gate greps for `export function buildAgentEnvelope` and asserts
     every key appears.
 
-A2. **`format_version` is the integer literal `1`, sourced only from
-    `agent-envelope.ts`.** Any other file containing the string
-    `format_version` fails the gate, unless it is a test asserting the
-    envelope contract.
+A2. **Legacy agent `format_version` is the integer literal `1`, sourced
+    only from `agent-envelope.ts`; mutation agent `format_version` is
+    the integer literal `2`, sourced only from
+    `apps/cli/src/domain/envelope.ts`.** Any other source file
+    containing the string `format_version` fails the gate, unless it is
+    a test asserting an envelope contract.
 
 A3. **Every command file that branches on `format === "agent"` routes
     that branch through `buildAgentEnvelope`.** Source of truth:

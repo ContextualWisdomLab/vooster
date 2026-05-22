@@ -135,7 +135,9 @@ async function addStep(
     commonMutationContextFrom(s),
     {
       format: flags.format,
-      human: (body, write) => printStepAdd(body, actor, write),
+      human: (body, write) => {
+        printStepAdd(body, actor, write);
+      },
       writeLine
     }
   );

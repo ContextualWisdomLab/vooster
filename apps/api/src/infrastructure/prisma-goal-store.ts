@@ -2,11 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredGoal } from "../domain/entities/index.js";
 import type { GoalStore } from "../ports/goal-store.js";
-import {
-  goalData,
-  goalUpdate,
-  storedGoal
-} from "./prisma-signup-mappers.js";
+import { goalData, goalUpdate, storedGoal } from "./prisma-signup-mappers.js";
 
 export function createPrismaGoalStore(prisma: PrismaClient): GoalStore {
   return new PrismaGoalStore(prisma);

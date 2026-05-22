@@ -14,8 +14,9 @@ export function registerActorTestRoutes(
   app.post("/__test/projects/:projectId/actors/:actorId/archive", (request, reply) =>
     archiveActor(request, reply, actorStore)
   );
-  app.post("/__test/workspaces/:workspaceId/members/:userId/read-only", (request, reply) =>
-    markReadOnly(request, reply, state)
+  app.post(
+    "/__test/workspaces/:workspaceId/members/:userId/read-only",
+    (request, reply) => markReadOnly(request, reply, state)
   );
   app.post("/__test/workspaces/:workspaceId/members/:userId", (request, reply) =>
     addTestMember(request, reply, membershipStore)
@@ -39,7 +40,11 @@ async function archiveActor(
   return reply.send({ archived });
 }
 
-function markReadOnly(request: FastifyRequest, reply: FastifyReply, state: SignupState) {
+function markReadOnly(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState
+) {
   const params = z
     .object({ userId: z.string().min(1), workspaceId: z.string().min(1) })
     .parse(request.params);

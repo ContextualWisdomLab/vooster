@@ -50,62 +50,65 @@ describe("honest CLI comment --format=agent", () => {
   });
 
   test("agent comment lifecycle", async () => {
-    const added = await expectOk(runCli([
-      "comment",
-      "add",
-      seed.usecaseKey,
-      "--body",
-      "Review this flow.",
-      "--project-id",
-      seed.projectId,
-      "--format=agent"
-    ], seed.env));
+    const added = await expectOk(
+      runCli(
+        [
+          "comment",
+          "add",
+          seed.usecaseKey,
+          "--body",
+          "Review this flow.",
+          "--project-id",
+          seed.projectId,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const addEnvelope = expectAgentEnvelope<CommentData>(added.stdout);
     expect(addEnvelope.context).toEqual(defaultContext());
     expect(addEnvelope.data.comment.body).toBe("Review this flow.");
     const commentId = addEnvelope.data.comment.id;
 
-    const listed = await expectOk(runCli([
-      "comment",
-      "list",
-      seed.usecaseKey,
-      "--format=agent"
-    ], seed.env));
+    const listed = await expectOk(
+      runCli(["comment", "list", seed.usecaseKey, "--format=agent"], seed.env)
+    );
     const listEnvelope = expectAgentEnvelope<CommentListData>(listed.stdout);
     expect(listEnvelope.context).toEqual(defaultContext());
-    expect(listEnvelope.data.comments.some((comment) => comment.id === commentId)).toBe(true);
+    expect(listEnvelope.data.comments.some((comment) => comment.id === commentId)).toBe(
+      true
+    );
 
-    const edited = await expectOk(runCli([
-      "comment",
-      "edit",
-      commentId,
-      "--body",
-      "Addressed in spec.",
-      "--format=agent"
-    ], seed.env));
+    const edited = await expectOk(
+      runCli(
+        [
+          "comment",
+          "edit",
+          commentId,
+          "--body",
+          "Addressed in spec.",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     const editEnvelope = expectAgentEnvelope<CommentData>(edited.stdout);
     expect(editEnvelope.context).toEqual(defaultContext());
     expect(editEnvelope.data.comment.id).toBe(commentId);
     expect(editEnvelope.data.comment.body).toBe("Addressed in spec.");
 
-    const resolved = await expectOk(runCli([
-      "comment",
-      "resolve",
-      commentId,
-      "--format=agent"
-    ], seed.env));
+    const resolved = await expectOk(
+      runCli(["comment", "resolve", commentId, "--format=agent"], seed.env)
+    );
     const resolveEnvelope = expectAgentEnvelope<CommentData>(resolved.stdout);
     expect(resolveEnvelope.context).toEqual(defaultContext());
     expect(resolveEnvelope.data.comment.id).toBe(commentId);
     expect(resolveEnvelope.data.comment.resolved).toBe(true);
 
-    const deleted = await expectOk(runCli([
-      "comment",
-      "delete",
-      commentId,
-      "--format=agent"
-    ], seed.env));
+    const deleted = await expectOk(
+      runCli(["comment", "delete", commentId, "--format=agent"], seed.env)
+    );
     expect(deleted.stdout).not.toContain("Deleted true");
     const deleteEnvelope = expectAgentEnvelope<CommentData>(deleted.stdout);
     expect(deleteEnvelope.context).toEqual(defaultContext());

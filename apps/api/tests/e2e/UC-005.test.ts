@@ -9,7 +9,12 @@ type ActorResponse = {
     archived_at: null;
     is_human: boolean;
   };
-  revision: { entity_id: string; entity_type: string; snapshot: unknown; version_number: number };
+  revision: {
+    entity_id: string;
+    entity_type: string;
+    snapshot: unknown;
+    version_number: number;
+  };
   recommended_next_command: string;
 };
 
@@ -32,7 +37,11 @@ afterAll(async () => {
 
 describe("UC-005 - Define an actor", () => {
   test("MAIN: project member defines an actor with an initial revision", async () => {
-    const setup = await createProject("Actor Project", "actor-project", "stub-actor-owner");
+    const setup = await createProject(
+      "Actor Project",
+      "actor-project",
+      "stub-actor-owner"
+    );
 
     const response = await createActor(setup, {
       aliases: ["Buyer", "Shopper"],
@@ -61,12 +70,19 @@ describe("UC-005 - Define an actor", () => {
   });
 
   test("3a: duplicate active actor name returns existing actor guidance", async () => {
-    const setup = await createProject("Duplicate Actor", "duplicate-actor", "stub-actor-dup");
+    const setup = await createProject(
+      "Duplicate Actor",
+      "duplicate-actor",
+      "stub-actor-dup"
+    );
     const first = await createActor(setup, { name: "Customer", type: "PRIMARY" });
     expect(first.status).toBe(201);
     const firstBody = (await first.json()) as ActorResponse;
 
-    const duplicate = await createActor(setup, { name: "Customer", type: "SUPPORTING" });
+    const duplicate = await createActor(setup, {
+      name: "Customer",
+      type: "SUPPORTING"
+    });
 
     expect(duplicate.status).toBe(422);
     const body = (await duplicate.json()) as ProblemResponse;
@@ -83,7 +99,11 @@ describe("UC-005 - Define an actor", () => {
   });
 
   test("3b: duplicate archived actor name suggests restore or rename", async () => {
-    const setup = await createProject("Archived Actor", "archived-actor", "stub-actor-archived");
+    const setup = await createProject(
+      "Archived Actor",
+      "archived-actor",
+      "stub-actor-archived"
+    );
     const created = await createActor(setup, { name: "Customer", type: "PRIMARY" });
     const createdBody = (await created.json()) as ActorResponse;
     await server.fetch(
@@ -91,7 +111,10 @@ describe("UC-005 - Define an actor", () => {
       { method: "POST" }
     );
 
-    const duplicate = await createActor(setup, { name: "Customer", type: "SUPPORTING" });
+    const duplicate = await createActor(setup, {
+      name: "Customer",
+      type: "SUPPORTING"
+    });
 
     expect(duplicate.status).toBe(409);
     const body = (await duplicate.json()) as ProblemResponse;
@@ -104,7 +127,11 @@ describe("UC-005 - Define an actor", () => {
   });
 
   test("4a: invalid actor type lists valid enum values", async () => {
-    const setup = await createProject("Invalid Type", "invalid-type", "stub-actor-type");
+    const setup = await createProject(
+      "Invalid Type",
+      "invalid-type",
+      "stub-actor-type"
+    );
     const response = await createActor(setup, {
       name: "Gateway",
       type: "SYSTEM"
@@ -117,7 +144,11 @@ describe("UC-005 - Define an actor", () => {
   });
 
   test("1a: System actor name is reserved", async () => {
-    const setup = await createProject("System Actor", "system-actor", "stub-actor-system");
+    const setup = await createProject(
+      "System Actor",
+      "system-actor",
+      "stub-actor-system"
+    );
     const response = await createActor(setup, { name: "System", type: "SUPPORTING" });
 
     expect(response.status).toBe(422);
@@ -166,11 +197,14 @@ async function createActor(
 
 async function createProject(name: string, slug: string, code: string) {
   const signedUp = await signup(name, slug, code);
-  const response = await server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
-    body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
-  });
+  const response = await server.fetch(
+    `/v1/workspaces/${signedUp.workspaceId}/projects`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
+      body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
+    }
+  );
   const body = (await response.json()) as ProjectResponse;
 
   return { ...signedUp, projectId: body.project.id };
@@ -187,7 +221,10 @@ async function signup(name: string, slug: string, code: string) {
   const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
     headers: { Cookie: start.headers.get("set-cookie") ?? "" }
   });
-  const body = (await callback.json()) as { user: { id: string }; workspace: { id: string } };
+  const body = (await callback.json()) as {
+    user: { id: string };
+    workspace: { id: string };
+  };
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

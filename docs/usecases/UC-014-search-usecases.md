@@ -62,10 +62,10 @@ The developer/PM runs `vspec usecase list [--status=] [--level=] [--actor=] [--q
 - 4a2. **System** treats a cursor that points past the last row as an empty page (200 with `items: []` and `next_cursor: null`).
 - (Outcome: PARTIAL on stale cursors — rejoins main at step 5 with an empty page; FAILURE on malformed cursors.)
 
-### *a. No results match
+### \*a. No results match
 
-- *a1. **System** returns `items: []` with `next_cursor: null`.
-- *a2. **System** suggests broadening filters (`--status=DRAFT,IN_REVIEW`) or dropping `--q`.
+- \*a1. **System** returns `items: []` with `next_cursor: null`.
+- \*a2. **System** suggests broadening filters (`--status=DRAFT,IN_REVIEW`) or dropping `--q`.
 - (Outcome: SUCCESS — use case ends.)
 
 ## Success Guarantee

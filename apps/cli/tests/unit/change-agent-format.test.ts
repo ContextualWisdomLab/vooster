@@ -35,7 +35,9 @@ describe("change --format=agent", () => {
     stubFetch(previewBody());
     const lines: string[] = [];
 
-    await runChange(proposeFlags({ format: "agent" }), "propose", (line) => lines.push(line));
+    await runChange(proposeFlags({ format: "agent" }), "propose", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Preview ");
@@ -43,7 +45,9 @@ describe("change --format=agent", () => {
     const envelope = expectAgentEnvelope(stdout);
     expect(envelope.data.preview_id).toBe("preview-1");
     expect(envelope.context.revision).toBeNull();
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec change commit --preview-id preview-1");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+      "vspec change commit --preview-id preview-1"
+    );
     expect(envelope.warnings.at(0)?.message).toBe("Review impacted sessions.");
   });
 
@@ -51,7 +55,9 @@ describe("change --format=agent", () => {
     stubFetch(commitBody());
     const lines: string[] = [];
 
-    await runChange(commitFlags({ format: "agent" }), "commit", (line) => lines.push(line));
+    await runChange(commitFlags({ format: "agent" }), "commit", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Entity ");
@@ -61,14 +67,18 @@ describe("change --format=agent", () => {
     expect(firstRevision.entity_id).toBe("usecase-1");
     expect(firstRevision.revision_id).toBe("revision-1");
     expect(envelope.context.revision).toBe("revision-1");
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec history CHG-001");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+      "vspec history CHG-001"
+    );
   });
 
   test("agent change commit without revisions", async () => {
     stubFetch({ revisions: [], suggested_next_actions: [] });
     const lines: string[] = [];
 
-    await runChange(commitFlags({ format: "agent" }), "commit", (line) => lines.push(line));
+    await runChange(commitFlags({ format: "agent" }), "commit", (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines.join("\n"));
     expect(envelope.context.revision).toBeNull();
@@ -98,11 +108,16 @@ describe("change --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function proposeFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -129,11 +144,15 @@ function patchFile(): string {
   const root = mkdtempSync(join(tmpdir(), "vspec-change-agent-"));
   tempRoots.push(root);
   const path = join(root, "patch.json");
-  writeFileSync(path, JSON.stringify({
-    entity_id: "usecase-1",
-    entity_type: "USECASE",
-    fields: { title: "Reviews a refund" }
-  }), "utf8");
+  writeFileSync(
+    path,
+    JSON.stringify({
+      entity_id: "usecase-1",
+      entity_type: "USECASE",
+      fields: { title: "Reviews a refund" }
+    }),
+    "utf8"
+  );
   return path;
 }
 
@@ -155,12 +174,8 @@ function previewBody() {
     },
     preview_id: "preview-1",
     severity: "NON_BREAKING",
-    suggested_next_actions: [
-      { command: "vspec change commit --preview-id preview-1" }
-    ],
-    warnings: [
-      { message: "Review impacted sessions.", type: "IMPACT" }
-    ]
+    suggested_next_actions: [{ command: "vspec change commit --preview-id preview-1" }],
+    warnings: [{ message: "Review impacted sessions.", type: "IMPACT" }]
   };
 }
 
@@ -172,9 +187,7 @@ function commitBody() {
         revision_id: "revision-1"
       }
     ],
-    suggested_next_actions: [
-      { command: "vspec history CHG-001" }
-    ]
+    suggested_next_actions: [{ command: "vspec history CHG-001" }]
   };
 }
 

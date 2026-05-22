@@ -40,11 +40,9 @@ describe("honest CLI history --format=agent", () => {
   });
 
   test("agent history", async () => {
-    const result = await expectOk(runCli([
-      "history",
-      seed.usecaseKey,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(["history", seed.usecaseKey, "--format=agent"], seed.env)
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -52,7 +50,9 @@ describe("honest CLI history --format=agent", () => {
     expect(envelope.data.usecase.key).toBe(seed.usecaseKey);
     expect(envelope.context.revision).toBeTypeOf("string");
     expect(firstRevision.revision).toBe(envelope.context.revision);
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec usecase show");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec usecase show"
+    );
   });
 });
 

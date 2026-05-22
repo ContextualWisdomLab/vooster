@@ -2,10 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredStakeholder } from "../domain/entities/index.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
-import {
-  stakeholderData,
-  storedStakeholder
-} from "./prisma-signup-mappers.js";
+import { stakeholderData, storedStakeholder } from "./prisma-signup-mappers.js";
 
 export function createPrismaStakeholderStore(prisma: PrismaClient): StakeholderStore {
   return new PrismaStakeholderStore(prisma);

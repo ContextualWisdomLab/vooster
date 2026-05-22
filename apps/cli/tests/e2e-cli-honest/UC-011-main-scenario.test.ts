@@ -12,15 +12,20 @@ describe("UC-011 honest CLI - Write the main success scenario", () => {
         runCli
       });
       const scenarioId = await addMainScenarioViaCli(seed, runCli);
-      const step = await expectOk(runCli([
-        "step",
-        "add",
-        scenarioId,
-        "--actor",
-        "Customer",
-        "--action",
-        "Places an order."
-      ], seed.env));
+      const step = await expectOk(
+        runCli(
+          [
+            "step",
+            "add",
+            scenarioId,
+            "--actor",
+            "Customer",
+            "--action",
+            "Places an order."
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(scenarioId).toMatch(/[a-f0-9-]+/u);

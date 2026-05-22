@@ -8,13 +8,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-6">
-        <Image
-          src="/logo-text.svg"
-          alt="Vooster"
-          width={157}
-          height={32}
-          priority
-        />
+        <Image src="/logo-text.svg" alt="Vooster" width={157} height={32} priority />
         <div className="flex w-full flex-col gap-6 rounded-xl border border-border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col gap-1.5 px-6 pt-6">
             <h1 className="text-lg font-semibold leading-none tracking-tight text-foreground">
@@ -40,12 +34,7 @@ export default function LoginPage() {
 
 function GithubMark() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="size-4"
-    >
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="size-4">
       <path
         fillRule="evenodd"
         clipRule="evenodd"

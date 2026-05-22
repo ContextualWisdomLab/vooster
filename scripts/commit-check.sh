@@ -276,7 +276,7 @@ if [ "${#PRETTIER_FILES[@]}" -gt 0 ]; then
 fi
 
 if [ "${#ESLINT_FILES[@]}" -gt 0 ]; then
-  run_cmd pnpm exec eslint --max-warnings 0 "${ESLINT_FILES[@]}" || FAIL=1
+  run_cmd pnpm exec eslint --max-warnings 0 --no-warn-ignored "${ESLINT_FILES[@]}" || FAIL=1
 fi
 
 if [ "${#VITEST_TESTS[@]}" -gt 0 ]; then

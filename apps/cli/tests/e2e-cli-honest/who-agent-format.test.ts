@@ -43,11 +43,9 @@ describe("honest CLI who --format=agent", () => {
   });
 
   test("agent who", async () => {
-    const result = await expectOk(runCli([
-      "who",
-      seed.usecaseKey,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(["who", seed.usecaseKey, "--format=agent"], seed.env)
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -61,7 +59,9 @@ describe("honest CLI who --format=agent", () => {
       revision: null,
       session_id: null
     });
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec session start");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec session start"
+    );
   });
 });
 

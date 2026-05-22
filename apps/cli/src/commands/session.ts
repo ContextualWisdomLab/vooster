@@ -44,7 +44,12 @@ export class SessionCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(SessionCommand);
 
-    await runSession(parsed.flags, parsed.args.action, parsed.args.sessionId, this.log.bind(this));
+    await runSession(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.sessionId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -80,7 +85,9 @@ async function startSession(
     {
       agent_type: sessionFlags.agentType,
       auto_branch: sessionFlags.autoBranch,
-      ...(sessionFlags.branchName === undefined ? {} : { branch_name: sessionFlags.branchName }),
+      ...(sessionFlags.branchName === undefined
+        ? {}
+        : { branch_name: sessionFlags.branchName }),
       intent: sessionFlags.intent,
       pins: sessionFlags.pins,
       project_id: sessionFlags.projectId
@@ -93,10 +100,16 @@ async function startSession(
 
   const body = response.body as SessionStartResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: { session_id: body.session.id }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: { session_id: body.session.id }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -147,10 +160,16 @@ async function completeSession(
 
   const body = response.body as SessionCompleteResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: { session_id: body.session.id }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: { session_id: body.session.id }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

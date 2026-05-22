@@ -61,9 +61,9 @@ The user invokes `vspec login` from the CLI or follows the "Log in" link on the 
 - 6a2. **System** sets a flag in the response (`workspaces: []`) and recommends `vspec workspace create`.
 - (Outcome: SUCCESS — use case ends; user is logged in but must create or be invited to a workspace before doing useful work.)
 
-### *a. GitHub API is unreachable
+### \*a. GitHub API is unreachable
 
-- *a1. **System** logs the upstream timeout and returns a 502 with a retry hint.
+- \*a1. **System** logs the upstream timeout and returns a 502 with a retry hint.
 - (Outcome: FAILURE — use case ends; no session cookie is set.)
 
 ## Success Guarantee

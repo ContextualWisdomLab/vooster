@@ -32,9 +32,10 @@ class PrismaWorkSessionStore implements WorkSessionStore {
   }
 
   async listWorkSessionsForUseCase(usecaseId: string): Promise<StoredWorkSession[]> {
-    return (await this.listWorkSessions()).filter((session) =>
-      session.usecase_id === usecaseId ||
-      session.pinned_revisions?.[usecaseId] !== undefined
+    return (await this.listWorkSessions()).filter(
+      (session) =>
+        session.usecase_id === usecaseId ||
+        session.pinned_revisions?.[usecaseId] !== undefined
     );
   }
 

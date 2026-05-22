@@ -24,7 +24,12 @@ afterAll(async () => {
 
 describe("UC-007 - Manage the actor-goal list", () => {
   test("MAIN: create goal and list it grouped by actor", async () => {
-    const setup = await createProject(server, "Goal Project", "goal-project", "stub-goal-owner");
+    const setup = await createProject(
+      server,
+      "Goal Project",
+      "goal-project",
+      "stub-goal-owner"
+    );
     const actor = await createActor(server, setup, "Customer");
 
     const created = await createGoal(server, setup, {
@@ -94,7 +99,12 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("5a: whitespace description is rejected as not a verb phrase", async () => {
-    const setup = await createProject(server, "Blank Goal", "blank-goal", "stub-goal-blank");
+    const setup = await createProject(
+      server,
+      "Blank Goal",
+      "blank-goal",
+      "stub-goal-blank"
+    );
     const actor = await createActor(server, setup, "Clerk");
 
     const response = await createGoal(server, setup, {
@@ -136,9 +146,20 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("6a: rejecting a promoted goal requires archiving the use case first", async () => {
-    const setup = await createProject(server, "Promoted Goal", "promoted-goal", "stub-goal-promoted");
+    const setup = await createProject(
+      server,
+      "Promoted Goal",
+      "promoted-goal",
+      "stub-goal-promoted"
+    );
     const actor = await createActor(server, setup, "Subscriber");
-    const goal = await createGoalForActor(server, setup, actor, "Renews a subscription", "P0");
+    const goal = await createGoalForActor(
+      server,
+      setup,
+      actor,
+      "Renews a subscription",
+      "P0"
+    );
     const inDesign = await patchGoal(server, setup, goal.id, { status: "IN_DESIGN" });
     expect(inDesign.status).toBe(200);
     const inDesignBody = (await inDesign.json()) as GoalResponse;
@@ -157,12 +178,19 @@ describe("UC-007 - Manage the actor-goal list", () => {
       command: "vspec usecase archive",
       reason: "Deprecate the linked use case before rejecting the goal."
     });
-    const listBody = (await (await listGoals(server, setup, actor.id)).json()) as GoalListResponse;
+    const listBody = (await (
+      await listGoals(server, setup, actor.id)
+    ).json()) as GoalListResponse;
     expect(listBody.actors[0]?.goals[0]?.status).toBe("PROMOTED");
   });
 
   test("6b: near-duplicate goal is created with comparison warning", async () => {
-    const setup = await createProject(server, "Duplicate Goal", "duplicate-goal", "stub-goal-duplicate");
+    const setup = await createProject(
+      server,
+      "Duplicate Goal",
+      "duplicate-goal",
+      "stub-goal-duplicate"
+    );
     const actor = await createActor(server, setup, "Shopper");
     const firstGoal = await createGoalForActor(server, setup, actor, "Places an order");
     const duplicate = await createGoal(server, setup, {
@@ -182,9 +210,16 @@ describe("UC-007 - Manage the actor-goal list", () => {
   });
 
   test("*a: archived project workspace aborts goal creation", async () => {
-    const setup = await createProject(server, "Archived Goal", "archived-goal", "stub-goal-archive");
+    const setup = await createProject(
+      server,
+      "Archived Goal",
+      "archived-goal",
+      "stub-goal-archive"
+    );
     const actor = await createActor(server, setup, "Reviewer");
-    await server.fetch(`/__test/workspaces/${setup.workspaceId}/archive`, { method: "POST" });
+    await server.fetch(`/__test/workspaces/${setup.workspaceId}/archive`, {
+      method: "POST"
+    });
     const response = await createGoal(server, setup, {
       actor_id: actor.id,
       description: "Approves a refund",
@@ -194,7 +229,9 @@ describe("UC-007 - Manage the actor-goal list", () => {
     expect(response.status).toBe(409);
     const body = (await response.json()) as ProblemResponse;
     expect(body.title).toMatch(/workspace.*archived/i);
-    const listBody = (await (await listGoals(server, setup, actor.id)).json()) as GoalListResponse;
+    const listBody = (await (
+      await listGoals(server, setup, actor.id)
+    ).json()) as GoalListResponse;
     expect(listBody.actors[0]?.goals).toEqual([]);
   });
 });

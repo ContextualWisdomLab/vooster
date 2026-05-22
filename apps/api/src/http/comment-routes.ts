@@ -1,7 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  addComment as addUseCaseComment, deleteComment as deleteUseCaseComment, listComments as listUseCaseComments, patchComment as patchUseCaseComment
+  addComment as addUseCaseComment,
+  deleteComment as deleteUseCaseComment,
+  listComments as listUseCaseComments,
+  patchComment as patchUseCaseComment
 } from "../application/comments.js";
 import type { CommentStore } from "../ports/comment-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -53,16 +56,16 @@ async function addComment(
   if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }
-  return sendCommentResult(reply, await addUseCaseComment(
-    deps(commentStore, membershipStore, useCaseStore),
-    {
+  return sendCommentResult(
+    reply,
+    await addUseCaseComment(deps(commentStore, membershipStore, useCaseStore), {
       body: parsed.data.body,
       dryRun: dryRunFromQuery(request.query),
       simulateWriteFailure: parsed.data.simulate_write_failure,
       usecaseId: usecaseId(request),
       userId: userId(request, state)
-    }
-  ));
+    })
+  );
 }
 
 async function listComments(
@@ -73,10 +76,13 @@ async function listComments(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  return sendCommentResult(reply, await listUseCaseComments(
-    deps(commentStore, membershipStore, useCaseStore),
-    { usecaseId: usecaseId(request), userId: userId(request, state) }
-  ));
+  return sendCommentResult(
+    reply,
+    await listUseCaseComments(deps(commentStore, membershipStore, useCaseStore), {
+      usecaseId: usecaseId(request),
+      userId: userId(request, state)
+    })
+  );
 }
 
 async function patchComment(
@@ -91,15 +97,15 @@ async function patchComment(
   if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }
-  return sendCommentResult(reply, await patchUseCaseComment(
-    deps(commentStore, membershipStore, useCaseStore),
-    {
+  return sendCommentResult(
+    reply,
+    await patchUseCaseComment(deps(commentStore, membershipStore, useCaseStore), {
       body: parsed.data.body,
       commentId: commentId(request),
       resolved: parsed.data.resolved,
       userId: userId(request, state)
-    }
-  ));
+    })
+  );
 }
 
 async function deleteComment(
@@ -110,10 +116,13 @@ async function deleteComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  return sendCommentResult(reply, await deleteUseCaseComment(
-    deps(commentStore, membershipStore, useCaseStore),
-    { commentId: commentId(request), userId: userId(request, state) }
-  ));
+  return sendCommentResult(
+    reply,
+    await deleteUseCaseComment(deps(commentStore, membershipStore, useCaseStore), {
+      commentId: commentId(request),
+      userId: userId(request, state)
+    })
+  );
 }
 
 function deps(

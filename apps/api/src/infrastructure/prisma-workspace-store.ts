@@ -2,10 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredWorkspace } from "../domain/entities/index.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-import {
-  storedWorkspace,
-  workspaceData
-} from "./prisma-signup-mappers.js";
+import { storedWorkspace, workspaceData } from "./prisma-signup-mappers.js";
 
 export function createPrismaWorkspaceStore(prisma: PrismaClient): WorkspaceStore {
   return new PrismaWorkspaceStore(prisma);

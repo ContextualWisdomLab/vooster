@@ -13,18 +13,23 @@ describe("UC-005 honest CLI - Define an actor", () => {
         runCli
       });
 
-      const secondActor = await expectOk(runCli([
-        "actor",
-        "create",
-        "--name",
-        "Admin",
-        "--type",
-        "SUPPORTING",
-        "--description",
-        "Internal operator who reviews orders.",
-        "--project-id",
-        seed.projectId
-      ], seed.env));
+      const secondActor = await expectOk(
+        runCli(
+          [
+            "actor",
+            "create",
+            "--name",
+            "Admin",
+            "--type",
+            "SUPPORTING",
+            "--description",
+            "Internal operator who reviews orders.",
+            "--project-id",
+            seed.projectId
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(seed.actorId).toMatch(/[a-f0-9-]+/u);

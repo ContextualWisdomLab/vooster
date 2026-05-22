@@ -18,8 +18,15 @@ export default async function UsecasePage({
 }) {
   const { key, ucKey } = await params;
   const detail = await fetchUsecaseDetail(key, ucKey);
-  const { title, primary_actor, level, status, main_scenario, extensions, stakeholder_interests } =
-    detail;
+  const {
+    title,
+    primary_actor,
+    level,
+    status,
+    main_scenario,
+    extensions,
+    stakeholder_interests
+  } = detail;
 
   return (
     <article className="grid gap-6">
@@ -52,7 +59,9 @@ export default async function UsecasePage({
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               primary_actor
             </div>
-            <div className="text-sm font-semibold text-foreground">{primary_actor.name}</div>
+            <div className="text-sm font-semibold text-foreground">
+              {primary_actor.name}
+            </div>
           </div>
           <div className="flex flex-col gap-1 border-t border-border p-5 sm:border-t-0">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

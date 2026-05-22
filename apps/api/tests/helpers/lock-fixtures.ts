@@ -30,7 +30,11 @@ export function lockUseCase(
   server: TestServer,
   setup: ProjectSetup,
   targetId: string,
-  body: { lock_type: "HARD" | "SEMANTIC" | "SOFT"; reason: string; ttl_minutes?: number },
+  body: {
+    lock_type: "HARD" | "SEMANTIC" | "SOFT";
+    reason: string;
+    ttl_minutes?: number;
+  },
   sessionId = "session-main-lock"
 ) {
   return server.fetch("/v1/locks", {

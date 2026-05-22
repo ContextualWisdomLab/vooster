@@ -4,7 +4,12 @@ import {
   createUseCaseWithMainStep,
   type StepResponse
 } from "../helpers/scenario-fixtures.js";
-import { advanceBranch, advanceMain, createBranch, projectUseCase } from "../helpers/merge-fixtures.js";
+import {
+  advanceBranch,
+  advanceMain,
+  createBranch,
+  projectUseCase
+} from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 
 type DiffResponse = {
@@ -46,7 +51,12 @@ afterAll(async () => {
 describe("UC-025 - Compare two revisions of a use case", () => {
   test("MAIN: compare revisions as a structured JSON diff", async () => {
     const { mainStepRevision, scenario, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Diff Main", "diff-main", "stub-diff-main");
+      await createUseCaseWithMainStep(
+        server,
+        "Diff Main",
+        "diff-main",
+        "stub-diff-main"
+      );
     const stepResponse = await addStep(server, scenario.scenario.id, setup.cookie, {
       action: "Confirms order.",
       actor: "Customer"
@@ -89,8 +99,12 @@ describe("UC-025 - Compare two revisions of a use case", () => {
   });
 
   test("2a: missing revision returns history guidance", async () => {
-    const { mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Diff Missing", "diff-missing", "stub-diff-missing");
+    const { mainStepRevision, setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Diff Missing",
+      "diff-missing",
+      "stub-diff-missing"
+    );
 
     const response = await server.fetch(
       `/v1/usecases/${usecase.id}/diff?from=rev-missing&to=${mainStepRevision.id}&format=json`,
@@ -110,8 +124,12 @@ describe("UC-025 - Compare two revisions of a use case", () => {
   });
 
   test("3a: cross-branch diff returns warning and branch labels", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Diff Cross Branch", "diff-cross-branch", "stub-diff-cross");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Diff Cross Branch",
+      "diff-cross-branch",
+      "stub-diff-cross"
+    );
     const branch = await createBranch(server, setup, "feature/diff-cross");
     const branchRevision = await advanceBranch(
       server,
@@ -120,7 +138,12 @@ describe("UC-025 - Compare two revisions of a use case", () => {
       usecase.id,
       "Reviews a refund quickly"
     );
-    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const mainRevision = await advanceMain(
+      server,
+      setup,
+      usecase.id,
+      "Reviews a refund manually"
+    );
 
     const response = await server.fetch(
       `/v1/usecases/${usecase.id}/diff?from=${branchRevision.revision_id}&to=${mainRevision.revision_id}&format=json`,
@@ -147,8 +170,12 @@ describe("UC-025 - Compare two revisions of a use case", () => {
   });
 
   test("4a: identical revisions return empty diff with byte match note", async () => {
-    const { mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Diff Identical", "diff-identical", "stub-diff-same");
+    const { mainStepRevision, setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Diff Identical",
+      "diff-identical",
+      "stub-diff-same"
+    );
 
     const response = await server.fetch(
       `/v1/usecases/${usecase.id}/diff?from=${mainStepRevision.id}&to=${mainStepRevision.id}&format=human`,
@@ -164,9 +191,18 @@ describe("UC-025 - Compare two revisions of a use case", () => {
   });
 
   test("*a: non-member cannot compare revisions", async () => {
-    const mine = await createUseCaseWithMainStep(server, "Diff Mine", "diff-mine", "stub-diff-mine");
-    const other =
-      await createUseCaseWithMainStep(server, "Diff Other", "diff-other", "stub-diff-other");
+    const mine = await createUseCaseWithMainStep(
+      server,
+      "Diff Mine",
+      "diff-mine",
+      "stub-diff-mine"
+    );
+    const other = await createUseCaseWithMainStep(
+      server,
+      "Diff Other",
+      "diff-other",
+      "stub-diff-other"
+    );
 
     const response = await server.fetch(
       `/v1/usecases/${other.usecase.id}/diff?from=${other.usecase.current_revision_id}&to=${other.mainStepRevision.id}&format=json`,

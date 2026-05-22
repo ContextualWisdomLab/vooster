@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { StoredActor, StoredGoal, StoredRevision } from "../domain/entities/index.js";
+import type {
+  StoredActor,
+  StoredGoal,
+  StoredRevision
+} from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -140,12 +144,15 @@ export async function listGoals(
   deps: Pick<ActorGoalsDeps, "actorStore" | "goalStore" | "membershipStore">,
   input: { actorId?: string; projectId: string; userId?: string }
 ): Promise<ListGoalsResult> {
-  if (!await hasProjectMembership(deps.membershipStore, input.projectId, input.userId)) {
+  if (
+    !(await hasProjectMembership(deps.membershipStore, input.projectId, input.userId))
+  ) {
     return { status: "FORBIDDEN" };
   }
   const actors = (await deps.actorStore.listActors(input.projectId)).filter(
     (actor) =>
-      actor.archived_at === null && (input.actorId === undefined || actor.id === input.actorId)
+      actor.archived_at === null &&
+      (input.actorId === undefined || actor.id === input.actorId)
   );
   const goals = await deps.goalStore.listGoals(input.projectId);
   return {
@@ -188,7 +195,8 @@ function nearDuplicateGoal(
   const normalized = comparableDescription(description);
   return goals.find(
     (goal) =>
-      goal.actor_id === actorId && comparableDescription(goal.description) === normalized
+      goal.actor_id === actorId &&
+      comparableDescription(goal.description) === normalized
   );
 }
 
@@ -197,11 +205,12 @@ async function projectAccess(
   projectId: string,
   userId: string | undefined
 ): Promise<"FORBIDDEN" | "OK" | "WORKSPACE_ARCHIVED"> {
-  if (!await hasProjectMembership(deps.membershipStore, projectId, userId)) {
+  if (!(await hasProjectMembership(deps.membershipStore, projectId, userId))) {
     return "FORBIDDEN";
   }
   const project = await deps.projectStore.findProjectById(projectId);
-  return project !== undefined && await deps.workspaceStore.isWorkspaceArchived(project.workspace_id)
+  return project !== undefined &&
+    (await deps.workspaceStore.isWorkspaceArchived(project.workspace_id))
     ? "WORKSPACE_ARCHIVED"
     : "OK";
 }
@@ -213,7 +222,7 @@ async function hasProjectMembership(
 ): Promise<boolean> {
   return (
     userId !== undefined &&
-    await membershipStore.membershipForProject(projectId, userId) !== undefined
+    (await membershipStore.membershipForProject(projectId, userId)) !== undefined
   );
 }
 

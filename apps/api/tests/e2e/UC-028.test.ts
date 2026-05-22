@@ -13,16 +13,30 @@ import { createWorkspaceMember } from "../helpers/member-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-028 - Comment on a use case", () => {
   test("MAIN: add, list, edit, resolve, and delete own comment", async () => {
-    const setup = await createProject(server, "Comment Main", "comment-main", "stub-comment-main");
+    const setup = await createProject(
+      server,
+      "Comment Main",
+      "comment-main",
+      "stub-comment-main"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Reviews comments");
 
-    const added = await addComment(server, usecase.id, setup.cookie, "**Review** this flow");
+    const added = await addComment(
+      server,
+      usecase.id,
+      setup.cookie,
+      "**Review** this flow"
+    );
 
     expect(added.status).toBe(201);
     const addBody = (await added.json()) as CommentResponse;
@@ -41,15 +55,21 @@ describe("UC-028 - Comment on a use case", () => {
       reason: "Review open comments for this use case."
     });
 
-    expect((await listComments(server, usecase.id, setup.cookie)).comments).toEqual([addBody.comment]);
+    expect((await listComments(server, usecase.id, setup.cookie)).comments).toEqual([
+      addBody.comment
+    ]);
 
-    const edited = await patchComment(server, addBody.comment.id, setup.cookie, { body: "_Resolved in spec._" });
+    const edited = await patchComment(server, addBody.comment.id, setup.cookie, {
+      body: "_Resolved in spec._"
+    });
     const editBody = (await edited.json()) as CommentResponse;
     expect(edited.status).toBe(200);
     expect(editBody.comment.body).toBe("_Resolved in spec._");
     expect(Date.parse(editBody.comment.updated_at ?? "")).not.toBeNaN();
 
-    const resolved = await patchComment(server, addBody.comment.id, setup.cookie, { resolved: true });
+    const resolved = await patchComment(server, addBody.comment.id, setup.cookie, {
+      resolved: true
+    });
     const resolveBody = (await resolved.json()) as CommentResponse;
     expect(resolved.status).toBe(200);
     expect(resolveBody.comment.resolved).toBe(true);
@@ -61,9 +81,19 @@ describe("UC-028 - Comment on a use case", () => {
   });
 
   test("3a: whitespace-only body is rejected without inserting a comment", async () => {
-    const setup = await createProject(server, "Comment Empty", "comment-empty", "stub-comment-empty");
+    const setup = await createProject(
+      server,
+      "Comment Empty",
+      "comment-empty",
+      "stub-comment-empty"
+    );
     await createActor(server, setup, "Customer");
-    const usecase = await createUseCase(server, setup, "Customer", "Reviews empty comments");
+    const usecase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews empty comments"
+    );
 
     const response = await addComment(server, usecase.id, setup.cookie, "   ");
 
@@ -71,19 +101,34 @@ describe("UC-028 - Comment on a use case", () => {
     const problem = (await response.json()) as CommentProblem;
     expect(problem.code).toBe("empty_body");
     expect(problem.suggested_next_actions).toContainEqual({
-      command: "vspec comment add --body \"<text>\"",
+      command: 'vspec comment add --body "<text>"',
       reason: "Provide a non-empty markdown body."
     });
     expect((await listComments(server, usecase.id, setup.cookie)).comments).toEqual([]);
   });
 
   test("3b: missing or archived target returns use case list guidance", async () => {
-    const setup = await createProject(server, "Comment Missing", "comment-missing", "stub-comment-missing");
+    const setup = await createProject(
+      server,
+      "Comment Missing",
+      "comment-missing",
+      "stub-comment-missing"
+    );
     await createActor(server, setup, "Customer");
-    const archived = await createUseCase(server, setup, "Customer", "Reviews archived comments");
+    const archived = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews archived comments"
+    );
     await server.fetch(`/__test/usecases/${archived.id}/archive`, { method: "POST" });
 
-    const missing = await addComment(server, "usecase-missing", setup.cookie, "Review this");
+    const missing = await addComment(
+      server,
+      "usecase-missing",
+      setup.cookie,
+      "Review this"
+    );
     expect(missing.status).toBe(404);
     const missingProblem = (await missing.json()) as CommentProblem;
     expect(missingProblem.suggested_next_actions).toContainEqual({
@@ -91,7 +136,12 @@ describe("UC-028 - Comment on a use case", () => {
       reason: "Find a valid non-archived use case."
     });
 
-    const archivedResponse = await addComment(server, archived.id, setup.cookie, "Review archived");
+    const archivedResponse = await addComment(
+      server,
+      archived.id,
+      setup.cookie,
+      "Review archived"
+    );
     expect(archivedResponse.status).toBe(404);
     const archivedProblem = (await archivedResponse.json()) as CommentProblem;
     expect(archivedProblem.suggested_next_actions).toContainEqual({
@@ -101,7 +151,12 @@ describe("UC-028 - Comment on a use case", () => {
   });
 
   test("4b: another workspace member cannot delete the comment", async () => {
-    const setup = await createCommentFixture(server, "Delete Other", "delete-other", "stub-delete-other");
+    const setup = await createCommentFixture(
+      server,
+      "Delete Other",
+      "delete-other",
+      "stub-delete-other"
+    );
     const added = await addComment(server, setup.usecase.id, setup.cookie, "Keep this");
     const addedBody = (await added.json()) as CommentResponse;
     const other = await createWorkspaceMember(
@@ -117,19 +172,33 @@ describe("UC-028 - Comment on a use case", () => {
     expect(response.status).toBe(403);
     const problem = (await response.json()) as CommentProblem;
     expect(problem.code).toBe("not_owner");
-    expect((await listComments(server, setup.usecase.id, setup.cookie)).comments).toEqual([
-      addedBody.comment
-    ]);
+    expect(
+      (await listComments(server, setup.usecase.id, setup.cookie)).comments
+    ).toEqual([addedBody.comment]);
   });
 
   test("4a: resolving an already-resolved comment is an idempotent no-op", async () => {
-    const setup = await createCommentFixture(server, "Resolve Again", "resolve-again", "stub-resolve-again");
-    const added = await addComment(server, setup.usecase.id, setup.cookie, "Done after review");
+    const setup = await createCommentFixture(
+      server,
+      "Resolve Again",
+      "resolve-again",
+      "stub-resolve-again"
+    );
+    const added = await addComment(
+      server,
+      setup.usecase.id,
+      setup.cookie,
+      "Done after review"
+    );
     const addedBody = (await added.json()) as CommentResponse;
 
-    const first = await patchComment(server, addedBody.comment.id, setup.cookie, { resolved: true });
+    const first = await patchComment(server, addedBody.comment.id, setup.cookie, {
+      resolved: true
+    });
     const firstBody = (await first.json()) as CommentResponse;
-    const second = await patchComment(server, addedBody.comment.id, setup.cookie, { resolved: true });
+    const second = await patchComment(server, addedBody.comment.id, setup.cookie, {
+      resolved: true
+    });
     const secondBody = (await second.json()) as CommentResponse;
 
     expect(second.status).toBe(200);
@@ -138,8 +207,18 @@ describe("UC-028 - Comment on a use case", () => {
   });
 
   test("5b: another workspace member cannot edit the comment", async () => {
-    const setup = await createCommentFixture(server, "Edit Other", "edit-other", "stub-edit-other");
-    const added = await addComment(server, setup.usecase.id, setup.cookie, "Original body");
+    const setup = await createCommentFixture(
+      server,
+      "Edit Other",
+      "edit-other",
+      "stub-edit-other"
+    );
+    const added = await addComment(
+      server,
+      setup.usecase.id,
+      setup.cookie,
+      "Original body"
+    );
     const addedBody = (await added.json()) as CommentResponse;
     const other = await createWorkspaceMember(
       server,
@@ -149,18 +228,25 @@ describe("UC-028 - Comment on a use case", () => {
       "stub-comment-edit-other"
     );
 
-    const response = await patchComment(server, addedBody.comment.id, other.cookie, { body: "Changed" });
+    const response = await patchComment(server, addedBody.comment.id, other.cookie, {
+      body: "Changed"
+    });
 
     expect(response.status).toBe(403);
     const problem = (await response.json()) as CommentProblem;
     expect(problem.code).toBe("not_owner");
-    expect((await listComments(server, setup.usecase.id, setup.cookie)).comments[0]?.body).toBe(
-      "Original body"
-    );
+    expect(
+      (await listComments(server, setup.usecase.id, setup.cookie)).comments[0]?.body
+    ).toBe("Original body");
   });
 
   test("*a: failed comment write returns retry guidance without inserting", async () => {
-    const setup = await createCommentFixture(server, "Write Failure", "write-failure", "stub-write-failure");
+    const setup = await createCommentFixture(
+      server,
+      "Write Failure",
+      "write-failure",
+      "stub-write-failure"
+    );
 
     const response = await addComment(
       server,
@@ -177,6 +263,8 @@ describe("UC-028 - Comment on a use case", () => {
       command: "vspec comment add --retry",
       reason: "Retry after storage is available."
     });
-    expect((await listComments(server, setup.usecase.id, setup.cookie)).comments).toEqual([]);
+    expect(
+      (await listComments(server, setup.usecase.id, setup.cookie)).comments
+    ).toEqual([]);
   });
 });

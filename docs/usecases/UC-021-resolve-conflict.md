@@ -71,10 +71,10 @@ The developer/PM runs `vspec merge resolve <id> [--strategy mine|theirs|manual]`
 - 5a3. **System** leaves the MR `OPEN` so the caller can retry once the lock clears.
 - (Outcome: FAILURE — use case ends; no state change.)
 
-### *a. Transactional failure during step 6
+### \*a. Transactional failure during step 6
 
-- *a1. **System** ensures the per-entity revision writes, `main.head_revision_ids` update, MR status change, and branch status change happen atomically; on failure all four roll back together.
-- *a2. **System** returns exit code 5 with a retry hint; MR stays `OPEN`.
+- \*a1. **System** ensures the per-entity revision writes, `main.head_revision_ids` update, MR status change, and branch status change happen atomically; on failure all four roll back together.
+- \*a2. **System** returns exit code 5 with a retry hint; MR stays `OPEN`.
 - (Outcome: FAILURE — use case ends; `main` is unchanged.)
 
 ## Success Guarantee

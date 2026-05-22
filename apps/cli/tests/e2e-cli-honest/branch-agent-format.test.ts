@@ -38,16 +38,21 @@ describe("honest CLI branch create --format=agent", () => {
   });
 
   test("agent branch create", async () => {
-    const result = await expectOk(runCli([
-      "branch",
-      "create",
-      "feature/agent-envelope",
-      "--from",
-      "main",
-      "--project-id",
-      seed.projectId,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "branch",
+          "create",
+          "feature/agent-envelope",
+          "--from",
+          "main",
+          "--project-id",
+          seed.projectId,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);

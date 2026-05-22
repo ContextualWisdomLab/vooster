@@ -78,10 +78,10 @@ The agent runs `vspec session start --intent "<text>" [--pin <KEY,KEY,...>] [--a
 - 2a2. **System** emits a warning in the response and continues.
 - (Outcome: PARTIAL — rejoins main at step 3.)
 
-### *a. Transactional write fails mid-creation
+### \*a. Transactional write fails mid-creation
 
-- *a1. **System** aborts before persisting any of `WorkSession`, `SpecBranch`, or `Lock` rows (single DB transaction).
-- *a2. **System** returns exit code 5 with a retry hint.
+- \*a1. **System** aborts before persisting any of `WorkSession`, `SpecBranch`, or `Lock` rows (single DB transaction).
+- \*a2. **System** returns exit code 5 with a retry hint.
 - (Outcome: FAILURE — use case ends; no partial state.)
 
 ## Success Guarantee

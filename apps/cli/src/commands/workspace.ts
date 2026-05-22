@@ -22,7 +22,12 @@ export class WorkspaceCommand extends Command {
 
   override async run(): Promise<void> {
     const parsed = await this.parse(WorkspaceCommand);
-    runWorkspace(parsed.flags, parsed.args.action, parsed.args.slug, this.log.bind(this));
+    runWorkspace(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.slug,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -43,18 +48,24 @@ export function runWorkspace(
   });
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: {
-        config: {
-          current_workspace_id: workspaceSlug,
-          current_workspace_slug: workspaceSlug
-        },
-        workspace: {
-          id: workspaceSlug,
-          slug: workspaceSlug
-        }
-      }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: {
+            config: {
+              current_workspace_id: workspaceSlug,
+              current_workspace_slug: workspaceSlug
+            },
+            workspace: {
+              id: workspaceSlug,
+              slug: workspaceSlug
+            }
+          }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

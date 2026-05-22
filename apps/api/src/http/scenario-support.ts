@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { problem } from "./signup-support.js";
-import type { StoredScenario, StoredStep, StoredUseCase } from "../domain/entities/index.js";
+import type {
+  StoredScenario,
+  StoredStep,
+  StoredUseCase
+} from "../domain/entities/index.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
@@ -25,7 +29,9 @@ export function mainSuccessScenario(
 
 export function extensionPointParentStep(extensionPoint: string): number | null {
   const match = /^(?<step>\d+)[a-z]$/.exec(extensionPoint);
-  return match?.groups?.step === undefined ? null : Number.parseInt(match.groups.step, 10);
+  return match?.groups?.step === undefined
+    ? null
+    : Number.parseInt(match.groups.step, 10);
 }
 
 export async function mainScenarioHasStep(
@@ -42,7 +48,9 @@ export function scenarioWithUseCase(
   scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore,
   scenarioId: string
-): Promise<{ projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined> {
+): Promise<
+  { projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined
+> {
   return scenarioStore.findScenarioById(scenarioId).then(async (scenario) => {
     if (scenario === undefined) {
       return undefined;

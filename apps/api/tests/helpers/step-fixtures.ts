@@ -1,7 +1,4 @@
-import type {
-  RevisionResponse,
-  ScenarioStep
-} from "./scenario-fixtures.js";
+import type { RevisionResponse, ScenarioStep } from "./scenario-fixtures.js";
 import type { TestServer } from "./server.js";
 
 export type StepPatchResponse = {
@@ -51,7 +48,12 @@ export async function createStepLock(
   server: TestServer,
   usecaseId: string,
   cookie: string,
-  body: { expires_at: string; holder: string; mode: "HARD" | "SEMANTIC"; reason: string }
+  body: {
+    expires_at: string;
+    holder: string;
+    mode: "HARD" | "SEMANTIC";
+    reason: string;
+  }
 ) {
   return server.fetch(`/__test/usecases/${usecaseId}/locks`, {
     method: "POST",

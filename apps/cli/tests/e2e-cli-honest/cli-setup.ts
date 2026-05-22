@@ -28,10 +28,12 @@ export type CliSeed = {
   usecaseKey: string;
 };
 
-export async function seedViaCli(input: {
-  apiUrl: string;
-  runCli: RunCli;
-} & SeedOverrides): Promise<CliSeed> {
+export async function seedViaCli(
+  input: {
+    apiUrl: string;
+    runCli: RunCli;
+  } & SeedOverrides
+): Promise<CliSeed> {
   const projectKey = input.projectKey ?? "HON";
   const actorName = input.actorName ?? "Customer";
   const configPath = join(mkdtempSync(join(tmpdir(), "vspec-honest-")), "config.json");
@@ -42,51 +44,79 @@ export async function seedViaCli(input: {
     VSPEC_CONFIG_PATH: configPath
   };
 
-  await expectOk(input.runCli([
-    "login",
-    "--workspace-name",
-    input.workspaceName ?? `${projectKey} Workspace`,
-    "--workspace-slug",
-    input.workspaceSlug ?? `${projectKey.toLowerCase()}-workspace`
-  ], env));
+  await expectOk(
+    input.runCli(
+      [
+        "login",
+        "--workspace-name",
+        input.workspaceName ?? `${projectKey} Workspace`,
+        "--workspace-slug",
+        input.workspaceSlug ?? `${projectKey.toLowerCase()}-workspace`
+      ],
+      env
+    )
+  );
 
-  const project = await expectOk(input.runCli([
-    "project",
-    "create",
-    "--name",
-    input.projectName ?? `${projectKey} Project`,
-    "--key",
-    projectKey
-  ], env));
-  const projectId = requiredMatch(project.stdout, /Project .+ [A-Z0-9]+ ([^\s]+)/u, "project id");
+  const project = await expectOk(
+    input.runCli(
+      [
+        "project",
+        "create",
+        "--name",
+        input.projectName ?? `${projectKey} Project`,
+        "--key",
+        projectKey
+      ],
+      env
+    )
+  );
+  const projectId = requiredMatch(
+    project.stdout,
+    /Project .+ [A-Z0-9]+ ([^\s]+)/u,
+    "project id"
+  );
 
-  const actor = await expectOk(input.runCli([
-    "actor",
-    "create",
-    "--name",
-    actorName,
-    "--type",
-    "PRIMARY",
-    "--description",
-    "Person buying a product.",
-    "--aliases",
-    "Buyer",
-    "--project-id",
-    projectId
-  ], env));
+  const actor = await expectOk(
+    input.runCli(
+      [
+        "actor",
+        "create",
+        "--name",
+        actorName,
+        "--type",
+        "PRIMARY",
+        "--description",
+        "Person buying a product.",
+        "--aliases",
+        "Buyer",
+        "--project-id",
+        projectId
+      ],
+      env
+    )
+  );
   const actorId = requiredMatch(actor.stdout, /Actor id ([^\s]+)/u, "actor id");
 
-  const usecase = await expectOk(input.runCli([
-    "usecase",
-    "create",
-    "--title",
-    input.usecaseTitle ?? "Places an order",
-    "--primary-actor",
-    actorName,
-    "--project-id",
-    projectId
-  ], env));
-  const usecaseKey = requiredMatch(usecase.stdout, /UseCase ([A-Z0-9]+-\d+)/u, "usecase key");
+  const usecase = await expectOk(
+    input.runCli(
+      [
+        "usecase",
+        "create",
+        "--title",
+        input.usecaseTitle ?? "Places an order",
+        "--primary-actor",
+        actorName,
+        "--project-id",
+        projectId
+      ],
+      env
+    )
+  );
+  const usecaseKey = requiredMatch(
+    usecase.stdout,
+    /UseCase ([A-Z0-9]+-\d+)/u,
+    "usecase key"
+  );
 
   return {
     actorId,
@@ -102,41 +132,50 @@ export async function addStakeholderViaCli(
   runCli: RunCli,
   name = "Product Manager"
 ): Promise<void> {
-  await expectOk(runCli([
-    "stakeholder",
-    "create",
-    "--project-id",
-    seed.projectId,
-    "--name",
-    name,
-    "--type",
-    "INTERNAL",
-    "--description",
-    "Owns the checkout business outcome."
-  ], seed.env));
+  await expectOk(
+    runCli(
+      [
+        "stakeholder",
+        "create",
+        "--project-id",
+        seed.projectId,
+        "--name",
+        name,
+        "--type",
+        "INTERNAL",
+        "--description",
+        "Owns the checkout business outcome."
+      ],
+      seed.env
+    )
+  );
 
-  await expectOk(runCli([
-    "usecase",
-    "add-stakeholder",
-    seed.usecaseKey,
-    "--stakeholder",
-    name,
-    "--interest",
-    "Checkout revenue is protected.",
-    "--protection-mechanism",
-    "Success guarantee"
-  ], seed.env));
+  await expectOk(
+    runCli(
+      [
+        "usecase",
+        "add-stakeholder",
+        seed.usecaseKey,
+        "--stakeholder",
+        name,
+        "--interest",
+        "Checkout revenue is protected.",
+        "--protection-mechanism",
+        "Success guarantee"
+      ],
+      seed.env
+    )
+  );
 }
 
-export async function addMainScenarioViaCli(seed: CliSeed, runCli: RunCli): Promise<string> {
+export async function addMainScenarioViaCli(
+  seed: CliSeed,
+  runCli: RunCli
+): Promise<string> {
   await addStakeholderViaCli(seed, runCli);
-  const scenario = await expectOk(runCli([
-    "scenario",
-    "add",
-    seed.usecaseKey,
-    "--type",
-    "main-success"
-  ], seed.env));
+  const scenario = await expectOk(
+    runCli(["scenario", "add", seed.usecaseKey, "--type", "main-success"], seed.env)
+  );
 
   return requiredMatch(scenario.stdout, /Scenario ([a-f0-9-]+)/u, "scenario id");
 }
@@ -146,15 +185,20 @@ export async function addMainStepViaCli(
   runCli: RunCli
 ): Promise<{ baseRevision: string; stepId: string }> {
   const scenarioId = await addMainScenarioViaCli(seed, runCli);
-  const step = await expectOk(runCli([
-    "step",
-    "add",
-    scenarioId,
-    "--actor",
-    "Customer",
-    "--action",
-    "Places an order."
-  ], seed.env));
+  const step = await expectOk(
+    runCli(
+      [
+        "step",
+        "add",
+        scenarioId,
+        "--actor",
+        "Customer",
+        "--action",
+        "Places an order."
+      ],
+      seed.env
+    )
+  );
 
   return {
     baseRevision: requiredMatch(step.stdout, /Revision id ([^\s]+)/u, "revision id"),

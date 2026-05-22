@@ -67,9 +67,9 @@ The developer/PM runs `vspec who <KEY-NNN>` or hits `GET /v1/usecases/:id/who`.
 - 3a2. **System** suggests `vspec session abandon <id>` for the offender.
 - (Outcome: PARTIAL — rejoins main at step 5.)
 
-### *a. Caller has no membership in the workspace
+### \*a. Caller has no membership in the workspace
 
-- *a1. **System** denies with 403 and does not disclose whether the use case key exists.
+- \*a1. **System** denies with 403 and does not disclose whether the use case key exists.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

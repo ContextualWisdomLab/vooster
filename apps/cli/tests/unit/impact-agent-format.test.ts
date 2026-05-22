@@ -27,7 +27,9 @@ describe("impact --format=agent", () => {
     stubImpactFetch();
     const lines: string[] = [];
 
-    await runImpact(impactFlags({ format: "agent" }), "IMP-001", (line) => lines.push(line));
+    await runImpact(impactFlags({ format: "agent" }), "IMP-001", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Preview ");
@@ -66,25 +68,28 @@ describe("impact --format=agent", () => {
 });
 
 function stubImpactFetch(): void {
-  vi.stubGlobal("fetch", vi.fn((input: string | URL, init?: RequestInit) => {
-    const url = input.toString();
-    if (url.includes("/v1/usecases/IMP-001/revisions")) {
-      return Promise.resolve(jsonResponse(historyResponse()));
-    }
-    if (url.endsWith("/v1/changes/preview")) {
-      expect(init?.method).toBe("POST");
-      const requestBody = init?.body;
-      expect(typeof requestBody).toBe("string");
-      expect(JSON.parse(requestBody as string)).toMatchObject({
-        base_revision: "revision-1",
-        entity_id: "IMP-001",
-        entity_type: "USECASE"
-      });
-      return Promise.resolve(jsonResponse(impactResponse()));
-    }
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: string | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.includes("/v1/usecases/IMP-001/revisions")) {
+        return Promise.resolve(jsonResponse(historyResponse()));
+      }
+      if (url.endsWith("/v1/changes/preview")) {
+        expect(init?.method).toBe("POST");
+        const requestBody = init?.body;
+        expect(typeof requestBody).toBe("string");
+        expect(JSON.parse(requestBody as string)).toMatchObject({
+          base_revision: "revision-1",
+          entity_id: "IMP-001",
+          entity_type: "USECASE"
+        });
+        return Promise.resolve(jsonResponse(impactResponse()));
+      }
 
-    throw new Error("missing history response or impact response");
-  }));
+      throw new Error("missing history response or impact response");
+    })
+  );
 }
 
 function impactFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -117,9 +122,7 @@ function impactResponse() {
       severity: "NON_BREAKING"
     },
     preview_id: "preview-1",
-    suggested_next_actions: [
-      { command: "vspec lock IMP-001" }
-    ]
+    suggested_next_actions: [{ command: "vspec lock IMP-001" }]
   };
 }
 

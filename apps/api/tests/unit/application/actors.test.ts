@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { defineActor } from "../../../src/application/actors.js";
-import type { StoredActor, StoredRevision } from "../../../src/domain/entities/index.js";
+import type {
+  StoredActor,
+  StoredRevision
+} from "../../../src/domain/entities/index.js";
 import { actor, actorInput, depsFor } from "./actors-fixtures.js";
 
 describe("actor definition application", () => {

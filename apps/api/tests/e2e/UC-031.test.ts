@@ -9,13 +9,21 @@ import {
 import { startServer, type TestServer } from "../helpers/server.js";
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-031 - Export a use case to markdown", () => {
   test("MAIN: export canonical markdown with frontmatter, sections, and scenarios", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Markdown Main", "markdown-main", "stub-markdown-main");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Markdown Main",
+      "markdown-main",
+      "stub-markdown-main"
+    );
     const extensionResponse = await createExtensionScenario(
       server,
       usecase.id,
@@ -34,15 +42,25 @@ describe("UC-031 - Export a use case to markdown", () => {
     expect(response.headers.get("content-type")).toContain("text/markdown");
     const markdown = await response.text();
     expect(markdown).toMatch(/revision: [0-9a-f-]{36}/);
-    expect(markdown).toContain("## Stakeholders and Interests\n\n- **Product Manager**: Checkout revenue is protected.");
-    expect(markdown).toContain("## Main Success Scenario\n\n1. **Customer** Places an order.");
-    expect(markdown).toContain("### 1a. Payment is declined.\n\n- 1a1. **Customer** Uses a backup card.");
+    expect(markdown).toContain(
+      "## Stakeholders and Interests\n\n- **Product Manager**: Checkout revenue is protected."
+    );
+    expect(markdown).toContain(
+      "## Main Success Scenario\n\n1. **Customer** Places an order."
+    );
+    expect(markdown).toContain(
+      "### 1a. Payment is declined.\n\n- 1a1. **Customer** Uses a backup card."
+    );
     expect(markdown).toMatch(/## Notes\n$/);
   });
 
   test("4a: incomplete use case returns doctor guidance", async () => {
-    const { setup, usecase } =
-      await createScenarioReadyUseCase(server, "Markdown Incomplete", "markdown-incomplete", "stub-markdown-incomplete");
+    const { setup, usecase } = await createScenarioReadyUseCase(
+      server,
+      "Markdown Incomplete",
+      "markdown-incomplete",
+      "stub-markdown-incomplete"
+    );
 
     const response = await exportMarkdown(usecase.id, setup.cookie);
 
@@ -59,8 +77,12 @@ describe("UC-031 - Export a use case to markdown", () => {
   });
 
   test("6a: existing output requires force and returns proposed diff", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Markdown Exists", "markdown-exists", "stub-markdown-exists");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Markdown Exists",
+      "markdown-exists",
+      "stub-markdown-exists"
+    );
 
     const response = await exportMarkdown(usecase.id, setup.cookie, {
       existing_file_content: "# Old checkout\n",
@@ -81,8 +103,12 @@ describe("UC-031 - Export a use case to markdown", () => {
   });
 
   test("6b: unwritable output directory returns local config guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Markdown Output", "markdown-output", "stub-markdown-output");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Markdown Output",
+      "markdown-output",
+      "stub-markdown-output"
+    );
 
     const response = await exportMarkdown(usecase.id, setup.cookie, {
       output_path: "missing/CHK-001.md"
@@ -103,11 +129,33 @@ describe("UC-031 - Export a use case to markdown", () => {
   });
 
   test("5a: extensions with shared parent are sorted before any-step extensions", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Markdown Sort", "markdown-sort", "stub-markdown-sort");
-    await addExtensionStep(usecase.id, setup.cookie, "1b", "Address is incomplete.", "Adds an address.");
-    await addExtensionStep(usecase.id, setup.cookie, "*a", "Network is unavailable.", "Retries later.");
-    await addExtensionStep(usecase.id, setup.cookie, "1a", "Payment is declined.", "Uses a backup card.");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Markdown Sort",
+      "markdown-sort",
+      "stub-markdown-sort"
+    );
+    await addExtensionStep(
+      usecase.id,
+      setup.cookie,
+      "1b",
+      "Address is incomplete.",
+      "Adds an address."
+    );
+    await addExtensionStep(
+      usecase.id,
+      setup.cookie,
+      "*a",
+      "Network is unavailable.",
+      "Retries later."
+    );
+    await addExtensionStep(
+      usecase.id,
+      setup.cookie,
+      "1a",
+      "Payment is declined.",
+      "Uses a backup card."
+    );
 
     const response = await exportMarkdown(usecase.id, setup.cookie);
     const markdown = await response.text();
@@ -122,10 +170,16 @@ describe("UC-031 - Export a use case to markdown", () => {
   });
 
   test("*a: missing requested revision returns history guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Markdown Revision", "markdown-revision", "stub-markdown-revision");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Markdown Revision",
+      "markdown-revision",
+      "stub-markdown-revision"
+    );
 
-    const response = await exportMarkdown(usecase.id, setup.cookie, { revision_id: "revision-missing" });
+    const response = await exportMarkdown(usecase.id, setup.cookie, {
+      revision_id: "revision-missing"
+    });
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as {
@@ -147,17 +201,20 @@ async function addExtensionStep(
   condition: string,
   action: string
 ) {
-  const response = await createExtensionScenario(
-    server,
-    usecaseId,
-    cookie,
-    { condition, extension_point, outcome: "FAILURE" }
-  );
+  const response = await createExtensionScenario(server, usecaseId, cookie, {
+    condition,
+    extension_point,
+    outcome: "FAILURE"
+  });
   const extension = (await response.json()) as ScenarioResponse;
   await addStep(server, extension.scenario.id, cookie, { action, actor: "Customer" });
 }
 
-function exportMarkdown(usecaseId: string, cookie: string, body: Record<string, unknown> = {}) {
+function exportMarkdown(
+  usecaseId: string,
+  cookie: string,
+  body: Record<string, unknown> = {}
+) {
   return server.fetch(`/v1/usecases/${usecaseId}/export/markdown`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },

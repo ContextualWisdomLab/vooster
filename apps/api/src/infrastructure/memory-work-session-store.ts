@@ -15,9 +15,10 @@ export function createMemoryWorkSessionStore(): WorkSessionStore {
 
     listWorkSessionsForUseCase(usecaseId) {
       return Promise.resolve(
-        [...sessionsById.values()].filter((session) =>
-          session.usecase_id === usecaseId ||
-          session.pinned_revisions?.[usecaseId] !== undefined
+        [...sessionsById.values()].filter(
+          (session) =>
+            session.usecase_id === usecaseId ||
+            session.pinned_revisions?.[usecaseId] !== undefined
         )
       );
     },

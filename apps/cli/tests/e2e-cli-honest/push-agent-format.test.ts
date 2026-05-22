@@ -72,34 +72,35 @@ describe("honest CLI push --format=agent", () => {
   test("agent push writes canonical file revisions", async () => {
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const root = tempRoot();
-    const pulled = await expectOk(runCli([
-      "pull",
-      "--project-id",
-      seed.projectId,
-      "--root",
-      root,
-      "--format=agent"
-    ], seed.env));
+    const pulled = await expectOk(
+      runCli(
+        ["pull", "--project-id", seed.projectId, "--root", root, "--format=agent"],
+        seed.env
+      )
+    );
     const pullEnvelope = expectAgentEnvelope<PullData>(pulled.stdout);
     const filePath = join(root, "specs", `${seed.usecaseKey}.md`);
     const original = await readFile(filePath, "utf8");
-    await writeFile(filePath, original.replace(`# ${usecaseTitle}`, `# ${usecaseTitle} updated`));
+    await writeFile(
+      filePath,
+      original.replace(`# ${usecaseTitle}`, `# ${usecaseTitle} updated`)
+    );
 
-    const pushed = await expectOk(runCli([
-      "push",
-      "--project-id",
-      seed.projectId,
-      "--root",
-      root,
-      "--format=agent"
-    ], seed.env));
+    const pushed = await expectOk(
+      runCli(
+        ["push", "--project-id", seed.projectId, "--root", root, "--format=agent"],
+        seed.env
+      )
+    );
 
     const pushEnvelope = expectAgentEnvelope<PushData>(pushed.stdout);
     expect(pushEnvelope.context).toEqual(defaultContext());
     expect(pushEnvelope.data.results.at(0)?.path).toBe(`specs/${seed.usecaseKey}.md`);
     expect(pushEnvelope.data.results.at(0)?.status).toBe("OK");
     expect(pushEnvelope.data.cache.entries.at(0)?.status).toBe("SYNCED");
-    expect(pushEnvelope.data.suggested_next_actions).toEqual(pushEnvelope.suggested_next_actions);
+    expect(pushEnvelope.data.suggested_next_actions).toEqual(
+      pushEnvelope.suggested_next_actions
+    );
     expect(pushEnvelope.suggested_next_actions.at(0)?.command).toBe("vspec pull");
     const pushedRevision = pushEnvelope.data.results.at(0)?.current_revision ?? "";
     expect(pushedRevision).not.toBe(pullEnvelope.data.cursor);

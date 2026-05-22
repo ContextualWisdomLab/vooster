@@ -14,7 +14,11 @@ export type LockApplicationDeps = {
 
 export type LockResult =
   | { lock: StoredLock; status: "CREATED" | "RENEWED"; usecase: StoredUseCase }
-  | { lock: StoredLock; status: "COMPETING_LOCK" | "EXPIRED_LOCK" | "FOREIGN_LOCK"; usecase: StoredUseCase }
+  | {
+      lock: StoredLock;
+      status: "COMPETING_LOCK" | "EXPIRED_LOCK" | "FOREIGN_LOCK";
+      usecase: StoredUseCase;
+    }
   | { status: "FORBIDDEN" | "LOCK_NOT_FOUND" | "USECASE_NOT_FOUND" };
 
 export type AcquireLockInput = {
@@ -76,7 +80,9 @@ export async function renewLock(
     return { lock, status: "EXPIRED_LOCK", usecase: found.usecase };
   }
 
-  lock.expires_at = new Date(now(deps).getTime() + input.ttlMinutes * 60_000).toISOString();
+  lock.expires_at = new Date(
+    now(deps).getTime() + input.ttlMinutes * 60_000
+  ).toISOString();
   await deps.lockStore.updateLock(lock);
   return { lock, status: "RENEWED", usecase: found.usecase };
 }
@@ -94,7 +100,8 @@ async function authorizedUseCase(
     return { status: "USECASE_NOT_FOUND" };
   }
   return userId !== undefined &&
-    await deps.membershipStore.membershipForProject(found.projectId, userId) !== undefined
+    (await deps.membershipStore.membershipForProject(found.projectId, userId)) !==
+      undefined
     ? { status: "AUTHORIZED", usecase: found.usecase, userId }
     : { status: "FORBIDDEN" };
 }
@@ -114,7 +121,8 @@ function blockingLock(
   if (requestedType === "HARD") {
     return lock;
   }
-  return requestedType === "SEMANTIC" && (lock.mode === "SEMANTIC" || lock.mode === "HARD")
+  return requestedType === "SEMANTIC" &&
+    (lock.mode === "SEMANTIC" || lock.mode === "HARD")
     ? lock
     : undefined;
 }
@@ -135,7 +143,9 @@ function useCaseLock(
   return {
     acquired_at: acquiredAt.toISOString(),
     auto_release: true,
-    expires_at: new Date(acquiredAt.getTime() + input.ttlMinutes * 60_000).toISOString(),
+    expires_at: new Date(
+      acquiredAt.getTime() + input.ttlMinutes * 60_000
+    ).toISOString(),
     held_by_session_id: input.sessionId,
     held_by_user_id: userId,
     holder: input.sessionId ?? userId,

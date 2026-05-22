@@ -86,7 +86,9 @@ describe("CLI merge resolve --format=agent", () => {
       expect(envelope.data.merge_request.status).toBe("MERGED");
       expect(envelope.data.source_branch.id).toBe(setup.branchId);
       expect(envelope.data.source_branch.status).toBe("MERGED");
-      expect(envelope.suggested_next_actions.at(0)?.command).toBe(`vspec usecase show ${setup.usecaseKey}`);
+      expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+        `vspec usecase show ${setup.usecaseKey}`
+      );
     } finally {
       await server.stop();
     }
@@ -98,7 +100,11 @@ async function createResolvableConflict(apiUrl: string) {
   const projectResponse = await fetch(
     `${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`,
     {
-      body: JSON.stringify({ key: "MRA", name: "Merge Resolve Agent", visibility: "PRIVATE" }),
+      body: JSON.stringify({
+        key: "MRA",
+        name: "Merge Resolve Agent",
+        visibility: "PRIVATE"
+      }),
       headers: {
         "Content-Type": "application/json",
         Cookie: signedUp.cookie
@@ -106,7 +112,7 @@ async function createResolvableConflict(apiUrl: string) {
       method: "POST"
     }
   );
-  const projectBody = await projectResponse.json() as ProjectResponse;
+  const projectBody = (await projectResponse.json()) as ProjectResponse;
   await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/actors`, {
     body: JSON.stringify({
       aliases: ["Buyer"],
@@ -135,16 +141,19 @@ async function createResolvableConflict(apiUrl: string) {
       method: "POST"
     }
   );
-  const useCaseBody = await useCaseResponse.json() as UseCaseResponse;
-  const branchResponse = await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/branches`, {
-    body: JSON.stringify({ name: "feature/resolve-refund" }),
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: signedUp.cookie
-    },
-    method: "POST"
-  });
-  const branchBody = await branchResponse.json() as BranchCreateResponse;
+  const useCaseBody = (await useCaseResponse.json()) as UseCaseResponse;
+  const branchResponse = await fetch(
+    `${apiUrl}/v1/projects/${projectBody.project.id}/branches`,
+    {
+      body: JSON.stringify({ name: "feature/resolve-refund" }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: signedUp.cookie
+      },
+      method: "POST"
+    }
+  );
+  const branchBody = (await branchResponse.json()) as BranchCreateResponse;
   await fetch(
     `${apiUrl}/__test/branches/${branchBody.branch.id}/usecases/${useCaseBody.usecase.id}/revisions`,
     {
@@ -181,7 +190,7 @@ async function createResolvableConflict(apiUrl: string) {
     },
     method: "POST"
   });
-  const mergeBody = await mergeResponse.json() as MergeOpenResponse;
+  const mergeBody = (await mergeResponse.json()) as MergeOpenResponse;
 
   return {
     baseRevision: mergeBody.merge_request.current_revision_id,
@@ -206,7 +215,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-merge-resolve-agent-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -216,7 +225,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

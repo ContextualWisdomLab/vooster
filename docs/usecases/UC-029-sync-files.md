@@ -20,7 +20,7 @@ primary_actor: developer-pm
 
 - **Developer / PM**: edits specs in their editor of choice, then pushes with confidence that nothing on the server gets silently overwritten. _(Protected by: step 4 and extension 4a.)_
 - **AI Coding Agent**: reads pinned revisions from `specs/` directly with filesystem tools, and notices conflict markers as a clear "do not proceed" signal. _(Protected by: extension 4a and Minimal Guarantee.)_
-- **Workspace Admin**: trusts that all writes funnel through the same authorization and revision pipeline as the API and Web UI — files are not a second-class write path. _(Protected by: step 2 and extension *a.)_
+- **Workspace Admin**: trusts that all writes funnel through the same authorization and revision pipeline as the API and Web UI — files are not a second-class write path. _(Protected by: step 2 and extension \*a.)_
 - **Vooster**: enforces the round-trip guarantee from `docs/08-file-format.md` — `serialize(parse(F)) === normalize(F)` — so file-driven edits stay losslessly typed. _(Protected by: step 3 and extension 3a.)_
 
 ## Preconditions
@@ -72,10 +72,10 @@ The developer/PM runs `vspec pull`, `vspec push`, `vspec push --dry-run`, or `vs
 - 4b2. **System** queues the intended push in `.vspec/cache/pending-push.json` with the changed paths and current `base_revision`s, and prints a retry instruction (`vspec push` once connectivity returns).
 - (Outcome: PARTIAL — local files unchanged, no server state modified; rejoins main at step 4 on the next invocation.)
 
-### *a. Authorization fails or the API key is revoked mid-sync
+### \*a. Authorization fails or the API key is revoked mid-sync
 
-- *a1. **System** returns exit code 3, instructs `vspec login` or (for agents) refreshes the API key.
-- *a2. **System** leaves local files untouched and does not advance any `revision:` field.
+- \*a1. **System** returns exit code 3, instructs `vspec login` or (for agents) refreshes the API key.
+- \*a2. **System** leaves local files untouched and does not advance any `revision:` field.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

@@ -147,12 +147,14 @@ describe("stakeholder interest application", () => {
   });
 });
 
-function depsFor(options: {
-  deletedInterestIds?: string[];
-  existingInterests?: StoredStakeholderInterest[];
-  savedInterests?: StoredStakeholderInterest[];
-  savedRevisions?: StoredRevision[];
-} = {}) {
+function depsFor(
+  options: {
+    deletedInterestIds?: string[];
+    existingInterests?: StoredStakeholderInterest[];
+    savedInterests?: StoredStakeholderInterest[];
+    savedRevisions?: StoredRevision[];
+  } = {}
+) {
   let nextId = 0;
   return {
     idFactory: () => {
@@ -198,7 +200,9 @@ function useCaseStore(): UseCaseStore {
 function stakeholderStore(): StakeholderStore {
   return {
     findStakeholderById: (_projectId, stakeholderId) =>
-      Promise.resolve(stakeholderId === "stakeholder-product" ? productStakeholder() : undefined),
+      Promise.resolve(
+        stakeholderId === "stakeholder-product" ? productStakeholder() : undefined
+      ),
     findStakeholderByName: (_projectId, name) =>
       Promise.resolve(name === "Product Manager" ? productStakeholder() : undefined),
     listStakeholders: () => Promise.resolve([productStakeholder()]),
@@ -219,7 +223,9 @@ function stakeholderInterestStore(
     findStakeholderInterestById: (_usecaseId, interestId) =>
       Promise.resolve(existingInterests.find((row) => row.id === interestId)),
     findStakeholderInterestForStakeholder: (_usecaseId, stakeholderId) =>
-      Promise.resolve(existingInterests.find((row) => row.stakeholder_id === stakeholderId)),
+      Promise.resolve(
+        existingInterests.find((row) => row.stakeholder_id === stakeholderId)
+      ),
     listStakeholderInterests: () =>
       Promise.resolve(
         existingInterests

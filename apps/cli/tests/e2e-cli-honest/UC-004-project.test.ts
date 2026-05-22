@@ -13,11 +13,9 @@ describe("UC-004 honest CLI - Create a project", () => {
         runCli
       });
 
-      const switched = await expectOk(runCli([
-        "project",
-        "switch",
-        seed.projectKey
-      ], seed.env));
+      const switched = await expectOk(
+        runCli(["project", "switch", seed.projectKey], seed.env)
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(seed.projectId).toMatch(/[a-f0-9-]+/u);

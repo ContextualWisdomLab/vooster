@@ -20,7 +20,7 @@ primary_actor: ai-coding-agent
 
 - **AI Coding Agent**: receives parseable JSON with explicit revision identity so its prompts, tests, and code can be hashed against a known snapshot. _(Protected by: steps 3–5 and Success Guarantee.)_
 - **Developer / PM**: knows that any agent reading specs leaves a session pin trail, so concurrent edits won't silently break the agent's in-flight work. _(Protected by: step 3 and extension 4a.)_
-- **CI/CD System**: same endpoint with a read-scoped API key produces the same payload, enabling pre-flight checks without elevated credentials. _(Protected by: step 2 and extension *a.)_
+- **CI/CD System**: same endpoint with a read-scoped API key produces the same payload, enabling pre-flight checks without elevated credentials. _(Protected by: step 2 and extension \*a.)_
 - **Vooster**: every agent read goes through one typed contract (`{ data, context, suggested_next_actions, warnings, format_version }`) so agent integrations cannot diverge from the canonical shape. _(Protected by: step 4 and Success Guarantee.)_
 
 ## Preconditions
@@ -68,10 +68,10 @@ The agent runs `vspec usecase show <KEY-NNN> --format=agent [--revision <rev_id>
 - 2a1. **System** returns 401 with `vspec login` (for humans) and key-creation guidance (for agents).
 - (Outcome: FAILURE — use case ends.)
 
-### *a. The use case is archived
+### \*a. The use case is archived
 
-- *a1. **System** returns 404 (does not distinguish archived from missing without elevated permission).
-- *a2. **System** suggests `vspec usecase list --status=` for an authorized human caller.
+- \*a1. **System** returns 404 (does not distinguish archived from missing without elevated permission).
+- \*a2. **System** suggests `vspec usecase list --status=` for an authorized human caller.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

@@ -11,28 +11,31 @@ describe("UC-007 honest CLI - Manage actor goals", () => {
         projectKey: "GOL",
         runCli
       });
-      const created = await expectOk(runCli([
-        "goal",
-        "create",
-        "--project-id",
-        seed.projectId,
-        "--actor-id",
-        seed.actorId,
-        "--description",
-        "Places an order",
-        "--level",
-        "USER_GOAL",
-        "--priority",
-        "P1"
-      ], seed.env));
-      const listed = await expectOk(runCli([
-        "goal",
-        "list",
-        "--project-id",
-        seed.projectId,
-        "--actor-id",
-        seed.actorId
-      ], seed.env));
+      const created = await expectOk(
+        runCli(
+          [
+            "goal",
+            "create",
+            "--project-id",
+            seed.projectId,
+            "--actor-id",
+            seed.actorId,
+            "--description",
+            "Places an order",
+            "--level",
+            "USER_GOAL",
+            "--priority",
+            "P1"
+          ],
+          seed.env
+        )
+      );
+      const listed = await expectOk(
+        runCli(
+          ["goal", "list", "--project-id", seed.projectId, "--actor-id", seed.actorId],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(created.stdout).toContain("Places an order");

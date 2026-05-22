@@ -69,7 +69,9 @@ export function printSessionStart(
   writeLine(`Session ${body.session.id}`);
   writeLine(`Intent ${body.session.intent}`);
   writeLine(`Agent ${body.session.agent_type} ${body.session.agent_identifier}`);
-  writeLine(`Pinned revisions ${String(Object.keys(body.session.pinned_revisions).length)}`);
+  writeLine(
+    `Pinned revisions ${String(Object.keys(body.session.pinned_revisions).length)}`
+  );
   writeLine(`Session file ${body.session_file.path}`);
   for (const action of body.suggested_next_actions) {
     writeLine(action.command);

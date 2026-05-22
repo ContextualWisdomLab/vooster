@@ -1,10 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  startWorkSession, type StartWorkSessionResult
+  startWorkSession,
+  type StartWorkSessionResult
 } from "../application/work-session-start.js";
 import {
-  archivedPinProblem, hardLockedPinProblem, semanticLockProblem
+  archivedPinProblem,
+  hardLockedPinProblem,
+  semanticLockProblem
 } from "./session-pin-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -40,15 +43,20 @@ export function registerSessionRoutes(
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, {
-      branchStore,
-      lockStore,
-      membershipStore,
-      projectStore,
-      revisionStore,
-      workSessionStore,
-      useCaseStore
-    }, state)
+    startSession(
+      request,
+      reply,
+      {
+        branchStore,
+        lockStore,
+        membershipStore,
+        projectStore,
+        revisionStore,
+        workSessionStore,
+        useCaseStore
+      },
+      state
+    )
   );
 }
 
@@ -85,7 +93,9 @@ function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) 
     case "AUTO_BRANCH_COLLISION":
       return reply.code(409).send(problem(409, "Auto branch name is already in use"));
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "HARD_LOCKED":
       return reply.code(409).send(hardLockedPinProblem(result.key, result.holder));
     case "MISSING_PIN":
@@ -97,7 +107,14 @@ function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) 
     case "STARTED":
       return reply
         .code(201)
-        .send(sessionStartResponse(result.session, result.pinnedKeys, result.warning, result.branch));
+        .send(
+          sessionStartResponse(
+            result.session,
+            result.pinnedKeys,
+            result.warning,
+            result.branch
+          )
+        );
   }
 }
 
@@ -144,5 +161,5 @@ function writeFailureProblem() {
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {
   const header = request.headers["x-vspec-agent"];
-  return Array.isArray(header) ? header[0] ?? fallback : header ?? fallback;
+  return Array.isArray(header) ? (header[0] ?? fallback) : (header ?? fallback);
 }

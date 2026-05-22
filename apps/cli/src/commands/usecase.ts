@@ -68,7 +68,12 @@ export class UsecaseCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(UsecaseCommand);
 
-    await runUsecase(parsed.flags, parsed.args.action, parsed.args.usecaseId, this.log.bind(this));
+    await runUsecase(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.usecaseId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -296,10 +301,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isSuggestedActions(value: unknown): value is Array<{ command: string; reason?: string }> {
-  return Array.isArray(value) && value.every((item) => isRecord(item) && typeof item.command === "string");
+function isSuggestedActions(
+  value: unknown
+): value is Array<{ command: string; reason?: string }> {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => isRecord(item) && typeof item.command === "string")
+  );
 }
 
 function isWarnings(value: unknown): value is Array<{ message: string }> {
-  return Array.isArray(value) && value.every((item) => isRecord(item) && typeof item.message === "string");
+  return (
+    Array.isArray(value) &&
+    value.every((item) => isRecord(item) && typeof item.message === "string")
+  );
 }

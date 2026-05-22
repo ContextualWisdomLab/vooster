@@ -6,7 +6,10 @@ import type {
 } from "../application/api-keys.js";
 import { problem } from "./signup-support.js";
 
-export function sendCreateApiKeyResult(reply: FastifyReply, result: CreateApiKeyResult) {
+export function sendCreateApiKeyResult(
+  reply: FastifyReply,
+  result: CreateApiKeyResult
+) {
   switch (result.status) {
     case "CREATED":
       return reply.code(201).send({
@@ -49,14 +52,20 @@ export function sendListApiKeysResult(reply: FastifyReply, result: ListApiKeysRe
   }
 }
 
-export function sendRevokeApiKeyResult(reply: FastifyReply, result: RevokeApiKeyResult) {
+export function sendRevokeApiKeyResult(
+  reply: FastifyReply,
+  result: RevokeApiKeyResult
+) {
   switch (result.status) {
     case "REVOKED":
       return reply.send({
         api_key: result.apiKey,
         ...(result.idempotent ? { idempotent: true } : {}),
         suggested_next_actions: [
-          { command: "vspec api-key list", reason: "Confirm the key revocation status." }
+          {
+            command: "vspec api-key list",
+            reason: "Confirm the key revocation status."
+          }
         ]
       });
     case "NOT_FOUND":
@@ -65,17 +74,12 @@ export function sendRevokeApiKeyResult(reply: FastifyReply, result: RevokeApiKey
 }
 
 function ownerRequiredProblem() {
-  return problem(
-    403,
-    "Workspace owner role required",
-    {},
-    [
-      {
-        command: "vspec member set-role",
-        reason: "Ask a workspace owner to grant OWNER before issuing API keys."
-      }
-    ]
-  );
+  return problem(403, "Workspace owner role required", {}, [
+    {
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner to grant OWNER before issuing API keys."
+    }
+  ]);
 }
 
 function apiKeyNotFoundProblem() {

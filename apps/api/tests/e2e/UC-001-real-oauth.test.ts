@@ -94,14 +94,16 @@ describe("UC-001 real GitHub OAuth", () => {
       expect(callbackBody.workspace.owner_id).toBe(callbackBody.user.id);
       expect(callbackBody.access_token).toBeUndefined();
       const calls = fetchMock.mock.calls;
-      const tokenCall = calls.find(([url]) =>
-        requestUrl(url) === "https://github.com/login/oauth/access_token"
+      const tokenCall = calls.find(
+        ([url]) => requestUrl(url) === "https://github.com/login/oauth/access_token"
       );
       expect(tokenCall?.[1]?.method).toBe("POST");
-      expect(bodyText(tokenCall?.[1]?.body)).toContain("client_secret=fixture-client-secret");
+      expect(bodyText(tokenCall?.[1]?.body)).toContain(
+        "client_secret=fixture-client-secret"
+      );
 
-      const profileCall = calls.find(([url]) =>
-        requestUrl(url) === "https://api.github.com/user"
+      const profileCall = calls.find(
+        ([url]) => requestUrl(url) === "https://api.github.com/user"
       );
       expect(profileCall?.[1]?.method).toBe("GET");
       expect(headerValue(profileCall?.[1]?.headers, "authorization")).toBe(
@@ -180,19 +182,25 @@ function headerValue(headers: unknown, name: string): string | undefined {
 }
 
 function isHeaderPairs(value: unknown): value is Array<[string, string]> {
-  return Array.isArray(value) && value.every((entry) =>
-    Array.isArray(entry) &&
-    entry.length === 2 &&
-    typeof entry[0] === "string" &&
-    typeof entry[1] === "string"
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry) =>
+        Array.isArray(entry) &&
+        entry.length === 2 &&
+        typeof entry[0] === "string" &&
+        typeof entry[1] === "string"
+    )
   );
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {
-  return value !== null &&
+  return (
+    value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) &&
-    Object.values(value).every((entry) => typeof entry === "string");
+    Object.values(value).every((entry) => typeof entry === "string")
+  );
 }
 
 function restoreEnv(

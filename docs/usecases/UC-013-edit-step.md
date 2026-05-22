@@ -71,10 +71,10 @@ The developer/PM runs `vspec step edit <step-id>` (opens `$EDITOR`) or `vspec st
 - 6a3. **System** delivers an in-band notice in the next `vspec status` / `--format=agent` payload for those sessions per the rule in `docs/05-data-model.md`.
 - (Outcome: PARTIAL — rejoins main at step 7; pinned agents finish their in-flight work against the old revision.)
 
-### *a. Use case is HARD-locked
+### \*a. Use case is HARD-locked
 
-- *a1. **System** refuses all edits regardless of field.
-- *a2. **System** points at `vspec unlock` or contact-the-holder messaging.
+- \*a1. **System** refuses all edits regardless of field.
+- \*a2. **System** points at `vspec unlock` or contact-the-holder messaging.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

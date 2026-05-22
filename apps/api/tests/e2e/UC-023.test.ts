@@ -9,8 +9,15 @@ import {
   type MergeOpenResponse
 } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
-import { whoUseCase, type WhoProblem, type WhoResponse } from "../helpers/who-fixtures.js";
+import {
+  startWorkSession,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
+import {
+  whoUseCase,
+  type WhoProblem,
+  type WhoResponse
+} from "../helpers/who-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -23,20 +30,37 @@ afterAll(async () => {
 
 describe("UC-023 - See who is working on a use case", () => {
   test("MAIN: show active sessions locks and merge requests for a use case", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Who Works", "who-works", "stub-who-works");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Who Works",
+      "who-works",
+      "stub-who-works"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Coordinate on refund review",
       pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
-    const locked = await lockUseCase(server, setup, usecase.id, {
-      lock_type: "SEMANTIC",
-      reason: "Session is editing semantics."
-    }, session.id);
+    const locked = await lockUseCase(
+      server,
+      setup,
+      usecase.id,
+      {
+        lock_type: "SEMANTIC",
+        reason: "Session is editing semantics."
+      },
+      session.id
+    );
     const lock = ((await locked.json()) as LockCreateResponse).lock;
     const branch = await createBranch(server, setup, "feature/who-open-merge");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
+    await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund quickly"
+    );
     await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
     const opened = await openMerge(server, setup, branch.id);
     const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
@@ -46,19 +70,23 @@ describe("UC-023 - See who is working on a use case", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as WhoResponse;
     expect(body.usecase).toEqual({ id: usecase.id, key: usecase.key });
-    expect(body.sessions).toContainEqual(expect.objectContaining({
-      agent_type: "CODEX",
-      id: session.id,
-      intent: "Coordinate on refund review",
-      user_id: setup.userId
-    }));
+    expect(body.sessions).toContainEqual(
+      expect.objectContaining({
+        agent_type: "CODEX",
+        id: session.id,
+        intent: "Coordinate on refund review",
+        user_id: setup.userId
+      })
+    );
     expect(Date.parse(body.sessions[0]?.started_at ?? "")).not.toBeNaN();
-    expect(body.locks).toContainEqual(expect.objectContaining({
-      held_by_session_id: session.id,
-      held_by_user_id: setup.userId,
-      id: lock.id,
-      lock_type: "SEMANTIC"
-    }));
+    expect(body.locks).toContainEqual(
+      expect.objectContaining({
+        held_by_session_id: session.id,
+        held_by_user_id: setup.userId,
+        id: lock.id,
+        lock_type: "SEMANTIC"
+      })
+    );
     expect(body.merge_requests).toContainEqual({
       conflict_count: merge.conflicts.length,
       id: merge.id,
@@ -76,7 +104,12 @@ describe("UC-023 - See who is working on a use case", () => {
   });
 
   test("2a: missing use case returns search guidance", async () => {
-    const { setup } = await projectUseCase(server, "Missing Who", "missing-who", "stub-missing-who");
+    const { setup } = await projectUseCase(
+      server,
+      "Missing Who",
+      "missing-who",
+      "stub-missing-who"
+    );
 
     const response = await whoUseCase(server, setup, "CHK-999");
 
@@ -94,17 +127,28 @@ describe("UC-023 - See who is working on a use case", () => {
   });
 
   test("2b: archived use case still reports active work with restore guidance", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Archived Who", "archived-who", "stub-archived-who");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Archived Who",
+      "archived-who",
+      "stub-archived-who"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Finish archived work",
       pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
-    await lockUseCase(server, setup, usecase.id, {
-      lock_type: "SEMANTIC",
-      reason: "Archived flow still has active work."
-    }, session.id);
+    await lockUseCase(
+      server,
+      setup,
+      usecase.id,
+      {
+        lock_type: "SEMANTIC",
+        reason: "Archived flow still has active work."
+      },
+      session.id
+    );
     const archived = await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
       method: "POST"
     });
@@ -124,7 +168,12 @@ describe("UC-023 - See who is working on a use case", () => {
   });
 
   test("4a: empty who result suggests starting a session", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Empty Who", "empty-who", "stub-empty-who");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Empty Who",
+      "empty-who",
+      "stub-empty-who"
+    );
 
     const response = await whoUseCase(server, setup, usecase.id);
 
@@ -140,7 +189,12 @@ describe("UC-023 - See who is working on a use case", () => {
   });
 
   test("3a: stale session is marked zombie with abandon guidance", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Zombie Who", "zombie-who", "stub-zombie-who");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Zombie Who",
+      "zombie-who",
+      "stub-zombie-who"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Stale coordination",
@@ -167,7 +221,12 @@ describe("UC-023 - See who is working on a use case", () => {
 
   test("*a: non-member cannot see who is working", async () => {
     const mine = await projectUseCase(server, "Who Mine", "who-mine", "stub-who-mine");
-    const other = await projectUseCase(server, "Who Other", "who-other", "stub-who-other");
+    const other = await projectUseCase(
+      server,
+      "Who Other",
+      "who-other",
+      "stub-who-other"
+    );
 
     const response = await whoUseCase(server, mine.setup, other.usecase.id);
 

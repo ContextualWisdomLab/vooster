@@ -27,7 +27,10 @@ export function outputPathProblem(outputPath: string | undefined) {
   );
 }
 
-export function missingMarkdownRevisionProblem(usecase: StoredUseCase, revisionId: string) {
+export function missingMarkdownRevisionProblem(
+  usecase: StoredUseCase,
+  revisionId: string
+) {
   return problem(
     404,
     "Markdown export revision not found",

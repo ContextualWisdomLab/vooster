@@ -11,10 +11,9 @@ test("home page lists projects in auth stub mode", async ({ page }) => {
 
 test("login page links to the API GitHub flow", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("link", { name: "Continue with GitHub" })).toHaveAttribute(
-    "href",
-    "/v1/auth/github/start"
-  );
+  await expect(
+    page.getByRole("link", { name: "Continue with GitHub" })
+  ).toHaveAttribute("href", "/v1/auth/github/start");
 });
 
 test("project detail lists use cases", async ({ page }) => {
@@ -57,9 +56,7 @@ test("sidebar renames a project via the 3-dot menu", async ({ page }) => {
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Rename Target" })
   ).toBeVisible();
 
-  await page
-    .getByRole("button", { name: "Project actions for Rename Target" })
-    .click();
+  await page.getByRole("button", { name: "Project actions for Rename Target" }).click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
   await page.getByLabel("Name", { exact: true }).fill("Renamed Project");
   await page.getByRole("button", { name: "Save" }).click();
@@ -79,9 +76,7 @@ test("sidebar deletes a project via the 3-dot menu", async ({ page }) => {
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Delete Target" })
   ).toBeVisible();
 
-  await page
-    .getByRole("button", { name: "Project actions for Delete Target" })
-    .click();
+  await page.getByRole("button", { name: "Project actions for Delete Target" }).click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await page.getByRole("button", { name: "Delete", exact: true }).click();
 

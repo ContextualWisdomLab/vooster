@@ -8,19 +8,22 @@ afterEach(() => {
 
 describe("actor command", () => {
   test("lists actors from the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        items: [
-          {
-            id: "actor-1",
-            name: "Customer",
-            type: "PRIMARY"
-          }
-        ]
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            items: [
+              {
+                id: "actor-1",
+                name: "Customer",
+                type: "PRIMARY"
+              }
+            ]
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -47,17 +50,20 @@ describe("actor command", () => {
   });
 
   test("shows an actor from the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        actor: {
-          id: "actor-1",
-          name: "Customer",
-          type: "PRIMARY"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            actor: {
+              id: "actor-1",
+              name: "Customer",
+              type: "PRIMARY"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -84,17 +90,20 @@ describe("actor command", () => {
   });
 
   test("edits an actor through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        actor: {
-          id: "actor-1",
-          name: "Buyer",
-          type: "PRIMARY"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            actor: {
+              id: "actor-1",
+              name: "Buyer",
+              type: "PRIMARY"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -125,16 +134,19 @@ describe("actor command", () => {
   });
 
   test("archives an actor through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        actor: {
-          id: "actor-1"
-        },
-        archived: true
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            actor: {
+              id: "actor-1"
+            },
+            archived: true
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 

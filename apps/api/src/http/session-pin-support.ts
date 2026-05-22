@@ -120,5 +120,7 @@ async function latestRevisionId(
   revisionStore: RevisionStore,
   usecase: StoredUseCase
 ): Promise<string> {
-  return (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id;
+  return (
+    (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id
+  );
 }

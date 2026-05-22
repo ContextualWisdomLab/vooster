@@ -37,13 +37,13 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The lock findings bullet is narrowed honestly.** The old
-    `lock (acquire/release/renew)` bullet is gone. A remaining bullet for
-    `lock release / lock renew` exists.
+`lock (acquire/release/renew)` bullet is gone. A remaining bullet for
+`lock release / lock renew` exists.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents lock acquire agent format.** A marked
-    `### Agent Format for Locks` section exists under Locks and includes:
+`### Agent Format for Locks` section exists under Locks and includes:
 
     ```
     vspec lock <KEY-NNN> --format=agent
@@ -56,42 +56,42 @@ B1. **`docs/07-cli-spec.md` documents lock acquire agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/lock.ts` is discovered by the same source of truth
-    as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/lock.ts` to appear.
+as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/lock.ts` to appear.
 
 C2. **`lock` acquire builds an agent envelope when `--format=agent` is
-    requested.** The gate requires `runLock` to route lock output through the
-    lock renderer, and requires that renderer to contain both
-    `format === "agent"` and `buildAgentEnvelope`. Goal 28 may share this
-    renderer with lock renew without weakening the acquire invariant.
+requested.** The gate requires `runLock` to route lock output through the
+lock renderer, and requires that renderer to contain both
+`format === "agent"` and `buildAgentEnvelope`. Goal 28 may share this
+renderer with lock renew without weakening the acquire invariant.
 
 C3. **The dispatcher still scopes this goal to acquire only.** `apps/cli/src/index.ts`
-    keeps the existing `lock` dispatch guard that excludes `renew`, and no
-    `unlock` dispatch exists.
+keeps the existing `lock` dispatch guard that excludes `renew`, and no
+`unlock` dispatch exists.
 
 ### Tranche D — Unit Proof
 
 D1. **`lock` acquire has focused unit proof for agent and human output.** The
-    file `apps/cli/tests/unit/lock-agent-format.test.ts` contains test titles
-    `agent lock acquire` and `human lock acquire`. The agent test invokes the
-    command with `--format=agent`, parses JSON, asserts `format_version`, asserts
-    `data.lock.id`, `data.lock.lock_type`, `data.lock.target_id`,
-    `data.lock.held_by_session_id`, `context.session_id`, and asserts outer
-    `suggested_next_actions` contains the response guidance.
+file `apps/cli/tests/unit/lock-agent-format.test.ts` contains test titles
+`agent lock acquire` and `human lock acquire`. The agent test invokes the
+command with `--format=agent`, parses JSON, asserts `format_version`, asserts
+`data.lock.id`, `data.lock.lock_type`, `data.lock.target_id`,
+`data.lock.held_by_session_id`, `context.session_id`, and asserts outer
+`suggested_next_actions` contains the response guidance.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **`lock` acquire has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts` contains test
-    title `agent lock acquire`, invokes `runCli([ "lock", ... ])` with
-    `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
-    JSON, asserts `format_version`, and asserts the same data/context keys as
-    D1 against a real seeded use case.
+`apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts` contains test
+title `agent lock acquire`, invokes `runCli([ "lock", ... ])` with
+`--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
+JSON, asserts `format_version`, and asserts the same data/context keys as
+D1 against a real seeded use case.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no lock-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no lock-agent entry.
 
 ### Tranche F — Rigor
 

@@ -14,7 +14,11 @@ export type CommentsDeps = {
 };
 
 export type CommentCommandResult =
-  | { comment: StoredComment; status: "ADDED" | "DELETED" | "UPDATED"; usecase: StoredUseCase }
+  | {
+      comment: StoredComment;
+      status: "ADDED" | "DELETED" | "UPDATED";
+      usecase: StoredUseCase;
+    }
   | { comments: StoredComment[]; status: "LISTED"; usecase: StoredUseCase }
   | {
       status:
@@ -138,7 +142,8 @@ async function authorizedUseCase(
     return { status: "USECASE_NOT_FOUND" };
   }
   return userId !== undefined &&
-    await deps.membershipStore.membershipForProject(found.projectId, userId) !== undefined
+    (await deps.membershipStore.membershipForProject(found.projectId, userId)) !==
+      undefined
     ? { status: "AUTHORIZED", usecase: found.usecase, userId }
     : { status: "FORBIDDEN" };
 }
@@ -148,7 +153,12 @@ async function authorizedComment(
   commentId: string,
   userId: string | undefined
 ): Promise<
-  | { comment: StoredComment; status: "AUTHORIZED"; usecase: StoredUseCase; userId: string }
+  | {
+      comment: StoredComment;
+      status: "AUTHORIZED";
+      usecase: StoredUseCase;
+      userId: string;
+    }
   | { status: "COMMENT_NOT_FOUND" | "FORBIDDEN" }
 > {
   const comment = await deps.commentStore.findCommentById(commentId);
@@ -160,7 +170,8 @@ async function authorizedComment(
     return { status: "COMMENT_NOT_FOUND" };
   }
   return userId !== undefined &&
-    await deps.membershipStore.membershipForProject(found.projectId, userId) !== undefined
+    (await deps.membershipStore.membershipForProject(found.projectId, userId)) !==
+      undefined
     ? { comment, status: "AUTHORIZED", usecase: found.usecase, userId }
     : { status: "FORBIDDEN" };
 }

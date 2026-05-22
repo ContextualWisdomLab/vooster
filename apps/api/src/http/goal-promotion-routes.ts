@@ -56,7 +56,8 @@ async function promoteGoal(
     { goalStore, membershipStore, projectStore, revisionStore, useCaseStore },
     {
       goalId: goalIdFrom(request.params),
-      simulateUseCaseInsertFailure: parsed.data.simulate_usecase_insert_failure === true,
+      simulateUseCaseInsertFailure:
+        parsed.data.simulate_usecase_insert_failure === true,
       userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
     }
   );

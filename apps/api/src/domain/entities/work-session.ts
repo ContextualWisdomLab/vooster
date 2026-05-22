@@ -1,4 +1,10 @@
-export type StoredAgentType = "CLAUDE_CODE" | "CODEX" | "CURSOR" | "HUMAN" | "OTHER" | "WINDSURF";
+export type StoredAgentType =
+  | "CLAUDE_CODE"
+  | "CODEX"
+  | "CURSOR"
+  | "HUMAN"
+  | "OTHER"
+  | "WINDSURF";
 
 export type StoredWorkSession = {
   agent_identifier?: string;

@@ -8,19 +8,22 @@ afterEach(() => {
 
 describe("stakeholder command", () => {
   test("lists stakeholders from the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        items: [
-          {
-            id: "stakeholder-1",
-            name: "Customer",
-            type: "EXTERNAL"
-          }
-        ]
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            items: [
+              {
+                id: "stakeholder-1",
+                name: "Customer",
+                type: "EXTERNAL"
+              }
+            ]
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -47,17 +50,20 @@ describe("stakeholder command", () => {
   });
 
   test("shows a stakeholder from the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        stakeholder: {
-          id: "stakeholder-1",
-          name: "Customer",
-          type: "EXTERNAL"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            stakeholder: {
+              id: "stakeholder-1",
+              name: "Customer",
+              type: "EXTERNAL"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -84,17 +90,20 @@ describe("stakeholder command", () => {
   });
 
   test("edits a stakeholder through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        stakeholder: {
-          id: "stakeholder-1",
-          name: "Buyer",
-          type: "EXTERNAL"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            stakeholder: {
+              id: "stakeholder-1",
+              name: "Buyer",
+              type: "EXTERNAL"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -125,11 +134,13 @@ describe("stakeholder command", () => {
   });
 
   test("archives a stakeholder through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({ archived: true }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve({ archived: true }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 

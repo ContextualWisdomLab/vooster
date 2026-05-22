@@ -11,15 +11,20 @@ describe("UC-019 honest CLI - Create a branch", () => {
         projectKey: "BRC",
         runCli
       });
-      const branch = await expectOk(runCli([
-        "branch",
-        "create",
-        "feature/refund-review",
-        "--from",
-        "main",
-        "--project-id",
-        seed.projectId
-      ], seed.env));
+      const branch = await expectOk(
+        runCli(
+          [
+            "branch",
+            "create",
+            "feature/refund-review",
+            "--from",
+            "main",
+            "--project-id",
+            seed.projectId
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(branch.stdout).toContain("Name feature/refund-review");

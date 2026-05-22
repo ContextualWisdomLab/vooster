@@ -382,7 +382,9 @@ function storedRevisionEntityType(value: string): StoredRevision["entity_type"] 
   throw new Error(`Unknown revision entity type ${value}`);
 }
 
-function storedRevisionSeverity(value: null | string | undefined): StoredRevision["severity"] {
+function storedRevisionSeverity(
+  value: null | string | undefined
+): StoredRevision["severity"] {
   if (value === "BREAKING" || value === "COSMETIC" || value === "NON_BREAKING") {
     return value;
   }
@@ -391,9 +393,7 @@ function storedRevisionSeverity(value: null | string | undefined): StoredRevisio
 }
 
 export function revisionContentHash(revision: StoredRevision): string {
-  return createHash("sha256")
-    .update(JSON.stringify(revision.snapshot))
-    .digest("hex");
+  return createHash("sha256").update(JSON.stringify(revision.snapshot)).digest("hex");
 }
 
 export function revisionProjectId(revision: StoredRevision): string {
@@ -536,8 +536,8 @@ function parseAliases(raw: string): string[] {
 function parseApiKeyScopes(raw: string): StoredApiKey["scopes"] {
   const parsed = JSON.parse(raw) as unknown;
   return Array.isArray(parsed)
-    ? parsed.filter((scope): scope is "read" | "write" =>
-        scope === "read" || scope === "write"
+    ? parsed.filter(
+        (scope): scope is "read" | "write" => scope === "read" || scope === "write"
       )
     : [];
 }
@@ -549,8 +549,8 @@ function parseRecord(raw: string): Record<string, string> {
   }
 
   return Object.fromEntries(
-    Object.entries(parsed).filter((entry): entry is [string, string] =>
-      typeof entry[1] === "string"
+    Object.entries(parsed).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
     )
   );
 }
@@ -571,8 +571,8 @@ function stringRecord(value: unknown): Record<string, string> {
   }
 
   return Object.fromEntries(
-    Object.entries(value).filter((entry): entry is [string, string] =>
-      typeof entry[1] === "string"
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
     )
   );
 }
@@ -607,7 +607,8 @@ export function apiKeyData(apiKey: StoredApiKey) {
 
 export function projectData(project: StoredProject) {
   return {
-    default_branch_id: project.default_branch_id === "" ? null : project.default_branch_id,
+    default_branch_id:
+      project.default_branch_id === "" ? null : project.default_branch_id,
     id: project.id,
     key: project.key,
     name: project.name,

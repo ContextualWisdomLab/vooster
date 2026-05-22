@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
+import {
+  startWorkSession,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
 
 type SessionListResponse = {
@@ -44,8 +47,12 @@ afterAll(async () => {
 
 describe("UC-017 - Monitor active sessions", () => {
   test("MAIN: list active workspace sessions with derived fields", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "List Sessions", "list-sessions", "stub-list-sessions");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "List Sessions",
+      "list-sessions",
+      "stub-list-sessions"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       auto_branch: true,
@@ -61,9 +68,12 @@ describe("UC-017 - Monitor active sessions", () => {
       reason: "Session owns semantic edits."
     });
 
-    const response = await server.fetch(`/v1/sessions?workspace_id=${setup.workspaceId}`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/sessions?workspace_id=${setup.workspaceId}`,
+      {
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as SessionListResponse;
@@ -87,8 +97,12 @@ describe("UC-017 - Monitor active sessions", () => {
   });
 
   test("4a: stale active session is marked zombie with abandon guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Zombie Session", "zombie-session", "stub-zombie-session");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Zombie Session",
+      "zombie-session",
+      "stub-zombie-session"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Forget to heartbeat",
@@ -102,9 +116,12 @@ describe("UC-017 - Monitor active sessions", () => {
     });
     expect(aged.status).toBe(200);
 
-    const response = await server.fetch(`/v1/sessions?workspace_id=${setup.workspaceId}`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/sessions?workspace_id=${setup.workspaceId}`,
+      {
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     const body = (await response.json()) as SessionListResponse;
     expect(body.sessions[0]?.markers).toContain("ZOMBIE");
@@ -115,26 +132,37 @@ describe("UC-017 - Monitor active sessions", () => {
   });
 
   test("3a: empty session list includes start guidance", async () => {
-    const { setup } =
-      await createUseCaseWithMainStep(server, "Empty Sessions", "empty-sessions", "stub-empty-sessions");
+    const { setup } = await createUseCaseWithMainStep(
+      server,
+      "Empty Sessions",
+      "empty-sessions",
+      "stub-empty-sessions"
+    );
 
-    const response = await server.fetch(`/v1/sessions?workspace_id=${setup.workspaceId}`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/sessions?workspace_id=${setup.workspaceId}`,
+      {
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as SessionListResponse;
     expect(body.total).toBe(0);
     expect(body.sessions).toEqual([]);
     expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec session start --intent \"...\"",
+      command: 'vspec session start --intent "..."',
       reason: "Start a session when work begins."
     });
   });
 
   test("*a: watch streams the session snapshot as server-sent events", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Watch Sessions", "watch-sessions", "stub-watch-sessions");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Watch Sessions",
+      "watch-sessions",
+      "stub-watch-sessions"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Watch active work",
@@ -142,9 +170,12 @@ describe("UC-017 - Monitor active sessions", () => {
     });
     const session = ((await started.json()) as SessionStartResponse).session;
 
-    const response = await server.fetch(`/v1/sessions/watch?workspace_id=${setup.workspaceId}`, {
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/sessions/watch?workspace_id=${setup.workspaceId}`,
+      {
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
@@ -154,12 +185,25 @@ describe("UC-017 - Monitor active sessions", () => {
   });
 
   test("2a: non-member cannot list another workspace sessions", async () => {
-    const mine = await createUseCaseWithMainStep(server, "Mine Sessions", "mine-sessions", "stub-mine-sessions");
-    const other = await createUseCaseWithMainStep(server, "Other Sessions", "other-sessions", "stub-other-sessions");
+    const mine = await createUseCaseWithMainStep(
+      server,
+      "Mine Sessions",
+      "mine-sessions",
+      "stub-mine-sessions"
+    );
+    const other = await createUseCaseWithMainStep(
+      server,
+      "Other Sessions",
+      "other-sessions",
+      "stub-other-sessions"
+    );
 
-    const response = await server.fetch(`/v1/sessions?workspace_id=${other.setup.workspaceId}`, {
-      headers: { Cookie: mine.setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/sessions?workspace_id=${other.setup.workspaceId}`,
+      {
+        headers: { Cookie: mine.setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(403);
     const problem = (await response.json()) as SessionListProblem;

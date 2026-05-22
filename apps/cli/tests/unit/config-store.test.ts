@@ -12,7 +12,8 @@ import {
 
 describe("config-store", () => {
   const tmpDirs: string[] = [];
-  const previousEnv: { VSPEC_CONFIG_PATH?: string; VSPEC_GLOBAL_CONFIG_PATH?: string } = {};
+  const previousEnv: { VSPEC_CONFIG_PATH?: string; VSPEC_GLOBAL_CONFIG_PATH?: string } =
+    {};
 
   beforeEach(() => {
     previousEnv.VSPEC_CONFIG_PATH = process.env.VSPEC_CONFIG_PATH;

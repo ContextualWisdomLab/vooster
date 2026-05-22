@@ -40,8 +40,13 @@ try {
     throw new Error("dogfood did not create every use case");
   }
 
-  await post(`/v1/usecases/${first.id}/comments`, owner.cookie, { body: "dogfood comment" });
-  const comments = await get<{ comments: unknown[] }>(`/v1/usecases/${first.id}/comments`, owner.cookie);
+  await post(`/v1/usecases/${first.id}/comments`, owner.cookie, {
+    body: "dogfood comment"
+  });
+  const comments = await get<{ comments: unknown[] }>(
+    `/v1/usecases/${first.id}/comments`,
+    owner.cookie
+  );
   if (comments.comments.length !== 1) {
     throw new Error("dogfood comment did not persist");
   }
@@ -60,7 +65,10 @@ try {
     action: "Reviews the dogfood result.",
     actor: "Developer / PM"
   });
-  const gherkin = await text(`/v1/usecases/${first.id}/export/gherkin?format=feature`, owner.cookie);
+  const gherkin = await text(
+    `/v1/usecases/${first.id}/export/gherkin?format=feature`,
+    owner.cookie
+  );
   if (!gherkin.startsWith("Feature:")) {
     throw new Error("dogfood Gherkin export missing Feature header");
   }
@@ -76,12 +84,15 @@ async function signup(name: string, slug: string, code: string) {
   });
   ensureOk("/v1/auth/github/start", start);
   const startBody = JSON.parse(start.payload) as { state: string };
-  const callback = await request(`/v1/auth/github/callback?${new URLSearchParams({
-    code,
-    state: startBody.state
-  }).toString()}`, {
-    headers: { Cookie: cookieHeader(start) }
-  });
+  const callback = await request(
+    `/v1/auth/github/callback?${new URLSearchParams({
+      code,
+      state: startBody.state
+    }).toString()}`,
+    {
+      headers: { Cookie: cookieHeader(start) }
+    }
+  );
   ensureOk("/v1/auth/github/callback", callback);
   const body = JSON.parse(callback.payload) as { workspace: { id: string } };
   return {
@@ -91,21 +102,33 @@ async function signup(name: string, slug: string, code: string) {
 }
 
 async function useCaseSpecs() {
-  const files = (await readdir("docs/usecases")).filter((file) => /^UC-\d+.*\.md$/.test(file));
-  return Promise.all(files.map(async (file) => ({
-    file,
-    title: /^title:\s*(.+)$/m.exec(await readFile(`docs/usecases/${file}`, "utf8"))?.[1] ?? file
-  })));
+  const files = (await readdir("docs/usecases")).filter((file) =>
+    /^UC-\d+.*\.md$/.test(file)
+  );
+  return Promise.all(
+    files.map(async (file) => ({
+      file,
+      title:
+        /^title:\s*(.+)$/m.exec(await readFile(`docs/usecases/${file}`, "utf8"))?.[1] ??
+        file
+    }))
+  );
 }
 
-async function post<T = unknown>(path: string, cookie: string, body: unknown): Promise<T> {
+async function post<T = unknown>(
+  path: string,
+  cookie: string,
+  body: unknown
+): Promise<T> {
   const response = await request(path, {
     method: "POST",
     headers: { cookie, "content-type": "application/json" },
     body: JSON.stringify(body)
   });
   if (response.statusCode >= 400) {
-    throw new Error(`${path} failed: ${String(response.statusCode)} ${response.payload}`);
+    throw new Error(
+      `${path} failed: ${String(response.statusCode)} ${response.payload}`
+    );
   }
   return JSON.parse(response.payload) as T;
 }
@@ -113,7 +136,9 @@ async function post<T = unknown>(path: string, cookie: string, body: unknown): P
 async function get<T>(path: string, cookie: string): Promise<T> {
   const response = await request(path, { headers: { cookie } });
   if (response.statusCode >= 400) {
-    throw new Error(`${path} failed: ${String(response.statusCode)} ${response.payload}`);
+    throw new Error(
+      `${path} failed: ${String(response.statusCode)} ${response.payload}`
+    );
   }
   return JSON.parse(response.payload) as T;
 }
@@ -121,7 +146,9 @@ async function get<T>(path: string, cookie: string): Promise<T> {
 async function text(path: string, cookie: string): Promise<string> {
   const response = await request(path, { method: "POST", headers: { cookie } });
   if (response.statusCode >= 400) {
-    throw new Error(`${path} failed: ${String(response.statusCode)} ${response.payload}`);
+    throw new Error(
+      `${path} failed: ${String(response.statusCode)} ${response.payload}`
+    );
   }
   return response.payload;
 }
@@ -130,7 +157,11 @@ type DogfoodMethod = "GET" | "POST";
 
 function request(
   path: string,
-  options: { body?: string; headers?: Record<string, string>; method?: DogfoodMethod } = {}
+  options: {
+    body?: string;
+    headers?: Record<string, string>;
+    method?: DogfoodMethod;
+  } = {}
 ): Promise<LightMyRequestResponse> {
   const requestOptions: InjectOptions = {
     method: options.method ?? "GET",
@@ -152,6 +183,8 @@ function cookieHeader(response: LightMyRequestResponse): string {
 
 function ensureOk(path: string, response: LightMyRequestResponse) {
   if (response.statusCode >= 400) {
-    throw new Error(`${path} failed: ${String(response.statusCode)} ${response.payload}`);
+    throw new Error(
+      `${path} failed: ${String(response.statusCode)} ${response.payload}`
+    );
   }
 }

@@ -7,10 +7,14 @@ const guideQuerySchema = z.object({
   format: z.enum(["json", "markdown"]).default("markdown")
 });
 const guideBodySchema = z.object({
-  cached_guides: z.array(z.object({
-    cli_version: z.string(),
-    content: z.string()
-  })).default([]),
+  cached_guides: z
+    .array(
+      z.object({
+        cli_version: z.string(),
+        content: z.string()
+      })
+    )
+    .default([]),
   simulate_network_failure: z.boolean().default(false)
 });
 
@@ -20,7 +24,9 @@ export function registerAiGuideRoutes(app: FastifyInstance) {
 
 function aiGuide(request: FastifyRequest, reply: FastifyReply) {
   const parsed = guideQuerySchema.safeParse(request.query);
-  const query = parsed.success ? parsed.data : { cli_version: "1.0.0", format: "markdown" as const };
+  const query = parsed.success
+    ? parsed.data
+    : { cli_version: "1.0.0", format: "markdown" as const };
   const body = guideBodySchema.parse(request.body ?? {});
   const result = buildAiGuide({
     cachedGuides: body.cached_guides,

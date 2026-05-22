@@ -4,7 +4,11 @@ import {
   updateProjectNameViaPrisma
 } from "./prisma-project-mutations.js";
 import type { DeleteProjectOutcome } from "../ports/project-store.js";
-import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
+import type {
+  SignupEntities,
+  SignupStore,
+  WorkspaceSummary
+} from "../ports/signup-store.js";
 import {
   apiKeyData,
   apiKeyUpdate,
@@ -271,10 +275,7 @@ class PrismaSignupStore implements SignupStore {
   ): Promise<{ projectId: string; usecase: StoredUseCase } | undefined> {
     const usecase = await this.prisma.useCase.findFirst({
       where: {
-        OR: [
-          { id: usecaseIdOrKey },
-          { key: usecaseIdOrKey }
-        ]
+        OR: [{ id: usecaseIdOrKey }, { key: usecaseIdOrKey }]
       }
     });
 
@@ -355,7 +356,12 @@ class PrismaSignupStore implements SignupStore {
     stakeholderId: string
   ): Promise<StoredStakeholderInterest | undefined> {
     const interest = await this.prisma.stakeholderInterest.findUnique({
-      where: { usecase_id_stakeholder_id: { stakeholder_id: stakeholderId, usecase_id: usecaseId } }
+      where: {
+        usecase_id_stakeholder_id: {
+          stakeholder_id: stakeholderId,
+          usecase_id: usecaseId
+        }
+      }
     });
 
     return interest === null ? undefined : storedStakeholderInterest(interest);
@@ -517,9 +523,10 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async listWorkSessionsForUseCase(usecaseId: string): Promise<StoredWorkSession[]> {
-    return (await this.listWorkSessions()).filter((session) =>
-      session.usecase_id === usecaseId ||
-      session.pinned_revisions?.[usecaseId] !== undefined
+    return (await this.listWorkSessions()).filter(
+      (session) =>
+        session.usecase_id === usecaseId ||
+        session.pinned_revisions?.[usecaseId] !== undefined
     );
   }
 
@@ -680,9 +687,7 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
-  async saveStakeholderInterest(
-    interest: StoredStakeholderInterest
-  ): Promise<void> {
+  async saveStakeholderInterest(interest: StoredStakeholderInterest): Promise<void> {
     await this.prisma.stakeholderInterest.create({
       data: stakeholderInterestData(interest)
     });
@@ -938,10 +943,10 @@ class PrismaSignupStore implements SignupStore {
       return null;
     }
 
-    return await this.prisma.revision.findUnique({
+    return (await this.prisma.revision.findUnique({
       select: { id: true },
       where: { id: revision.parent_revision_id }
-    }) === null
+    })) === null
       ? null
       : revision.parent_revision_id;
   }
@@ -957,7 +962,10 @@ class PrismaSignupStore implements SignupStore {
       },
       where: { id: projectId }
     });
-    if (project?.default_branch_id === null || project?.default_branch_id === undefined) {
+    if (
+      project?.default_branch_id === null ||
+      project?.default_branch_id === undefined
+    ) {
       throw new Error(`Missing default branch for revision ${revision.id}`);
     }
     const branchId = revision.branch_id ?? project.default_branch_id;

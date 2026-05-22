@@ -10,8 +10,14 @@ export type ChangePreview = {
   severity: "NON_BREAKING";
   usecase_id: string;
 };
-type ChangeDiff = { after: string; before: string; entity_id: string;
-  entity_type: "USECASE"; path: "title"; severity: "NON_BREAKING" };
+type ChangeDiff = {
+  after: string;
+  before: string;
+  entity_id: string;
+  entity_type: "USECASE";
+  path: "title";
+  severity: "NON_BREAKING";
+};
 
 const previewsByState = new WeakMap<SignupState, Map<string, ChangePreview>>();
 
@@ -35,7 +41,10 @@ export function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
     "Use case has a HARD lock",
     { holding_session: lock.held_by_session_id ?? lock.holder },
     [
-      { command: `vspec who ${usecase.key}`, reason: "Inspect the session holding the lock." },
+      {
+        command: `vspec who ${usecase.key}`,
+        reason: "Inspect the session holding the lock."
+      },
       {
         command: `vspec unlock ${usecase.key}`,
         reason: "Owners can release the lock when appropriate."

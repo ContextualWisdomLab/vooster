@@ -4,8 +4,18 @@ import { completeOAuth, startGithubOAuth } from "../application/signup.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-import { sendCompleteOAuthResult, sendDeniedOAuth, sendGithubUnavailable } from "./signup-results.js";
-import { clearOAuthState, cookie, fetchGithubProfile, problem, readCookie } from "./signup-support.js";
+import {
+  sendCompleteOAuthResult,
+  sendDeniedOAuth,
+  sendGithubUnavailable
+} from "./signup-results.js";
+import {
+  clearOAuthState,
+  cookie,
+  fetchGithubProfile,
+  problem,
+  readCookie
+} from "./signup-support.js";
 import type { PendingOAuth, ServerOptions, SignupState } from "./signup-types.js";
 
 const startSignupSchema = z.union([

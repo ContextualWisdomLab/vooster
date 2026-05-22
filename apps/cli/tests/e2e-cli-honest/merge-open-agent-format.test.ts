@@ -54,12 +54,9 @@ describe("honest CLI merge open --format=agent", () => {
 
   test("agent merge open", async () => {
     const branch = await createBranch();
-    const result = await expectOk(runCli([
-      "merge",
-      "open",
-      branch.data.branch.id,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(["merge", "open", branch.data.branch.id, "--format=agent"], seed.env)
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectMergeEnvelope(result.stdout);
@@ -67,19 +64,26 @@ describe("honest CLI merge open --format=agent", () => {
     expect(envelope.data.source_branch.id).toBe(branch.data.branch.id);
     expect(envelope.data.source_branch.name).toBe(branch.data.branch.name);
     expect(envelope.context.branch).toBe(branch.data.branch.name);
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec merge show");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec merge show"
+    );
   });
 });
 
 async function createBranch(): Promise<BranchAgentEnvelope> {
-  const result = await expectOk(runCli([
-    "branch",
-    "create",
-    "agent/merge-open",
-    "--project-id",
-    seed.projectId,
-    "--format=agent"
-  ], seed.env));
+  const result = await expectOk(
+    runCli(
+      [
+        "branch",
+        "create",
+        "agent/merge-open",
+        "--project-id",
+        seed.projectId,
+        "--format=agent"
+      ],
+      seed.env
+    )
+  );
 
   return JSON.parse(result.stdout) as BranchAgentEnvelope;
 }

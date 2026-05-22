@@ -2,10 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredActor } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
-import {
-  dateOrNull,
-  storedActor
-} from "./prisma-signup-mappers.js";
+import { dateOrNull, storedActor } from "./prisma-signup-mappers.js";
 
 export function createPrismaActorStore(prisma: PrismaClient): ActorStore {
   return new PrismaActorStore(prisma);

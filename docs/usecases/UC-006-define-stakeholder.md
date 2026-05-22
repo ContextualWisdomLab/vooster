@@ -14,7 +14,7 @@ primary_actor: developer-pm
 
 # Define a stakeholder
 
-> A developer or PM registers a Stakeholder in the project — the entity that *cares* about outcomes but does not necessarily *act*. The stakeholder has a unique name within the project and a type (INTERNAL, EXTERNAL, or REGULATORY). Stakeholders are the rows that get attached to use cases via StakeholderInterest, ensuring every use case explicitly names whose interest each scenario protects.
+> A developer or PM registers a Stakeholder in the project — the entity that _cares_ about outcomes but does not necessarily _act_. The stakeholder has a unique name within the project and a type (INTERNAL, EXTERNAL, or REGULATORY). Stakeholders are the rows that get attached to use cases via StakeholderInterest, ensuring every use case explicitly names whose interest each scenario protects.
 
 ## Stakeholders and Interests
 
@@ -59,12 +59,12 @@ The user invokes `vspec stakeholder create --name <n> --type <internal|external|
 ### 1a. Submitter tries to attach a stakeholder to a step (confusing it with an actor)
 
 - 1a1. **System** detects the misuse during validation of the related request and rejects it.
-- 1a2. **System** explains: actors *do*, stakeholders *care* — use `vspec actor create` instead.
+- 1a2. **System** explains: actors _do_, stakeholders _care_ — use `vspec actor create` instead.
 - (Outcome: FAILURE — use case ends; no Stakeholder is created on this path.)
 
-### *a. Project has been archived between auth check and insert
+### \*a. Project has been archived between auth check and insert
 
-- *a1. **System** detects the archived state and aborts.
+- \*a1. **System** detects the archived state and aborts.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

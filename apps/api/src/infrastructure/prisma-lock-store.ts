@@ -2,11 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredLock } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
-import {
-  lockData,
-  lockUpdate,
-  storedLock
-} from "./prisma-signup-mappers.js";
+import { lockData, lockUpdate, storedLock } from "./prisma-signup-mappers.js";
 
 export function createPrismaLockStore(prisma: PrismaClient): LockStore {
   return new PrismaLockStore(prisma);

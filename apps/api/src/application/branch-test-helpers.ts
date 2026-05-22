@@ -14,7 +14,9 @@ type BranchTestDeps = {
 };
 
 type RevisionSeverity = "BREAKING" | "COSMETIC" | "NON_BREAKING";
-type AdvanceResult = { revisionId: string; status: "ADVANCED" } | { status: "NOT_FOUND" };
+type AdvanceResult =
+  | { revisionId: string; status: "ADVANCED" }
+  | { status: "NOT_FOUND" };
 
 type UseCaseInput = {
   severity: RevisionSeverity;
@@ -37,7 +39,11 @@ export async function advanceBranchUseCaseRevision(
     return { status: "NOT_FOUND" };
   }
   const revision = await useCaseRevision(deps, target.usecase, input, input.branchId);
-  target.branch.head_revision_ids = nextBranchHeads(target.branch, target.usecase.id, revision.id);
+  target.branch.head_revision_ids = nextBranchHeads(
+    target.branch,
+    target.usecase.id,
+    revision.id
+  );
   await deps.revisionStore.saveRevision(revision);
   await deps.branchStore.updateBranch(target.branch);
   await deps.useCaseStore.updateUseCase(target.usecase);
@@ -53,7 +59,11 @@ export async function advanceBranchExtensionRevision(
     return { status: "NOT_FOUND" };
   }
   const revision = await extensionRevision(deps, target.usecase, input, input.branchId);
-  target.branch.head_revision_ids = nextBranchHeads(target.branch, target.usecase.id, revision.id);
+  target.branch.head_revision_ids = nextBranchHeads(
+    target.branch,
+    target.usecase.id,
+    revision.id
+  );
   await deps.revisionStore.saveRevision(revision);
   await deps.branchStore.updateBranch(target.branch);
   await deps.useCaseStore.updateUseCase(target.usecase);
@@ -93,11 +103,7 @@ export async function advanceMainExtensionRevision(
   return { revisionId: revision.id, status: "ADVANCED" };
 }
 
-async function branchTarget(
-  deps: BranchTestDeps,
-  branchId: string,
-  usecaseId: string
-) {
+async function branchTarget(deps: BranchTestDeps, branchId: string, usecaseId: string) {
   const branch = await deps.branchStore.findBranchById(branchId);
   const usecase = await usecaseFor(deps, usecaseId);
   if (branch === undefined || usecase === undefined) {
@@ -111,11 +117,17 @@ async function usecaseFor(deps: BranchTestDeps, usecaseId: string) {
 }
 
 function nextBranchHeads(
-  branch: { base_revision_ids?: Record<string, string>; head_revision_ids?: Record<string, string> },
+  branch: {
+    base_revision_ids?: Record<string, string>;
+    head_revision_ids?: Record<string, string>;
+  },
   usecaseId: string,
   revisionId: string
 ) {
-  return { ...(branch.head_revision_ids ?? branch.base_revision_ids ?? {}), [usecaseId]: revisionId };
+  return {
+    ...(branch.head_revision_ids ?? branch.base_revision_ids ?? {}),
+    [usecaseId]: revisionId
+  };
 }
 
 async function advanceMainHead(
@@ -124,11 +136,15 @@ async function advanceMainHead(
   revisionId: string
 ) {
   const project = await deps.projectStore.findProjectById(usecase.project_id);
-  const main = project === undefined
-    ? undefined
-    : await deps.branchStore.findBranchById(project.default_branch_id);
+  const main =
+    project === undefined
+      ? undefined
+      : await deps.branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
-    main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revisionId };
+    main.head_revision_ids = {
+      ...(main.head_revision_ids ?? {}),
+      [usecase.id]: revisionId
+    };
     await deps.branchStore.updateBranch(main);
   }
 }

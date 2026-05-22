@@ -83,33 +83,27 @@ describe("actor goal application", () => {
   });
 
   test("rejects goal creation when project access is missing", async () => {
-    const result = await createGoal(
-      depsFor({ member: false }),
-      {
-        actorId: "actor-1",
-        description: "Places an order",
-        level: "USER_GOAL",
-        priority: "P1",
-        projectId: "project-1",
-        userId: "user-1"
-      }
-    );
+    const result = await createGoal(depsFor({ member: false }), {
+      actorId: "actor-1",
+      description: "Places an order",
+      level: "USER_GOAL",
+      priority: "P1",
+      projectId: "project-1",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "FORBIDDEN" });
   });
 
   test("rejects goal creation when the workspace is archived", async () => {
-    const result = await createGoal(
-      depsFor({ workspaceArchived: true }),
-      {
-        actorId: "actor-1",
-        description: "Places an order",
-        level: "USER_GOAL",
-        priority: "P1",
-        projectId: "project-1",
-        userId: "user-1"
-      }
-    );
+    const result = await createGoal(depsFor({ workspaceArchived: true }), {
+      actorId: "actor-1",
+      description: "Places an order",
+      level: "USER_GOAL",
+      priority: "P1",
+      projectId: "project-1",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "WORKSPACE_ARCHIVED" });
   });
@@ -169,14 +163,11 @@ describe("actor goal application", () => {
   });
 
   test("reports missing goals before patch authorization", async () => {
-    const result = await patchGoal(
-      depsFor(),
-      {
-        goalId: "missing-goal",
-        status: "IN_DESIGN",
-        userId: "user-1"
-      }
-    );
+    const result = await patchGoal(depsFor(), {
+      goalId: "missing-goal",
+      status: "IN_DESIGN",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "GOAL_NOT_FOUND" });
   });
@@ -212,8 +203,14 @@ describe("actor goal application", () => {
   test("lists goals grouped by active actor without mutating stores", async () => {
     const result = await listGoals(
       depsFor({
-        actors: [actor(), actor({ archived_at: "2026-01-01T00:00:00.000Z", id: "actor-archived" })],
-        existingGoals: [goal(), goal({ actor_id: "actor-archived", id: "goal-archived" })]
+        actors: [
+          actor(),
+          actor({ archived_at: "2026-01-01T00:00:00.000Z", id: "actor-archived" })
+        ],
+        existingGoals: [
+          goal(),
+          goal({ actor_id: "actor-archived", id: "goal-archived" })
+        ]
       }),
       {
         actorId: "actor-1",
@@ -229,28 +226,27 @@ describe("actor goal application", () => {
   });
 
   test("rejects listing goals without project membership", async () => {
-    const result = await listGoals(
-      depsFor({ member: false }),
-      {
-        projectId: "project-1",
-        userId: "user-1"
-      }
-    );
+    const result = await listGoals(depsFor({ member: false }), {
+      projectId: "project-1",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "FORBIDDEN" });
   });
 });
 
-function depsFor(options: {
-  actor?: StoredActor | null;
-  actors?: StoredActor[];
-  existingGoals?: StoredGoal[];
-  member?: boolean;
-  savedGoals?: StoredGoal[];
-  savedRevisions?: StoredRevision[];
-  updatedGoals?: StoredGoal[];
-  workspaceArchived?: boolean;
-} = {}) {
+function depsFor(
+  options: {
+    actor?: StoredActor | null;
+    actors?: StoredActor[];
+    existingGoals?: StoredGoal[];
+    member?: boolean;
+    savedGoals?: StoredGoal[];
+    savedRevisions?: StoredRevision[];
+    updatedGoals?: StoredGoal[];
+    workspaceArchived?: boolean;
+  } = {}
+) {
   let nextId = 0;
   const savedGoals = options.savedGoals ?? [];
   const updatedGoals = options.updatedGoals ?? [];
@@ -272,14 +268,18 @@ function actorStore(
   actorOverride: StoredActor | null | undefined,
   actorsOverride: StoredActor[] | undefined
 ): ActorStore {
-  const availableActor = actorOverride === undefined && actorsOverride === undefined
-    ? actor()
-    : actorOverride ?? undefined;
+  const availableActor =
+    actorOverride === undefined && actorsOverride === undefined
+      ? actor()
+      : (actorOverride ?? undefined);
   return {
     archiveActor: () => Promise.resolve(false),
     findActorById: () => Promise.resolve(availableActor),
     findActorByName: () => Promise.resolve(undefined),
-    listActors: () => Promise.resolve(actorsOverride ?? (availableActor === undefined ? [] : [availableActor])),
+    listActors: () =>
+      Promise.resolve(
+        actorsOverride ?? (availableActor === undefined ? [] : [availableActor])
+      ),
     saveActor: () => Promise.resolve()
   };
 }
@@ -290,7 +290,8 @@ function goalStore(
   updatedGoals: StoredGoal[]
 ): GoalStore {
   return {
-    findGoalById: (goalId) => Promise.resolve(existingGoals.find((item) => item.id === goalId)),
+    findGoalById: (goalId) =>
+      Promise.resolve(existingGoals.find((item) => item.id === goalId)),
     listGoals: () => Promise.resolve(existingGoals.concat(savedGoals)),
     saveGoal: (item) => {
       savedGoals.push(item);

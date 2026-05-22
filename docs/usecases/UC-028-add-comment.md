@@ -73,9 +73,9 @@ The developer/PM runs one of `vspec comment add|list|resolve|edit|delete`.
 - 5b1. **System** returns 403 (`not_owner`) and refuses the edit.
 - (Outcome: FAILURE — use case ends.)
 
-### *a. Network or server error
+### \*a. Network or server error
 
-- *a1. **System** exits with code 5 and a retry hint; no `Comment` row is written or removed.
+- \*a1. **System** exits with code 5 and a retry hint; no `Comment` row is written or removed.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

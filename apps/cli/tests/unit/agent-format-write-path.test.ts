@@ -14,13 +14,20 @@ describe("--format=agent write-path envelopes", () => {
     stubFetch({ actor: { id: "actor-1", name: "Customer", type: "PRIMARY" } });
     const lines: string[] = [];
 
-    await runActor(baseFlags({ name: "Customer", type: "PRIMARY" }), "create", undefined, (line) => lines.push(line));
+    await runActor(
+      baseFlags({ name: "Customer", type: "PRIMARY" }),
+      "create",
+      undefined,
+      (line) => lines.push(line)
+    );
 
     expectAgentEnvelope(lines, "actor");
   });
 
   test("agent stakeholder create", async () => {
-    stubFetch({ stakeholder: { id: "stakeholder-1", name: "Sponsor", type: "INTERNAL" } });
+    stubFetch({
+      stakeholder: { id: "stakeholder-1", name: "Sponsor", type: "INTERNAL" }
+    });
     const lines: string[] = [];
 
     await runStakeholder(
@@ -34,7 +41,9 @@ describe("--format=agent write-path envelopes", () => {
   });
 
   test("agent goal create", async () => {
-    stubFetch({ goal: { id: "goal-1", description: "Places an order", status: "IDENTIFIED" } });
+    stubFetch({
+      goal: { id: "goal-1", description: "Places an order", status: "IDENTIFIED" }
+    });
     const lines: string[] = [];
 
     await runGoal(
@@ -53,7 +62,14 @@ describe("--format=agent write-path envelopes", () => {
   });
 
   test("agent goal list", async () => {
-    stubFetch({ actors: [{ actor: { id: "actor-1" }, goals: [{ id: "goal-1", description: "Places an order" }] }] });
+    stubFetch({
+      actors: [
+        {
+          actor: { id: "actor-1" },
+          goals: [{ id: "goal-1", description: "Places an order" }]
+        }
+      ]
+    });
     const lines: string[] = [];
 
     await runGoal(baseFlags(), "list", undefined, (line) => lines.push(line));
@@ -62,7 +78,9 @@ describe("--format=agent write-path envelopes", () => {
   });
 
   test("agent goal promote", async () => {
-    stubFetch({ usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" } });
+    stubFetch({
+      usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" }
+    });
     const lines: string[] = [];
 
     await runGoal(baseFlags(), "promote", "goal-1", (line) => lines.push(line));
@@ -71,7 +89,9 @@ describe("--format=agent write-path envelopes", () => {
   });
 
   test("agent usecase create", async () => {
-    stubFetch({ usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" } });
+    stubFetch({
+      usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" }
+    });
     const lines: string[] = [];
 
     await runUsecase(
@@ -86,11 +106,16 @@ describe("--format=agent write-path envelopes", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function baseFlags(overrides: Record<string, string> = {}): Record<string, string> {

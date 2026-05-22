@@ -51,7 +51,9 @@ describe("member/api-key --format=agent", () => {
     stubFetch(memberInviteResponse());
     const lines: string[] = [];
 
-    await runMember(memberFlags({ format: "agent" }), "invite", (line) => lines.push(line));
+    await runMember(memberFlags({ format: "agent" }), "invite", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<MemberInviteData>(stdout);
@@ -67,7 +69,9 @@ describe("member/api-key --format=agent", () => {
     stubFetch(apiKeyCreateResponse());
     const lines: string[] = [];
 
-    await runApiKey(apiKeyFlags({ format: "agent" }), "create", undefined, (line) => lines.push(line));
+    await runApiKey(apiKeyFlags({ format: "agent" }), "create", undefined, (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<ApiKeyData>(stdout);
@@ -83,7 +87,9 @@ describe("member/api-key --format=agent", () => {
     stubFetch({ api_keys: [apiKeyPayload()] });
     const lines: string[] = [];
 
-    await runApiKey(apiKeyFlags({ format: "agent" }), "list", undefined, (line) => lines.push(line));
+    await runApiKey(apiKeyFlags({ format: "agent" }), "list", undefined, (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<ApiKeyListData>(stdout);
@@ -99,7 +105,9 @@ describe("member/api-key --format=agent", () => {
     stubFetch(apiKeyRevokeResponse());
     const lines: string[] = [];
 
-    await runApiKey(apiKeyFlags({ format: "agent" }), "revoke", "key-1", (line) => lines.push(line));
+    await runApiKey(apiKeyFlags({ format: "agent" }), "revoke", "key-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<ApiKeyData>(stdout);
@@ -121,7 +129,9 @@ describe("member/api-key --format=agent", () => {
 
     stubFetch(apiKeyCreateResponse());
     const createLines: string[] = [];
-    await runApiKey(apiKeyFlags(), "create", undefined, (line) => createLines.push(line));
+    await runApiKey(apiKeyFlags(), "create", undefined, (line) =>
+      createLines.push(line)
+    );
     expect(createLines).toContain("ApiKey key-1");
     expect(createLines).toContain("Token vsp_test_token");
     expect(createLines).toContain("Only shown once");
@@ -140,11 +150,16 @@ describe("member/api-key --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function memberFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -175,9 +190,7 @@ function memberInviteResponse() {
       email: "teammate@example.test",
       role: "EDITOR"
     },
-    suggested_next_actions: [
-      { command: "vspec member list" }
-    ]
+    suggested_next_actions: [{ command: "vspec member list" }]
   };
 }
 
@@ -185,18 +198,14 @@ function apiKeyCreateResponse() {
   return {
     api_key: apiKeyPayload(),
     plaintext_token: "vsp_test_token",
-    suggested_next_actions: [
-      { command: "vspec api-key list" }
-    ]
+    suggested_next_actions: [{ command: "vspec api-key list" }]
   };
 }
 
 function apiKeyRevokeResponse() {
   return {
     api_key: apiKeyPayload({ revoked_at: "2026-05-22T00:00:00.000Z" }),
-    suggested_next_actions: [
-      { command: "vspec api-key list" }
-    ]
+    suggested_next_actions: [{ command: "vspec api-key list" }]
   };
 }
 

@@ -14,7 +14,9 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(dockerfile).toContain("FROM node:22-alpine AS build");
     expect(dockerfile).toContain("FROM node:22-alpine AS runtime");
     expect(dockerfile).toContain("EXPOSE 8080");
-    expect(dockerfile).toContain("prisma db push --schema apps/api/prisma/schema.prisma --skip-generate");
+    expect(dockerfile).toContain(
+      "prisma db push --schema apps/api/prisma/schema.prisma --skip-generate"
+    );
     expect(dockerfile).toContain("dist/apps/api/src/index.js");
 
     expect(compose).toContain("app:");

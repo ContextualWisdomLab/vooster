@@ -25,7 +25,15 @@ export function registerRevisionHistoryRoutes(
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/usecases/:usecaseId/revisions", (request, reply) =>
-    listHistory(request, reply, state, membershipStore, projectStore, revisionStore, useCaseStore)
+    listHistory(
+      request,
+      reply,
+      state,
+      membershipStore,
+      projectStore,
+      revisionStore,
+      useCaseStore
+    )
   );
 }
 

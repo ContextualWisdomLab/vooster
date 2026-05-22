@@ -68,9 +68,9 @@ The agent runs `vspec export gherkin <KEY-NNN> [--output tests/<KEY-NNN>.feature
 - 2a1. **System** returns 404 with `vspec history <KEY-NNN>` as a suggested next action.
 - (Outcome: FAILURE — use case ends.)
 
-### *a. The use case is archived
+### \*a. The use case is archived
 
-- *a1. **System** refuses to export and suggests `vspec usecase restore <KEY-NNN>`.
+- \*a1. **System** refuses to export and suggests `vspec usecase restore <KEY-NNN>`.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

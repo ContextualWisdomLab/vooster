@@ -52,7 +52,5 @@ export async function updateProjectNameViaPrisma(
 }
 
 function isPrismaCode(error: unknown, code: string): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
-  );
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
 }

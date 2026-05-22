@@ -29,9 +29,7 @@ export function createMemoryUseCaseStore(): UseCaseStore {
 
     findUseCasesByKey(key) {
       return Promise.resolve(
-        [...usecasesByProject.values()]
-          .flat()
-          .filter((usecase) => usecase.key === key)
+        [...usecasesByProject.values()].flat().filter((usecase) => usecase.key === key)
       );
     },
 
@@ -49,7 +47,7 @@ export function createMemoryUseCaseStore(): UseCaseStore {
       const existing = usecasesByProject.get(usecase.project_id) ?? [];
       usecasesByProject.set(
         usecase.project_id,
-        existing.map((candidate) => candidate.id === usecase.id ? usecase : candidate)
+        existing.map((candidate) => (candidate.id === usecase.id ? usecase : candidate))
       );
       return Promise.resolve();
     }

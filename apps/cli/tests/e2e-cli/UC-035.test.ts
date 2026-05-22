@@ -34,11 +34,15 @@ describe("UC-035 CLI - Propose a spec change", () => {
     try {
       const setup = await createChangeReadyUseCase(server.apiUrl);
       const patchPath = join(root, "title-patch.json");
-      await writeFile(patchPath, JSON.stringify({
-        entity_id: setup.usecaseId,
-        entity_type: "USECASE",
-        fields: { title: "Reviews a refund with audit trail" }
-      }), "utf8");
+      await writeFile(
+        patchPath,
+        JSON.stringify({
+          entity_id: setup.usecaseId,
+          entity_type: "USECASE",
+          fields: { title: "Reviews a refund with audit trail" }
+        }),
+        "utf8"
+      );
 
       const preview = await runCli([
         "change",
@@ -95,13 +99,17 @@ async function createChangeReadyUseCase(apiUrl: string) {
     { key: "CHG", name: "Change Preview", visibility: "PRIVATE" },
     headers
   );
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/actors`, {
-    aliases: ["Reviewer"],
-    description: "Person reviewing refund wording.",
-    is_human: true,
-    name: "Customer",
-    type: "PRIMARY"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/actors`,
+    {
+      aliases: ["Reviewer"],
+      description: "Person reviewing refund wording.",
+      is_human: true,
+      name: "Customer",
+      type: "PRIMARY"
+    },
+    headers
+  );
   const usecase = await postJson<UseCaseResponse>(
     `${apiUrl}/v1/projects/${project.project.id}/usecases`,
     { primary_actor: "Customer", title: "Reviews a refund" },
@@ -118,18 +126,22 @@ async function createChangeReadyUseCase(apiUrl: string) {
 }
 
 async function signup(apiUrl: string) {
-  const start = await postJson<OAuthStartResponse>(`${apiUrl}/v1/auth/github/start`, {
-    workspace: {
-      name: "CLI Change Preview",
-      slug: "cli-change-preview"
-    }
-  }, jsonHeaders());
+  const start = await postJson<OAuthStartResponse>(
+    `${apiUrl}/v1/auth/github/start`,
+    {
+      workspace: {
+        name: "CLI Change Preview",
+        slug: "cli-change-preview"
+      }
+    },
+    jsonHeaders()
+  );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-change-preview-owner");
   callbackUrl.searchParams.set("state", start.state);
 
   const callback = await fetch(callbackUrl, { headers: { Cookie: start.cookie } });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -147,7 +159,7 @@ async function postJson<T>(
     headers,
     method: "POST"
   });
-  const responseBody = await response.json() as T;
+  const responseBody = (await response.json()) as T;
   if (!response.ok) {
     throw new Error(`Setup request failed with ${String(response.status)}`);
   }

@@ -7,9 +7,10 @@ async function main() {
   const app = await createServer({
     authStub: process.env.VSPEC_AUTH_STUB === "1",
     githubOAuth: githubOAuthFromEnv(process.env.VSPEC_AUTH_STUB === "1"),
-    signupStore: process.env.DATABASE_URL === undefined
-      ? undefined
-      : createPrismaSignupStore(process.env.DATABASE_URL)
+    signupStore:
+      process.env.DATABASE_URL === undefined
+        ? undefined
+        : createPrismaSignupStore(process.env.DATABASE_URL)
   });
 
   const shutdown = async () => {

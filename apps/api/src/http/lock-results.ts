@@ -32,7 +32,9 @@ export function sendLockResult(reply: FastifyReply, result: LockResult) {
     case "FOREIGN_LOCK":
       return reply.code(403).send(foreignLockProblem(result.lock, result.usecase));
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "LOCK_NOT_FOUND":
       return reply.code(404).send(problem(404, "Lock not found"));
     case "USECASE_NOT_FOUND":

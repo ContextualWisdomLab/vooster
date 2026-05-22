@@ -69,9 +69,9 @@ The admin runs `vspec api-key create --name "<text>" --scopes read,write`, `vspe
 - 2b1. **System** returns 403 with `vspec member set-role` as a suggested next action (to be run by an owner).
 - (Outcome: FAILURE — use case ends.)
 
-### *a. The target key id does not belong to the current workspace
+### \*a. The target key id does not belong to the current workspace
 
-- *a1. **System** returns 404 (does not leak existence across workspaces).
+- \*a1. **System** returns 404 (does not leak existence across workspaces).
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

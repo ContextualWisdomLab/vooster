@@ -5,7 +5,7 @@
 
 ## Why This Goal Exists
 
-`docs/00-overview.md` 가 약속한 *"minimal Web UI (read, review, merge)"*
+`docs/00-overview.md` 가 약속한 _"minimal Web UI (read, review, merge)"_
 중 **read** 단계가 비어 있다. 현재 `apps/www` 는 한국어 마케팅 랜딩이고,
 인증된 read 표면은 부재. AI agent 는 CLI 로 spec 을 pin/edit 하지만 사람
 리뷰어가 spec 을 살펴볼 표면이 없다.
@@ -35,14 +35,14 @@ iteration 이 gate 에 있음을 메타-검증한다.
 > subdirectories: api, cli, www."
 
 `apps/web` 추가는 멤버십 셋을 `{api, cli, web, www}` 로 바꾼다. `.md`
-본문이 "three" 라는 *count* 를 명시하므로 단순 path retarget(case a)
+본문이 "three" 라는 _count_ 를 명시하므로 단순 path retarget(case a)
 이 아니라 **case (b) loosen invariant** 다 (`.md` 본문도 같은 커밋에서
 업데이트되어야 universal claim ↔ gate 일치 유지).
 
 처리 방침:
 
 1. Goal 8 의 첫 커밋이 `refactor(goal-5): admit apps/web to A3 declared
-   set` — `goals/5-monorepo.md` 의 A3 prose 와 디렉토리 enumeration,
+set` — `goals/5-monorepo.md` 의 A3 prose 와 디렉토리 enumeration,
    `goals/5-monorepo.gates.sh` 의 expected `ACTUAL_APPS` 셋 양쪽을
    동시에 `{api, cli, web, www}` 로 수정.
 2. 같은 커밋에 다른 의도(scaffold 등) 절대 conflate 금지. 다음 커밋부터
@@ -63,161 +63,160 @@ satisfy them.
 ### Tranche A — Workspace integration (Goal 5 retarget + scaffold)
 
 A1. **`goals/5-monorepo.md` A3 prose declares the four-app set.** The
-    gate greps that the file mentions `web` alongside `api`, `cli`,
-    `www` in the A3 paragraph. (Acceptance criterion for the Goal 5
-    loosening commit.)
+gate greps that the file mentions `web` alongside `api`, `cli`,
+`www` in the A3 paragraph. (Acceptance criterion for the Goal 5
+loosening commit.)
 
 A2. **`apps/web/package.json` exists with `"name": "@vooster/web"` and
-    `"private": true`.** The gate parses the JSON with `node -e`.
+`"private": true`.** The gate parses the JSON with `node -e`.
 
 A3. **`apps/web/package.json` depends on Next.js 15.** Specifically,
-    the `next` semver range starts with `15.` or `^15.`. The gate
-    parses the manifest and asserts the major.
+the `next` semver range starts with `15.` or `^15.`. The gate
+parses the manifest and asserts the major.
 
 A4. **Every workspace-config file required by Next.js 15 exists at
-    `apps/web/`.** Source of truth: the declared list
-    `(tsconfig.json next.config.ts tailwind.config.ts postcss.config.mjs)`.
-    The gate iterates and asserts file presence.
+`apps/web/`.** Source of truth: the declared list
+`(tsconfig.json next.config.ts tailwind.config.ts postcss.config.mjs)`.
+The gate iterates and asserts file presence.
 
 A5. **`apps/web` declares `build`, `test`, `typecheck`, and `test:e2e`
-    scripts.** Source of truth: the declared list
-    `(build test typecheck test:e2e)`. The gate iterates and asserts
-    each script key exists in `apps/web/package.json` (this strengthens
-    Goal 5 B6 for the new app — extending the script list).
+scripts.** Source of truth: the declared list
+`(build test typecheck test:e2e)`. The gate iterates and asserts
+each script key exists in `apps/web/package.json` (this strengthens
+Goal 5 B6 for the new app — extending the script list).
 
 A6. **`pnpm --filter @vooster/web build` produces `apps/web/.next/`.**
-    *(The build command itself is enforced by `goals/_meta.md` M.4 — the
-    meta gate enumerates every app under `apps/*` with a `build` script.
-    This goal's gate verifies the `.next/` directory is the resulting
-    artifact. In CI, where `_meta` is skipped, the workflow's explicit
-    build step produces `.next/` for this gate to find.)*
+_(The build command itself is enforced by `goals/_meta.md` M.4 — the
+meta gate enumerates every app under `apps/_`with a`build`script.
+    This goal's gate verifies the`.next/`directory is the resulting
+    artifact. In CI, where`\_meta`is skipped, the workflow's explicit
+    build step produces`.next/` for this gate to find.)\*
 
 ### Tranche B — Read-only viewer pages (Tier 1)
 
 B1. **Every Tier-1 page file exists.** Source of truth: the declared
-    page set
-    ```
-    app/(app)/page.tsx
+page set
+`     app/(app)/page.tsx
     app/login/page.tsx
     app/(app)/projects/[key]/page.tsx
     app/(app)/projects/[key]/usecases/[ucKey]/page.tsx
-    ```
-    The gate iterates and asserts each path under `apps/web/` exists.
-    `app/(app)/page.tsx` is the project list (the "home" surface); a
-    separate `app/projects/page.tsx` is intentionally absent. The
-    `(app)` route group wraps every authenticated surface under one
-    shared layout (chrome + auth).
+    `
+The gate iterates and asserts each path under `apps/web/` exists.
+`app/(app)/page.tsx` is the project list (the "home" surface); a
+separate `app/projects/page.tsx` is intentionally absent. The
+`(app)` route group wraps every authenticated surface under one
+shared layout (chrome + auth).
 
 B2. **Every Tier-1 page is a Server Component.** The gate iterates the
-    same page set and asserts the file does **not** open with
-    `"use client"` (case-insensitive, top-of-file directive only —
-    nested components may be client, but the page export cannot be).
+same page set and asserts the file does **not** open with
+`"use client"` (case-insensitive, top-of-file directive only —
+nested components may be client, but the page export cannot be).
 
 B3. **Every Cockburn UC field is rendered on the detail page.** Source
-    of truth: the declared field set
-    `(title primary_actor level status main_scenario extensions
+of truth: the declared field set
+`(title primary_actor level status main_scenario extensions
       stakeholder_interests)`. The gate iterates and asserts each
-    identifier appears at least once in
-    `apps/web/app/projects/[key]/usecases/[ucKey]/page.tsx` (or in a
-    component file imported by it — the gate widens the grep to the
-    UC detail subtree).
+identifier appears at least once in
+`apps/web/app/projects/[key]/usecases/[ucKey]/page.tsx` (or in a
+component file imported by it — the gate widens the grep to the
+UC detail subtree).
 
 B4. _Removed 2026-05-23._ The original B4 forbade write API calls under
-    `apps/web/app/`. The web app's scope has since expanded beyond
-    read-only viewer to include project CRUD (`createProject`,
-    `renameProject`, `deleteProject`) per commits 840b64f / 6b377a4.
-    The "no writes" invariant is therefore deleted outright rather
-    than reframed — write-side UI is a legitimate part of the web
-    surface now. No replacement invariant in this goal; any future
-    write-API discipline (e.g. "all writes route through
-    `mutateApi`") would be a new goal's concern.
+`apps/web/app/`. The web app's scope has since expanded beyond
+read-only viewer to include project CRUD (`createProject`,
+`renameProject`, `deleteProject`) per commits 840b64f / 6b377a4.
+The "no writes" invariant is therefore deleted outright rather
+than reframed — write-side UI is a legitimate part of the web
+surface now. No replacement invariant in this goal; any future
+write-API discipline (e.g. "all writes route through
+`mutateApi`") would be a new goal's concern.
 
 ### Tranche C — Auth (session-cookie reuse)
 
 C1. **`apps/web/app/login/page.tsx` links to `/v1/auth/github/start`.**
-    The gate greps the file for the literal path.
+The gate greps the file for the literal path.
 
 C2. **Server-side fetches in `apps/web/app/` forward the
-    `vspec_session` cookie.** Source of truth: every `*.tsx` / `*.ts`
-    file under `apps/web/app/` that calls `fetch(`. The gate iterates
-    those files and asserts each fetch invocation is accompanied by a
-    `cookies()` call (Next.js 15 async cookies API) within the same
-    file. A file with `fetch(` but no `cookies()` fails the gate.
+`vspec_session` cookie.** Source of truth: every `*.tsx` / `*.ts`
+file under `apps/web/app/` that calls `fetch(`. The gate iterates
+those files and asserts each fetch invocation is accompanied by a
+`cookies()` call (Next.js 15 async cookies API) within the same
+file. A file with `fetch(` but no `cookies()` fails the gate.
 
 C3. **Every authenticated route is wrapped by the redirect-enforcing
-    `(app)` layout.** Source of truth: the declared set
-    `(app/(app)/page.tsx app/(app)/projects/[key]/page.tsx
+`(app)` layout.** Source of truth: the declared set
+`(app/(app)/page.tsx app/(app)/projects/[key]/page.tsx
       app/(app)/projects/[key]/usecases/[ucKey]/page.tsx)` (`/login`
-    excluded). The gate iterates the set and asserts each file
-    resides under `app/(app)/` (i.e., shares the route group), and
-    separately asserts `app/(app)/layout.tsx` references `redirect(`
-    from `next/navigation` and the string `/login`. The layout
-    centralizes auth — individual pages no longer carry their own
-    redirect — and the iteration enforces that every authenticated
-    surface is structurally inside that layout.
+excluded). The gate iterates the set and asserts each file
+resides under `app/(app)/` (i.e., shares the route group), and
+separately asserts `app/(app)/layout.tsx` references `redirect(`
+from `next/navigation` and the string `/login`. The layout
+centralizes auth — individual pages no longer carry their own
+redirect — and the iteration enforces that every authenticated
+surface is structurally inside that layout.
 
 ### Tranche D — Playwright E2E (honest)
 
 D1. **`apps/web/playwright.config.ts` declares chromium only.** The
-    gate greps for `name: "chromium"` and asserts no `firefox` or
-    `webkit` project entry exists.
+gate greps for `name: "chromium"` and asserts no `firefox` or
+`webkit` project entry exists.
 
 D2. **Every Tier-1 page has a matching Playwright test.** Source of
-    truth: the Tier-1 page set from B1. For each page, the gate
-    iterates and asserts at least one `.spec.ts` under
-    `apps/web/tests/e2e-web/` contains a `page.goto(...)` whose path
-    matches the page's route (e.g., `app/projects/page.tsx` ↔
-    `page.goto("/projects")`).
+truth: the Tier-1 page set from B1. For each page, the gate
+iterates and asserts at least one `.spec.ts` under
+`apps/web/tests/e2e-web/` contains a `page.goto(...)` whose path
+matches the page's route (e.g., `app/projects/page.tsx` ↔
+`page.goto("/projects")`).
 
 D3. **No Playwright test under `apps/web/tests/e2e-web/` calls
-    `fetch(` directly.** Honest invariant: setup + assertions go
-    through the browser (`page.goto`, `page.click`, `expect(page)`).
-    The gate iterates every `*.ts` under the directory and fails on
-    any `fetch(` match.
+`fetch(` directly.** Honest invariant: setup + assertions go
+through the browser (`page.goto`, `page.click`, `expect(page)`).
+The gate iterates every `*.ts` under the directory and fails on
+any `fetch(` match.
 
 D4. **Every Playwright test sets `VSPEC_AUTH_STUB=1` in the launched
-    server's env.** The gate iterates `*.spec.ts` files under
-    `apps/web/tests/e2e-web/` and asserts each references
-    `VSPEC_AUTH_STUB`. (Pattern: set via Playwright `webServer.env`
-    in `playwright.config.ts`; tests reference the env or a helper
-    that sets it.)
+server's env.** The gate iterates `*.spec.ts` files under
+`apps/web/tests/e2e-web/` and asserts each references
+`VSPEC_AUTH_STUB`. (Pattern: set via Playwright `webServer.env`
+in `playwright.config.ts`; tests reference the env or a helper
+that sets it.)
 
 D5. **`pnpm --filter @vooster/web test:e2e` exits 0.** Deep gate;
-    skipped when `VSPEC_GATES_SKIP_DEEP=1`.
+skipped when `VSPEC_GATES_SKIP_DEEP=1`.
 
 ### Tranche E — Vercel deployment
 
 E1. **`apps/web/vercel.ts` exists and declares
-    `framework: "nextjs"`.** The gate greps for the export shape and
-    the framework string.
+`framework: "nextjs"`.** The gate greps for the export shape and
+the framework string.
 
 E2. **The Vercel project name `vooster-new-web` is referenced by
-    `apps/web/vercel.ts` (or a sibling marker file).** Source of
-    truth: the gate's `VERCEL_PROJECT_NAME=vooster-new-web` constant.
-    The gate greps `apps/web/` for that string.
+`apps/web/vercel.ts` (or a sibling marker file).** Source of
+truth: the gate's `VERCEL_PROJECT_NAME=vooster-new-web` constant.
+The gate greps `apps/web/` for that string.
 
 E3. **The most recent production deployment of `vooster-new-web`
-    reports `Ready` status.** The gate runs
-    `vercel inspect $(vercel ls $VERCEL_PROJECT_NAME --prod --limit=1 ...)`
-    (or the simpler `vercel ls vooster-new-web` and parses the first
-    row's Status column) and asserts the literal `● Ready`. Deep gate;
-    skipped when `VSPEC_GATES_SKIP_DEEP=1` or when Vercel CLI is
-    not authenticated (the latter prints an actionable hint pointing
-    at `vercel login`).
+reports `Ready` status.** The gate runs
+`vercel inspect $(vercel ls $VERCEL_PROJECT_NAME --prod --limit=1 ...)`
+(or the simpler `vercel ls vooster-new-web` and parses the first
+row's Status column) and asserts the literal `● Ready`. Deep gate;
+skipped when `VSPEC_GATES_SKIP_DEEP=1` or when Vercel CLI is
+not authenticated (the latter prints an actionable hint pointing
+at `vercel login`).
 
 E4. **The Vercel project is GitHub-linked.** Source of truth:
-    Vercel project JSON (`vercel api /v9/projects/vooster-new-web`,
-    or `vercel project inspect vooster-new-web --json` when supported)
-    returns a `link.type` of `github` (or the analogous nested key —
-    the gate accommodates the CLI's actual JSON shape; a string match
-    on `"type":"github"` suffices). Deep gate.
+Vercel project JSON (`vercel api /v9/projects/vooster-new-web`,
+or `vercel project inspect vooster-new-web --json` when supported)
+returns a `link.type` of `github` (or the analogous nested key —
+the gate accommodates the CLI's actual JSON shape; a string match
+on `"type":"github"` suffices). Deep gate.
 
 ### Tranche F — Meta: rigor
 
 F1. **`scripts/check-gate-rigor.sh goals/8-web-readonly-viewer.md`
-    passes.** Every universal claim above is paired with a
-    `for|while|find|xargs` iteration in
-    `goals/8-web-readonly-viewer.gates.sh`.
+passes.** Every universal claim above is paired with a
+`for|while|find|xargs` iteration in
+`goals/8-web-readonly-viewer.gates.sh`.
 
 ## Scope Guards (additive to Goals 0–7)
 

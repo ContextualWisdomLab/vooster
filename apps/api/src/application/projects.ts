@@ -40,7 +40,11 @@ export async function createProject(
   deps: ProjectCreationDeps,
   input: ProjectCreationInput
 ): Promise<ProjectCreationResult> {
-  const membership = await membershipFor(deps.membershipStore, input.userId, input.workspaceId);
+  const membership = await membershipFor(
+    deps.membershipStore,
+    input.userId,
+    input.workspaceId
+  );
   if (membership === undefined) {
     return { status: "FORBIDDEN" };
   }
@@ -87,7 +91,10 @@ function membershipFor(
   return membershipStore.membershipForWorkspace(workspaceId, userId);
 }
 
-function newProject(deps: ProjectCreationDeps, input: ProjectCreationInput): StoredProject {
+function newProject(
+  deps: ProjectCreationDeps,
+  input: ProjectCreationInput
+): StoredProject {
   return {
     default_branch_id: "",
     id: id(deps),
@@ -156,7 +163,10 @@ export async function renameProject(
     return { status: "WORKSPACE_ARCHIVED" };
   }
 
-  const updated = await deps.projectStore.updateProjectName(input.projectId, input.name);
+  const updated = await deps.projectStore.updateProjectName(
+    input.projectId,
+    input.name
+  );
   if (updated === undefined) {
     return { status: "NOT_FOUND" };
   }

@@ -174,7 +174,11 @@ describe("Goal 2 persistence matrix — workflow cluster", () => {
       usecase.id,
       "Operations"
     );
-    const scenario = await createMainScenario(first.url, signup.sessionCookie, usecase.id);
+    const scenario = await createMainScenario(
+      first.url,
+      signup.sessionCookie,
+      usecase.id
+    );
     await createStep(
       first.url,
       signup.sessionCookie,
@@ -187,7 +191,11 @@ describe("Goal 2 persistence matrix — workflow cluster", () => {
 
     const second = await bootServer(databaseUrl);
     const loggedIn = await login(second.url, "revision-owner");
-    const history = await listRevisionHistory(second.url, loggedIn.sessionCookie, usecase.id);
+    const history = await listRevisionHistory(
+      second.url,
+      loggedIn.sessionCookie,
+      usecase.id
+    );
 
     await second.stop();
 

@@ -11,7 +11,11 @@ import { Card } from "@/components/ui/card";
 import { StatusPill } from "../../../components/StatusPill";
 import { fetchProjectUsecases } from "../../../data";
 
-export default async function ProjectPage({ params }: { params: Promise<{ key: string }> }) {
+export default async function ProjectPage({
+  params
+}: {
+  params: Promise<{ key: string }>;
+}) {
   const { key } = await params;
   const usecases = await fetchProjectUsecases(key);
 

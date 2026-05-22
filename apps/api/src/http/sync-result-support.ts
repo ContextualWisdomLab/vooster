@@ -50,7 +50,10 @@ export function networkFailureProblem(files: PendingFile[]) {
   );
 }
 
-export function staleFileConflict(usecase: StoredUseCase, file: ConflictFile): SyncResult {
+export function staleFileConflict(
+  usecase: StoredUseCase,
+  file: ConflictFile
+): SyncResult {
   return {
     conflict_content: conflictContent(file.content, usecaseMarkdown(usecase), usecase),
     current_revision: usecase.current_revision_id,

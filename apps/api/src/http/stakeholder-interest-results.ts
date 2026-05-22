@@ -21,11 +21,18 @@ export function sendAddStakeholderInterestResult(
     case "DUPLICATE_INTEREST":
       return reply.code(409).send(duplicateInterestProblem(result.existingInterest));
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "STAKEHOLDER_NOT_FOUND":
       return reply
         .code(422)
-        .send(unresolvedStakeholderProblem(result.candidateStakeholders, result.stakeholderName));
+        .send(
+          unresolvedStakeholderProblem(
+            result.candidateStakeholders,
+            result.stakeholderName
+          )
+        );
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -37,7 +44,9 @@ export function sendRemoveStakeholderInterestResult(
 ) {
   switch (result.status) {
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "INTEREST_NOT_FOUND":
       return reply.code(404).send(problem(404, "Stakeholder interest not found"));
     case "REMOVED":

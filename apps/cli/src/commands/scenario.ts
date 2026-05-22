@@ -4,7 +4,12 @@ import {
   commonMutationContextFrom,
   runMutationCommand
 } from "../application/mutation-command.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 
 type ScenarioCliFlags = {
   at?: string;
@@ -75,7 +80,12 @@ export class ScenarioCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(ScenarioCommand);
 
-    await runScenario(parsed.flags, parsed.args.action, parsed.args.usecaseId, this.log.bind(this));
+    await runScenario(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.usecaseId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -115,7 +125,10 @@ async function addScenario(
   );
 }
 
-function printScenario(body: ScenarioResponse, writeLine: (message: string) => void): void {
+function printScenario(
+  body: ScenarioResponse,
+  writeLine: (message: string) => void
+): void {
   writeLine(`Scenario ${body.scenario.id}`);
   writeLine(`Type ${body.scenario.type}`);
   if (body.scenario.extension_point !== null) {
@@ -125,7 +138,9 @@ function printScenario(body: ScenarioResponse, writeLine: (message: string) => v
     writeLine(`Condition ${body.scenario.condition}`);
   }
   writeLine(`Outcome ${body.scenario.outcome}`);
-  writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  writeLine(
+    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+  );
 }
 
 function scenarioCreateFlagsFrom(

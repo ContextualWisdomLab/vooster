@@ -5,14 +5,13 @@ import { problem } from "./signup-support.js";
 import type { StoredActor } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 
-const actorPatchSchema = z
-  .object({
-    aliases: z.array(z.string()).optional(),
-    description: z.string().optional(),
-    is_human: z.boolean().optional(),
-    name: z.string().min(1).optional(),
-    type: z.string().optional()
-  });
+const actorPatchSchema = z.object({
+  aliases: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  is_human: z.boolean().optional(),
+  name: z.string().min(1).optional(),
+  type: z.string().optional()
+});
 const actorTypes = ["PRIMARY", "SUPPORTING", "OFFSTAGE"] as const;
 
 export async function listActors(

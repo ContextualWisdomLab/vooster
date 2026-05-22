@@ -1,10 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  addStakeholderInterest as addStakeholderInterestUseCase, removeStakeholderInterest as removeStakeholderInterestUseCase, type StakeholderInterestDeps
+  addStakeholderInterest as addStakeholderInterestUseCase,
+  removeStakeholderInterest as removeStakeholderInterestUseCase,
+  type StakeholderInterestDeps
 } from "../application/stakeholder-interest.js";
 import {
-  sendAddStakeholderInterestResult, sendRemoveStakeholderInterestResult
+  sendAddStakeholderInterestResult,
+  sendRemoveStakeholderInterestResult
 } from "./stakeholder-interest-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";

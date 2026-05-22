@@ -35,81 +35,81 @@ example.
 ### Tranche A — Persistence is complete
 
 A1. **No entity state lives in `SignupState`** other than the whitelisted
-    ephemera (`pendingOAuth`, `sessionsByToken`, `readOnlyMemberships`).
-    Every other `Map`/`Set` field in `src/http/signup-types.ts` is deleted
-    in the same commit that migrates it.
+ephemera (`pendingOAuth`, `sessionsByToken`, `readOnlyMemberships`).
+Every other `Map`/`Set` field in `src/http/signup-types.ts` is deleted
+in the same commit that migrates it.
 
 A2. **No route reads or writes in-memory entity state.** A grep over
-    `src/http/*-routes.ts` for `state.<entityMap>` returns zero lines for
-    every non-whitelisted entity name.
+`src/http/*-routes.ts` for `state.<entityMap>` returns zero lines for
+every non-whitelisted entity name.
 
 A3. **Every Prisma model in `schema.prisma` is exercised by an adapter in
-    `src/infrastructure/`.** For each `model X` declaration, there is at
-    least one `prisma.<x>.` call inside `src/infrastructure/`. Enumerated
-    from `prisma/schema.prisma`, not hardcoded.
+`src/infrastructure/`.** For each `model X` declaration, there is at
+least one `prisma.<x>.` call inside `src/infrastructure/`. Enumerated
+from `prisma/schema.prisma`, not hardcoded.
 
 A4. **Restart survival is proven per entity.**
-    `tests/integration/persistence-matrix.test.ts` boots the server,
-    creates one instance of every Prisma model via the **public HTTP API**,
-    sends `SIGTERM`, restarts against the same DB file, and asserts every
-    instance is still readable. The test references every model name; you
-    cannot pass A4 by persisting only some models. *(The "test passes" half
-    is enforced by `goals/_meta.md` M.3; this goal's gate enumerates file
-    presence and per-model references.)*
+`tests/integration/persistence-matrix.test.ts` boots the server,
+creates one instance of every Prisma model via the **public HTTP API**,
+sends `SIGTERM`, restarts against the same DB file, and asserts every
+instance is still readable. The test references every model name; you
+cannot pass A4 by persisting only some models. _(The "test passes" half
+is enforced by `goals/_meta.md` M.3; this goal's gate enumerates file
+presence and per-model references.)_
 
 ### Tranche B — Real auth + reproducible deploy
 
 B1. **GitHub OAuth works without the stub.** With `VSPEC_AUTH_STUB` unset
-    and `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` provided,
-    `tests/e2e/UC-001-real-oauth.test.ts` completes signup by intercepting
-    GitHub's token + user endpoints (via `undici` `MockAgent` or
-    equivalent). `grep -rq 'GITHUB_CLIENT_ID' src/` returns nonzero — the
-    secret is read by real code, not just documented in `.env.example`.
-    *(The "test passes" half is enforced by `goals/_meta.md` M.3; this
-    goal's gate enumerates file presence and code references.)*
+and `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` provided,
+`tests/e2e/UC-001-real-oauth.test.ts` completes signup by intercepting
+GitHub's token + user endpoints (via `undici` `MockAgent` or
+equivalent). `grep -rq 'GITHUB_CLIENT_ID' src/` returns nonzero — the
+secret is read by real code, not just documented in `.env.example`.
+_(The "test passes" half is enforced by `goals/_meta.md` M.3; this
+goal's gate enumerates file presence and code references.)_
 
 B2. **DB configuration is consistent across files.** `prisma/schema.prisma`,
-    `.env.example`, `package.json`, and `docker-compose*.yml` all agree on
-    `DATABASE_URL` shape. `scripts/check-db-consistency.sh` verifies the
-    alignment: Postgres for prod, SQLite only for tests.
+`.env.example`, `package.json`, and `docker-compose*.yml` all agree on
+`DATABASE_URL` shape. `scripts/check-db-consistency.sh` verifies the
+alignment: Postgres for prod, SQLite only for tests.
 
 B3. **App is deployable via Docker.** `Dockerfile` (multi-stage, Node 20
-    runtime) builds successfully. `docker-compose.prod.yml` brings up the
-    app + Postgres. `scripts/check-deployable.sh` builds the image, starts
-    the stack, polls `/healthz`, executes one signup roundtrip from
-    outside the container, and tears the stack down cleanly.
+runtime) builds successfully. `docker-compose.prod.yml` brings up the
+app + Postgres. `scripts/check-deployable.sh` builds the image, starts
+the stack, polls `/healthz`, executes one signup roundtrip from
+outside the container, and tears the stack down cleanly.
 
 B4. **User-facing README exists.** `README.md` has top-level sections
-    `## Install`, `## Run`, and `## Deploy`, each with copy-pasteable
-    commands that work on a fresh machine. The autonomous-build-harness
-    content moves to `docs/build-harness.md`, cross-linked from README.
+`## Install`, `## Run`, and `## Deploy`, each with copy-pasteable
+commands that work on a fresh machine. The autonomous-build-harness
+content moves to `docs/build-harness.md`, cross-linked from README.
 
 ### Tranche C — Layers are real, not cosmetic
 
 C1. **Routes are thin.** Every file matching `src/http/*-routes.ts` is
-    ≤ 150 lines. Validation/parsing stays in the route; business logic
-    does not.
+≤ 150 lines. Validation/parsing stays in the route; business logic
+does not.
 
 C2. **`src/application/` has substance.** At least 18 modules under
-    `src/application/` (≈ one per Prisma model area). Each contains
-    use-case functions consumed by routes via direct import.
+`src/application/` (≈ one per Prisma model area). Each contains
+use-case functions consumed by routes via direct import.
 
 C3. **Application logic is unit-tested.** `tests/unit/application/`
-    contains at least 18 `*.test.ts` files. These tests exercise
-    application functions without booting Fastify (no `createServer`, no
-    HTTP).
+contains at least 18 `*.test.ts` files. These tests exercise
+application functions without booting Fastify (no `createServer`, no
+HTTP).
 
 C4. **Boundaries are enforced upward, not just downward.** The
-    `eslint-plugin-boundaries` config forbids adapter layers from
-    directly importing `infrastructure`. Routes go through
-    `application`; CLI goes through the explicit architecture arrows.
+`eslint-plugin-boundaries` config forbids adapter layers from
+directly importing `infrastructure`. Routes go through
+`application`; CLI goes through the explicit architecture arrows.
 
 ### Tranche D — Meta: no regression and gate rigor
 
 D1. `goals/0-init.gates.sh` still passes.
 D2. `goals/1-runnable.gates.sh` still passes.
 D3. `scripts/check-gate-rigor.sh` passes — the active goal's `.gates.sh`
-    iterates whenever its markdown contains "every X" language.
+iterates whenever its markdown contains "every X" language.
 
 ## Scope Guards
 
@@ -120,7 +120,7 @@ Same as Goal 1 plus:
   the Map.
 - **No goal-1 narrowing.** `scripts/check-persistence.sh`, `check-bootable.sh`,
   `check-cli.sh`, `check-layers.sh`, and the gate scripts for Goal 0/1
-  must remain *unchanged or strengthened*. You may add new gate scripts;
+  must remain _unchanged or strengthened_. You may add new gate scripts;
   you may not weaken old ones.
 - **No "test-side seeding."** `persistence-matrix.test.ts` creates
   entities via the public HTTP API. Direct Prisma inserts in that test

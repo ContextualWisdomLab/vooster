@@ -38,7 +38,8 @@ export function nearDuplicateGoal(
   const normalized = comparableDescription(description);
   return goals.find(
     (goal) =>
-      goal.actor_id === actorId && comparableDescription(goal.description) === normalized
+      goal.actor_id === actorId &&
+      comparableDescription(goal.description) === normalized
   );
 }
 

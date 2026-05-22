@@ -45,9 +45,24 @@ export type CreateScenarioResult =
       steps: StoredStep[];
     }
   | { existingScenario: StoredScenario; status: "DUPLICATE_MAIN_SUCCESS" }
-  | { existingCondition: string | null; status: "DUPLICATE_EXTENSION_POINT"; suggestedExtensionPoint: string }
-  | { parentStepNumber: number | null; status: "EXTENSION_PARENT_OUT_OF_RANGE"; usecaseKey: string }
-  | { status: "FORBIDDEN" | "INVALID_EXTENSION_POINT" | "INVALID_EXTENSION_REQUEST" | "MISSING_STAKEHOLDER_INTEREST" | "USECASE_NOT_FOUND" };
+  | {
+      existingCondition: string | null;
+      status: "DUPLICATE_EXTENSION_POINT";
+      suggestedExtensionPoint: string;
+    }
+  | {
+      parentStepNumber: number | null;
+      status: "EXTENSION_PARENT_OUT_OF_RANGE";
+      usecaseKey: string;
+    }
+  | {
+      status:
+        | "FORBIDDEN"
+        | "INVALID_EXTENSION_POINT"
+        | "INVALID_EXTENSION_REQUEST"
+        | "MISSING_STAKEHOLDER_INTEREST"
+        | "USECASE_NOT_FOUND";
+    };
 
 export type AddScenarioStepInput = {
   action: string;
@@ -67,7 +82,10 @@ export type AddScenarioStepResult =
       step: StoredStep;
     }
   | { knownActors: string[]; status: "UNKNOWN_STEP_ACTOR" }
-  | { status: "FORBIDDEN" | "PASSIVE_ACTION" | "SCENARIO_NOT_FOUND"; suggestedAction?: string };
+  | {
+      status: "FORBIDDEN" | "PASSIVE_ACTION" | "SCENARIO_NOT_FOUND";
+      suggestedAction?: string;
+    };
 
 export async function createScenario(
   deps: ScenarioAuthoringDeps,
@@ -90,7 +108,7 @@ export async function addScenarioStep(
   if (found === undefined) {
     return { status: "SCENARIO_NOT_FOUND" };
   }
-  if (!await hasMembership(deps.membershipStore, found.projectId, input.userId)) {
+  if (!(await hasMembership(deps.membershipStore, found.projectId, input.userId))) {
     return { status: "FORBIDDEN" };
   }
   if (!input.force && usesPassiveVoice(input.action)) {
@@ -148,7 +166,10 @@ async function createMainSuccessScenario(
   if (existing !== undefined) {
     return { existingScenario: existing, status: "DUPLICATE_MAIN_SUCCESS" };
   }
-  if ((await deps.stakeholderInterestStore.listStakeholderInterests(found.usecase.id)).length === 0) {
+  if (
+    (await deps.stakeholderInterestStore.listStakeholderInterests(found.usecase.id))
+      .length === 0
+  ) {
     return { status: "MISSING_STAKEHOLDER_INTEREST" };
   }
 
@@ -198,12 +219,20 @@ async function createExtensionScenario(
       usecaseKey: found.usecase.key
     };
   }
-  const existing = await extensionAtPoint(deps.scenarioStore, found.usecase.id, input.extensionPoint);
+  const existing = await extensionAtPoint(
+    deps.scenarioStore,
+    found.usecase.id,
+    input.extensionPoint
+  );
   if (existing !== undefined) {
     return {
       existingCondition: existing.condition,
       status: "DUPLICATE_EXTENSION_POINT",
-      suggestedExtensionPoint: await nextExtensionPoint(deps.scenarioStore, found.usecase.id, input.extensionPoint)
+      suggestedExtensionPoint: await nextExtensionPoint(
+        deps.scenarioStore,
+        found.usecase.id,
+        input.extensionPoint
+      )
     };
   }
 
@@ -248,7 +277,7 @@ async function authorizedUseCase(
   if (found === undefined) {
     return { status: "USECASE_NOT_FOUND" };
   }
-  return await hasMembership(deps.membershipStore, found.projectId, userId)
+  return (await hasMembership(deps.membershipStore, found.projectId, userId))
     ? { projectId: found.projectId, status: "AUTHORIZED", usecase: found.usecase }
     : { status: "FORBIDDEN" };
 }
@@ -256,7 +285,9 @@ async function authorizedUseCase(
 async function scenarioWithUseCase(
   deps: Pick<ScenarioAuthoringDeps, "scenarioStore" | "useCaseStore">,
   scenarioId: string
-): Promise<{ projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined> {
+): Promise<
+  { projectId: string; scenario: StoredScenario; usecase: StoredUseCase } | undefined
+> {
   const scenario = await deps.scenarioStore.findScenarioById(scenarioId);
   if (scenario === undefined) {
     return undefined;
@@ -295,13 +326,15 @@ async function hasMembership(
 ): Promise<boolean> {
   return (
     userId !== undefined &&
-    await membershipStore.membershipForProject(projectId, userId) !== undefined
+    (await membershipStore.membershipForProject(projectId, userId)) !== undefined
   );
 }
 
 function extensionPointParentStep(extensionPoint: string): number | null {
   const match = /^(?<step>\d+)[a-z]$/.exec(extensionPoint);
-  return match?.groups?.step === undefined ? null : Number.parseInt(match.groups.step, 10);
+  return match?.groups?.step === undefined
+    ? null
+    : Number.parseInt(match.groups.step, 10);
 }
 
 async function mainScenarioHasStep(
@@ -332,7 +365,7 @@ async function nextExtensionPoint(
   const prefix = extensionPoint.slice(0, -1);
   let letterCode = extensionPoint.charCodeAt(extensionPoint.length - 1) + 1;
   let candidate = `${prefix}${String.fromCharCode(letterCode)}`;
-  while (await extensionAtPoint(scenarioStore, usecaseId, candidate) !== undefined) {
+  while ((await extensionAtPoint(scenarioStore, usecaseId, candidate)) !== undefined) {
     letterCode += 1;
     candidate = `${prefix}${String.fromCharCode(letterCode)}`;
   }

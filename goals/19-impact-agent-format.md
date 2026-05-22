@@ -48,20 +48,20 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The impact agent-format debt is removed without clearing unrelated debt.**
-    The grouped `impact`, `revert`, `who`, and comment bullet is gone. A
-    narrowed `revert`, `who`, and comment bullet remains, and the
-    `member invite` / `api-key create|list|revoke` bullet remains.
+The grouped `impact`, `revert`, `who`, and comment bullet is gone. A
+narrowed `revert`, `who`, and comment bullet remains, and the
+`member invite` / `api-key create|list|revoke` bullet remains.
 
 A2. **Goal 18's findings sentinel is retargeted without weakening its
-    invariant.** Gate `18.A1` no longer requires the grouped
-    impact/revert/who/comment bullet and instead requires the narrowed
-    `revert`, `who`, and comment bullet.
+invariant.** Gate `18.A1` no longer requires the grouped
+impact/revert/who/comment bullet and instead requires the narrowed
+`revert`, `who`, and comment bullet.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents impact agent format.** A marked
-    `### Agent Format — Impact` section exists under Versioning & Impact and
-    includes:
+`### Agent Format — Impact` section exists under Versioning & Impact and
+includes:
 
     ```
     vspec impact <KEY-NNN> --format=agent
@@ -75,46 +75,46 @@ B1. **`docs/07-cli-spec.md` documents impact agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/impact.ts` is discovered by the same source of
-    truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/impact.ts` to appear.
+truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/impact.ts` to appear.
 
 C2. **`impact` builds an agent envelope when requested.** The gate extracts
-    `runImpact` from `apps/cli/src/commands/impact.ts` and requires both
-    `format === "agent"` and `buildAgentEnvelope` inside that function.
+`runImpact` from `apps/cli/src/commands/impact.ts` and requires both
+`format === "agent"` and `buildAgentEnvelope` inside that function.
 
 C3. **`impact` maps revision context and guidance.** `runImpact` passes
-    `body.suggested_next_actions` to `buildAgentEnvelope` and sets
-    `context.revision` from the latest revision used for the preview.
+`body.suggested_next_actions` to `buildAgentEnvelope` and sets
+`context.revision` from the latest revision used for the preview.
 
 C4. **`impact` exposes the format flag.** `ImpactCommand.flags` includes
-    `format: Flags.string()`.
+`format: Flags.string()`.
 
 ### Tranche D — Unit Proof
 
 D1. **Impact has focused unit proof for agent and human output.** The file
-    `apps/cli/tests/unit/impact-agent-format.test.ts` contains test titles
-    `agent impact` and `human impact`. The agent test invokes the command with
-    `--format=agent`, stubs both the revision-history fetch and impact-preview
-    fetch, parses stdout as one JSON object, asserts `format_version`, asserts
-    `data.preview_id`, asserts `data.impact.input_hash`, asserts
-    `context.revision`, asserts copied `suggested_next_actions` by `vspec lock`
-    command substring, and asserts no human-renderer tokens are mixed into
-    stdout.
+`apps/cli/tests/unit/impact-agent-format.test.ts` contains test titles
+`agent impact` and `human impact`. The agent test invokes the command with
+`--format=agent`, stubs both the revision-history fetch and impact-preview
+fetch, parses stdout as one JSON object, asserts `format_version`, asserts
+`data.preview_id`, asserts `data.impact.input_hash`, asserts
+`context.revision`, asserts copied `suggested_next_actions` by `vspec lock`
+command substring, and asserts no human-renderer tokens are mixed into
+stdout.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Impact has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/impact-agent-format.test.ts` contains test
-    title `agent impact`, invokes `runCli([ "impact", ... ])` with
-    `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
-    JSON, asserts `format_version`, asserts `data.preview_id`, asserts
-    `data.impact.input_hash`, asserts `context.revision` is a string, and
-    asserts `suggested_next_actions` includes a `vspec lock` command.
+`apps/cli/tests/e2e-cli-honest/impact-agent-format.test.ts` contains test
+title `agent impact`, invokes `runCli([ "impact", ... ])` with
+`--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
+JSON, asserts `format_version`, asserts `data.preview_id`, asserts
+`data.impact.input_hash`, asserts `context.revision` is a string, and
+asserts `suggested_next_actions` includes a `vspec lock` command.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no impact-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no impact-agent entry.
 
 ### Tranche F — Rigor
 

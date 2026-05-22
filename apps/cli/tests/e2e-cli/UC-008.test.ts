@@ -68,7 +68,11 @@ async function createGoal(apiUrl: string) {
   const projectResponse = await fetch(
     `${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`,
     {
-      body: JSON.stringify({ key: "GOL", name: "Goal Promotion", visibility: "PRIVATE" }),
+      body: JSON.stringify({
+        key: "GOL",
+        name: "Goal Promotion",
+        visibility: "PRIVATE"
+      }),
       headers: {
         "Content-Type": "application/json",
         Cookie: signedUp.cookie
@@ -76,7 +80,7 @@ async function createGoal(apiUrl: string) {
       method: "POST"
     }
   );
-  const projectBody = await projectResponse.json() as ProjectResponse;
+  const projectBody = (await projectResponse.json()) as ProjectResponse;
   const actorResponse = await fetch(
     `${apiUrl}/v1/projects/${projectBody.project.id}/actors`,
     {
@@ -94,7 +98,7 @@ async function createGoal(apiUrl: string) {
       method: "POST"
     }
   );
-  const actorBody = await actorResponse.json() as ActorResponse;
+  const actorBody = (await actorResponse.json()) as ActorResponse;
   const goalResponse = await fetch(
     `${apiUrl}/v1/projects/${projectBody.project.id}/goals`,
     {
@@ -111,7 +115,7 @@ async function createGoal(apiUrl: string) {
       method: "POST"
     }
   );
-  const goalBody = await goalResponse.json() as GoalResponse;
+  const goalBody = (await goalResponse.json()) as GoalResponse;
 
   return {
     cookie: signedUp.cookie,
@@ -132,7 +136,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-goal-promotion-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -142,7 +146,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

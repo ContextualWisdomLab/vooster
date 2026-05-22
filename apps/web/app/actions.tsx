@@ -8,9 +8,7 @@ import {
   type ProjectSummary
 } from "./data";
 
-export type ActionState<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: string };
+export type ActionState<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export async function createProjectAction(
   input: CreateProjectInput

@@ -1,4 +1,8 @@
-import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../domain/entities/index.js";
+import type {
+  StoredRevision,
+  StoredSpecBranch,
+  StoredUseCase
+} from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -22,7 +26,11 @@ export type RevisionDiffPayload = {
   summary: { breaking: number; cosmetic: number; non_breaking: number };
   to_revision: string;
   usecase: { id: string; key: string };
-  warnings?: Array<{ from_branch: string; to_branch: string; type: "CROSS_BRANCH_DIFF" }>;
+  warnings?: Array<{
+    from_branch: string;
+    to_branch: string;
+    type: "CROSS_BRANCH_DIFF";
+  }>;
 };
 export type CompareUseCaseRevisionsDeps = {
   branchStore: BranchStore;
@@ -52,7 +60,7 @@ export async function compareUseCaseRevisions(
   }
   if (
     input.userId === undefined ||
-    await deps.membershipStore.membershipForProject(found.projectId, input.userId) ===
+    (await deps.membershipStore.membershipForProject(found.projectId, input.userId)) ===
       undefined
   ) {
     return { status: "FORBIDDEN" };
@@ -95,13 +103,18 @@ async function revisionDiff(
   const toBranch = await branchForRevision(branchStore, projectId, to.id);
   const changes = await Promise.all(
     revisionsBetween(revisions, from, to).map(async (revision) =>
-      diffChange(revision, (await branchForRevision(branchStore, projectId, revision.id))?.name)
+      diffChange(
+        revision,
+        (await branchForRevision(branchStore, projectId, revision.id))?.name
+      )
     )
   );
 
   return {
     changes,
-    ...(fromBranch !== undefined && toBranch !== undefined && fromBranch.id !== toBranch.id
+    ...(fromBranch !== undefined &&
+    toBranch !== undefined &&
+    fromBranch.id !== toBranch.id
       ? crossBranchWarning(fromBranch, toBranch)
       : {}),
     format,
@@ -113,17 +126,27 @@ async function revisionDiff(
     usecase: { id: usecase.id, key: usecase.key }
   };
 }
-function revisionById(revisions: StoredRevision[], id: string): StoredRevision | undefined {
+function revisionById(
+  revisions: StoredRevision[],
+  id: string
+): StoredRevision | undefined {
   return revisions.find((revision) => revision.id === id);
 }
-function revisionsBetween(revisions: StoredRevision[], from: StoredRevision, to: StoredRevision) {
+function revisionsBetween(
+  revisions: StoredRevision[],
+  from: StoredRevision,
+  to: StoredRevision
+) {
   return revisions.filter(
     (revision) =>
       revision.version_number > from.version_number &&
       revision.version_number <= to.version_number
   );
 }
-function diffChange(revision: StoredRevision, sourceBranch?: string): RevisionDiffChange {
+function diffChange(
+  revision: StoredRevision,
+  sourceBranch?: string
+): RevisionDiffChange {
   const addedStep = /^Added step (?<stepNumber>\d+) to main success scenario$/.exec(
     revision.change_summary ?? ""
   );

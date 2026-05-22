@@ -88,7 +88,9 @@ describe("local context --format=agent", () => {
     useIsolatedConfig();
     const lines: string[] = [];
 
-    runWorkspace({ format: "agent" }, "switch", "workspace-two", (line) => lines.push(line));
+    runWorkspace({ format: "agent" }, "switch", "workspace-two", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<WorkspaceSwitchData>(stdout);
@@ -141,7 +143,10 @@ describe("local context --format=agent", () => {
 });
 
 function useIsolatedConfig(): string {
-  const configPath = join(mkdtempSync(join(tmpdir(), "vspec-local-context-")), "config.json");
+  const configPath = join(
+    mkdtempSync(join(tmpdir(), "vspec-local-context-")),
+    "config.json"
+  );
   process.env.VSPEC_CONFIG_PATH = configPath;
   return configPath;
 }

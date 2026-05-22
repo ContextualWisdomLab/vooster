@@ -27,7 +27,12 @@ describe("branch create --format=agent", () => {
     stubFetch(branchBody());
     const lines: string[] = [];
 
-    await runBranch(branchFlags({ format: "agent" }), "create", "feature/agent-branch", (line) => lines.push(line));
+    await runBranch(
+      branchFlags({ format: "agent" }),
+      "create",
+      "feature/agent-branch",
+      (line) => lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     expect(envelope.data.branch.id).toBe("branch-1");
@@ -40,7 +45,9 @@ describe("branch create --format=agent", () => {
     stubFetch(branchBody());
     const lines: string[] = [];
 
-    await runBranch(branchFlags(), "create", "feature/agent-branch", (line) => lines.push(line));
+    await runBranch(branchFlags(), "create", "feature/agent-branch", (line) =>
+      lines.push(line)
+    );
 
     expect(lines).toContain("Branch branch-1");
     expect(lines).toContain("Name feature/agent-branch");
@@ -49,11 +56,16 @@ describe("branch create --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function branchFlags(overrides: Record<string, string> = {}): Record<string, string> {

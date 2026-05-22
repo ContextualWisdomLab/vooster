@@ -25,20 +25,28 @@ afterAll(async () => {
 
 describe("UC-010 - Define stakeholder interests", () => {
   test("MAIN: add stakeholder interest and append use case revision", async () => {
-    const setup = await createProject(server, "Interest Project", "interest-project", "stub-interest-project");
+    const setup = await createProject(
+      server,
+      "Interest Project",
+      "interest-project",
+      "stub-interest-project"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     const stakeholder = await createStakeholder(server, setup, "Product Manager");
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/stakeholder-interests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        interest: "Checkout revenue is protected.",
-        protection_mechanism: "Success guarantee",
-        stakeholder: "Product Manager"
-      })
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/stakeholder-interests`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+        body: JSON.stringify({
+          interest: "Checkout revenue is protected.",
+          protection_mechanism: "Success guarantee",
+          stakeholder: "Product Manager"
+        })
+      }
+    );
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as InterestResponse;
@@ -62,7 +70,12 @@ describe("UC-010 - Define stakeholder interests", () => {
   });
 
   test("3a: duplicate stakeholder interest returns edit guidance", async () => {
-    const setup = await createProject(server, "Duplicate Interest", "duplicate-interest", "stub-duplicate-interest");
+    const setup = await createProject(
+      server,
+      "Duplicate Interest",
+      "duplicate-interest",
+      "stub-duplicate-interest"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
@@ -88,7 +101,12 @@ describe("UC-010 - Define stakeholder interests", () => {
   });
 
   test("4a: remove stakeholder interest appends breaking revision", async () => {
-    const setup = await createProject(server, "Remove Interest", "remove-interest", "stub-remove-interest");
+    const setup = await createProject(
+      server,
+      "Remove Interest",
+      "remove-interest",
+      "stub-remove-interest"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
@@ -117,7 +135,12 @@ describe("UC-010 - Define stakeholder interests", () => {
   });
 
   test("5a: removing last interest warns and blocks status transition", async () => {
-    const setup = await createProject(server, "Last Interest", "last-interest", "stub-last-interest");
+    const setup = await createProject(
+      server,
+      "Last Interest",
+      "last-interest",
+      "stub-last-interest"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");
@@ -146,7 +169,12 @@ describe("UC-010 - Define stakeholder interests", () => {
   });
 
   test("*a: unknown stakeholder returns candidates and preserves revisions", async () => {
-    const setup = await createProject(server, "Unknown Stakeholder", "unknown-stakeholder", "stub-unknown-stakeholder");
+    const setup = await createProject(
+      server,
+      "Unknown Stakeholder",
+      "unknown-stakeholder",
+      "stub-unknown-stakeholder"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Places an order");
     await createStakeholder(server, setup, "Product Manager");

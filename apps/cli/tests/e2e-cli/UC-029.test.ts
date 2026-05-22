@@ -77,7 +77,11 @@ describe("UC-029 CLI - Sync local files with the server", () => {
       const synced = await readFile(filePath, "utf8");
       expect(synced).toContain("# Reviews a refund quickly");
       expect(synced).not.toContain(`revision: ${setup.baseRevision}`);
-      const history = await historyRevisions(server.apiUrl, setup.cookie, setup.usecaseId);
+      const history = await historyRevisions(
+        server.apiUrl,
+        setup.cookie,
+        setup.usecaseId
+      );
       expect(history).toHaveLength(2);
       expect(synced).toContain(`revision: ${history[0] ?? ""}`);
     } finally {
@@ -94,13 +98,17 @@ async function createSyncReadyUseCase(apiUrl: string) {
     { key: "SYN", name: "Sync", visibility: "PRIVATE" },
     headers
   );
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/actors`, {
-    aliases: ["Reviewer"],
-    description: "Person syncing specs.",
-    is_human: true,
-    name: "Customer",
-    type: "PRIMARY"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/actors`,
+    {
+      aliases: ["Reviewer"],
+      description: "Person syncing specs.",
+      is_human: true,
+      name: "Customer",
+      type: "PRIMARY"
+    },
+    headers
+  );
   const usecase = await postJson<UseCaseResponse>(
     `${apiUrl}/v1/projects/${project.project.id}/usecases`,
     { primary_actor: "Customer", title: "Reviews a refund" },
@@ -117,18 +125,22 @@ async function createSyncReadyUseCase(apiUrl: string) {
 }
 
 async function signup(apiUrl: string) {
-  const start = await postJson<OAuthStartResponse>(`${apiUrl}/v1/auth/github/start`, {
-    workspace: {
-      name: "CLI Sync",
-      slug: "cli-sync"
-    }
-  }, jsonHeaders());
+  const start = await postJson<OAuthStartResponse>(
+    `${apiUrl}/v1/auth/github/start`,
+    {
+      workspace: {
+        name: "CLI Sync",
+        slug: "cli-sync"
+      }
+    },
+    jsonHeaders()
+  );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-sync-owner");
   callbackUrl.searchParams.set("state", start.state);
 
   const callback = await fetch(callbackUrl, { headers: { Cookie: start.cookie } });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -140,7 +152,7 @@ async function historyRevisions(apiUrl: string, cookie: string, usecaseId: strin
   const response = await fetch(`${apiUrl}/v1/usecases/${usecaseId}/revisions`, {
     headers: { Cookie: cookie }
   });
-  const body = await response.json() as HistoryResponse;
+  const body = (await response.json()) as HistoryResponse;
   return body.revisions.map((revision) => revision.revision);
 }
 
@@ -154,7 +166,7 @@ async function postJson<T>(
     headers,
     method: "POST"
   });
-  const responseBody = await response.json() as T;
+  const responseBody = (await response.json()) as T;
   if (!response.ok) {
     throw new Error(`Setup request failed with ${String(response.status)}`);
   }

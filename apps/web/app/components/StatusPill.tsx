@@ -1,3 +1,6 @@
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: "bg-tint-gray text-foreground",
   READY: "bg-tint-mint text-success",
@@ -11,10 +14,14 @@ const DEFAULT_STYLE = "bg-tint-gray text-foreground";
 export function StatusPill({ status }: { status: string }) {
   const variant = STATUS_STYLES[status.toUpperCase()] ?? DEFAULT_STYLE;
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${variant}`}
+    <Badge
+      variant="secondary"
+      className={cn(
+        "rounded-full border-transparent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide",
+        variant
+      )}
     >
       {status}
-    </span>
+    </Badge>
   );
 }

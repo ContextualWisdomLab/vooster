@@ -16,7 +16,8 @@
     "start": "node dist/apps/api/src/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "bash scripts/completion-check.sh"
   },
   "repository": {
     "type": "git",

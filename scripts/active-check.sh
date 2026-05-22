@@ -7,8 +7,8 @@
 #   1. when the active goal turns green (this script exec's into it
 #      to advance the active-goal pointer and catch any silent prior
 #      regression at the goal boundary), and
-#   2. at commit time via .git/hooks/pre-commit (install instructions
-#      in scripts/hooks/pre-commit), and
+#   2. before push when scripts/hooks/pre-push is installed or when
+#      pnpm verify is run manually, and
 #   3. in CI on every PR.
 #
 # Cost: ~5–30 s depending on which goal is active, vs. 1–2 min for the
@@ -93,8 +93,8 @@ echo
 cat <<EOF
     ✗ active goal $goal_name still has failing gates.
       Prior-goal regression is NOT checked at the iteration level —
-      it's caught at commit time (pre-commit hook) or in CI. If you
-      want to verify the full chain right now:
+      staged impact is caught at commit time; the full sweep is caught
+      at pre-push/CI/manual verify. To verify the full chain right now:
         bash scripts/completion-check.sh
 EOF
 exit 1

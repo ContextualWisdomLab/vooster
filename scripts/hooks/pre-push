@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# pre-push hook — full regression boundary before sharing a branch.
+#
+# Install:
+#   cd <repo root>
+#   ln -sf ../../scripts/hooks/pre-push .git/hooks/pre-push
+
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if bash scripts/completion-check.sh; then
+  exit 0
+fi
+
+cat <<'EOF'
+
+✗ push blocked: completion-check failed.
+
+  Fix the failing goal(s), or push with --no-verify only when you knowingly
+  need to share a broken intermediate branch.
+EOF
+exit 1

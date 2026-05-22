@@ -5,12 +5,13 @@ resolved: false
 kind: snapshot
 status_notes: |
   Frozen run-author snapshot. Open work is tracked by
-  docs/findings/2026-05-23T1700-dogfood-followups.md. Goal 30 targets
-  A1/A3/A10/A11 but is design-only as of 2026-05-23 (code unimplemented).
+  docs/findings/2026-05-23T1700-dogfood-followups.md. A1/A3/A10/A11
+  are scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip.md
+  (code unimplemented as of 2026-05-23).
 related:
   - docs/findings/2026-05-23T1700-dogfood-followups.md
+  - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
   - docs/findings/2026-05-21T1856-cli-spec-gaps.md
-  - goals/30-dogfood-roundtrip.md
   - docs/00-overview.md
   - docs/07-cli-spec.md
 ---

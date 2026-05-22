@@ -163,9 +163,10 @@ gates.sh 가 _유일하게_ 책임지는 건 세 종류만 남는다:
 되는가?"** 답이 있으면 gates 에서 빼라. 답이 없을 때만 gate 가
 적절하다.
 
-참조 구현: `goals/30-dogfood-roundtrip.gates.sh` (~63 줄, 2 gate).
-배경 분석과 기존 goal 7-29 의 trim migration plan:
-`docs/findings/2026-05-23T1700-gates-over-coupling.md`.
+참조 구현 패턴 (63 줄 / 2 gate 의 minimal gates.sh):
+`docs/findings/2026-05-23T1700-gates-over-coupling.md` § "What good
+looks like" 에 인라인 인용. 배경 분석과 기존 goal 7-29 의 trim
+migration plan 도 같은 문서.
 
 ### 2. 첫 실패 goal = 작업 대상
 

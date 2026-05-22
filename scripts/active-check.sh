@@ -31,6 +31,11 @@ cd "$ROOT"
 mkdir -p "$ROOT/.state"
 ACTIVE_FILE="$ROOT/.state/active-goal"
 
+# Per-iteration runs default to skipping external-system gates so the
+# inner TDD loop stays deterministic. See completion-check.sh and
+# docs/findings/2026-05-23T1715-world-state-separation.md.
+export VSPEC_GATES_SKIP_DEEP="${VSPEC_GATES_SKIP_DEEP:-1}"
+
 echo "=== ACTIVE-GOAL CHECK ==="
 echo
 

@@ -238,9 +238,9 @@ gates 에서 grep 으로 흉내내지 마라.** 자세한 근거는
 enumeration, (c) 문서/파일 존재로 후속 goal routing 을 안내, 셋
 중 하나에 해당한다.
 
-참조 구현: `goals/30-dogfood-roundtrip.gates.sh` (63 줄, 2 gate).
-배경과 기존 goal 7-29 trim migration plan:
-`docs/findings/2026-05-23T1700-gates-over-coupling.md`.
+참조 구현 패턴 (63 줄 / 2 gate 의 minimal gates.sh) 과 기존
+goal 7-29 trim migration plan 은
+`docs/findings/2026-05-23T1700-gates-over-coupling.md` 에 인라인.
 
 ## Designing next-task hints
 
@@ -293,13 +293,16 @@ mechanism 이다. 빼고 Tranche 번호로 대체하라.
 
 ### 참조 구현
 
-`goals/30-dogfood-roundtrip.next-task.sh` (~98 줄):
+98 줄 짜리 next-task.sh 예시 (was drafted as
+`goals/30-dogfood-roundtrip.next-task.sh`; converted to a P0 findings
+doc when the goal turned out to be design-only — see
+`docs/findings/2026-05-23T1750-dogfood-roundtrip.md`):
 
 - 7 개 분기 — 각각 (I) state signal 만 보고 분기
 - 각 heredoc 은 **"무엇을" (Tranche 번호 + RED first)** 만 안내,
   **"어떻게" (심볼 이름, 정확한 제목, URL)** 는 안 적음
-- 구현 디테일은 모두 `goals/30-dogfood-roundtrip.md` § "Tranche B"
-  로 위임 — single source of truth
+- 구현 디테일은 모두 해당 findings 의 "Behavioral invariants to
+  land" 섹션으로 위임 — single source of truth
 
 배경 분석: `docs/findings/2026-05-23T1700-gates-over-coupling.md`
 (gates 와 next-task 양쪽의 over-coupling 패턴을 함께 다룬다).

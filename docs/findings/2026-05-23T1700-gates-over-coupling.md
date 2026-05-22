@@ -1,14 +1,13 @@
 ---
 title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc form"
 created_at: 2026-05-23T17:00:00Z
-resolved: false
-priority: high
+priority: P1
+resolved: partial
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
   - docs/findings/2026-05-23T1700-dogfood-followups.md
-  - goals/30-dogfood-roundtrip.gates.sh
-  - goals/30-dogfood-roundtrip.next-task.sh
+  - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
 ---
 
 # Findings — Harness scripts are over-coupled to code/doc form
@@ -78,7 +77,11 @@ through `goals/29-*`. The "better tool" column is the right home.
 
 ## What good looks like
 
-`goals/30-dogfood-roundtrip.gates.sh` (63 lines):
+A minimal `.gates.sh` for the dogfood round-trip (was drafted as
+`goals/30-dogfood-roundtrip.gates.sh`; the goal has since been
+converted to a P0 findings doc — see
+[2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md)).
+The 63-line file reduces to:
 
 ```
 A1. docs/findings/2026-05-23T1700-dogfood-followups.md exists.
@@ -214,12 +217,16 @@ mechanism — strip it and let the goal `.md` carry the intent.
 
 ### Reference
 
-`goals/30-dogfood-roundtrip.next-task.sh` (~98 lines, 7 branches):
+The minimal `next-task.sh` for the same round-trip (was drafted as
+`goals/30-dogfood-roundtrip.next-task.sh`; same conversion to findings
+applies). 98 lines, 7 branches:
 
 - Each branch keys on a loose state signal (file existence / negative
   grep), not a symbol grep.
 - Each heredoc references the matching Tranche in
-  `goals/30-dogfood-roundtrip.md` and says "RED first" — nothing
+  the matching Tranche section in
+  [2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md)
+  and says "RED first" — nothing
   about specific symbols, titles, URLs, or paths.
 
 The 172→98 line trim is purely (II) mechanism prescription removal;

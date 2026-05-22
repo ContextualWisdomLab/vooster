@@ -262,22 +262,11 @@ else
   PASS=false
 fi
 
-echo "[8.B4 no write API call in apps/web/app/]"
-B4_OFFENDERS=()
-if [ -d "$WEB_APP_DIR" ]; then
-  while IFS= read -r f; do
-    if grep -qE 'method:[[:space:]]*["'"'"'](POST|PUT|PATCH|DELETE)["'"'"']' "$f"; then
-      B4_OFFENDERS+=("$f")
-    fi
-  done < <(find "$WEB_APP_DIR" \( -name '*.ts' -o -name '*.tsx' \) -type f 2>/dev/null)
-fi
-if [ "${#B4_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — write API calls found in:"
-  printf '        %s\n' "${B4_OFFENDERS[@]}"
-  PASS=false
-fi
+# [8.B4 no write API call in apps/web/app/] — REMOVED 2026-05-23.
+# The web app's scope expanded beyond read-only viewer to include
+# project CRUD per commits 840b64f / 6b377a4. The "no writes" invariant
+# is deleted (not replaced). See goals/8-web-readonly-viewer.md § B4
+# for the rationale.
 
 # ─── Tranche C — Auth ────────────────────────────────────────────────────
 

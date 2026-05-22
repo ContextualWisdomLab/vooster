@@ -1,31 +1,31 @@
 ---
 title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
+priority: P2
 resolved: false
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
-  - goals/30-dogfood-roundtrip.md
+  - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
 ---
 
 # Dogfood Follow-Ups — queued from 2026-05-23
 
 This file tracks every dogfood finding that is **not yet closed in
-code** — including the four IDs Goal 30 plans to close once it merges.
-Source of truth for the full reproducers, file paths, and reasoning is
-the historical snapshot at
+code**. Source of truth for the full reproducers, file paths, and
+reasoning is the historical snapshot at
 [`docs/findings/2026-05-22T1632-dogfood-snapshot.md`](./2026-05-22T1632-dogfood-snapshot.md).
 Each section heading below uses the original finding ID so a future
 goal can pick up an item by name and read the matching section in the
 snapshot.
 
-Goal 30 (`goals/30-dogfood-roundtrip.md`) **targets** A1, A3, A10, and
-A11 — but at the time of writing the goal is design-only
-(`.md`/`.gates.sh`/`.next-task.sh` exist; no code change has landed).
-Those four IDs are listed under "Open findings" below alongside the
-rest until Goal 30 actually merges. The "Goal 30 targets (design-only)"
-section near the bottom of this file tracks that subset separately so
-the next iteration knows what is already scoped.
+A1 / A3 / A10 / A11 are the round-trip-closure cluster originally
+scoped as goal-30. That goal was converted to a P0 findings doc at
+[`2026-05-23T1750-dogfood-roundtrip.md`](./2026-05-23T1750-dogfood-roundtrip.md)
+once the session realized the goal was design-only (gate teeth
+minimal, behavior enforcement living in tests yet to be written).
+Those four IDs remain listed under "Open findings" below until the
+underlying behavior is implemented and tested.
 
 ## How to use this file
 
@@ -43,7 +43,7 @@ the next iteration knows what is already scoped.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **Goal 30 round-trip (design-only, code pending)**: A1, A3, A10, A11.
+- **Round-trip closure (P0, scoped by [2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md))**: A1, A3, A10, A11.
 - **Self-teaching CLI** (`core differentiator #3` in
   `docs/00-overview.md`): A5, A6, B2, B3.
 - **Doctor & status surface**: A2, A4, B5.
@@ -55,7 +55,7 @@ as long as it closes each declared item with an enumerated gate.
 
 ## Open findings
 
-### A1 — `vspec pull` strips the body off every use case _(Goal 30 will close)_
+### A1 — `vspec pull` strips the body off every use case _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
 
 `apps/api/src/application/sync-files.ts` ships a second `usecaseMarkdown`
 function that emits only `---<frontmatter>---\n\n# <title>\n` — no
@@ -71,7 +71,7 @@ surfaces a bare `ApiError`. Multiple endpoints already suggest
 `vspec doctor` as a next action, so this also misleads agents who follow
 `suggested_next_actions`.
 
-### A3 — `vspec usecase show` discards almost everything the API returns _(Goal 30 will close)_
+### A3 — `vspec usecase show` discards almost everything the API returns _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
 
 `--format=agent` for the same use case returns a full payload with
 `primary_actor`, `stakeholder_interests[]`, `scenarios[].steps[]`,
@@ -121,7 +121,7 @@ Returning-user login writes `api_url`, `current_workspace_*`, and
 `session_token` but leaves any stale `current_project_*` fields in
 place. Compounds A8.
 
-### A10 — `current_project_id` is required everywhere; config fall-through is missing _(Goal 30 will close)_
+### A10 — `current_project_id` is required everywhere; config fall-through is missing _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
 
 `apps/cli/src/flag-values.ts` `resolveContextFlag` reads `api-url`,
 `session-cookie`, and `workspace-id` from config, but **not**
@@ -132,7 +132,7 @@ explicitly even after `init`/`switch`. The UUID isn't visible in
 normal status output, so the user has to `cat ~/.vspec/config.json`
 to discover it.
 
-### A11 — `vspec init` writes only `current_project_key` _(Goal 30 will close)_
+### A11 — `vspec init` writes only `current_project_key` _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
 
 After `vspec init --project VSPEC`, the new `.vspec/config.json`
 contains only `{ "current_project_key": "VSPEC" }`. No
@@ -254,12 +254,12 @@ Two near-identical regexes:
 limitation. Centralize, or move the check out of the API into a
 CLI-side warning per the soft-warning spec.
 
-## Goal 30 targets (design-only — code pending)
+## Round-trip cluster — code pending (P0)
 
-These four IDs are scoped by `goals/30-dogfood-roundtrip.md` and its
-gate suite, but the goal currently exists only as design artifacts
-(`.md`/`.gates.sh`/`.next-task.sh`). Verified against the codebase
-on 2026-05-23: the original failure modes are still present.
+These four IDs are scoped by [P0 findings
+2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md).
+Verified against the codebase on 2026-05-23: the original failure
+modes are still present.
 
 - **A1** — `apps/api/src/application/sync-files.ts` still ships the
   stub `usecaseMarkdown` (frontmatter + title only).
@@ -271,7 +271,7 @@ on 2026-05-23: the original failure modes are still present.
 - **A11** — `apps/cli/src/commands/init.ts` `runInit` still writes
   only `current_project_key`.
 
-When Goal 30 actually merges, remove the four `### A1`/`A3`/`A10`/`A11`
-headings from "Open findings" above and update this section to read
-"closed by Goal 30 commit `<sha>`". If Goal 30's gates later regress,
-re-open the corresponding heading and queue a recovery goal.
+When the round-trip work merges, remove the four `### A1`/`A3`/`A10`/`A11`
+headings from "Open findings" above and update this section with the
+closing commit SHA. If a behavior regresses afterwards, re-open the
+corresponding heading and queue a recovery item.

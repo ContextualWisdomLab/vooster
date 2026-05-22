@@ -25,22 +25,14 @@ GOAL_NAME="4-honest-boundaries"
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
-  apps/api/prisma
-  apps/api/package.json
-  apps/api/tsconfig.json
+  apps/api/prisma/schema.prisma
   apps/cli/src
-  apps/cli/package.json
-  apps/cli/tsconfig.json
   docs/01-architecture.md
   package.json
   pnpm-lock.yaml
-  tsconfig.json
-  tsconfig.eslint.json
-  vitest.config.ts
   eslint.config.js
   scripts/check-gate-rigor.sh
   scripts/check-honest-gates.sh
-  scripts/check-progress-diversity.sh
   goals/4-honest-boundaries.gates.sh
   goals/4-honest-boundaries.md
   scripts/_gate-cache.sh

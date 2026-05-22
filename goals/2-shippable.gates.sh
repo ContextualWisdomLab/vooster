@@ -25,13 +25,12 @@ GOAL_NAME="2-shippable"
 # vitest execution moved to goals/_meta.gates.sh (M.3).
 GATE_INPUTS=(
   apps/api/src
-  apps/api/tests
-  apps/api/prisma
+  apps/api/tests/integration
+  apps/api/tests/e2e
+  apps/api/tests/unit/application
+  apps/api/prisma/schema.prisma
   apps/api/package.json
   apps/cli/src
-  apps/cli/tests
-  apps/cli/bin
-  apps/cli/package.json
   README.md
   Dockerfile
   docker-compose.yml

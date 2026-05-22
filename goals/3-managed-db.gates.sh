@@ -23,12 +23,8 @@ GOAL_NAME="3-managed-db"
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
-  apps/api/prisma
-  apps/api/package.json
-  apps/cli/src
-  apps/cli/tests
-  apps/cli/bin
-  apps/cli/package.json
+  apps/api/prisma/schema.prisma
+  apps/cli/tests/e2e-cli/helpers.ts
   Dockerfile
   docker-compose.yml
   docker-compose.prod.yml

@@ -20,16 +20,31 @@ source "$ROOT/scripts/_gate-cache.sh"
 GOAL_NAME="5-monorepo"
 
 # Inputs that determine this goal's gate result.
-# Gates exercised: pnpm-workspace.yaml + root package.json structure,
-# apps/{api,cli,web,www} skeletons + per-app package.json scripts, lockfile
-# uniqueness, B7/B8/C5 builds (DEEP), Hangul sweep across www, gate-rigor
-# on goal 5 md.
-# Prior-goal regression lives in scripts/completion-check.sh.
+# After moving B7/B8/C5 builds to _meta M.4, this goal only verifies
+# structural shape: pnpm-workspace.yaml + root package.json, each app's
+# package.json (name/private/scripts), apps/api/prisma/schema.prisma
+# existence, apps/cli/bin/run.js, the four API layer directories, the
+# Astro entry + Korean sweep across apps/www/src.
 GATE_INPUTS=(
   pnpm-workspace.yaml
   pnpm-lock.yaml
   package.json
-  apps
+  apps/api/package.json
+  apps/api/prisma/schema.prisma
+  apps/api/src/domain
+  apps/api/src/ports
+  apps/api/src/application
+  apps/api/src/infrastructure
+  apps/api/src/http
+  apps/cli/package.json
+  apps/cli/bin
+  apps/cli/src
+  apps/web/package.json
+  apps/www/package.json
+  apps/www/astro.config.mjs
+  apps/www/astro.config.ts
+  apps/www/astro.config.js
+  apps/www/src
   scripts/check-gate-rigor.sh
   goals/5-monorepo.gates.sh
   goals/5-monorepo.md

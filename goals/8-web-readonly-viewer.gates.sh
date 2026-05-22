@@ -19,8 +19,19 @@ source "$ROOT/scripts/_gate-cache.sh"
 GOAL_NAME="8-web-readonly-viewer"
 
 # Inputs that determine this goal's gate result.
+# Narrowed to the surfaces this goal actually verifies — config files,
+# app routes, e2e specs, playwright + vercel config. The .next/ build
+# artifact is checked separately and lives outside this fingerprint.
 GATE_INPUTS=(
-  apps/web
+  apps/web/package.json
+  apps/web/tsconfig.json
+  apps/web/next.config.ts
+  apps/web/tailwind.config.ts
+  apps/web/postcss.config.mjs
+  apps/web/app
+  apps/web/tests/e2e-web
+  apps/web/playwright.config.ts
+  apps/web/vercel.ts
   goals/5-monorepo.md
   goals/5-monorepo.gates.sh
   goals/8-web-readonly-viewer.gates.sh

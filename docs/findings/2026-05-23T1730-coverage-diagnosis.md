@@ -2,7 +2,9 @@
 title: "Coverage threshold miss: diagnose per file before adding tests or excluding"
 created_at: 2026-05-23T17:30:00Z
 priority: P1
-resolved: false
+resolved: true
+resolved_by:
+  - a1758ad
 related:
   - docs/findings/2026-05-23T1715-world-state-separation.md
   - vitest.config.ts
@@ -135,8 +137,8 @@ exclude.
 
 ### Wrong: blanket add unit tests for `*-support.ts`
 
-These helpers exist to be *called by HTTP routes with fastify request
-context*. Testing them in isolation requires mocking every store, every
+These helpers exist to be _called by HTTP routes with fastify request
+context_. Testing them in isolation requires mocking every store, every
 fastify type, every error-shape. The result is tautological assertions
 ("I called `lockStore.find()`, then I returned a `MISSING` shape — and
 the test verifies I did") that prove nothing about real behavior.
@@ -165,9 +167,11 @@ gap.
 
 1. **Per-file classification.** For each `*-support.ts` at <50%
    coverage, run:
+
    ```
    grep -rln "<base name>" apps/api/src apps/api/tests
    ```
+
    - Zero hits in `src/` → Class 2 → delete (separate PR).
    - Hits in `src/*-routes.ts`, zero hits in `tests/` → Class 1.
    - Hits in `src/` and `tests/`, partial coverage → Class 3.
@@ -182,7 +186,7 @@ gap.
 
 3. **For Class 2**: delete and commit.
    `refactor(api): delete unused <file>; was orphaned during <prior
-   refactor>`.
+refactor>`.
 
 4. **For Class 3**: extend the existing route test to cover the
    missing branch — usually one new `test()` block.
@@ -240,3 +244,40 @@ risk — coverage threshold itself already enforces the invariant
 behaviorally. Pick gate vs threshold per
 [`goal-design.md §1.5`](../goal-design.md#15-gates-가-하지-말아야-할-것).
 Tentative: just let the coverage threshold pull the work in.
+
+## Resolution
+
+Resolved on 2026-05-23 by `a1758ad`.
+
+The sweep confirmed the coverage miss had at least one honest Class 2
+component: several low/zero-coverage HTTP support files were orphaned and should
+not have tests added around them. Deleted:
+
+- `apps/api/src/http/scenario-extension-support.ts`
+- `apps/api/src/http/session-branch-support.ts`
+- `apps/api/src/http/usecase-support.ts`
+- `apps/api/src/http/merge-conflict-support.ts`
+
+Classification notes from the current worst-offender list:
+
+| File                                                              | Class   | Prescription                                                                                                                     |
+| ----------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `scenario-extension-support.ts`                                   | Class 2 | Deleted; no imports in `apps/api/src` or `apps/api/tests`.                                                                       |
+| `session-branch-support.ts`                                       | Class 2 | Deleted; superseded by application session branching.                                                                            |
+| `usecase-support.ts`                                              | Class 2 | Deleted; use case creation now owns this logic elsewhere.                                                                        |
+| `merge-conflict-support.ts`                                       | Class 2 | Deleted; stale re-export with no importers.                                                                                      |
+| `session-pin-support.ts`                                          | Class 3 | Route tests cover user-visible pin failures; remaining exported internals are cleanup candidates, not support-unit-test targets. |
+| `scenario-support.ts`                                             | Class 3 | Exercised through scenario and step routes; remaining branches are route edge cases.                                             |
+| `step-session-support.ts`                                         | Class 3 | Test-only route support; invalid-body branch is uncovered.                                                                       |
+| `step-lock-support.ts`                                            | Class 3 | Test-lock route and lock problems are exercised, with edge branches remaining.                                                   |
+| `sync-result-support.ts`                                          | Class 3 | Push/sync routes cover normal/conflict behavior; network-failure branch remains route-testable.                                  |
+| `lock-support.ts` / `membership-support.ts` / `signup-support.ts` | Class 3 | Imported by live routes; remaining misses are branch/edge-path route tests, not exclusions.                                      |
+
+Verification:
+
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint --max-warnings 0 apps/api/src/http`
+- `env -u VSPEC_GATES_SKIP_DEEP bash goals/_meta.gates.sh`
+
+The full meta gate passed after the deletion, including `vitest run --coverage`
+and all app builds, with the 75% branch threshold unchanged.

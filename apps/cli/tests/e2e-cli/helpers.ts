@@ -1,7 +1,12 @@
 import { spawn } from "node:child_process";
+import { join } from "node:path";
 import { createServer } from "../../../api/src/http/server.js";
 import { createPrismaSignupStore } from "../../../api/src/infrastructure/prisma-signup-store.js";
 import { withTestDatabase } from "../../../api/tests/helpers/postgres-db.js";
+
+type RunCliOptions = {
+  cwd?: string;
+};
 
 export function cleanupCliE2e() {
   return undefined;
@@ -33,11 +38,20 @@ export async function startNetworkServer(prefix: string) {
   };
 }
 
-export async function runCli(args: string[], env: Record<string, string> = {}) {
-  const child = spawn(process.execPath, ["apps/cli/bin/run.js", ...args], {
-    cwd: process.cwd(),
-    env: { ...process.env, ...env, VSPEC_CLI_SOURCE: "1" }
-  });
+export async function runCli(
+  args: string[],
+  env: Record<string, string> = {},
+  options: RunCliOptions = {}
+) {
+  const repoRoot = process.cwd();
+  const child = spawn(
+    process.execPath,
+    [join(repoRoot, "apps/cli/bin/run.js"), ...args],
+    {
+      cwd: options.cwd ?? repoRoot,
+      env: { ...process.env, ...env, VSPEC_CLI_SOURCE: "1" }
+    }
+  );
   let stdout = "";
   let stderr = "";
 

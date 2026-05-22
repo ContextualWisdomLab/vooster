@@ -15,7 +15,14 @@ cd "$ROOT"
 # shellcheck source=../scripts/_gate-cache.sh
 source "$ROOT/scripts/_gate-cache.sh"
 
-GOAL_NAME="7-cli-spec-parity"
+BASE_GOAL_NAME="7-cli-spec-parity"
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  GOAL_NAME="${BASE_GOAL_NAME}-shallow"
+  CACHE_LABEL="goal $BASE_GOAL_NAME shallow"
+else
+  GOAL_NAME="$BASE_GOAL_NAME"
+  CACHE_LABEL="goal $BASE_GOAL_NAME"
+fi
 
 # Inputs that determine this goal's gate result.
 GATE_INPUTS=(
@@ -33,7 +40,7 @@ GATE_INPUTS=(
 )
 
 if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
-  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
+  echo "[cache hit] $CACHE_LABEL inputs unchanged"
   exit 0
 fi
 
@@ -549,8 +556,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "$GOAL_NAME" = "$BASE_GOAL_NAME" ]; then
+    gate_cache_save "${BASE_GOAL_NAME}-shallow" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

@@ -25,7 +25,13 @@ cd "$ROOT"
 # shellcheck source=../scripts/_gate-cache.sh
 source "$ROOT/scripts/_gate-cache.sh"
 
-GOAL_NAME="_meta"
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  GOAL_NAME="_meta-shallow"
+  CACHE_LABEL="meta shallow"
+else
+  GOAL_NAME="_meta"
+  CACHE_LABEL="meta"
+fi
 
 # Inputs that determine this meta gate's result. Broad by design — these
 # checks are cross-cutting. Cache invalidates whenever any code, config,
@@ -56,7 +62,7 @@ GATE_INPUTS=(
 )
 
 if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
-  echo "[cache hit] meta inputs unchanged"
+  echo "[cache hit] $CACHE_LABEL inputs unchanged"
   exit 0
 fi
 
@@ -131,8 +137,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "$GOAL_NAME" = "_meta" ]; then
+    gate_cache_save "_meta-shallow" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

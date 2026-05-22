@@ -51,6 +51,10 @@
 
 `SKIP_DEEP` 은 numeric goal 들의 `SKIP_DEEP` 정책과 동일한 의미 — 외부
 시스템 / 무거운 도구 호출을 빠른 iteration 에서만 우회.
+Shallow runs use a separate `_meta-shallow` cache key so repeated local
+completion checks can skip M.1/M.2 when inputs are unchanged without ever
+claiming that M.3/M.4 have run. A full run saves both `_meta` and
+`_meta-shallow`, because it proves every shallow claim too.
 
 `SKIP_META` 는 환경별 책임 분리다. **"메타 claim 은 누가 enforce 하는가"**
 는 환경에 따라 다르다:

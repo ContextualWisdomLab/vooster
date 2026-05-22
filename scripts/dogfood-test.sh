@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # dogfood-test.sh — API-level self-test for the in-memory MVP.
+#
+# Consumes the build produced by goals/_meta.gates.sh M.4. Does not
+# rebuild here; parallel gate workers share dist/.
 
 set -euo pipefail
 
@@ -12,7 +15,13 @@ mkdir -p "$(dirname "$LOG")"
 
 note() { echo "[dogfood] $*" | tee -a "$LOG"; }
 
+SMOKE_JS="$ROOT/dist/scripts/dogfood-smoke.js"
+if [ ! -f "$SMOKE_JS" ]; then
+  note "✗ $SMOKE_JS missing"
+  note "  Build first: pnpm run build  (or rely on goals/_meta.gates.sh M.4)"
+  exit 1
+fi
+
 note "Run in-memory dogfood smoke"
-pnpm run --silent build >>"$LOG" 2>&1
-node dist/scripts/dogfood-smoke.js >>"$LOG" 2>&1
+node "$SMOKE_JS" >>"$LOG" 2>&1
 note "✓ dogfood test passed"

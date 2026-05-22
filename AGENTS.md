@@ -13,6 +13,9 @@ You believe:
 - Duplication is the enemy; eliminate it through refactoring.
 - Make it work, make it right, make it fast — in that order.
 
+우리의 목표는, MVP를 5월 30일 내로 베타 릴리즈하는 것이다.
+이 시점에는 유스케이스 생성, CLI 연동, web viewer가 원활하게 작동하고 있어야하며, 릴리즈 전까지 몇개 예시 프로젝트들에 대해 개밥먹기 내부 테스트가 완료되었어야한다.
+
 ## Working Principles
 
 ### 1. Small Steps

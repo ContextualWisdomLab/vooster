@@ -34,7 +34,9 @@ describe("lock renew --format=agent", () => {
     const requests = stubFetch(lockBody());
     const lines: string[] = [];
 
-    await runLock(lockFlags({ format: "agent" }), "renew", "lock-1", (line) => lines.push(line));
+    await runLock(lockFlags({ format: "agent" }), "renew", "lock-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope(stdout);
@@ -57,7 +59,12 @@ describe("lock renew --format=agent", () => {
     const requests = stubFetch(lockBody({ heldBySessionId: null }));
     const lines: string[] = [];
 
-    await runLock(lockFlags({ format: "agent", session: undefined }), "renew", "lock-1", (line) => lines.push(line));
+    await runLock(
+      lockFlags({ format: "agent", session: undefined }),
+      "renew",
+      "lock-1",
+      (line) => lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope(stdout);
@@ -105,12 +112,12 @@ function recordHeaders(headers: RequestInit["headers"]): Record<string, string> 
   if (headers === undefined || Array.isArray(headers) || headers instanceof Headers) {
     return {};
   }
-  return Object.fromEntries(
-    Object.entries(headers).map(([key, value]) => [key, typeof value === "string" ? value : value.join(", ")])
-  );
+  return Object.fromEntries(Object.entries(headers));
 }
 
-function lockFlags(overrides: Record<string, string | undefined> = {}): Record<string, string> {
+function lockFlags(
+  overrides: Record<string, string | undefined> = {}
+): Record<string, string> {
   const flags: Record<string, string | undefined> = {
     "api-url": "https://api.example.test",
     session: "session-1",
@@ -132,7 +139,9 @@ function lockBody(overrides: { heldBySessionId?: null | string } = {}) {
     lock: {
       auto_release: true,
       expires_at: "2026-05-22T00:45:00.000Z",
-      held_by_session_id: Object.hasOwn(overrides, "heldBySessionId") ? overrides.heldBySessionId : "session-1",
+      held_by_session_id: Object.hasOwn(overrides, "heldBySessionId")
+        ? overrides.heldBySessionId
+        : "session-1",
       held_by_user_id: "user-1",
       id: "lock-1",
       lock_type: "SEMANTIC",

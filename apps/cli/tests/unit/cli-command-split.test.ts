@@ -8,6 +8,7 @@ import { BranchCommand } from "../../src/commands/branch.js";
 import { ChangeCommand } from "../../src/commands/change.js";
 import { CommentCommand } from "../../src/commands/comment.js";
 import { DiffCommand } from "../../src/commands/diff.js";
+import { DoctorCommand } from "../../src/commands/doctor.js";
 import { ExportCommand } from "../../src/commands/export.js";
 import { GoalCommand } from "../../src/commands/goal.js";
 import { HistoryCommand } from "../../src/commands/history.js";
@@ -112,6 +113,10 @@ describe("CLI command split", () => {
 
   test("diff lives in a real oclif command module", () => {
     expect(DiffCommand.prototype).toBeInstanceOf(Command);
+  });
+
+  test("doctor lives in a real oclif command module", () => {
+    expect(DoctorCommand.prototype).toBeInstanceOf(Command);
   });
 
   test("history lives in a real oclif command module", () => {

@@ -1,11 +1,12 @@
 export type GoalResponse = {
   goal: {
     description: string;
+    id?: string;
     priority: string;
     status: string;
   };
-  recommended_next_command: string;
-  revision: {
+  recommended_next_command?: string;
+  revision?: {
     version_number: number;
   };
   warnings?: Array<{
@@ -51,12 +52,19 @@ export function printGoalResponse(
   writeLine: (message: string) => void
 ): void {
   writeLine(`Goal ${body.goal.description}`);
+  if (body.goal.id !== undefined) {
+    writeLine(`Goal id ${body.goal.id}`);
+  }
   writeLine(`Status ${body.goal.status} ${body.goal.priority}`);
-  writeLine(`Revision version ${String(body.revision.version_number)}`);
+  if (body.revision !== undefined) {
+    writeLine(`Revision version ${String(body.revision.version_number)}`);
+  }
   for (const warning of body.warnings ?? []) {
     writeLine(`Warning ${warning.command}`);
   }
-  writeLine(body.recommended_next_command);
+  if (body.recommended_next_command !== undefined) {
+    writeLine(body.recommended_next_command);
+  }
 }
 
 export function printGoalList(

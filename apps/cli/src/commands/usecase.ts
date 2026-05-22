@@ -5,6 +5,7 @@ import {
   usecaseArchiveFlagsFrom,
   usecaseCreateFlagsFrom,
   usecaseListFlagsFrom,
+  usecaseSetFlagsFrom,
   usecaseShowFlagsFrom,
   type UsecaseCliFlags
 } from "./usecase-flags.js";
@@ -13,15 +14,19 @@ import {
   printUsecase,
   printUsecaseArchive,
   printUsecaseList,
+  printUsecaseRestore,
   printUsecaseShow,
+  printUsecaseUpdate,
   type StakeholderInterestResponse,
   type UsecaseArchiveResponse,
   type UsecaseListResponse,
   type UsecaseResponse,
-  type UsecaseShowResponse
+  type UsecaseRestoreResponse,
+  type UsecaseShowResponse,
+  type UsecaseUpdateResponse
 } from "./usecase-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { deleteJson, fetchJson, postJson } from "../http-client.js";
+import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class UsecaseCommand extends Command {
   static override description = "Manage project use cases.";
@@ -35,6 +40,7 @@ export class UsecaseCommand extends Command {
     "actor-id": Flags.string(),
     "api-url": Flags.string(),
     cursor: Flags.string(),
+    field: Flags.string(),
     format: Flags.string(),
     interest: Flags.string(),
     level: Flags.string(),
@@ -48,7 +54,8 @@ export class UsecaseCommand extends Command {
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
     status: Flags.string(),
-    title: Flags.string()
+    title: Flags.string(),
+    value: Flags.string()
   };
 
   override async run(): Promise<void> {
@@ -84,8 +91,50 @@ export async function runUsecase(
     await archiveUsecase(flags, usecaseId, writeLine);
     return;
   }
+  if (action === "set") {
+    await setUsecase(flags, usecaseId, writeLine);
+    return;
+  }
+  if (action === "restore") {
+    await restoreUsecase(flags, usecaseId, writeLine);
+    return;
+  }
 
   throw new Error("Missing usecase action.");
+}
+
+async function restoreUsecase(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const restoreFlags = usecaseArchiveFlagsFrom(flags, usecaseId);
+  const response = await patchJson(
+    `${restoreFlags.apiUrl}/v1/usecases/${restoreFlags.usecaseId}`,
+    { archived_at: null },
+    {
+      Cookie: restoreFlags.sessionCookie
+    }
+  );
+
+  printUsecaseRestore(response.body as UsecaseRestoreResponse, writeLine);
+}
+
+async function setUsecase(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const setFlags = usecaseSetFlagsFrom(flags, usecaseId);
+  const response = await patchJson(
+    `${setFlags.apiUrl}/v1/usecases/${setFlags.usecaseId}`,
+    { [setFlags.field]: setFlags.value },
+    {
+      Cookie: setFlags.sessionCookie
+    }
+  );
+
+  printUsecaseUpdate(response.body as UsecaseUpdateResponse, writeLine);
 }
 
 async function createUsecase(
@@ -103,6 +152,11 @@ async function createUsecase(
       Cookie: usecaseFlags.sessionCookie
     }
   );
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
 
   printUsecase(response.body as UsecaseResponse, writeLine);
 }

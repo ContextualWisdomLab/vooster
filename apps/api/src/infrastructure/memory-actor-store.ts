@@ -39,6 +39,16 @@ export function createMemoryActorStore(): ActorStore {
         actor
       ]);
       return Promise.resolve();
+    },
+
+    updateActor(actor) {
+      actorsByProjectId.set(
+        actor.project_id,
+        (actorsByProjectId.get(actor.project_id) ?? []).map((candidate) =>
+          candidate.id === actor.id ? actor : candidate
+        )
+      );
+      return Promise.resolve();
     }
   };
 }

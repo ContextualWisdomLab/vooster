@@ -6,6 +6,7 @@ import {
   type MergeOpenResponse,
   type MergeResolveResponse
 } from "./merge-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
@@ -14,6 +15,7 @@ type MergeCliFlags = {
   "base-revision"?: string;
   "entity-id"?: string;
   field?: string;
+  format?: string;
   into?: string;
   "session-cookie"?: string;
   strategy?: string;
@@ -52,6 +54,7 @@ export class MergeCommand extends Command {
     "base-revision": Flags.string(),
     "entity-id": Flags.string(),
     field: Flags.string(),
+    format: Flags.string(),
     into: Flags.string(),
     "session-cookie": Flags.string(),
     strategy: Flags.string(),
@@ -101,6 +104,17 @@ async function openMerge(
     }
   );
   const body = response.body as MergeOpenResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        branch: body.source_branch.name
+      },
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   printMergeOpen(body, writeLine);
 }

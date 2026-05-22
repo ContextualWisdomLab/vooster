@@ -36,11 +36,8 @@ vspec login                      Authenticate via GitHub OAuth (device flow).
 vspec logout
 vspec status                     Print current context (project, branch, session, locks).
 vspec init                       Initialize a .vspec/ in current dir; bind to a project.
-vspec explain                    Plain-language summary of current state + next actions.
 vspec ai-guide                   Print the AI-agent guide to stdout.
 vspec doctor [<usecase>]         Diagnose quality issues.
-vspec why <command>              Explain why a command is recommended.
-vspec examples <topic>           Print copy-pastable examples.
 ```
 
 ## Workspaces & Projects
@@ -54,6 +51,39 @@ vspec project create --name <n> --key <k>
 vspec project list
 vspec project show [<key>]
 vspec project switch <key>
+```
+
+### Agent Format — Project Create
+
+`vspec project create --name <n> --key <k> --format=agent` returns the shared
+agent envelope with default null context values. The command updates the local active project config before returning, matching the human output mode.
+
+The payload exposes `data.project.id`, `data.project.key`,
+`data.default_branch.name`, and `data.recommended_next_command`.
+`suggested_next_actions` remains empty because the API returns
+`recommended_next_command` as response data.
+
+```
+vspec project create --name <n> --key <k> --format=agent
+```
+
+### Agent Format — Local Context
+
+`vspec status --format=agent`, `vspec workspace switch <slug>
+--format=agent`, and `vspec project switch <key> --format=agent` return the
+shared agent envelope with default null context values.
+
+`status` exposes the local config as `data.config`, including
+`data.config.current_project_key` when set. `workspace switch` updates the local
+config before emitting the envelope, exposes `data.workspace.slug`, and echoes
+the stored slug through `data.config.current_workspace_slug`. `project switch`
+updates the local config before emitting the envelope and exposes
+`data.project.key`.
+
+```
+vspec status --format=agent
+vspec workspace switch <slug> --format=agent
+vspec project switch <key> --format=agent
 ```
 
 ## Actors
@@ -92,12 +122,10 @@ vspec goal show <id>
 vspec usecase create --title "<verb phrase>" --primary-actor <actor> [--level user-goal|subfunction|summary] [--from <goal-id>]
 vspec usecase list [--status=] [--actor=] [--q=] [--level=]
 vspec usecase show <KEY-NNN> [--revision=] [--session=]
-vspec usecase edit <KEY-NNN>            Opens $EDITOR on the markdown form.
 vspec usecase set <KEY-NNN> --field <name> --value "<value>"
 vspec usecase add-stakeholder <KEY-NNN> --stakeholder <s> --interest "<text>"
 vspec usecase archive <KEY-NNN>
 vspec usecase restore <KEY-NNN>
-vspec usecase search <q>
 ```
 
 ## Scenarios & Steps
@@ -114,6 +142,30 @@ vspec step move <id> --to <position>
 vspec step delete <id>
 ```
 
+### Agent Format — Steps
+
+`vspec step add <scenario-id> --format=agent` and
+`vspec step edit <id> --format=agent` return the shared agent envelope with
+the existing API response as `data`. `step add` sets `context.revision` from
+`data.revision.id`. `step edit` leaves `context.revision` null because the
+current edit response does not include a revision id.
+
+```
+vspec step add <scenario-id> --actor <actor> --action "<verb phrase>" --format=agent
+vspec step edit <id> --action "<verb phrase>" --base-revision <revision-id> --format=agent
+```
+
+### Agent Format — Scenarios
+
+`vspec scenario add <usecase-id> --format=agent` returns the shared agent
+envelope with the existing API response as `data`. `context.revision` is
+populated from `data.revision.id`.
+
+```
+vspec scenario add <usecase-id> --type main-success --format=agent
+vspec scenario add <usecase-id> --type extension --at <step>a --condition "<text>" --format=agent
+```
+
 ## Sessions
 
 ```
@@ -125,7 +177,34 @@ vspec session unpin <KEY-NNN>
 vspec session complete [--summary "<text>"] [--no-merge]
 vspec session abandon
 vspec who <KEY-NNN>                      Who is working on this use case?
-vspec watch                              Live view of active sessions.
+```
+
+### Agent Format for Sessions
+
+`vspec session start --format=agent` and `vspec session complete <id>
+--format=agent` return the shared agent envelope with the existing API response
+as `data` and `context.session_id` set from `data.session.id`.
+`vspec session list --format=agent` returns the existing list response as
+`data` with the default null context because it describes a collection rather
+than one active session.
+
+```
+vspec session start --format=agent --intent "<text>" --pin <KEY> --project-id <id>
+vspec session list --format=agent [--project-id <id>]
+vspec session complete <id> --format=agent [--summary "<text>"] [--no-merge]
+```
+
+### Agent Format — Who
+
+`vspec who <KEY-NNN> --format=agent` returns the shared agent envelope with
+the existing coordination response as `data`. `suggested_next_actions` is
+copied from the API response. The envelope context stays at the default null
+values because `who` describes a coordination view rather than one active
+revision, branch, or session. The payload includes `data.sessions`,
+`data.locks`, and `data.merge_requests`.
+
+```
+vspec who <KEY-NNN> --format=agent
 ```
 
 ## Branches & Merges
@@ -146,13 +225,72 @@ vspec merge approve <id>
 vspec merge abort <id>
 ```
 
+### Agent Format for Branches
+
+`vspec branch create <name> --format=agent` returns the shared agent envelope
+with the existing API response as `data` and `context.branch` set from
+`data.branch.name`.
+
+```
+vspec branch create <name> --format=agent [--from main]
+```
+
+### Agent Format — Merges
+
+`vspec merge open <branch-id> --format=agent` returns the shared agent envelope
+with the existing API response as `data`. `suggested_next_actions` is copied
+from the API response. `context.branch` is populated from
+`data.source_branch.name`. Merge open responses do not currently include API
+warnings, so `warnings` stays the default empty array.
+
+`merge resolve --format=agent` remains queued until the CLI has an honest
+public setup for resolvable conflicts.
+
+```
+vspec merge open <branch-id> --format=agent [--into main] [--strategy fast-forward|squash]
+```
+
 ## Locks
 
 ```
 vspec lock <KEY-NNN> --type soft|semantic|hard [--reason "<text>"] [--ttl <minutes>]
 vspec lock list [--mine]
 vspec unlock <KEY-NNN>
-vspec lock renew <KEY-NNN>
+vspec lock renew <lock-id> [--ttl <minutes>]
+```
+
+### Agent Format for Locks
+
+`vspec lock <KEY-NNN> --format=agent` returns the shared agent envelope with
+the existing API response as `data`. `context.session_id` comes from the
+caller's --session flag; the lock holder remains visible at
+`data.lock.held_by_session_id`.
+
+```json
+{
+  "data": {
+    "lock": {
+      "id": "lock-id",
+      "lock_type": "SEMANTIC",
+      "target_id": "usecase-id",
+      "held_by_session_id": "session-id"
+    }
+  },
+  "context": {
+    "session_id": "session-id"
+  }
+}
+```
+
+### Agent Format - Lock Renew
+
+`vspec lock renew <lock-id> --format=agent` returns the shared agent envelope
+with the renew response as `data`. Agents can read `data.lock.id` and
+`data.lock.expires_at`; `context.session_id` comes from the caller's
+`--session` flag or remains null. The current API renew response does not populate suggested_next_actions; the envelope's top-level suggested_next_actions is therefore an empty array. `warnings` remains empty.
+
+```
+vspec lock renew <lock-id> --format=agent
 ```
 
 ## Versioning & Impact
@@ -165,6 +303,57 @@ vspec impact <KEY-NNN> [--proposed-change <file>]
 vspec impact session [<session-id>]
 ```
 
+### Agent Format — History
+
+`vspec history <KEY-NNN> --format=agent` returns the shared agent envelope with
+the existing API response as `data`. Revision rows are newest-first.
+`suggested_next_actions` is copied from the API response. `context.revision` is
+populated from `data.revisions[0].revision` when a revision is present.
+
+```
+vspec history <KEY-NNN> --format=agent [--limit N]
+```
+
+### Agent Format — Revert
+
+`vspec revert <KEY-NNN> --to <revision-id> --format=agent` returns the shared
+agent envelope with the existing revert API response as `data`.
+`suggested_next_actions` is copied from the API response, `warnings` are
+preserved, and `context.revision` is populated from `data.revision.id`. The
+payload includes `data.usecase.current_revision_id`, which matches the
+appended revert revision when the command succeeds.
+
+```
+vspec revert <KEY-NNN> --to <revision-id> --format=agent [--summary "<text>"] [--force]
+```
+
+### Agent Format — Impact
+
+`vspec impact <KEY-NNN> --format=agent` returns the shared agent envelope with
+the existing impact preview API response as `data`. `suggested_next_actions`
+is copied from the API response. `context.revision` is populated from the
+latest revision used as the preview `base_revision`. The payload includes
+`data.preview_id` and `data.impact.input_hash` for follow-up commands and
+cache correlation.
+
+```
+vspec impact <KEY-NNN> --format=agent [--proposed-change <file>]
+```
+
+### Agent Format — Changes
+
+`vspec change propose --format=agent` and
+`vspec change commit --format=agent` return the shared agent envelope with the
+existing API response as `data`. `suggested_next_actions` is copied from the API
+response. `change propose` leaves `context.revision` null because a preview is
+not a committed revision. `change commit` sets `context.revision` from
+`data.revisions[0].revision_id` when a revision is committed.
+
+```
+vspec change propose --usecase <KEY-NNN> --base-revision <revision-id> --patch <file> --format=agent
+vspec change commit --preview-id <id> --format=agent
+```
+
 ## Comments
 
 ```
@@ -175,6 +364,26 @@ vspec comment edit <id> --body "<text>"
 vspec comment delete <id>
 ```
 
+### Agent Format — Comments
+
+`vspec comment add|edit|resolve|delete --format=agent` return the shared
+agent envelope with the existing comment API response as `data`.
+`suggested_next_actions` is copied from the API response. `vspec comment list
+<KEY-NNN> --format=agent` returns the existing list response as `data` and
+leaves `suggested_next_actions` empty. Comment envelopes keep the default null
+context because comments do not create revisions, branches, or sessions.
+Write payloads expose `data.comment.id`; list payloads expose `data.comments`.
+`comment delete --format=agent` does not synthesize a `deleted` field; the
+human-only `Deleted true` confirmation is not part of the agent payload.
+
+```
+vspec comment add <KEY-NNN> --body "<text>" --format=agent
+vspec comment list <KEY-NNN> --format=agent
+vspec comment edit <comment-id> --body "<text>" --format=agent
+vspec comment resolve <comment-id> --format=agent
+vspec comment delete <comment-id> --format=agent
+```
+
 ## Sync (file ↔ server)
 
 ```
@@ -183,6 +392,28 @@ vspec push [--branch=] [--dry-run]
 vspec sync                              pull + push, in that order
 vspec status                            Shows local changes (works without server)
 vspec diff                              Local-vs-server diff
+```
+
+### Agent Format — Pull and Sync
+
+`vspec pull --format=agent` and `vspec sync --format=agent` write remote files
+to the workspace and then return the shared agent envelope. The envelope uses
+the pull response as `data`, so agents can read `data.cursor` and `data.files`
+from the same payload the human command writes to disk. The context keeps the
+default null values because pull does not create a revision, branch, project
+key, or session. `suggested_next_actions` is empty. For both commands, files are written before the envelope is printed.
+
+```
+vspec pull --format=agent
+vspec sync --format=agent
+```
+
+### Agent Format - Push
+
+`vspec push --format=agent` sends the same local files as human push, applies returned revisions before the envelope is printed, and returns the shared agent envelope with the push response as `data`. The payload preserves `data.results`, `data.cache.entries`, and `data.suggested_next_actions`. Top-level `suggested_next_actions` is copied from `data.suggested_next_actions`, `warnings` remains empty, and context keeps the default null values because a push can update multiple files.
+
+```
+vspec push --format=agent
 ```
 
 ## Export
@@ -201,6 +432,23 @@ vspec api-key list
 vspec api-key revoke <id>
 ```
 
+### Agent Format — API Keys
+
+`vspec api-key create --format=agent`, `vspec api-key list --format=agent`,
+and `vspec api-key revoke <id> --format=agent` return the shared agent
+envelope with default null context values.
+
+Create and revoke copy `suggested_next_actions` from the API response. Create
+exposes `data.api_key.id` and the one-time `data.plaintext_token`. List exposes
+`data.api_keys`, leaves `suggested_next_actions` empty, and does not include a
+`plaintext_token field`.
+
+```
+vspec api-key create --name "<text>" --scopes read,write --format=agent
+vspec api-key list --format=agent
+vspec api-key revoke <id> --format=agent
+```
+
 ## Membership (admin)
 
 ```
@@ -208,6 +456,18 @@ vspec member invite --email <email> [--role editor|owner]
 vspec member list
 vspec member set-role <user> --role editor|owner
 vspec member remove <user>
+```
+
+### Agent Format — Membership
+
+`vspec member invite --email <email> --role editor --format=agent` returns the
+shared agent envelope with default null context values. The payload exposes
+`data.invitation.email`, and the command copies `suggested_next_actions` from
+the API response. The current CLI implementation still requires `--role`; this
+section documents agent formatting only.
+
+```
+vspec member invite --email <email> --role editor --format=agent
 ```
 
 ---
@@ -333,8 +593,6 @@ All exit codes are stable across CLI versions.
 ```
 vspec help                Same as `vspec --help`.
 vspec help <command>      Command-specific help.
-vspec help workflows      Walks through canonical workflows.
-vspec help concepts       Explains entities and concepts.
 ```
 
 `--help` for any command includes:

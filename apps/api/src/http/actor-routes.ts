@@ -1,6 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { defineActor } from "../application/actors.js";
+import {
+  archiveActor,
+  listActors,
+  patchActor,
+  showActor
+} from "./actor-management-routes.js";
 import { sendActorDefinitionResult } from "./actor-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -27,8 +33,20 @@ export function registerActorRoutes(
   membershipStore: MembershipStore,
   revisionStore: RevisionStore
 ) {
+  app.get("/v1/projects/:projectId/actors", (request, reply) =>
+    listActors(request, reply, actorStore)
+  );
+  app.get("/v1/projects/:projectId/actors/:actorId", (request, reply) =>
+    showActor(request, reply, actorStore)
+  );
   app.post("/v1/projects/:projectId/actors", (request, reply) =>
     createActor(request, reply, state, actorStore, membershipStore, revisionStore)
+  );
+  app.patch("/v1/projects/:projectId/actors/:actorId", (request, reply) =>
+    patchActor(request, reply, actorStore)
+  );
+  app.delete("/v1/projects/:projectId/actors/:actorId", (request, reply) =>
+    archiveActor(request, reply, actorStore)
   );
 }
 

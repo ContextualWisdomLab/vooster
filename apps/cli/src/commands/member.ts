@@ -1,11 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type MemberFlags = {
   "api-url"?: string;
   email?: string;
+  format?: string;
   role?: string;
   "session-cookie"?: string;
   "workspace-id"?: string;
@@ -39,6 +41,7 @@ export class MemberCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     email: Flags.string(),
+    format: Flags.string(),
     role: Flags.string(),
     "session-cookie": Flags.string(),
     "workspace-id": Flags.string()
@@ -80,6 +83,14 @@ async function inviteMember(
     }
   );
   const body = response.body as InvitationResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   writeLine(`Invited ${body.invitation.email}`);
   writeLine(`Role ${body.invitation.role}`);

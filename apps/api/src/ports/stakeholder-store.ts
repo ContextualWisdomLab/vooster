@@ -11,4 +11,5 @@ export type StakeholderStore = {
   ) => Promise<StoredStakeholder | undefined>;
   listStakeholders: (projectId: string) => Promise<StoredStakeholder[]>;
   saveStakeholder: (stakeholder: StoredStakeholder) => Promise<void>;
+  updateStakeholder?: (stakeholder: StoredStakeholder) => Promise<void>;
 };

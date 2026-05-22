@@ -4,6 +4,7 @@ export type UsecaseCliFlags = {
   "actor-id"?: string;
   "api-url"?: string;
   cursor?: string;
+  field?: string;
   format?: string;
   interest?: string;
   level?: string;
@@ -18,6 +19,7 @@ export type UsecaseCliFlags = {
   stakeholder?: string;
   status?: string;
   title?: string;
+  value?: string;
 };
 
 export type UsecaseCreateFlags = {
@@ -53,6 +55,14 @@ export type UsecaseArchiveFlags = {
   apiUrl: string;
   sessionCookie: string;
   usecaseId: string;
+};
+
+export type UsecaseSetFlags = {
+  apiUrl: string;
+  field: "status";
+  sessionCookie: string;
+  usecaseId: string;
+  value: string;
 };
 
 export type StakeholderInterestFlags = {
@@ -110,6 +120,23 @@ export function usecaseArchiveFlagsFrom(
     apiUrl: resolveContextFlag(flags, "api-url"),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")
+  };
+}
+
+export function usecaseSetFlagsFrom(
+  flags: UsecaseCliFlags,
+  usecaseId: string | undefined
+): UsecaseSetFlags {
+  const field = requiredFlag(flags, "field");
+  if (field !== "status") {
+    throw new Error("Only --field status is supported.");
+  }
+  return {
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    field,
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    usecaseId: requiredArgument(usecaseId, "usecase-id"),
+    value: requiredFlag(flags, "value")
   };
 }
 

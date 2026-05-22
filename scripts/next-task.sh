@@ -28,7 +28,7 @@ fi
 
 # Fallback: pick the lowest-numbered goal whose gate script is not provably green.
 if [ -z "$ACTIVE" ] || [ ! -f "$ACTIVE" ]; then
-  ACTIVE=$(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort | head -1)
+  ACTIVE=$(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort -V | head -1)
 fi
 
 if [ -z "$ACTIVE" ] || [ ! -f "$ACTIVE" ]; then

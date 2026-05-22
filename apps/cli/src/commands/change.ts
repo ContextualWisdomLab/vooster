@@ -7,6 +7,7 @@ import {
   type ChangeCommitResponse,
   type ChangePreviewResponse
 } from "./change-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
@@ -14,6 +15,7 @@ type ChangeCliFlags = {
   "api-url"?: string;
   "auto-commit"?: boolean;
   "base-revision"?: string;
+  format?: string;
   patch?: string;
   "preview-id"?: string;
   "session-cookie"?: string;
@@ -46,6 +48,7 @@ export class ChangeCommand extends Command {
     "api-url": Flags.string(),
     "auto-commit": Flags.boolean(),
     "base-revision": Flags.string(),
+    format: Flags.string(),
     patch: Flags.string(),
     "preview-id": Flags.string(),
     "session-cookie": Flags.string(),
@@ -95,7 +98,17 @@ async function proposeChange(
     }
   );
 
-  printChangePreview(response.body as ChangePreviewResponse, writeLine);
+  const body = response.body as ChangePreviewResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions,
+      warnings: body.warnings
+    }), null, 2));
+    return;
+  }
+
+  printChangePreview(body, writeLine);
 }
 
 async function commitChange(
@@ -114,7 +127,19 @@ async function commitChange(
     }
   );
 
-  printChangeCommit(response.body as ChangeCommitResponse, writeLine);
+  const body = response.body as ChangeCommitResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: body.revisions[0]?.revision_id ?? null
+      },
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
+  printChangeCommit(body, writeLine);
 }
 
 function changeProposeFlagsFrom(flags: ChangeCliFlags): ChangeProposeFlags {

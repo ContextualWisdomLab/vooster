@@ -6,12 +6,14 @@ import {
   type CommentListResponse,
   type CommentResponse
 } from "./comment-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 type CommentCliFlags = {
   "api-url"?: string;
   body?: string;
+  format?: string;
   "session-cookie"?: string;
 };
 
@@ -36,6 +38,7 @@ export class CommentCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     body: Flags.string(),
+    format: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -94,7 +97,16 @@ async function addComment(
       Cookie: commentFlags.sessionCookie
     }
   );
-  printCommentResponse(response.body as CommentResponse, writeLine);
+  const body = response.body as CommentResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
+  printCommentResponse(body, writeLine);
 }
 
 async function listComments(
@@ -112,6 +124,11 @@ async function listComments(
     }
   );
   const body = response.body as CommentListResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
 
   writeLine(`Comments ${String(body.comments.length)}`);
   for (const comment of body.comments) {
@@ -132,7 +149,16 @@ async function editComment(
       Cookie: commentFlags.sessionCookie
     }
   );
-  printCommentResponse(response.body as CommentResponse, writeLine);
+  const body = response.body as CommentResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
+  printCommentResponse(body, writeLine);
 }
 
 async function resolveComment(
@@ -148,7 +174,16 @@ async function resolveComment(
       Cookie: commentFlags.sessionCookie
     }
   );
-  printCommentResponse(response.body as CommentResponse, writeLine);
+  const body = response.body as CommentResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
+  printCommentResponse(body, writeLine);
 }
 
 async function deleteComment(
@@ -160,7 +195,16 @@ async function deleteComment(
   const response = await deleteJson(`${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`, {
     Cookie: commentFlags.sessionCookie
   });
-  printCommentResponse(response.body as CommentResponse, writeLine);
+  const body = response.body as CommentResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
+  printCommentResponse(body, writeLine);
   writeLine("Deleted true");
 }
 

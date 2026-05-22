@@ -14,6 +14,7 @@ import {
   sessionStartFlagsFrom,
   type SessionCliFlags
 } from "./session-flags.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { fetchJson, postJson } from "../http-client.js";
 
 export class SessionCommand extends Command {
@@ -29,6 +30,7 @@ export class SessionCommand extends Command {
     "api-url": Flags.string(),
     "auto-branch": Flags.boolean(),
     "branch-name": Flags.string(),
+    format: Flags.string(),
     intent: Flags.string(),
     "no-merge": Flags.boolean(),
     pin: Flags.string(),
@@ -89,7 +91,16 @@ async function startSession(
     }
   );
 
-  printSessionStart(response.body as SessionStartResponse, writeLine);
+  const body = response.body as SessionStartResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: { session_id: body.session.id }
+    }), null, 2));
+    return;
+  }
+
+  printSessionStart(body, writeLine);
 }
 
 async function listSessions(
@@ -108,7 +119,13 @@ async function listSessions(
     }
   });
 
-  printSessionList(response.body as SessionListResponse, writeLine);
+  const body = response.body as SessionListResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
+  printSessionList(body, writeLine);
 }
 
 async function completeSession(
@@ -128,7 +145,16 @@ async function completeSession(
     }
   );
 
-  printSessionComplete(response.body as SessionCompleteResponse, writeLine);
+  const body = response.body as SessionCompleteResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: { session_id: body.session.id }
+    }), null, 2));
+    return;
+  }
+
+  printSessionComplete(body, writeLine);
 }
 
 function setSearchParam(url: URL, name: string, value: string | undefined): void {

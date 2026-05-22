@@ -67,4 +67,18 @@ class PrismaActorStore implements ActorStore {
       }
     });
   }
+
+  async updateActor(actor: StoredActor): Promise<void> {
+    await this.prisma.actor.update({
+      data: {
+        aliases: JSON.stringify(actor.aliases),
+        archived_at: dateOrNull(actor.archived_at),
+        description: actor.description,
+        is_human: actor.is_human,
+        name: actor.name,
+        type: actor.type
+      },
+      where: { id: actor.id }
+    });
+  }
 }

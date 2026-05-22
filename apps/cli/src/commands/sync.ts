@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { Command, Flags } from "@oclif/core";
 
 import { applySyncResults, localSyncFiles, writeSyncFile } from "./sync-files.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
@@ -9,6 +10,7 @@ type SyncCliFlags = {
   "api-url"?: string;
   branch?: string;
   "dry-run"?: boolean;
+  format?: string;
   "project-id"?: string;
   root?: string;
   "session-cookie"?: string;
@@ -65,6 +67,7 @@ export class SyncCommand extends Command {
     "api-url": Flags.string(),
     branch: Flags.string(),
     "dry-run": Flags.boolean(),
+    format: Flags.string(),
     "project-id": Flags.string(),
     root: Flags.string(),
     "session-cookie": Flags.string()
@@ -104,9 +107,17 @@ async function pullFiles(
   );
   const body = response.body as SyncPullResponse;
 
-  writeLine(`Cursor ${body.cursor}`);
   for (const file of body.files) {
     await writeSyncFile(syncFlags.root, file.path, file.content);
+  }
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
+  writeLine(`Cursor ${body.cursor}`);
+  for (const file of body.files) {
     writeLine(`File ${file.path}`);
     writeLine(`Revision ${file.revision}`);
   }
@@ -132,6 +143,14 @@ async function pushFiles(
   const body = response.body as SyncPushResponse;
 
   await applySyncResults(syncFlags.root, files, body.results, syncFlags.dryRun);
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
   writeLine(`Results ${String(body.results.length)}`);
   for (const result of body.results) {
     writeLine(`Result ${result.path} ${result.status}`);

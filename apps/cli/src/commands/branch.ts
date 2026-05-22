@@ -1,10 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type BranchCliFlags = {
   "api-url"?: string;
+  format?: string;
   from?: string;
   "project-id"?: string;
   "session-cookie"?: string;
@@ -46,6 +48,7 @@ export class BranchCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     from: Flags.string(),
     "project-id": Flags.string(),
     "session-cookie": Flags.string()
@@ -89,6 +92,14 @@ async function createBranch(
     }
   );
   const body = response.body as BranchCreateResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: { branch: body.branch.name }
+    }), null, 2));
+    return;
+  }
 
   writeLine(`Branch ${body.branch.id}`);
   writeLine(`Name ${body.branch.name}`);

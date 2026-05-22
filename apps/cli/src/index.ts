@@ -8,6 +8,7 @@ import { runBranch } from "./commands/branch.js";
 import { runChange } from "./commands/change.js";
 import { runComment } from "./commands/comment.js";
 import { runDiff } from "./commands/diff.js";
+import { runDoctor } from "./commands/doctor.js";
 import { runExport } from "./commands/export.js";
 import { runGoal } from "./commands/goal.js";
 import { runHistory } from "./commands/history.js";
@@ -99,6 +100,7 @@ export class VspecCommand extends Command {
     to: Flags.string(),
     ttl: Flags.string(),
     type: Flags.string(),
+    value: Flags.string(),
     usecase: Flags.string(),
     version: Flags.version({ char: "v" }),
     visibility: Flags.string(),
@@ -128,6 +130,10 @@ export class VspecCommand extends Command {
       await runAiGuide(parsed.flags, this.log.bind(this));
       return;
     }
+    if (parsed.args.command === "doctor") {
+      await runDoctor(parsed.flags, this.log.bind(this));
+      return;
+    }
     if (parsed.args.command === "init") {
       runInit(parsed.flags, process.cwd(), this.log.bind(this));
       return;
@@ -152,6 +158,10 @@ export class VspecCommand extends Command {
       await runProject(parsed.flags, this.argv[1], this.log.bind(this));
       return;
     }
+    if (parsed.args.command === "project" && this.argv[1] === "list") {
+      await runProject(parsed.flags, this.argv[1], this.log.bind(this));
+      return;
+    }
     if (parsed.args.command === "project" && this.argv[1] === "switch") {
       await runProject(parsed.flags, this.argv[1], this.log.bind(this), this.argv[2]);
       return;
@@ -172,8 +182,12 @@ export class VspecCommand extends Command {
       await runMerge(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
+    if (parsed.args.command === "lock" && this.argv[1] === "renew") {
+      await runLock(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
     if (parsed.args.command === "lock" && this.argv[1] !== "renew") {
-      await runLock(parsed.flags, this.argv[1], this.log.bind(this));
+      await runLock(parsed.flags, "acquire", this.argv[1], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "who") {
@@ -245,11 +259,43 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "actor" && this.argv[1] === "create") {
-      await runActor(parsed.flags, this.argv[1], this.log.bind(this));
+      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "actor" && this.argv[1] === "list") {
+      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "actor" && this.argv[1] === "show") {
+      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "actor" && this.argv[1] === "edit") {
+      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "actor" && this.argv[1] === "archive") {
+      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
-      await runStakeholder(parsed.flags, this.argv[1], this.log.bind(this));
+      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "stakeholder" && this.argv[1] === "list") {
+      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "stakeholder" && this.argv[1] === "show") {
+      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "stakeholder" && this.argv[1] === "edit") {
+      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "stakeholder" && this.argv[1] === "archive") {
+      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "create") {
@@ -261,6 +307,14 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "promote") {
+      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "goal" && this.argv[1] === "show") {
+      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "goal" && this.argv[1] === "reject") {
       await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
@@ -281,6 +335,14 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "usecase" && this.argv[1] === "archive") {
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "usecase" && this.argv[1] === "set") {
+      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (parsed.args.command === "usecase" && this.argv[1] === "restore") {
       await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }

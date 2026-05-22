@@ -1,51 +1,34 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { postJson } from "../http-client.js";
-
-type ActorCliFlags = {
-  aliases?: string;
-  "api-url"?: string;
-  description?: string;
-  name?: string;
-  "project-id"?: string;
-  "session-cookie"?: string;
-  type?: string;
-};
-
-type ActorFlags = {
-  aliases: string[];
-  apiUrl: string;
-  description: string;
-  name: string;
-  projectId: string;
-  sessionCookie: string;
-  type: "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
-};
-
-type ActorResponse = {
-  actor: {
-    id: string;
-    name: string;
-    type: string;
-  };
-  recommended_next_command: string;
-  revision: {
-    version_number: number;
-  };
-};
+import {
+  actorCreateFlagsFrom,
+  actorPatchFrom,
+  type ActorCliFlags
+} from "./actor-flags.js";
+import {
+  printActorCreated,
+  printActorSummary,
+  type ActorListResponse,
+  type ActorResponse,
+  type ActorSummary
+} from "./actor-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class ActorCommand extends Command {
   static override description = "Manage project actors.";
 
   static override args = {
-    action: Args.string()
+    action: Args.string(),
+    actorId: Args.string()
   };
 
   static override flags = {
     aliases: Flags.string(),
     "api-url": Flags.string(),
     description: Flags.string(),
+    format: Flags.string(),
     name: Flags.string(),
     "project-id": Flags.string(),
     "session-cookie": Flags.string(),
@@ -55,20 +38,93 @@ export class ActorCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(ActorCommand);
 
-    await runActor(parsed.flags, parsed.args.action, this.log.bind(this));
+    await runActor(parsed.flags, parsed.args.action, parsed.args.actorId, this.log.bind(this));
   }
 }
 
 export async function runActor(
   flags: ActorCliFlags,
   action: string | undefined,
+  actorId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  if (action !== "create") {
-    throw new Error("Missing actor action.");
+  if (action === "create") {
+    await createActor(flags, writeLine);
+    return;
+  }
+  if (action === "list") {
+    await listActors(flags, writeLine);
+    return;
+  }
+  if (action === "show") {
+    await showActor(flags, actorId, writeLine);
+    return;
+  }
+  if (action === "edit") {
+    await editActor(flags, actorId, writeLine);
+    return;
+  }
+  if (action === "archive") {
+    await archiveActor(flags, actorId, writeLine);
+    return;
   }
 
-  const actorFlags = actorFlagsFrom(flags);
+  throw new Error("Missing actor action.");
+}
+
+async function showActor(
+  flags: ActorCliFlags,
+  actorId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await fetchJson(actorUrl(flags, requiredArgument(actorId, "actor id")), {
+    headers: authHeaders(flags)
+  });
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printActorSummary((response.body as { actor: ActorSummary }).actor, writeLine);
+}
+
+async function archiveActor(
+  flags: ActorCliFlags,
+  actorId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const id = requiredArgument(actorId, "actor id");
+  await deleteJson(actorUrl(flags, id), authHeaders(flags));
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: { actor_id: id, archived: true } }), null, 2));
+    return;
+  }
+
+  writeLine(`Archived ${id}`);
+}
+
+async function editActor(
+  flags: ActorCliFlags,
+  actorId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await patchJson(
+    actorUrl(flags, requiredArgument(actorId, "actor id")),
+    actorPatchFrom(flags),
+    authHeaders(flags)
+  );
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printActorSummary((response.body as { actor: ActorSummary }).actor, writeLine);
+}
+
+async function createActor(
+  flags: ActorCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const actorFlags = actorCreateFlagsFrom(flags);
   const response = await postJson(
     `${actorFlags.apiUrl}/v1/projects/${actorFlags.projectId}/actors`,
     {
@@ -78,43 +134,45 @@ export async function runActor(
       name: actorFlags.name,
       type: actorFlags.type
     },
+    { Cookie: actorFlags.sessionCookie }
+  );
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printActorCreated(response.body as ActorResponse, writeLine);
+}
+
+async function listActors(
+  flags: ActorCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await fetchJson(
+    actorsUrl(flags),
     {
-      Cookie: actorFlags.sessionCookie
+      headers: authHeaders(flags)
     }
   );
-  const body = response.body as ActorResponse;
+  const body = response.body as ActorListResponse;
 
-  writeLine(`Actor ${body.actor.name} ${body.actor.type}`);
-  writeLine(`Actor id ${body.actor.id}`);
-  writeLine(`Revision version ${String(body.revision.version_number)}`);
-  writeLine(body.recommended_next_command);
-}
-
-function actorFlagsFrom(flags: ActorCliFlags): ActorFlags {
-  return {
-    aliases: aliasesFrom(flags.aliases),
-    apiUrl: resolveContextFlag(flags, "api-url"),
-    description: flags.description ?? "",
-    name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie"),
-    type: actorType(requiredFlag(flags, "type"))
-  };
-}
-
-function actorType(rawType: string): "OFFSTAGE" | "PRIMARY" | "SUPPORTING" {
-  const type = rawType.toUpperCase();
-  if (type === "OFFSTAGE" || type === "PRIMARY" || type === "SUPPORTING") {
-    return type;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
   }
 
-  throw new Error("Actor type must be PRIMARY, SUPPORTING, or OFFSTAGE.");
+  for (const actor of body.items) {
+    printActorSummary(actor, writeLine);
+  }
 }
 
-function aliasesFrom(rawAliases: string | undefined): string[] {
-  if (rawAliases === undefined || rawAliases.trim() === "") {
-    return [];
-  }
+function authHeaders(flags: ActorCliFlags): Record<string, string> {
+  return { Cookie: resolveContextFlag(flags, "session-cookie") };
+}
 
-  return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
+function actorsUrl(flags: ActorCliFlags): string {
+  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${requiredFlag(flags, "project-id")}/actors`;
+}
+
+function actorUrl(flags: ActorCliFlags, actorId: string): string {
+  return `${actorsUrl(flags)}/${actorId}`;
 }

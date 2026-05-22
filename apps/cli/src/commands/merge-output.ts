@@ -11,6 +11,7 @@ export type MergeOpenResponse = {
   };
   source_branch: {
     id: string;
+    name: string;
     status: string;
   };
   suggested_next_actions: Array<{

@@ -6,6 +6,7 @@ type PullCliFlags = {
   "api-url"?: string;
   branch?: string;
   "dry-run"?: boolean;
+  format?: string;
   "project-id"?: string;
   root?: string;
   "session-cookie"?: string;
@@ -18,6 +19,7 @@ export class PullCommand extends Command {
     "api-url": Flags.string(),
     branch: Flags.string(),
     "dry-run": Flags.boolean(),
+    format: Flags.string(),
     "project-id": Flags.string(),
     root: Flags.string(),
     "session-cookie": Flags.string()

@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
@@ -7,6 +8,7 @@ type ScenarioCliFlags = {
   at?: string;
   condition?: string;
   "api-url"?: string;
+  format?: string;
   outcome?: string;
   "session-cookie"?: string;
   type?: string;
@@ -24,6 +26,7 @@ type ScenarioCreateFlags = {
 
 type ScenarioResponse = {
   revision: {
+    id: string;
     severity: string;
     version_number: number;
   };
@@ -48,6 +51,7 @@ export class ScenarioCommand extends Command {
     at: Flags.string(),
     condition: Flags.string(),
     "api-url": Flags.string(),
+    format: Flags.string(),
     outcome: Flags.string(),
     "session-cookie": Flags.string(),
     type: Flags.string()
@@ -66,10 +70,19 @@ export async function runScenario(
   usecaseId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  if (action !== "add") {
-    throw new Error("Missing scenario action.");
+  if (action === "add") {
+    await addScenario(flags, usecaseId, writeLine);
+    return;
   }
 
+  throw new Error("Missing scenario action.");
+}
+
+async function addScenario(
+  flags: ScenarioCliFlags,
+  usecaseId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
   const scenarioFlags = scenarioCreateFlagsFrom(flags, usecaseId);
   const response = await postJson(
     `${scenarioFlags.apiUrl}/v1/usecases/${scenarioFlags.usecaseId}/scenarios`,
@@ -84,6 +97,16 @@ export async function runScenario(
     }
   );
   const body = response.body as ScenarioResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: body.revision.id
+      }
+    }), null, 2));
+    return;
+  }
 
   writeLine(`Scenario ${body.scenario.id}`);
   writeLine(`Type ${body.scenario.type}`);

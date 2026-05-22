@@ -1,10 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
 type HistoryCliFlags = {
   "api-url"?: string;
+  format?: string;
   limit?: string;
   "session-cookie"?: string;
 };
@@ -46,6 +48,7 @@ export class HistoryCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     limit: Flags.string(),
     "session-cookie": Flags.string()
   };
@@ -72,6 +75,17 @@ export async function runHistory(
     }
   });
   const body = response.body as HistoryResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: body.revisions[0]?.revision ?? null
+      },
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   writeLine(`UseCase ${body.usecase.key}`);
   writeLine(`Limit ${String(body.limit)}`);

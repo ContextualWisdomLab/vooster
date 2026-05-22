@@ -1,11 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson, postJson } from "../http-client.js";
 
 type ImpactCliFlags = {
   "api-url"?: string;
+  format?: string;
   "proposed-change"?: string;
   "session-cookie"?: string;
 };
@@ -53,6 +55,7 @@ export class ImpactCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     "proposed-change": Flags.string(),
     "session-cookie": Flags.string()
   };
@@ -85,6 +88,17 @@ export async function runImpact(
     }
   );
   const body = response.body as ImpactResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: history.revision
+      },
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   writeLine(`Preview ${body.preview_id}`);
   writeLine(`Cached ${String(body.cached)}`);

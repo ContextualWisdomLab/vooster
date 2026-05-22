@@ -82,10 +82,7 @@ USER_FACING_AGENT_FILES=(
   apps/cli/src/commands/doctor.ts
 )
 
-EXCLUDED_AGENT_FILES=(
-  apps/cli/src/commands/member.ts
-  apps/cli/src/commands/api-key.ts
-)
+EXCLUDED_AGENT_FILES=()
 
 FORBIDDEN_DOCTOR_LITERALS=(
   "active voice"
@@ -474,17 +471,19 @@ else
   PASS=false
 fi
 
-echo "[9.E2 excluded files do NOT carry a format=agent branch]"
+echo "[9.E2 declared excluded files do NOT carry a format=agent branch]"
 E2_OFFENDERS=()
-for f in "${EXCLUDED_AGENT_FILES[@]}"; do
-  if [ -f "$f" ] && grep -E 'format === "agent"' "$f" >/dev/null 2>&1; then
-    E2_OFFENDERS+=("$f")
-  fi
-done
+if [ "${#EXCLUDED_AGENT_FILES[@]}" -gt 0 ]; then
+  for f in "${EXCLUDED_AGENT_FILES[@]}"; do
+    if [ -f "$f" ] && grep -E 'format === "agent"' "$f" >/dev/null 2>&1; then
+      E2_OFFENDERS+=("$f")
+    fi
+  done
+fi
 if [ "${#E2_OFFENDERS[@]}" -eq 0 ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — admin files leaked an envelope branch:"
+  echo "    ✗ fail — excluded files leaked an envelope branch:"
   printf '        %s\n' "${E2_OFFENDERS[@]}"
   PASS=false
 fi

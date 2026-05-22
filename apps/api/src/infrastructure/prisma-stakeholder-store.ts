@@ -50,4 +50,11 @@ class PrismaStakeholderStore implements StakeholderStore {
       data: stakeholderData(stakeholder)
     });
   }
+
+  async updateStakeholder(stakeholder: StoredStakeholder): Promise<void> {
+    await this.prisma.stakeholder.update({
+      data: stakeholderData(stakeholder),
+      where: { id: stakeholder.id }
+    });
+  }
 }

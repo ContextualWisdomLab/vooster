@@ -31,6 +31,16 @@ export function createMemoryStakeholderStore(): StakeholderStore {
         stakeholder
       ]);
       return Promise.resolve();
+    },
+
+    updateStakeholder(stakeholder) {
+      stakeholdersByProjectId.set(
+        stakeholder.project_id,
+        (stakeholdersByProjectId.get(stakeholder.project_id) ?? []).map((candidate) =>
+          candidate.id === stakeholder.id ? stakeholder : candidate
+        )
+      );
+      return Promise.resolve();
     }
   };
 }

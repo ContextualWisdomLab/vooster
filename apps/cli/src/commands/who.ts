@@ -1,10 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
 type WhoCliFlags = {
   "api-url"?: string;
+  format?: string;
   "session-cookie"?: string;
 };
 
@@ -51,6 +53,7 @@ export class WhoCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -73,6 +76,14 @@ export async function runWho(
     }
   });
   const body = response.body as WhoResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   writeLine(`UseCase ${body.usecase.key}`);
   writeLine(`Sessions ${String(body.sessions.length)}`);

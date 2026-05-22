@@ -48,7 +48,7 @@ describe("UC-022 - Lock a use case", () => {
     expect(Date.parse(body.lock.acquired_at)).not.toBeNaN();
     expect(Date.parse(body.lock.expires_at)).toBeGreaterThan(Date.parse(body.lock.acquired_at));
     expect(body.suggested_next_actions).toContainEqual({
-      command: `vspec lock renew ${usecase.key}`,
+      command: `vspec lock renew ${body.lock.id}`,
       reason: "Renew the lock before it expires."
     });
     expect(body.suggested_next_actions).toContainEqual({

@@ -36,7 +36,7 @@ esac
 GOALS=()
 while IFS= read -r f; do
   GOALS+=("$f")
-done < <(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
+done < <(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort -V)
 
 if [ "${#GOALS[@]}" -eq 0 ]; then
   echo "✗ completion-check: no goals/*.md found."
@@ -104,7 +104,7 @@ RIGOR_CACHE_DIR="$ROOT/.state/gate-cache"
 RIGOR_CACHE_FILE="$RIGOR_CACHE_DIR/_meta-rigor"
 
 rigor_inputs() {
-  find goals -maxdepth 1 \( -name '*.md' -o -name '*.gates.sh' \) -type f 2>/dev/null | sort
+  find goals -maxdepth 1 \( -name '*.md' -o -name '*.gates.sh' \) -type f 2>/dev/null | sort -V
 }
 
 rigor_fingerprint() {
@@ -154,7 +154,7 @@ else
         FIRST_FAIL_MD="$md"
         break
       fi
-    done < <(find goals -maxdepth 1 -name '*.md' -type f | sort)
+    done < <(find goals -maxdepth 1 -name '*.md' -type f | sort -V)
   fi
 fi
 echo

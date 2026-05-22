@@ -1,7 +1,12 @@
-import { Args, Command } from "@oclif/core";
+import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { writeConfig } from "../config-store.js";
 import { requiredArgument } from "../flag-values.js";
+
+type WorkspaceFlags = {
+  format?: string;
+};
 
 export class WorkspaceCommand extends Command {
   static override description = "Manage workspaces.";
@@ -11,6 +16,10 @@ export class WorkspaceCommand extends Command {
     slug: Args.string()
   };
 
+  static override flags = {
+    format: Flags.string()
+  };
+
   override async run(): Promise<void> {
     const parsed = await this.parse(WorkspaceCommand);
     runWorkspace(parsed.flags, parsed.args.action, parsed.args.slug, this.log.bind(this));
@@ -18,7 +27,7 @@ export class WorkspaceCommand extends Command {
 }
 
 export function runWorkspace(
-  _flags: Record<string, unknown>,
+  flags: WorkspaceFlags,
   action: string | undefined,
   slug: string | undefined,
   writeLine: (message: string) => void
@@ -32,5 +41,22 @@ export function runWorkspace(
     current_workspace_id: workspaceSlug,
     current_workspace_slug: workspaceSlug
   });
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: {
+        config: {
+          current_workspace_id: workspaceSlug,
+          current_workspace_slug: workspaceSlug
+        },
+        workspace: {
+          id: workspaceSlug,
+          slug: workspaceSlug
+        }
+      }
+    }), null, 2));
+    return;
+  }
+
   writeLine(`Workspace ${workspaceSlug}`);
 }

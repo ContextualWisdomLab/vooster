@@ -1,6 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
+import {
+  archiveStakeholder,
+  listStakeholders,
+  patchStakeholder,
+  showStakeholder
+} from "./stakeholder-management-routes.js";
 import { sendCreateStakeholderResult } from "./stakeholder-results.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
@@ -27,6 +33,12 @@ export function registerStakeholderRoutes(
   stakeholderStore: StakeholderStore,
   workspaceStore: WorkspaceStore
 ) {
+  app.get("/v1/projects/:projectId/stakeholders", (request, reply) =>
+    listStakeholders(request, reply, stakeholderStore)
+  );
+  app.get("/v1/projects/:projectId/stakeholders/:stakeholderId", (request, reply) =>
+    showStakeholder(request, reply, stakeholderStore)
+  );
   app.post("/v1/projects/:projectId/stakeholders", (request, reply) =>
     createStakeholder(
       request,
@@ -38,6 +50,12 @@ export function registerStakeholderRoutes(
       stakeholderStore,
       workspaceStore
     )
+  );
+  app.patch("/v1/projects/:projectId/stakeholders/:stakeholderId", (request, reply) =>
+    patchStakeholder(request, reply, stakeholderStore)
+  );
+  app.delete("/v1/projects/:projectId/stakeholders/:stakeholderId", (request, reply) =>
+    archiveStakeholder(request, reply, stakeholderStore)
   );
 }
 

@@ -91,7 +91,7 @@ case "${1:-}" in
     FAIL=0
     while IFS= read -r md; do
       check_one "$md" || FAIL=1
-    done < <(find goals -maxdepth 1 -name '*.md' -type f | sort)
+    done < <(find goals -maxdepth 1 -name '*.md' -type f | sort -V)
     if [ "$FAIL" -ne 0 ]; then
       exit 1
     fi

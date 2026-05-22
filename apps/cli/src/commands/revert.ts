@@ -1,11 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type RevertCliFlags = {
   "api-url"?: string;
   force?: boolean;
+  format?: string;
   "session-cookie"?: string;
   summary?: string;
   to?: string;
@@ -57,6 +59,7 @@ export class RevertCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     force: Flags.boolean(),
+    format: Flags.string(),
     "session-cookie": Flags.string(),
     summary: Flags.string(),
     to: Flags.string()
@@ -87,6 +90,18 @@ export async function runRevert(
     }
   );
   const body = response.body as RevertResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: body.revision.id
+      },
+      suggested_next_actions: body.suggested_next_actions,
+      warnings: body.warnings ?? []
+    }), null, 2));
+    return;
+  }
 
   writeLine(`UseCase ${body.usecase.id}`);
   writeLine(`Title ${body.usecase.title}`);

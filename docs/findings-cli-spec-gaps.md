@@ -11,64 +11,35 @@ Each entry: surface — current state — first observed.
 
 ## Missing verbs (write/read commands the spec promises)
 
-- `vspec doctor [<usecase>]` — spec §"Top-Level Commands"; not in
-  dispatcher. Scope-guarded out of Goal 7.
-- `vspec why <command>` — spec §"Top-Level Commands"; not in
-  dispatcher. Scope-guarded out of Goal 7.
-- `vspec examples <topic>` — spec §"Top-Level Commands"; not in
-  dispatcher. Scope-guarded out of Goal 7.
-- `vspec explain` — spec §"Top-Level Commands"; not in dispatcher.
-- `vspec watch` — spec; not in dispatcher.
-- `vspec help workflows` / `vspec help concepts` — spec §"Help System";
-  not in dispatcher.
-- `vspec project list` — spec §"Workspaces & Projects"; dispatcher
-  only routes `project create` and `project switch`. Discovered while
-  authoring UC-004 honest test (2026-05-22).
-- `vspec actor list` / `vspec actor show` — spec §"Actors"; dispatcher
-  only routes `actor create`. Discovered while authoring UC-005 honest
-  test (2026-05-22).
-- `vspec actor edit` / `vspec actor archive` — spec §"Actors"; not in
-  dispatcher.
-- `vspec stakeholder list` / `vspec stakeholder show` / `edit` /
-  `archive` — spec §"Stakeholders"; only `stakeholder create` is
-  routed.
-- `vspec goal show` / `vspec goal reject` — spec §"Goals"; dispatcher
-  only routes `goal create`, `goal list`, `goal promote`.
-- `vspec usecase edit` / `vspec usecase set` / `vspec usecase restore` /
-  `vspec usecase search` — spec §"Use Cases"; dispatcher only routes
-  `create`, `list`, `show`, `add-stakeholder`, `archive`.
+Goal 9 moved this queue out of findings:
+
+The over-engineered self-teaching verbs were dropped from the spec, and
+the read-path verbs were promoted into `goals/9-cli-trim.md` as the active
+implementation scope. Keep this section free of bullet entries until a new
+spec-promised CLI verb is discovered outside Goal 9's declared scope.
 
 ## `--format=agent` coverage debt
 
-Goal 7 standardized the agent envelope (`buildAgentEnvelope`) but only
-three command files actually branch on `format === "agent"`:
-`init.ts`, `usecase.ts`, `diff.ts`. The spec (`docs/07-cli-spec.md:16`)
-implies `--format=agent` is a global output mode applicable to every
-verb. Commands that still need an agent branch (write-path priority
-first):
+Goal 7 standardized the agent envelope (`buildAgentEnvelope`), and Goals 9
+and 10 promoted the first project/actor/stakeholder/goal/usecase surfaces.
+The spec (`docs/07-cli-spec.md:16`) implies `--format=agent` is a global
+output mode applicable to every verb. Commands that still need an agent
+branch:
 
-- `goal create` / `goal list` / `goal promote`
-- `actor create`
-- `stakeholder create`
-- `session start` / `session complete` / `session list`
-- `branch create`
-- `lock` (acquire/release/renew)
-- `step add` / `step edit`
-- `scenario add`
-- `change propose` / `change commit`
-- `merge open` / `merge resolve`
-- `history`, `impact`, `revert`, `who`, `comment add|list|edit|resolve|delete`
-- `member invite`, `api-key create|list|revoke`
-- `pull`, `push`, `sync`
-- `project create` / `project switch`
-- `workspace switch`
-- `status` (would benefit most as agents tend to query state)
+- `lock release`
+- `merge resolve`
 
 Each candidate needs: a `--format` flag in its CLI flags, an agent
 branch routed through `buildAgentEnvelope`, plus the `data`/`context`
 mapping from the API response. The gate `7.A3` will then enumerate
 each new file automatically (source of truth: `grep -rl 'format ===
 "agent"' apps/cli/src/commands/`).
+
+Note: `step edit` now supports `--format=agent`, but its API response lacks
+`revision.id`; the agent envelope's context.revision is therefore null. A later
+API contract goal can expose the revision id.
+
+Note: `merge open` now supports `--format=agent`; `merge resolve` remains queued because honest conflict setup currently depends on `__test` endpoints instead of public CLI-only setup.
 
 ## Help system surface
 
@@ -83,10 +54,10 @@ each new file automatically (source of truth: `grep -rl 'format ===
 When picking up this queue, prefer the order:
 
 1. Read verbs that hosts of agents will hit first
-   (`actor show`/`list`, `usecase edit`/`set`, `goal show`).
+   (`actor show`/`list`, `usecase set`, `goal show`).
 2. Agent-envelope rollout to write-path verbs (so agents see uniform
    shape across `create` outputs).
-3. `doctor`, `why`, `examples` — diagnostic surfaces.
+3. `doctor` as a server-backed renderer.
 4. Per-verb `--help` routing (the same pattern Goal 7 used for
    `init`).
 

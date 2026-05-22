@@ -1,47 +1,33 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { postJson } from "../http-client.js";
-
-type StakeholderCliFlags = {
-  "api-url"?: string;
-  description?: string;
-  name?: string;
-  "project-id"?: string;
-  "session-cookie"?: string;
-  type?: string;
-};
-
-type StakeholderFlags = {
-  apiUrl: string;
-  description: string;
-  name: string;
-  projectId: string;
-  sessionCookie: string;
-  type: "EXTERNAL" | "INTERNAL" | "REGULATORY";
-};
-
-type StakeholderResponse = {
-  recommended_next_command: string;
-  revision: {
-    version_number: number;
-  };
-  stakeholder: {
-    name: string;
-    type: string;
-  };
-};
+import {
+  stakeholderCreateFlagsFrom,
+  stakeholderPatchFrom,
+  type StakeholderCliFlags
+} from "./stakeholder-flags.js";
+import {
+  printStakeholderCreated,
+  printStakeholderSummary,
+  type StakeholderListResponse,
+  type StakeholderResponse,
+  type StakeholderSummary
+} from "./stakeholder-output.js";
+import { buildAgentEnvelope } from "../agent-envelope.js";
+import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class StakeholderCommand extends Command {
   static override description = "Manage project stakeholders.";
 
   static override args = {
-    action: Args.string()
+    action: Args.string(),
+    stakeholderId: Args.string()
   };
 
   static override flags = {
     "api-url": Flags.string(),
     description: Flags.string(),
+    format: Flags.string(),
     name: Flags.string(),
     "project-id": Flags.string(),
     "session-cookie": Flags.string(),
@@ -51,20 +37,105 @@ export class StakeholderCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(StakeholderCommand);
 
-    await runStakeholder(parsed.flags, parsed.args.action, this.log.bind(this));
+    await runStakeholder(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.stakeholderId,
+      this.log.bind(this)
+    );
   }
 }
 
 export async function runStakeholder(
   flags: StakeholderCliFlags,
   action: string | undefined,
+  stakeholderId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  if (action !== "create") {
-    throw new Error("Missing stakeholder action.");
+  if (action === "create") {
+    await createStakeholder(flags, writeLine);
+    return;
+  }
+  if (action === "list") {
+    await listStakeholders(flags, writeLine);
+    return;
+  }
+  if (action === "show") {
+    await showStakeholder(flags, stakeholderId, writeLine);
+    return;
+  }
+  if (action === "edit") {
+    await editStakeholder(flags, stakeholderId, writeLine);
+    return;
+  }
+  if (action === "archive") {
+    await archiveStakeholder(flags, stakeholderId, writeLine);
+    return;
   }
 
-  const stakeholderFlags = stakeholderFlagsFrom(flags);
+  throw new Error("Missing stakeholder action.");
+}
+
+async function archiveStakeholder(
+  flags: StakeholderCliFlags,
+  stakeholderId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const id = requiredArgument(stakeholderId, "stakeholder id");
+  await deleteJson(stakeholderUrl(flags, id), authHeaders(flags));
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: { archived: true, stakeholder_id: id } }), null, 2));
+    return;
+  }
+
+  writeLine(`Archived ${id}`);
+}
+
+async function editStakeholder(
+  flags: StakeholderCliFlags,
+  stakeholderId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await patchJson(
+    stakeholderUrl(flags, requiredArgument(stakeholderId, "stakeholder id")),
+    stakeholderPatchFrom(flags),
+    authHeaders(flags)
+  );
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printStakeholderSummary(
+    (response.body as { stakeholder: StakeholderSummary }).stakeholder,
+    writeLine
+  );
+}
+
+async function showStakeholder(
+  flags: StakeholderCliFlags,
+  stakeholderId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await fetchJson(
+    stakeholderUrl(flags, requiredArgument(stakeholderId, "stakeholder id")),
+    { headers: authHeaders(flags) }
+  );
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printStakeholderSummary(
+    (response.body as { stakeholder: StakeholderSummary }).stakeholder,
+    writeLine
+  );
+}
+
+async function createStakeholder(
+  flags: StakeholderCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const stakeholderFlags = stakeholderCreateFlagsFrom(flags);
   const response = await postJson(
     `${stakeholderFlags.apiUrl}/v1/projects/${stakeholderFlags.projectId}/stakeholders`,
     {
@@ -76,29 +147,40 @@ export async function runStakeholder(
       Cookie: stakeholderFlags.sessionCookie
     }
   );
-  const body = response.body as StakeholderResponse;
-
-  writeLine(`Stakeholder ${body.stakeholder.name} ${body.stakeholder.type}`);
-  writeLine(`Revision version ${String(body.revision.version_number)}`);
-  writeLine(body.recommended_next_command);
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+  printStakeholderCreated(response.body as StakeholderResponse, writeLine);
 }
 
-function stakeholderFlagsFrom(flags: StakeholderCliFlags): StakeholderFlags {
-  return {
-    apiUrl: resolveContextFlag(flags, "api-url"),
-    description: flags.description ?? "",
-    name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie"),
-    type: stakeholderType(requiredFlag(flags, "type"))
-  };
-}
+async function listStakeholders(
+  flags: StakeholderCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await fetchJson(stakeholdersUrl(flags), {
+    headers: authHeaders(flags)
+  });
+  const body = response.body as StakeholderListResponse;
 
-function stakeholderType(rawType: string): "EXTERNAL" | "INTERNAL" | "REGULATORY" {
-  const type = rawType.toUpperCase();
-  if (type === "EXTERNAL" || type === "INTERNAL" || type === "REGULATORY") {
-    return type;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
   }
 
-  throw new Error("Stakeholder type must be INTERNAL, EXTERNAL, or REGULATORY.");
+  for (const stakeholder of body.items) {
+    printStakeholderSummary(stakeholder, writeLine);
+  }
+}
+
+function stakeholdersUrl(flags: StakeholderCliFlags): string {
+  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${requiredFlag(flags, "project-id")}/stakeholders`;
+}
+
+function stakeholderUrl(flags: StakeholderCliFlags, stakeholderId: string): string {
+  return `${stakeholdersUrl(flags)}/${stakeholderId}`;
+}
+
+function authHeaders(flags: StakeholderCliFlags): Record<string, string> {
+  return { Cookie: resolveContextFlag(flags, "session-cookie") };
 }

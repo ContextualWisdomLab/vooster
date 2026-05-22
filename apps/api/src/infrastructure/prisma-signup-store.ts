@@ -600,6 +600,20 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
+  async updateActor(actor: StoredActor): Promise<void> {
+    await this.prisma.actor.update({
+      data: {
+        aliases: JSON.stringify(actor.aliases),
+        archived_at: dateOrNull(actor.archived_at),
+        description: actor.description,
+        is_human: actor.is_human,
+        name: actor.name,
+        type: actor.type
+      },
+      where: { id: actor.id }
+    });
+  }
+
   async saveBranch(branch: StoredSpecBranch): Promise<void> {
     await this.prisma.specBranch.create({ data: specBranchData(branch) });
   }
@@ -640,6 +654,13 @@ class PrismaSignupStore implements SignupStore {
   async saveStakeholder(stakeholder: StoredStakeholder): Promise<void> {
     await this.prisma.stakeholder.create({
       data: stakeholderData(stakeholder)
+    });
+  }
+
+  async updateStakeholder(stakeholder: StoredStakeholder): Promise<void> {
+    await this.prisma.stakeholder.update({
+      data: stakeholderData(stakeholder),
+      where: { id: stakeholder.id }
     });
   }
 

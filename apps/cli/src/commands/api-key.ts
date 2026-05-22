@@ -1,10 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, postJson } from "../http-client.js";
 
 type ApiKeyFlags = {
   "api-url"?: string;
+  format?: string;
   name?: string;
   scopes?: string;
   "session-cookie"?: string;
@@ -63,6 +65,7 @@ export class ApiKeyCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     name: Flags.string(),
     scopes: Flags.string(),
     "session-cookie": Flags.string(),
@@ -113,6 +116,14 @@ async function createApiKey(flags: ApiKeyFlags, writeLine: (message: string) => 
   );
   const body = response.body as ApiKeyCreateResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
+
   printApiKey(body.api_key, writeLine);
   writeLine(`Token ${body.plaintext_token}`);
   writeLine("Only shown once");
@@ -132,6 +143,11 @@ async function listApiKeys(flags: ApiKeyFlags, writeLine: (message: string) => v
   });
   const body = response.body as ApiKeyListResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
   writeLine(`ApiKeys ${String(body.api_keys.length)}`);
   for (const apiKey of body.api_keys) {
     printApiKey(apiKey, writeLine);
@@ -148,6 +164,14 @@ async function revokeApiKey(
     Cookie: apiKeyFlags.sessionCookie
   });
   const body = response.body as ApiKeyRevokeResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      suggested_next_actions: body.suggested_next_actions
+    }), null, 2));
+    return;
+  }
 
   printApiKey(body.api_key, writeLine);
   writeLine(`Revoked ${body.api_key.revoked_at ?? "null"}`);

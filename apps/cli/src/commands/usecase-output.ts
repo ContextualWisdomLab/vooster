@@ -39,6 +39,13 @@ export type UsecaseShowResponse = {
   };
 };
 
+export type UsecaseUpdateResponse = {
+  usecase: {
+    key: string;
+    status: string;
+  };
+};
+
 export type UsecaseArchiveResponse = {
   active_locks_count: number;
   affected_sessions_count: number;
@@ -50,6 +57,12 @@ export type UsecaseArchiveResponse = {
   }>;
   usecase: {
     archived_at: string;
+    key: string;
+  };
+};
+
+export type UsecaseRestoreResponse = {
+  usecase: {
     key: string;
   };
 };
@@ -142,4 +155,20 @@ export function printUsecaseArchive(
   for (const action of body.suggested_next_actions) {
     writeLine(action.command);
   }
+}
+
+export function printUsecaseUpdate(
+  body: UsecaseUpdateResponse,
+  writeLine: (message: string) => void
+): void {
+  writeLine(`UseCase ${body.usecase.key}`);
+  writeLine(`Status ${body.usecase.status}`);
+}
+
+export function printUsecaseRestore(
+  body: UsecaseRestoreResponse,
+  writeLine: (message: string) => void
+): void {
+  writeLine(`UseCase ${body.usecase.key}`);
+  writeLine("Restored");
 }

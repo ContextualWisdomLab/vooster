@@ -14,7 +14,7 @@ export function sendLockResult(reply: FastifyReply, result: LockResult) {
         lock: result.lock,
         suggested_next_actions: [
           {
-            command: `vspec lock renew ${result.usecase.key}`,
+            command: `vspec lock renew ${result.lock.id ?? result.usecase.id}`,
             reason: "Renew the lock before it expires."
           },
           {

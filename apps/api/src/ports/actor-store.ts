@@ -6,4 +6,5 @@ export type ActorStore = {
   findActorByName: (projectId: string, name: string) => Promise<StoredActor | undefined>;
   listActors: (projectId: string) => Promise<StoredActor[]>;
   saveActor: (actor: StoredActor) => Promise<void>;
+  updateActor?: (actor: StoredActor) => Promise<void>;
 };

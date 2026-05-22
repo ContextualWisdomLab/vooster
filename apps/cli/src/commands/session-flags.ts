@@ -5,6 +5,7 @@ export type SessionCliFlags = {
   "api-url"?: string;
   "auto-branch"?: boolean;
   "branch-name"?: string;
+  format?: string;
   intent?: string;
   "no-merge"?: boolean;
   pin?: string;

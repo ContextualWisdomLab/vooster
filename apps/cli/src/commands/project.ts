@@ -1,11 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { writeConfig } from "../config-store.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { postJson } from "../http-client.js";
+import { fetchJson, postJson } from "../http-client.js";
 
 type ProjectCliFlags = {
   "api-url"?: string;
+  format?: string;
   key?: string;
   name?: string;
   "session-cookie"?: string;
@@ -34,6 +36,14 @@ type ProjectResponse = {
   recommended_next_command: string;
 };
 
+type ProjectListResponse = {
+  items: Array<{
+    id: string;
+    key: string;
+    name: string;
+  }>;
+};
+
 export class ProjectCommand extends Command {
   static override description = "Manage projects.";
 
@@ -43,6 +53,7 @@ export class ProjectCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    format: Flags.string(),
     key: Flags.string(),
     name: Flags.string(),
     "session-cookie": Flags.string(),
@@ -67,8 +78,12 @@ export async function runProject(
     await createProject(flags, writeLine);
     return;
   }
+  if (action === "list") {
+    await listProjects(flags, writeLine);
+    return;
+  }
   if (action === "switch") {
-    switchProject(projectKeyArg, writeLine);
+    switchProject(flags, projectKeyArg, writeLine);
     return;
   }
 
@@ -97,16 +112,62 @@ async function createProject(
     current_project_id: body.project.id,
     current_project_key: body.project.key
   });
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
   writeLine(`Project ${body.project.name} ${body.project.key} ${body.project.id}`);
   writeLine(`Branch ${body.default_branch.name}`);
   writeLine(body.recommended_next_command);
 }
 
-function switchProject(projectKeyArg: string | undefined, writeLine: (message: string) => void): void {
+async function listProjects(
+  flags: ProjectCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const response = await fetchJson(`${resolveContextFlag(flags, "api-url")}/v1/projects`, {
+    headers: {
+      Cookie: resolveContextFlag(flags, "session-cookie")
+    }
+  });
+  const body = response.body as ProjectListResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
+  for (const project of body.items) {
+    writeLine(`${project.key} ${project.name} ${project.id}`);
+  }
+}
+
+function switchProject(
+  flags: ProjectCliFlags,
+  projectKeyArg: string | undefined,
+  writeLine: (message: string) => void
+): void {
   const projectKey = requiredArgument(projectKeyArg, "project key");
   writeConfig({
     current_project_key: projectKey
   });
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: {
+        config: {
+          current_project_key: projectKey
+        },
+        project: {
+          key: projectKey
+        }
+      }
+    }), null, 2));
+    return;
+  }
+
   writeLine(`Project ${projectKey}`);
 }
 

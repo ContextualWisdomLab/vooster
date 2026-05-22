@@ -9,6 +9,7 @@ import {
 import {
   sendCreateGoalResult, sendListGoalsResult, sendPatchGoalResult
 } from "./goal-results.js";
+import { showGoal } from "./goal-show-routes.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
@@ -50,6 +51,12 @@ export function registerGoalRoutes(
   app.get("/v1/projects/:projectId/goals", (request, reply) =>
     listGoals(request, reply, state, {
       actorStore,
+      goalStore,
+      membershipStore
+    })
+  );
+  app.get("/v1/goals/:goalId", (request, reply) =>
+    showGoal(request, reply, state, {
       goalStore,
       membershipStore
     })

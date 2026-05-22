@@ -27,9 +27,8 @@ validator 의 얇은 렌더러** 로 다시 그린다. 동일 룰을 두 곳에�
 마지막으로 Goal 7 의 `--format=agent` envelope 표준화는 envelope branch
 를 *가진* 파일들에만 routing 을 강제한다. user-facing verb 그룹 중
 일부 (project/actor/stakeholder/goal/doctor) 가 아직 그 branch 자체를
-갖고 있지 않다. Goal 9 는 이 격차를 닫되, **admin surface (member,
-api-key) 는 명시적으로 제외** 한다 — 에이전트가 호출할 일이 사실상
-0 인 verb 에 envelope 분기를 두는 것은 그 자체로 dead weight 다.
+갖고 있지 않다. Goal 9 는 이 격차를 닫되, 당시 agent-format rollout 에서
+명시적으로 제외한 파일은 `EXCLUDED_AGENT_FILES` 로만 관리한다.
 
 Goal 9 가 마치고 나면:
 
@@ -48,8 +47,7 @@ Goal 9 가 마치고 나면:
 - `--format=agent` envelope 분기가 declared user-facing 파일 셋
   (`project.ts`, `actor.ts`, `stakeholder.ts`, `goal.ts`, `doctor.ts`)
   에 존재하고, Goal 7 A3 의 envelope routing 규칙을 자동 만족한다.
-- `member.ts`, `api-key.ts` 는 envelope 분기를 갖지 않는다 (scope-down
-  invariant).
+- `EXCLUDED_AGENT_FILES` 에 선언된 파일은 envelope 분기를 갖지 않는다.
 
 `scripts/check-gate-rigor.sh` 가 아래 모든 universal claim 에 대응하는
 iteration 이 gate 에 있음을 메타-검증한다. 단일 예시 통과는 금지.
@@ -57,7 +55,8 @@ iteration 이 gate 에 있음을 메타-검증한다. 단일 예시 통과는 �
 ## Self-Audit (per `docs/goal-design.md §5`)
 
 이 goal 은 prior goal 의 어떤 invariant 도 약화시키거나 retarget 하지
-않는다 — 순수 additive.
+않는다 — 순수 additive. Goal 23 은 이후 Goal 9 의 예전 member/API-key
+scope-down decision 을 supersede 했다.
 
 - **Goal 7 A3/A4/A5** (envelope routing) 은 *agent branch 가 있는 파일*
   을 source of truth 로 enumerate 한다. Goal 9 가 5 개 파일에 분기를
@@ -243,14 +242,11 @@ E1. **Every file in the declared `USER_FACING_AGENT_FILES` set has a
 E2. **Every file in the declared `EXCLUDED_AGENT_FILES` set does NOT
     have a `format === "agent"` branch.** Source of truth:
     ```
-    EXCLUDED_AGENT_FILES=(
-      apps/cli/src/commands/member.ts
-      apps/cli/src/commands/api-key.ts
-    )
+    EXCLUDED_AGENT_FILES=()
     ```
     The gate iterates and asserts no file contains
-    `format === "agent"`. This locks the scope-down decision: admin
-    surfaces stay envelope-free.
+    `format === "agent"`. Goal 23 superseded the earlier member/API-key
+    scope-down decision, so the set is currently empty.
 
 ### Tranche F — Meta: rigor
 
@@ -268,10 +264,8 @@ F1. **`scripts/check-gate-rigor.sh goals/9-cli-trim.md` passes.**
 - **No new CLI verbs beyond `IN_SCOPE_VERBS`.** If an honest test
   reveals a missing verb, log it in `docs/findings-cli-spec-gaps.md`
   and stop — do not silently widen the dispatcher inside this goal.
-- **No envelope branch in `EXCLUDED_AGENT_FILES`.** `member.ts` and
-  `api-key.ts` stay envelope-free for the duration of Goal 9. Comment
-  edit/delete/resolve are out of scope as well; `comment.ts` is left
-  untouched.
+- **No envelope branch in `EXCLUDED_AGENT_FILES`.** Goal 23 superseded the
+  earlier member/API-key exclusions, so the set is currently empty.
 - **No new rule literals in `doctor.ts`.** Validation logic lives on
   the API side. `doctor.ts` calls the endpoint and renders.
 - **No widening Goal 7 `HONEST_UC_SET`.** Goal 9's honest tests cover

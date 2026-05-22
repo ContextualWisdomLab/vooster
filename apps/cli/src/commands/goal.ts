@@ -1,6 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import {
+  goalCreateFlagsFrom,
+  goalIdFlagsFrom,
+  goalListFlagsFrom,
+  type GoalCliFlags
+} from "./goal-flags.js";
+import {
   printGoalList,
   printGoalPromotion,
   printGoalResponse,
@@ -8,41 +14,8 @@ import {
   type GoalPromotionResponse,
   type GoalResponse
 } from "./goal-output.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { fetchJson, postJson } from "../http-client.js";
-
-type GoalCliFlags = {
-  "actor-id"?: string;
-  "api-url"?: string;
-  description?: string;
-  level?: string;
-  priority?: string;
-  "project-id"?: string;
-  "session-cookie"?: string;
-};
-
-type GoalCreateFlags = {
-  actorId: string;
-  apiUrl: string;
-  description: string;
-  level: "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";
-  priority: "P0" | "P1" | "P2" | "P3";
-  projectId: string;
-  sessionCookie: string;
-};
-
-type GoalListFlags = {
-  actorId: string | undefined;
-  apiUrl: string;
-  projectId: string;
-  sessionCookie: string;
-};
-
-type GoalPromoteFlags = {
-  apiUrl: string;
-  goalId: string;
-  sessionCookie: string;
-};
+import { buildAgentEnvelope } from "../agent-envelope.js";
+import { fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class GoalCommand extends Command {
   static override description = "Manage project goals.";
@@ -56,6 +29,7 @@ export class GoalCommand extends Command {
     "actor-id": Flags.string(),
     "api-url": Flags.string(),
     description: Flags.string(),
+    format: Flags.string(),
     level: Flags.string(),
     priority: Flags.string(),
     "project-id": Flags.string(),
@@ -87,8 +61,56 @@ export async function runGoal(
     await promoteGoal(flags, goalId, writeLine);
     return;
   }
+  if (action === "show") {
+    await showGoal(flags, goalId, writeLine);
+    return;
+  }
+  if (action === "reject") {
+    await rejectGoal(flags, goalId, writeLine);
+    return;
+  }
 
   throw new Error("Missing goal action.");
+}
+
+async function rejectGoal(
+  flags: GoalCliFlags,
+  goalId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const goalFlags = goalIdFlagsFrom(flags, goalId);
+  const response = await patchJson(
+    `${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}`,
+    { status: "REJECTED" },
+    { Cookie: goalFlags.sessionCookie }
+  );
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+
+  printGoalResponse(response.body as GoalResponse, writeLine);
+}
+
+async function showGoal(
+  flags: GoalCliFlags,
+  goalId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const goalFlags = goalIdFlagsFrom(flags, goalId);
+  const response = await fetchJson(`${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}`, {
+    headers: {
+      Cookie: goalFlags.sessionCookie
+    }
+  });
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    return;
+  }
+
+  printGoalResponse(response.body as GoalResponse, writeLine);
 }
 
 async function createGoal(flags: GoalCliFlags, writeLine: (message: string) => void): Promise<void> {
@@ -107,6 +129,11 @@ async function createGoal(flags: GoalCliFlags, writeLine: (message: string) => v
   );
   const body = response.body as GoalResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
   printGoalResponse(body, writeLine);
 }
 
@@ -124,6 +151,11 @@ async function listGoals(flags: GoalCliFlags, writeLine: (message: string) => vo
   });
   const body = response.body as GoalListResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
   printGoalList(body, writeLine);
 }
 
@@ -132,7 +164,7 @@ async function promoteGoal(
   goalId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const goalFlags = goalPromoteFlagsFrom(flags, goalId);
+  const goalFlags = goalIdFlagsFrom(flags, goalId);
   const response = await postJson(
     `${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}/promote`,
     {},
@@ -142,55 +174,10 @@ async function promoteGoal(
   );
   const body = response.body as GoalPromotionResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
   printGoalPromotion(body, writeLine);
-}
-
-function goalCreateFlagsFrom(flags: GoalCliFlags): GoalCreateFlags {
-  return {
-    actorId: requiredFlag(flags, "actor-id"),
-    apiUrl: resolveContextFlag(flags, "api-url"),
-    description: requiredFlag(flags, "description"),
-    level: goalLevel(requiredFlag(flags, "level")),
-    priority: goalPriority(requiredFlag(flags, "priority")),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie")
-  };
-}
-
-function goalListFlagsFrom(flags: GoalCliFlags): GoalListFlags {
-  return {
-    actorId: optionalFlag(flags, "actor-id"),
-    apiUrl: resolveContextFlag(flags, "api-url"),
-    projectId: requiredFlag(flags, "project-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie")
-  };
-}
-
-function goalPromoteFlagsFrom(
-  flags: GoalCliFlags,
-  goalId: string | undefined
-): GoalPromoteFlags {
-  return {
-    apiUrl: resolveContextFlag(flags, "api-url"),
-    goalId: requiredArgument(goalId, "goal-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie")
-  };
-}
-
-function goalLevel(rawLevel: string): "SUMMARY" | "USER_GOAL" | "SUBFUNCTION" {
-  const level = rawLevel.toUpperCase();
-  if (level === "SUMMARY" || level === "USER_GOAL" || level === "SUBFUNCTION") {
-    return level;
-  }
-
-  throw new Error("Goal level must be SUMMARY, USER_GOAL, or SUBFUNCTION.");
-}
-
-function goalPriority(rawPriority: string): "P0" | "P1" | "P2" | "P3" {
-  const priority = rawPriority.toUpperCase();
-  if (priority === "P0" || priority === "P1" || priority === "P2" || priority === "P3") {
-    return priority;
-  }
-
-  throw new Error("Goal priority must be P0, P1, P2, or P3.");
 }

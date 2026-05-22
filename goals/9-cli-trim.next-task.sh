@@ -54,10 +54,7 @@ USER_FACING_AGENT_FILES=(
   apps/cli/src/commands/doctor.ts
 )
 
-EXCLUDED_AGENT_FILES=(
-  apps/cli/src/commands/member.ts
-  apps/cli/src/commands/api-key.ts
-)
+EXCLUDED_AGENT_FILES=()
 
 FORBIDDEN_DOCTOR_LITERALS=(
   "active voice"
@@ -636,25 +633,27 @@ fi
 
 # ─── E2: admin files do NOT carry an envelope branch ─────────────────────
 E2_OFFENDERS=()
-for f in "${EXCLUDED_AGENT_FILES[@]}"; do
-  if [ -f "$f" ] && grep -E 'format === "agent"' "$f" >/dev/null 2>&1; then
-    E2_OFFENDERS+=("$f")
-  fi
-done
+if [ "${#EXCLUDED_AGENT_FILES[@]}" -gt 0 ]; then
+  for f in "${EXCLUDED_AGENT_FILES[@]}"; do
+    if [ -f "$f" ] && grep -E 'format === "agent"' "$f" >/dev/null 2>&1; then
+      E2_OFFENDERS+=("$f")
+    fi
+  done
+fi
 if [ "${#E2_OFFENDERS[@]}" -gt 0 ]; then
   cat <<'EOF'
-TASK: Remove envelope branch from excluded admin files (gate 9.E2).
+TASK: Remove envelope branch from excluded files (gate 9.E2).
 
 EOF
   printf '    %s\n' "${E2_OFFENDERS[@]}"
   cat <<'EOF'
 
-  Goal 9 scope-down: agents do not invoke admin verbs (member,
-  api-key). Their human + json branches are sufficient. Drop the
-  format === "agent" branch and the buildAgentEnvelope import.
+  Goal 9 scope-down only applies to the currently declared
+  EXCLUDED_AGENT_FILES set. Drop the format === "agent" branch and the
+  buildAgentEnvelope import from those files.
 
   Commit:
-    refactor(cli): drop agent envelope from admin verbs
+    refactor(cli): drop excluded agent envelope
 EOF
   exit 0
 fi

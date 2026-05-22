@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 
+import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 import { patchJson, postJson } from "../http-client.js";
 
@@ -8,6 +9,7 @@ type StepCliFlags = {
   actor?: string;
   "api-url"?: string;
   "base-revision"?: string;
+  format?: string;
   "session-cookie"?: string;
 };
 
@@ -69,6 +71,7 @@ export class StepCommand extends Command {
     actor: Flags.string(),
     "api-url": Flags.string(),
     "base-revision": Flags.string(),
+    format: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -115,6 +118,16 @@ async function addStep(
   );
   const body = response.body as StepResponse;
 
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({
+      data: body,
+      context: {
+        revision: body.revision.id
+      }
+    }), null, 2));
+    return;
+  }
+
   writeLine(`Step ${body.step.id}`);
   writeLine(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
   writeLine(`Revision id ${body.revision.id}`);
@@ -141,6 +154,11 @@ async function editStep(
     }
   );
   const body = response.body as StepEditResponse;
+
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
 
   writeLine(`Step ${body.step.id}`);
   writeLine(`Action ${body.step.action}`);

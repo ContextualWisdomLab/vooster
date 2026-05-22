@@ -33,7 +33,8 @@ fi
 echo "  $ACTIVE"
 if [ -d goals ]; then
   echo "  All goals:"
-  for f in $(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort); do
+  seen_active=false
+  for f in $(find goals -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort -V); do
     name=$(basename "$f" .md)
     gate="goals/${name}.gates.sh"
     if [ -f "$gate" ]; then
@@ -43,9 +44,10 @@ if [ -d goals ]; then
           status="✓ passed"
         elif [ "$ACTIVE" = "$f" ]; then
           status="⚙ active (failing)"
+          seen_active=true
         else
           # If a goal precedes the active one, completion-check confirmed it passed.
-          if [ "$f" \< "$ACTIVE" ]; then
+          if [ "$seen_active" = false ]; then
             status="✓ passed"
           else
             status="(deferred — earlier goal is active)"

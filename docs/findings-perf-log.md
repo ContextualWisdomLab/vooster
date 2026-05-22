@@ -38,6 +38,15 @@ archive move is a normal audit-and-propose change, not auto-executed).
 
 ## Log
 
+2026-05-22 | finding  | 1-runnable | check-cli.sh 42 serial spawns=9s; parallel → ~1s (same fix as 9.B2) | .state/harness/runs/2026-05-22T00:58:59Z.jsonl
+2026-05-22 | finding  | 0-init,1-runnable | goals/*.md absent from GATE_INPUTS; .md edits bypass cache invalidation | .state/harness/runs/2026-05-22T00:58:59Z.jsonl
+2026-05-22 | finding  | 0-init,1-runnable | next-task.sh refs pre-monorepo paths (tests/e2e, src/http) that don't exist | .state/harness/runs/2026-05-22T00:58:59Z.jsonl
+2026-05-22 | fix      | harness    | warm run 134s→103s; SKIP_DEEP guards on goals 0,1 confirmed effective | .state/harness/runs/2026-05-22T00:58:59Z.jsonl
+2026-05-22 | finding  | 0-init,1-runnable | vitest DB-dependent gates missing SKIP_DEEP guard; 38s+36s always cold | .state/harness/runs/2026-05-22T00:24:25Z.jsonl
+2026-05-22 | fix      | 9-cli-trim | B2 parallelization confirmed: 3419ms→883ms (3.8x); 14 parallel node spawn | .state/harness/runs/2026-05-22T00:24:25Z.jsonl
+2026-05-22 | finding  | harness    | UNIVERSAL_RE misses 'verb/page/test' nouns; goal-8 rigor blind (0 claims detected) | .state/harness/runs/2026-05-22T00:10:18Z.jsonl
+2026-05-22 | finding  | 9-cli-trim | 9.B2 node spawn x14=3014ms=88% cold wall; batching or static parse saves ~2.5s | .state/harness/runs/2026-05-22T00:10:18Z.jsonl
+2026-05-22 | regress  | 7-cli-spec-parity | 7.C5 fails: 6/20 honest tests 404 (actor/stakeholder/goal routes); vitest 93s | .state/harness/runs/2026-05-22T00:10:18Z.jsonl
 2026-05-22 | fix      | cross-goal | persistence-matrix split 4-way, beforeAll build dropped, gates re-globbed | 4d90a1c
 2026-05-22 | promote  | cross-goal | cli-ux-debt → Goal 6 (honest-cli) shipped; finding doc removed | d086641
 2026-05-22 | finding | harness | spec debt queued — case (d) + out-of-scope vs proposed-changes boundary | docs/findings-harness-spec-debt.md

@@ -159,3 +159,17 @@ own gates file must explicitly append the new UC IDs to `HONEST_UC_SET` (or,
 preferably, convert `HONEST_UC_SET` to a derived list — e.g., the result of
 `ls docs/usecases/UC-*.md` — with a documented allow-list of legacy gaps for
 UC IDs that intentionally remain outside the honest-flow surface).
+
+## Item 4 — Goal-9 read-path verbs missing API routes (7.C5 regression)
+
+Goal-9's read-path dispatch (actor/stakeholder/goal show/list/edit/archive,
+usecase set/restore) routes CLI verbs to API endpoints that don't yet exist
+in `apps/api/src/http/`. The honest E2E suite covers seed + CLI dispatch but
+6 tests under `scripts/check-honest-cli-e2e.sh` fail because the underlying
+HTTP routes return 404, which trips `7.C5`.
+
+Recommended mitigation: inspect `apps/api/src/http/` for the actor,
+stakeholder, and goal route files; add the missing read-path handlers
+(list/show/edit/archive endpoints) so the honest CLI suite turns green
+without weakening 7.C5. This is app-code scope, not harness scope, and
+should be picked up as its own goal/tranche.

@@ -51,23 +51,33 @@ if [ -z "$ADVERTISED" ]; then
   exit 1
 fi
 
-MISSING=()
+_CHECK_CLI_PIDS=()
+_CHECK_CLI_CMDS=()
+_CHECK_CLI_TMPDIR="$(mktemp -d)"
 while IFS= read -r cmd; do
   [ -z "$cmd" ] && continue
   # Strip placeholder args like <slug> or {id}.
   CLEAN=$(echo "$cmd" | awk '{print $1" "$2}' | sed 's/[<{][^>}]*[>}]//g' | xargs)
   TOPIC=$(echo "$CLEAN" | awk '{print $1}')
   SUB=$(echo "$CLEAN" | awk '{print $2}')
+  out="$_CHECK_CLI_TMPDIR/$(echo "$CLEAN" | tr ' /' '__')"
   if [ -z "$SUB" ]; then
-    if ! node apps/cli/bin/run.js "$TOPIC" --help >/dev/null 2>&1; then
-      MISSING+=("vspec $TOPIC")
-    fi
+    node apps/cli/bin/run.js "$TOPIC" --help >"$out" 2>&1 &
+    _CHECK_CLI_PIDS+=("$!")
+    _CHECK_CLI_CMDS+=("vspec $TOPIC")
   else
-    if ! node apps/cli/bin/run.js "$TOPIC" "$SUB" --help >/dev/null 2>&1; then
-      MISSING+=("vspec $TOPIC $SUB")
-    fi
+    node apps/cli/bin/run.js "$TOPIC" "$SUB" --help >"$out" 2>&1 &
+    _CHECK_CLI_PIDS+=("$!")
+    _CHECK_CLI_CMDS+=("vspec $TOPIC $SUB")
   fi
 done <<< "$ADVERTISED"
+MISSING=()
+for i in "${!_CHECK_CLI_PIDS[@]}"; do
+  if ! wait "${_CHECK_CLI_PIDS[$i]}"; then
+    MISSING+=("${_CHECK_CLI_CMDS[$i]}")
+  fi
+done
+rm -rf "$_CHECK_CLI_TMPDIR"
 
 if [ "${#MISSING[@]}" -ne 0 ]; then
   echo "✗ check-cli: the following advertised CLI commands have no oclif subcommand:"

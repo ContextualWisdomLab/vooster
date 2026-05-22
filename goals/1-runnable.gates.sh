@@ -40,6 +40,7 @@ GATE_INPUTS=(
   scripts/check-cli.sh
   scripts/check-layers.sh
   goals/1-runnable.gates.sh
+  goals/1-runnable.md
   scripts/_gate-cache.sh
 )
 
@@ -67,15 +68,19 @@ run_gate "1.2/5 Persistence" "$ROOT/scripts/check-persistence.sh"
 run_gate "1.3/5 CLI binary"  "$ROOT/scripts/check-cli.sh"
 
 echo "[1.4/5 CLI E2E]"
-if [ -d apps/cli/tests/e2e-cli ] && [ "$(find apps/cli/tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')" -gt 0 ]; then
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
+elif [ -d apps/cli/tests/e2e-cli ] && [ "$(find apps/cli/tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')" -gt 0 ]; then
   UC_COUNT=$(ls docs/usecases/UC-*.md 2>/dev/null | wc -l | tr -d ' ')
   CLI_COUNT=$(find apps/cli/tests/e2e-cli -name 'UC-*.test.ts' 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$CLI_COUNT" -ge "$UC_COUNT" ] \
-      && pnpm exec vitest run apps/cli/tests/e2e-cli >/dev/null 2>&1; then
-    echo "    ✓ pass ($CLI_COUNT/$UC_COUNT CLI E2E files, all green)"
-  else
-    echo "    ✗ fail — expected $UC_COUNT CLI E2E files, found $CLI_COUNT (or tests failing)"
+  if [ "$CLI_COUNT" -lt "$UC_COUNT" ]; then
+    echo "    ✗ fail — file count: expected $UC_COUNT CLI E2E files, found $CLI_COUNT"
     PASS=false
+  elif ! pnpm exec vitest run apps/cli/tests/e2e-cli >/dev/null 2>&1; then
+    echo "    ✗ fail — CLI E2E vitest suite is red ($CLI_COUNT/$UC_COUNT files present)"
+    PASS=false
+  else
+    echo "    ✓ pass ($CLI_COUNT/$UC_COUNT CLI E2E files, all green)"
   fi
 else
   echo "    ✗ fail — apps/cli/tests/e2e-cli/ is missing or empty"
@@ -89,7 +94,9 @@ run_gate "1.5/5 Layers"      "$ROOT/scripts/check-layers.sh"
 # the full chain.
 
 if [ "$PASS" = true ]; then
-  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  fi
   exit 0
 else
   exit 1

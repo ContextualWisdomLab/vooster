@@ -19,7 +19,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-UNIVERSAL_RE='every (entity|use case|usecase|UC|model|route|endpoint|file|command|gate)'
+UNIVERSAL_RE='every ([a-zA-Z-]+ )?(entity|use case|usecase|UC|model|route|endpoint|file|command|gate|verb|page|test|authenticated|workspace|config|tier|claim|Playwright|Cockburn|Tier-1)'
 ITER_RE='\<for\>|while\s+IFS|while\s+read|\<find\>|\<xargs\>|mapfile|readarray'
 
 check_one() {
@@ -50,6 +50,43 @@ check_one() {
 }
 
 case "${1:-}" in
+  --self-test)
+    MUST_MATCH=(
+      "every entity must"
+      "every use case must"
+      "every UC is"
+      "every route should"
+      "every test must"
+      "every Playwright test"
+      "every Cockburn UC field"
+      "every Tier-1 page"
+      "every authenticated user"
+      "every workspace slug"
+    )
+    MUST_NOT=(
+      "some entity"
+      "most routes"
+      "the test"
+    )
+    SELF_FAIL=0
+    for phrase in "${MUST_MATCH[@]}"; do
+      if ! echo "$phrase" | grep -iqE "$UNIVERSAL_RE"; then
+        echo "✗ self-test FAIL: should match — '$phrase'"
+        SELF_FAIL=1
+      fi
+    done
+    for phrase in "${MUST_NOT[@]}"; do
+      if echo "$phrase" | grep -iqE "$UNIVERSAL_RE"; then
+        echo "✗ self-test FAIL: should NOT match — '$phrase'"
+        SELF_FAIL=1
+      fi
+    done
+    if [ "$SELF_FAIL" -eq 0 ]; then
+      echo "✓ check-gate-rigor --self-test: UNIVERSAL_RE passes smoke cases"
+      exit 0
+    fi
+    exit 1
+    ;;
   --all)
     FAIL=0
     while IFS= read -r md; do

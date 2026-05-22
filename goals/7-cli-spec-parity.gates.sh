@@ -20,7 +20,9 @@ GOAL_NAME="7-cli-spec-parity"
 # Inputs that determine this goal's gate result.
 GATE_INPUTS=(
   apps/cli/src
-  apps/cli/tests
+  apps/cli/tests/e2e-cli-honest
+  apps/cli/tests/e2e-cli
+  apps/cli/tests/unit
   apps/cli/bin
   apps/cli/package.json
   scripts/check-gate-rigor.sh

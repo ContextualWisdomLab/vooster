@@ -221,6 +221,9 @@ invariant 약화인지" 구분할 수 없게 된다.
   `[cache hit] goal … inputs unchanged`).
 - gate suite가 성공하면 현재 fingerprint를 `.state/gate-cache/<goal-name>`
   에 저장한다.
+- gate suite가 **실패하면 캐시를 저장하지 않는다** — 다음 실행에서 반드시
+  재실행된다. `VSPEC_GATES_SKIP_DEEP=1`은 이미 실패한 goal의 재실행 비용을
+  줄이지 않는다.
 - `.state/`는 `.gitignore`에 들어있어 커밋되지 않음.
 
 이 설계의 핵심은 **병렬 작업 안전성**이다. 한 에이전트가 `apps/www/`를

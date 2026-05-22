@@ -219,12 +219,22 @@ fi
 echo "[9.B2 every in-scope verb exits 0 on --help]"
 B2_OFFENDERS=()
 if [ -f "$CLI_BIN" ]; then
+  B2_PIDS=()
+  B2_VERBS=()
+  B2_TMPDIR="$(mktemp -d)"
   for verb in "${IN_SCOPE_VERBS[@]}"; do
+    out="$B2_TMPDIR/$(echo "$verb" | tr ' ' '_')"
     # shellcheck disable=SC2086
-    if ! node "$CLI_BIN" $verb --help >/dev/null 2>&1; then
-      B2_OFFENDERS+=("$verb")
+    node "$CLI_BIN" $verb --help >"$out" 2>&1 &
+    B2_PIDS+=("$!")
+    B2_VERBS+=("$verb")
+  done
+  for i in "${!B2_PIDS[@]}"; do
+    if ! wait "${B2_PIDS[$i]}"; then
+      B2_OFFENDERS+=("${B2_VERBS[$i]}")
     fi
   done
+  rm -rf "$B2_TMPDIR"
 else
   B2_OFFENDERS+=("$CLI_BIN missing")
 fi

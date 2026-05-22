@@ -29,7 +29,7 @@ if [ ! -f tsconfig.json ]; then
   cat <<'EOF'
 TASK: Configure TypeScript.
   - Create tsconfig.json (strict, ES2022, NodeNext modules)
-  - Create src/index.ts placeholder
+  - Create apps/api/src/index.ts placeholder
   - Commit: "setup: typescript config"
 EOF
   exit 0
@@ -39,21 +39,21 @@ if [ ! -f vitest.config.ts ]; then
   cat <<'EOF'
 TASK: Configure Vitest.
   - Create vitest.config.ts (coverage via c8, threshold from docs/04-tdd-protocol.md)
-  - Create tests/setup.ts
-  - Write a smoke test: tests/unit/smoke.test.ts that asserts 1+1 === 2
-  - Verify: npx vitest run
+  - Create apps/api/tests/setup.ts
+  - Write a smoke test: apps/api/tests/unit/smoke.test.ts that asserts 1+1 === 2
+  - Verify: pnpm exec vitest run
   - Commit: "setup: vitest"
 EOF
   exit 0
 fi
 
-if [ ! -f prisma/schema.prisma ]; then
+if [ ! -f apps/api/prisma/schema.prisma ]; then
   cat <<'EOF'
 TASK: Initialize Prisma schema.
-  - npx prisma init
-  - Translate docs/05-data-model.md to prisma/schema.prisma (all 16 entities)
+  - cd apps/api && npx prisma init
+  - Translate docs/05-data-model.md to apps/api/prisma/schema.prisma (all 16 entities)
   - docker compose up -d db (or local Postgres)
-  - npx prisma migrate dev --name initial
+  - cd apps/api && npx prisma migrate dev --name initial
   - Commit: "setup: prisma initial schema"
 EOF
   exit 0
@@ -63,15 +63,15 @@ fi
 
 for f in $(ls docs/usecases/UC-*.md 2>/dev/null | sort); do
   UC_ID=$(basename "$f" | grep -oE "UC-[0-9]+" | head -1)
-  TEST_FILE="tests/e2e/${UC_ID}.test.ts"
+  TEST_FILE="apps/api/tests/e2e/${UC_ID}.test.ts"
   if [ -f "$TEST_FILE" ]; then
-    if ! npx --no-install vitest run "$TEST_FILE" --reporter=dot >/dev/null 2>&1; then
+    if ! pnpm exec vitest run "$TEST_FILE" --reporter=dot >/dev/null 2>&1; then
       cat <<EOF
 TASK: Continue $UC_ID.
   - Read: $f
   - Test file: $TEST_FILE (currently failing)
   - Follow TDD: identify the first failing assertion, write minimum code to pass.
-  - Verify: npx vitest run $TEST_FILE
+  - Verify: pnpm exec vitest run $TEST_FILE
   - Commit: "green: $UC_ID <description>"
 EOF
       exit 0
@@ -105,7 +105,7 @@ PRIORITY_ORDER=(
 )
 
 for UC_ID in "${PRIORITY_ORDER[@]}"; do
-  TEST_FILE="tests/e2e/${UC_ID}.test.ts"
+  TEST_FILE="apps/api/tests/e2e/${UC_ID}.test.ts"
   if [ ! -f "$TEST_FILE" ]; then
     SPEC_FILE=$(ls docs/usecases/${UC_ID}-*.md 2>/dev/null | head -1)
     if [ -z "$SPEC_FILE" ]; then

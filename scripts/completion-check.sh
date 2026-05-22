@@ -134,6 +134,11 @@ rigor_cache_fresh() {
   return 0
 }
 
+if ! bash "$ROOT/scripts/check-gate-rigor.sh" --self-test >/dev/null 2>&1; then
+  echo "    ✗ rigor self-test failed — UNIVERSAL_RE may be broken"
+  OVERALL_PASS=false
+fi
+
 if rigor_cache_fresh; then
   echo "    ✓ cache hit — rigor sweep skipped (fingerprint unchanged)"
 else

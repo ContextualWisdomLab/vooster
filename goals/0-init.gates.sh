@@ -44,6 +44,7 @@ GATE_INPUTS=(
   scripts/dogfood-test.sh
   scripts/dogfood-smoke.ts
   goals/0-init.gates.sh
+  goals/0-init.md
   scripts/_gate-cache.sh
 )
 
@@ -72,7 +73,9 @@ fi
 
 # ---------- Gate 2: tests + coverage ----------
 echo "[0.2/5] Tests + coverage check..."
-if [ -f package.json ]; then
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
+elif [ -f package.json ]; then
   COVERAGE_DIR=$(mktemp -d)
   if VSPEC_COVERAGE_DIR="$COVERAGE_DIR" pnpm exec vitest run --coverage >/dev/null 2>&1; then
     echo "    ✓ All tests pass and coverage thresholds met"
@@ -127,7 +130,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  fi
   exit 0
 else
   exit 1

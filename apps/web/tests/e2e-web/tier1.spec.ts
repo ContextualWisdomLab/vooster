@@ -5,7 +5,7 @@ test("home page lists projects in auth stub mode", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Project specs" })).toBeVisible();
   await expect(
-    page.getByRole("list").getByRole("link", { name: "Checkout Review" })
+    page.locator("ul.list").getByRole("link", { name: "Checkout Review" })
   ).toBeVisible();
 });
 

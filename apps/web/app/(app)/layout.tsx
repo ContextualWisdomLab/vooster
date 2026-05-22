@@ -1,21 +1,28 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { hasSessionCookie } from "../auth";
+import { fetchProjects } from "../data";
 import { AppHeader } from "./components/AppHeader";
-import { Sidebar } from "./components/Sidebar";
+import { AppSidebar } from "./components/AppSidebar";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!(await hasSessionCookie())) {
     redirect("/login");
   }
 
+  const projects = await fetchProjects();
+
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <div className="app-main">
-        <AppHeader />
-        <div className="app-content">{children}</div>
-      </div>
-    </div>
+    <TooltipProvider delayDuration={150}>
+      <SidebarProvider>
+        <AppSidebar projects={projects} />
+        <SidebarInset>
+          <AppHeader />
+          <div className="mx-auto w-full max-w-4xl px-6 py-8">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }

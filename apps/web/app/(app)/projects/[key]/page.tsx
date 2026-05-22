@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Breadcrumb } from "../../components/Breadcrumb";
 import { StatusPill } from "../../../components/StatusPill";
 import { fetchProjectUsecases } from "../../../data";
 
@@ -9,12 +8,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
 
   return (
     <section className="grid">
-      <Breadcrumb
-        items={[
-          { label: "Projects", href: "/" },
-          { label: key }
-        ]}
-      />
       <div>
         <div className="eyebrow">Project {key}</div>
         <h1>Use cases</h1>

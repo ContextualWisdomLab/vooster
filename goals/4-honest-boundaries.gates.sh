@@ -170,6 +170,7 @@ import { ESLint } from "eslint";
 const cases = [
   {
     code: [
+      "// @ts-ignore: fixture intentionally imports a forbidden layer.",
       'import type { StoredUser } from "../http/signup-types.ts";',
       "export type BoundaryFixture = StoredUser;"
     ].join("\n"),
@@ -178,6 +179,7 @@ const cases = [
   },
   {
     code: [
+      "// @ts-ignore: fixture intentionally imports an allowed layer.",
       'import type { StartGithubOAuthResult } from "../application/signup.ts";',
       "export type BoundaryFixture = StartGithubOAuthResult;"
     ].join("\n"),

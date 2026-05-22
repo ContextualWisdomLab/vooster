@@ -232,6 +232,7 @@ import { ESLint } from "eslint";
 const cases = [
   {
     code: [
+      "// @ts-ignore: fixture intentionally imports a forbidden layer.",
       'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
@@ -239,6 +240,7 @@ const cases = [
   },
   {
     code: [
+      "// @ts-ignore: fixture intentionally imports a forbidden layer.",
       'import { createMemoryUserStore } from "../../api/src/infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),

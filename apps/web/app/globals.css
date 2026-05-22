@@ -1,35 +1,100 @@
+@import "tailwindcss";
+
+/* ────────────────────────────────────────────────────────────────
+   Tokens — exposed both as Tailwind theme vars (via @theme) and as
+   plain CSS custom properties for the semantic classes below.
+   ──────────────────────────────────────────────────────────────── */
+@theme {
+  /* Surface */
+  --color-canvas: #ffffff;
+  --color-surface: #f7f8fb;
+  --color-surface-soft: #fbfbfd;
+
+  /* Hairlines */
+  --color-hairline: #e5e8ee;
+  --color-hairline-soft: #eef0f4;
+  --color-hairline-strong: #d9dee8;
+
+  /* Ink (text) */
+  --color-ink-deep: #0b1220;
+  --color-ink: #18202f;
+  --color-charcoal: #2a3243;
+  --color-slate: #4a5468;
+  --color-steel: #627089;
+  --color-stone: #8893a8;
+  --color-muted: #9aa3b8;
+
+  /* Brand / accent */
+  --color-accent: #116a7b;
+  --color-accent-strong: #0a4d5b;
+
+  /* Pastel tints */
+  --color-tint-mint: #e6f4ec;
+  --color-tint-peach: #fbeadb;
+  --color-tint-lavender: #ece8f7;
+  --color-tint-sky: #e3eef7;
+  --color-tint-rose: #fae6ea;
+  --color-tint-yellow: #faf2d8;
+  --color-tint-gray: #f1f3f7;
+
+  /* Semantic */
+  --color-success: #1f7a48;
+  --color-warning: #8a5a00;
+  --color-danger: #b3261e;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.04);
+  --shadow-card: 0 4px 12px rgba(15, 15, 15, 0.06);
+}
+
 :root {
   color-scheme: light;
-  --bg: #f7f8fb;
-  --panel: #ffffff;
-  --line: #d9dee8;
-  --text: #18202f;
-  --muted: #627089;
-  --accent: #116a7b;
-  --accent-strong: #0a4d5b;
-  --warn: #8a5a00;
 }
 
-* {
-  box-sizing: border-box;
-}
-
+/* ────────────────────────────────────────────────────────────────
+   Base — restores readable defaults that Tailwind preflight strips
+   ──────────────────────────────────────────────────────────────── */
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--color-surface);
+  color: var(--color-ink);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 a {
-  color: var(--accent-strong);
-  text-decoration: none;
+  color: var(--color-accent-strong);
 }
 
 a:hover {
   text-decoration: underline;
 }
 
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Layout
+   ──────────────────────────────────────────────────────────────── */
 .shell {
   margin: 0 auto;
   max-width: 1120px;
@@ -38,7 +103,7 @@ a:hover {
 
 .topbar {
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--color-hairline);
   display: flex;
   justify-content: space-between;
   margin-bottom: 24px;
@@ -57,16 +122,19 @@ a:hover {
   text-decoration: none;
 }
 
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 20px;
-}
-
 .grid {
   display: grid;
   gap: 16px;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Surfaces
+   ──────────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  padding: 20px;
 }
 
 .list {
@@ -77,32 +145,38 @@ a:hover {
 }
 
 .list-item {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   display: grid;
   gap: 6px;
   list-style: none;
   padding: 16px;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Type utilities
+   ──────────────────────────────────────────────────────────────── */
 .meta {
-  color: var(--muted);
+  color: var(--color-steel);
   font-size: 14px;
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--color-accent);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Components
+   ──────────────────────────────────────────────────────────────── */
 .button {
-  background: var(--accent);
-  border-radius: 6px;
-  color: #ffffff;
+  background: var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-canvas);
   display: inline-flex;
   font-weight: 700;
   padding: 10px 14px;
@@ -115,12 +189,12 @@ a:hover {
 }
 
 .field {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--color-hairline);
   padding-top: 10px;
 }
 
 .label {
-  color: var(--muted);
+  color: var(--color-steel);
   font-size: 13px;
 }
 
@@ -130,10 +204,13 @@ a:hover {
 }
 
 .scenario {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--color-accent);
   padding-left: 14px;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Responsive
+   ──────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .shell {
     padding: 20px 14px 40px;

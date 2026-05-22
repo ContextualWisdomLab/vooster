@@ -136,7 +136,7 @@ describe("use case update application", () => {
     expect(updates).toEqual([usecase()]);
   });
 
-  test("returns update failure statuses before reading interests", async () => {
+  test("returns update failure statuses", async () => {
     await expect(
       updateUseCaseMetadata(updateDepsFor({ found: undefined }), {
         status: undefined,

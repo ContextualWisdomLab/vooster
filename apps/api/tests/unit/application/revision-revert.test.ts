@@ -60,7 +60,7 @@ describe("revision revert application", () => {
     });
   });
 
-  test("rejects missing use cases and callers without membership before reading revisions", async () => {
+  test("rejects missing use cases and callers without membership", async () => {
     await expect(
       revertUseCaseRevision(depsFor({ usecase: null }), revertInput(), () => "unused")
     ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });

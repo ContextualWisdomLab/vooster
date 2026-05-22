@@ -126,7 +126,7 @@ describe("session list application", () => {
     expect(result.snapshot.summary).toEqual({ total_conflicts: 2 });
   });
 
-  test("returns empty guidance and rejects non-members without reading sessions", async () => {
+  test("returns empty guidance and guards session reads behind membership", async () => {
     const readSessions: string[] = [];
 
     await expect(

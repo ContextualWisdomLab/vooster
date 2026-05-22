@@ -42,7 +42,7 @@ describe("markdown export application", () => {
     ).resolves.toEqual({ status: "USECASE_NOT_FOUND" });
   });
 
-  test("rejects callers without project membership before reading revisions", async () => {
+  test("guards revision reads behind project membership", async () => {
     const readEntityIds: string[] = [];
 
     const result = await exportMarkdown(depsFor({ membership: null, readEntityIds }), {

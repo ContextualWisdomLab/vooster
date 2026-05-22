@@ -12,13 +12,9 @@ import type { SignupStore } from "../../../src/ports/signup-store.js";
 import type { WorkspaceStore } from "../../../src/ports/workspace-store.js";
 
 describe("projects application", () => {
-  test("creates a project with a default main branch through the transaction store", async () => {
-    const savedTransactions: Array<{ project: StoredProject; branch: StoredSpecBranch }> = [];
-    const separateProjectSaves: StoredProject[] = [];
-    const separateBranchSaves: StoredSpecBranch[] = [];
-
+  test("creates a project with a default main branch", async () => {
     const result = await createProject(
-      depsFor({ savedTransactions, separateBranchSaves, separateProjectSaves }),
+      depsFor(),
       {
         key: "PAY",
         name: "Payments",
@@ -47,34 +43,8 @@ describe("projects application", () => {
       name: "main",
       owner_id: "user-1",
       owner_type: "HUMAN",
-      project_id: "id-1"
-    });
-    expect(savedTransactions).toEqual([
-      { branch: result.defaultBranch, project: result.project }
-    ]);
-    expect(separateProjectSaves).toEqual([]);
-    expect(separateBranchSaves).toEqual([]);
-  });
-
-  test("falls back to separate project and branch stores", async () => {
-    const separateProjectSaves: StoredProject[] = [];
-    const separateBranchSaves: StoredSpecBranch[] = [];
-
-    const result = await createProject(
-      depsFor({
-        separateBranchSaves,
-        separateProjectSaves,
-        signupStore: undefined
-      }),
-      projectInput()
-    );
-
-    expect(result.status).toBe("CREATED");
-    if (result.status !== "CREATED") {
-      throw new Error("expected project to be created");
-    }
-    expect(separateProjectSaves).toEqual([result.project]);
-    expect(separateBranchSaves).toEqual([result.defaultBranch]);
+        project_id: "id-1"
+      });
   });
 
   test("rejects unauthorized, archived, duplicate, and simulated failures without writes", async () => {

@@ -34,7 +34,7 @@ Scenario: 1b Address is incomplete.
 `);
   });
 
-  test("rejects missing use cases and non-members before reading revisions", async () => {
+  test("rejects missing use cases and guards revision reads behind membership", async () => {
     const readRevisionEntityIds: string[] = [];
 
     await expect(

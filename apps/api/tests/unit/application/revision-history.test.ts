@@ -88,7 +88,7 @@ describe("revision history application", () => {
     });
   });
 
-  test("rejects callers without membership before reading revisions", async () => {
+  test("guards revision history reads behind membership", async () => {
     const readEntityIds: string[] = [];
 
     const result = await listRevisionHistory(

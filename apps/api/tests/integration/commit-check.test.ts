@@ -48,6 +48,18 @@ describe("commit-check", () => {
     expect(result.stdout).toContain("bash scripts/completion-check.sh");
   });
 
+  it("maps colocated unit fixtures to their owning test", async () => {
+    const result = await commitCheck([
+      "apps/api/tests/unit/http/scenario-support-fixtures.ts"
+    ]);
+
+    expect(result.stdout).toContain(
+      "pnpm exec vitest run apps/api/tests/unit/http/scenario-support.test.ts"
+    );
+    expect(result.stdout).not.toContain("Unknown staged impact:");
+    expect(result.stdout).not.toContain("completion-check.sh");
+  });
+
   it("blocks staged secrets and generated artifacts", async () => {
     await expectCommitCheckFailure([".env"], "staged secret/local config file");
 

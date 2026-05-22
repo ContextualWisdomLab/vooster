@@ -1,6 +1,7 @@
 ---
-// 호환 가능한 코딩 에이전트 라인 — 산개(scatter) 레이아웃 + 스크롤 spread 인터랙션.
-// 각 항목은 "휴식 위치(top/left %)" + "spread 방향(--dx, --dy)" + "회전(--rot)"을 갖는다.
+// 호환 가능한 코딩 에이전트 라인 — 산개(scatter) 레이아웃 + 스크롤 converge 인터랙션.
+// 각 항목은 "휴식 위치(top/left %)" + "출발 방향(--dx, --dy)" + "회전(--rot)"을 갖는다.
+// (--dx, --dy)는 rest 위치에서 바깥쪽 방향. 카드는 그 방향의 먼 지점에서 출발해 rest로 모여든다.
 // `logo`는 /public/logos/ 아래의 공식 마크. `mono: true` 인 마크는 currentColor 기반이라
 // CSS에서 색을 입혀준다 (검정 fill 을 흰색으로 뒤집어주는 역할).
 const agents = [
@@ -142,9 +143,10 @@ const agents = [
     width: 100%;
     max-width: 1080px;
     height: clamp(420px, 50vw, 560px);
-    /* JS가 갱신하는 두 변수: 스크롤에 따른 외곽 spread, fade */
-    --spread: 0px;
-    --fade: 1;
+    /* JS가 갱신하는 두 변수: 스크롤에 따른 외곽 → rest converge, fade-in */
+    /* 초기값은 "아직 안 모인" 상태로 두어 첫 paint 부터 외곽 출발점을 잡는다. */
+    --spread: 140px;
+    --fade: 0.35;
   }
 
   /* ── 중앙 vooster 앵커 ────────────────────────────────────────── */
@@ -361,8 +363,8 @@ const agents = [
 
 <script is:inline>
   /**
-   * Compatible 섹션 산개 인터랙션.
-   * 스크롤 진행도 0..1에 따라 카드들이 중심에서 바깥으로 더 멀어지고 fade out.
+   * Compatible 섹션 converge 인터랙션.
+   * 스크롤 진행도 0..1에 따라 카드들이 외곽에서 rest 위치로 모여들고 fade in.
    * 좁은 화면(< 640px)에서는 CSS가 transform/opacity를 무력화하므로 JS는 그대로 돌려도 무해하다.
    */
   (function () {
@@ -379,20 +381,19 @@ const agents = [
       var vh = window.innerHeight || 1;
 
       /**
-       * 사용자가 섹션을 "읽는 동안" 카드는 정지, "지나치는 동안" 흩어지게 한다.
-       * triggerStart: section 상단이 viewport 상단으로부터 15% 지점에 도달 — 그 전까지 정지.
-       * triggerEnd: section 상단이 자기 높이의 60% 만큼 위로 빠져나가는 시점에 spread 최대.
-       *   (≈ 카드가 화면에서 거의 사라질 때쯤 완전히 흩어진다)
+       * 섹션이 "등장하는 동안" 카드는 모이고, "정독 위치"부터는 정지.
+       * triggerStart: section 상단이 viewport 하단부(90%) 근처 — 막 등장. progress=0, 최대 spread.
+       * triggerEnd: section 상단이 viewport 상단부(15%) 근처 — 정독 위치. progress=1, spread=0.
        */
-      var triggerStart = vh * 0.15;
-      var triggerEnd = -section.offsetHeight * 0.6;
+      var triggerStart = vh * 0.9;
+      var triggerEnd = vh * 0.15;
       var raw = (triggerStart - rect.top) / (triggerStart - triggerEnd);
       var progress = Math.max(0, Math.min(1, raw));
 
-      // 외곽 거리: 화면 폭에 비례하지만 60~140px로 클램프
-      var maxSpread = Math.max(60, Math.min(140, window.innerWidth * 0.09));
-      cloud.style.setProperty('--spread', (progress * maxSpread) + 'px');
-      cloud.style.setProperty('--fade', String(Math.max(0.08, 1 - progress * 0.92)));
+      // 출발 외곽 거리: 화면 폭에 비례, 80~180px로 클램프.
+      var maxSpread = Math.max(80, Math.min(180, window.innerWidth * 0.11));
+      cloud.style.setProperty('--spread', ((1 - progress) * maxSpread) + 'px');
+      cloud.style.setProperty('--fade', String(0.35 + progress * 0.65));
       ticking = false;
     }
 

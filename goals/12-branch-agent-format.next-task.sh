@@ -20,9 +20,9 @@ EOF
   exit 0
 fi
 
-if grep -F "branch create" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "branch create" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Remove the branch create bullet from docs/findings-cli-spec-gaps.md.
+TASK: Remove the branch create bullet from docs/findings/2026-05-21T1856-cli-spec-gaps.md.
 
   Keep unrelated debts such as lock.
 EOF

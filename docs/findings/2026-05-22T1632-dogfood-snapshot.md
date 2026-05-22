@@ -88,7 +88,7 @@ recommends `vspec doctor` as a next action from sync and gherkin export.
 Two sub-bugs:
 
 - The 404 response surfaces in the CLI as a bare `ApiError: API request
-  failed with 404.` — no next-action hint (CLI spec §"Self-Teaching
+failed with 404.` — no next-action hint (CLI spec §"Self-Teaching
   Behaviors §1" mandates these).
 - Suggesting a broken command from other endpoints actively misleads agents
   who read `suggested_next_actions`.
@@ -133,7 +133,7 @@ Spec §"Self-Teaching Behaviors §1" mandates that every error carries a
 next-action hint. In practice:
 
 - `vspec usecase create` with a non-verb title → `Error: Use case title
-  should be a verb phrase.` The API actually returns `suggested_titles[]`
+should be a verb phrase.` The API actually returns `suggested_titles[]`
   and a `vspec usecase create --force` next action; the CLI drops both.
 - `vspec actor create --human` → oclif `Nonexistent flag: --human` plus a
   full stack trace (no next action, no docs link).
@@ -253,26 +253,26 @@ Two follow-ons:
 `apps/cli/src/index.ts` is a hand-maintained if/else chain. The following
 spec verbs fall through to the default `vspec CLI` arm (i.e. silently no-op):
 
-| Surface (per `docs/07-cli-spec.md`) | Status |
-| --- | --- |
-| `workspace create` | unrouted |
-| `workspace list` | unrouted |
-| `project show` | unrouted |
-| `actor show <name>` (by name) | 404 (id only) |
-| `goal create --actor <name>` (by name) | requires `--actor-id <uuid>` |
-| `scenario list / edit / delete` | unrouted |
-| `step move / delete` | unrouted |
-| `session show / pin / unpin / abandon` | unrouted |
-| `branch list / checkout / diff / delete` | unrouted (only `create`) |
-| `merge preview / list / show / approve / abort` | unrouted (only `open` / `resolve`) |
-| `lock list`, `unlock <KEY>` | unrouted (lock list collides with required `--reason`) |
-| `impact session [<id>]` | 404 |
-| `export project` | unrouted |
-| `member list / set-role / remove` | unrouted |
-| `help <command>` | unrouted |
-| `diff` (local-vs-server, no args) | requires `from-revision` |
+| Surface (per `docs/07-cli-spec.md`)             | Status                                                 |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| `workspace create`                              | unrouted                                               |
+| `workspace list`                                | unrouted                                               |
+| `project show`                                  | unrouted                                               |
+| `actor show <name>` (by name)                   | 404 (id only)                                          |
+| `goal create --actor <name>` (by name)          | requires `--actor-id <uuid>`                           |
+| `scenario list / edit / delete`                 | unrouted                                               |
+| `step move / delete`                            | unrouted                                               |
+| `session show / pin / unpin / abandon`          | unrouted                                               |
+| `branch list / checkout / diff / delete`        | unrouted (only `create`)                               |
+| `merge preview / list / show / approve / abort` | unrouted (only `open` / `resolve`)                     |
+| `lock list`, `unlock <KEY>`                     | unrouted (lock list collides with required `--reason`) |
+| `impact session [<id>]`                         | 404                                                    |
+| `export project`                                | unrouted                                               |
+| `member list / set-role / remove`               | unrouted                                               |
+| `help <command>`                                | unrouted                                               |
+| `diff` (local-vs-server, no args)               | requires `from-revision`                               |
 
-`docs/findings-cli-spec-gaps.md` already documents some of these as
+`docs/findings/2026-05-21T1856-cli-spec-gaps.md` already documents some of these as
 queued — but the queue has been "for the next goal" through several goals.
 Beta-blockers: `session pin/unpin`, `unlock`, `merge preview`,
 `scenario edit/delete`, `step delete`, `help <cmd>`.
@@ -346,7 +346,7 @@ end-to-end task without further documentation." Not met.
 
 ### B4. CLI spec calls for `--format=agent` everywhere; coverage is partial
 
-`docs/findings-cli-spec-gaps.md` already enumerates this. Confirmed by the
+`docs/findings/2026-05-21T1856-cli-spec-gaps.md` already enumerates this. Confirmed by the
 dogfood that `--format=agent` works for the read-path verbs but is missing
 on a number of write verbs (notably `lock release` and several missing
 verbs above).
@@ -379,7 +379,7 @@ remembering to do this. During this dogfood session, a parallel process
 Fixes (any one is enough):
 
 - Refuse to write the global config from `runCli` if `process.env.NODE_ENV
-  === "test"`.
+=== "test"`.
 - Default the global path to `${XDG_STATE_HOME}/vspec/config.json` and
   isolate test runs via `VSPEC_GLOBAL_CONFIG_PATH` set automatically in
   vitest setup.

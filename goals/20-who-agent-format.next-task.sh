@@ -6,7 +6,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if grep -F '`revert`, `who`, `comment add|list|edit|resolve|''delete`' docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F '`revert`, `who`, `comment add|list|edit|resolve|''delete`' docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Retarget Goal 18/19 sentinels, then narrow who debt.
 

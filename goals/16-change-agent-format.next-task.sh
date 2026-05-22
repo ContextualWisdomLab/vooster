@@ -21,7 +21,7 @@ EOF
   exit 0
 fi
 
-if grep -F '`change propose` / `change commit`' docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F '`change propose` / `change commit`' docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Remove change propose/commit from the agent-format debt list.
 

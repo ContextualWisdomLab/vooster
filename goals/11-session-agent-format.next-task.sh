@@ -6,7 +6,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_SPEC=docs/07-cli-spec.md
 SESSION_CMD=apps/cli/src/commands/session.ts
 UNIT_TEST=apps/cli/tests/unit/session-agent-format.test.ts

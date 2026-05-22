@@ -213,6 +213,97 @@ either tighten the gate or honestly narrow the goal.
 The same principle applies to the goal text itself: don't claim "every X"
 when you mean "at least one X." Universal claims trigger universal gates.
 
+### Gates ≠ Convention Police
+
+Positive rule (above): universal claim 이면 enumerate 한다. **Inverse
+rule (equally important): 다른 도구가 더 정확하게 잡는 invariant 를
+gates 에서 grep 으로 흉내내지 마라.** 자세한 근거는
+`docs/goal-design.md §1.5`.
+
+흔한 실수 패턴 — 다음은 gates.sh 가 _직접_ 검사하면 안 된다:
+
+| 안 좋은 gate                                      | 더 적절한 도구     |
+| ------------------------------------------------- | ------------------ |
+| `grep -F "buildAgentEnvelope" <command>.ts`       | 단위 테스트        |
+| `grep -F "data.X.Y" <test>.ts` (테스트 본문 grep) | 테스트 실행 자체   |
+| `grep "id: string" <output>.ts` (타입 모양)       | typecheck          |
+| `grep -F "agent X verb" <test>.ts` (테스트 제목)  | 테스트 러너        |
+| `[ -f "<test>.ts" ]` (특정 경로 강제)             | coverage threshold |
+| `grep -F "### Section Heading" <spec>.md`         | 코드 리뷰          |
+
+회의적 휴리스틱: **"이 invariant 가 깨지면 어떤 테스트가 빨갛게
+되는가?"** 답이 있으면 gates 에서 빼라. 답이 없을 때만 gate 가
+적절하다 — 보통 (a) negative universal grep ("어디에도 X 없음"),
+(b) 외부 source-of-truth (prisma schema, UC markdown filesystem) 의
+enumeration, (c) 문서/파일 존재로 후속 goal routing 을 안내, 셋
+중 하나에 해당한다.
+
+참조 구현: `goals/30-dogfood-roundtrip.gates.sh` (63 줄, 2 gate).
+배경과 기존 goal 7-29 trim migration plan:
+`docs/findings/2026-05-23T1700-gates-over-coupling.md`.
+
+## Designing next-task hints
+
+`<n>-<name>.next-task.sh` 는 gates.sh 와 역할이 다르다:
+
+| 측면             | `gates.sh`        | `next-task.sh`               |
+| ---------------- | ----------------- | ---------------------------- |
+| 역할             | invariant 강제    | 워크플로우 channeling (힌트) |
+| 출력             | pass / fail       | text only                    |
+| 무시 가능?       | 불가 (CI 가 막음) | 가능 (그냥 텍스트)           |
+| 잘못됐을 때 비용 | iteration 차단    | stale hint (low)             |
+
+이 비대칭 때문에 next-task 의 디자인 원칙도 다르다.
+
+### next-task 가 _해야_ 하는 것 (I)
+
+**워크플로우 state detection** — agent 가 multi-iteration 환경에서
+"지금 어느 단계에 와있는지" 를 외부에서 inspect 해서 알려주는 메커
+니즘. t=0 (테스트 아직 없음) 에서는 next-task 가 _유일하게 작동하는_
+TDD 사이클 채널링 도구다. tests/typecheck 가 못 한다 — 검증할 테스
+트 자체가 아직 없으니까.
+
+허용되는 detection 신호 (loose proxies):
+
+- 파일 존재 (`compgen -G "apps/.../tests/**/*X*.test.ts"`)
+- Negative codebase grep (`grep -rE 'pattern'` 호출자 0 인지)
+- gates.sh 의 fail 여부 (출력 파싱)
+
+이 신호들은 **구현 형태가 아니라 진행 상태에 대한 명제**다.
+
+### next-task 가 _하지 말아야_ 하는 것 (II)
+
+**Mechanism prescription** — 어떻게 구현해야 하는지 처방. 다음은 안
+좋은 예:
+
+| 안 좋은 hint                                     | 왜 안 되나                                          |
+| ------------------------------------------------ | --------------------------------------------------- |
+| `"resolveContextFlag" 라는 정확한 이름의 함수를` | agent 가 더 좋은 헬퍼 이름을 발견해도 hint 가 막음  |
+| `테스트 제목은 정확히 "agent X verb"`            | runner 가 제목으로 동작 검증하지 않음 — 컨벤션일 뿐 |
+| `GET /v1/projects/<key> 를 호출`                 | API 시그니처가 바뀌면 stale                         |
+| `이 정확한 경로의 테스트 파일을 작성`            | 합리적 재배치를 막음                                |
+
+이런 처방은 사용자가 "초기 계획과 다른 더 좋은 구현이 보일 때"
+잠재력을 제한한다. 검증 자체는 어차피 테스트 / typecheck 가 한다 —
+hint 가 처방까지 할 이유가 없다.
+
+회의적 휴리스틱: **"이 단어를 hint 에 박으면, agent 가 더 좋은 대안을
+찾았을 때 hint 를 같이 고쳐야 하나?"** 그렇다면 그 단어는 (II)
+mechanism 이다. 빼고 Tranche 번호로 대체하라.
+
+### 참조 구현
+
+`goals/30-dogfood-roundtrip.next-task.sh` (~98 줄):
+
+- 7 개 분기 — 각각 (I) state signal 만 보고 분기
+- 각 heredoc 은 **"무엇을" (Tranche 번호 + RED first)** 만 안내,
+  **"어떻게" (심볼 이름, 정확한 제목, URL)** 는 안 적음
+- 구현 디테일은 모두 `goals/30-dogfood-roundtrip.md` § "Tranche B"
+  로 위임 — single source of truth
+
+배경 분석: `docs/findings/2026-05-23T1700-gates-over-coupling.md`
+(gates 와 next-task 양쪽의 over-coupling 패턴을 함께 다룬다).
+
 ## Active Goal Lookup
 
 Goals are versioned files under `goals/` (e.g., `goals/0-init.md`,

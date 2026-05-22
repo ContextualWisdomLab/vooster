@@ -49,7 +49,7 @@ gate's invariant:
 
 advisor's (d) doesn't fit any of these cleanly. The closest is (a)
 (invariant unchanged, only the description shifts), but (a) is explicitly
-scoped to *paths/tools*, not prose. The result is that the next time a
+scoped to _paths/tools_, not prose. The result is that the next time a
 similar mismatch surfaces, two different harness-engineer invocations could
 classify it differently — one as (d), one as (a), one as "n/a" — and the
 audit log won't be comparable across runs.
@@ -68,7 +68,7 @@ audit log won't be comparable across runs.
    guarantees recurring drift.
 
 Recommendation when picked up: **option 1**. The (a)/(b)/(c)/(d) split is
-useful because each case has a different *who edits what* answer —
+useful because each case has a different _who edits what_ answer —
 (d) specifically means harness-engineer cannot self-resolve and must escalate
 to the user.
 
@@ -95,7 +95,7 @@ The current `harness-engineer.md` playbook implies a binary:
 - **Proposed changes**: edits harness-engineer can apply once the user
   OKs them.
 - **Out-of-scope queued to findings**: items harness-engineer cannot edit;
-  routed into a `docs/findings-*.md` doc.
+  routed into a `docs/findings/*.md` doc.
 
 A third category exists in practice: **harness-engineer can identify the
 fix concretely (the exact file:line and the replacement text) but cannot
@@ -129,7 +129,7 @@ routes the D1 prose item there.
 The path-retarget proposals P1–P5 (from the first audit) are the higher-
 value, blocking work — they fix actual `gate-correctness: broken /
 net-correctness: violations-currently-missed` findings on the codex loop.
-The two grey zones above only affect harness-engineer's *report shape*, not
+The two grey zones above only affect harness-engineer's _report shape_, not
 the correctness of its conclusions. Bundling them into a single small spec
 update is cheaper than threading them through the next P1–P5 apply pass.
 

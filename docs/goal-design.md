@@ -31,7 +31,7 @@
 | ------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `<n>-<name>.md`           | 미션 선언. "완료" 조건들을 자연어로 기술 (universal claim 사용)                                           |
 | `<n>-<name>.gates.sh`     | 그 조건들을 기계적으로 검증. **goal text가 "every X"면 gate는 X를 source-of-truth에서 enumerate 해야 함** |
-| `<n>-<name>.next-task.sh` | 현재 어느 gate가 깨졌는지 보고 다음 RED/GREEN 액션을 출력                                                 |
+| `<n>-<name>.next-task.sh` | 워크플로우 state (파일 존재, 단계 진행도) 를 보고 다음 액션 hint 출력 (advisory — 강제 아님)              |
 
 현재 stack:
 
@@ -130,6 +130,43 @@ Sources of truth와 그 iteration 명령:
 | 라우트     | `find src/http -name '*-routes.ts'`                       |
 | CLI 명령   | `grep -oE '"vspec [^"]+"' src/http`                       |
 
+### 1.5 Gates 가 _하지 말아야_ 할 것
+
+§1 은 "universal claim 이면 enumerate 하라" 는 positive rule 이다.
+그 반대도 똑같이 중요하다 — **다른 도구가 더 정확하게 잡는 invariant
+를 gates.sh 가 grep 으로 흉내내지 마라.** 이 trap 에 빠지면 gates 가
+구현 형태/심볼 이름에 강결합되어 200~400 줄로 부풀어오르고, benign
+refactor 에서 spurious fail 하며, 정작 보장은 약하다.
+
+gates.sh 가 검사해서는 안 되는 것:
+
+| 안 좋은 gate 패턴                            | 더 적절한 도구           |
+| -------------------------------------------- | ------------------------ |
+| 함수 본문이 특정 심볼/헬퍼를 호출하는지      | **테스트** (행위 검증)   |
+| 타입 선언에 특정 필드가 있는지               | **typecheck**            |
+| 테스트 파일에 특정 토큰/제목 문자열이 있는지 | **테스트 실행 (runner)** |
+| 특정 경로에 테스트 파일이 존재하는지         | **coverage threshold**   |
+| 마크다운 문서에 특정 헤딩/문장이 있는지      | **코드 리뷰**            |
+| findings 파일에서 특정 bullet 이 제거됐는지  | **커밋 메시지 / PR**     |
+
+gates.sh 가 _유일하게_ 책임지는 건 세 종류만 남는다:
+
+1. **Rigor 메커니즘** — §1 의 universal claim ↔ enumeration 메타
+   체크 (`check-gate-rigor.sh`).
+2. **Negative universal invariant** — "codebase 어디에도 패턴 X 가
+   없다" 같은 single grep. 행위 테스트는 한 경로만 검증하므로 이건
+   못 잡음.
+3. **구조 앵커** — 후속 goal 이 routing 신호로 쓰는 문서/파일의
+   존재 (예: deferred work 를 큐잉한 findings 파일).
+
+회의적 휴리스틱: **"이 invariant 가 깨지면 어떤 테스트가 빨갛게
+되는가?"** 답이 있으면 gates 에서 빼라. 답이 없을 때만 gate 가
+적절하다.
+
+참조 구현: `goals/30-dogfood-roundtrip.gates.sh` (~63 줄, 2 gate).
+배경 분석과 기존 goal 7-29 의 trim migration plan:
+`docs/findings/2026-05-23T1700-gates-over-coupling.md`.
+
 ### 2. 첫 실패 goal = 작업 대상
 
 `completion-check.sh`가 goal들을 번호순으로 돌면서 첫 실패만
@@ -211,6 +248,27 @@ gate 같은 커밋 정책으로 막아야 한다.
 큐잉했는지 참고 — Goal 5 의 path retarget (케이스 a) 과 분리해 별도 PR
 로 미뤘다. 두 의도를 한 커밋에 섞으면 리뷰어가 "이게 단순 이동인지
 invariant 약화인지" 구분할 수 없게 된다.
+
+#### 케이스 (b) 의 특수형: "Enforcement 이전"
+
+§1.5 에 따라 기존 goal 의 gate 가 검사하던 항목이 사실은 테스트 /
+typecheck / coverage 가 더 정확하게 잡고 있는 것으로 판명될 때 — 즉
+gate 의 grep 을 제거해도 동일 invariant 가 다른 도구로 여전히
+enforce 될 때 — 이건 형식상 케이스 (b) 지만 실질적으로는 **invariant
+약화가 아니라 enforcement 이전 (enforcement transfer)** 이다.
+
+규칙:
+
+- PR 설명 / 커밋 메시지에 어떤 도구가 동일 invariant 를 enforce
+  하는지 명시. 예: `refactor(goals/22): move comment-format token
+greps to unit-test assertions — invariant unchanged, tests cover`.
+- prior `.md` 본문도 같은 커밋에서 손대 universal phrasing 을
+  정리해 `check-gate-rigor.sh` 가 일관되게 통과하도록 한다.
+- 다른 goal 의 gate trim 과 한 커밋에 섞지 마라. goal 당 1 PR 이
+  원칙. 리뷰어가 "이 trim 으로 정말 invariant 가 약화되지 않았는지"
+  를 goal 단위로 확인할 수 있어야 한다.
+
+배경과 migration plan: `docs/findings/2026-05-23T1700-gates-over-coupling.md`.
 
 ## Gate 실행 최적화
 
@@ -326,7 +384,7 @@ TDD 단계, state 파일 규칙, gate 설계 원칙을 모른 채 작업을 시�
 1. 이 goal 이 이전 게이트의 **경로/도구**만 바꿔도 통과 가능한가?
    → 케이스 (a). 같은 goal 작업 안에서 retarget 하면 끝.
 2. 이 goal 이 이전 게이트의 **검사 로직 자체**를 바꿔야 통과 가능한가?
-   → 케이스 (b). `docs/findings-*.md` 에 일단 큐잉하고 별도 PR 로
+   → 케이스 (b). `docs/findings/*.md` 에 일단 큐잉하고 별도 PR 로
    분리한다. 이 goal 의 메인 작업과 섞지 말 것.
 3. 이 goal 로 인해 이전 게이트의 **존재 이유 자체가 사라지는가**?
    → 케이스 (c). `.md` 본문 상단에 `## Supersedes` 섹션을 작성하고,

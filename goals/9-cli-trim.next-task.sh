@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 CLI_SPEC=docs/07-cli-spec.md
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_INDEX=apps/cli/src/index.ts
 DOCTOR_CMD=apps/cli/src/commands/doctor.ts
 HONEST_DIR=apps/cli/tests/e2e-cli-honest
@@ -86,7 +86,7 @@ EOF
 
   Each verb should disappear from synopsis lines AND from any prose
   references. The /loop's A4 will also require the same verbs (plus
-  usecase edit/search) be cleared from docs/findings-cli-spec-gaps.md
+  usecase edit/search) be cleared from docs/findings/2026-05-21T1856-cli-spec-gaps.md
   — that is a separate commit.
 
   Commit:
@@ -152,7 +152,7 @@ rm -f "$MISSING_SECTION_TMP"
 
 if [ "${#A3_OFFENDERS[@]}" -gt 0 ] || [ "${#A4_OFFENDERS[@]}" -gt 0 ]; then
   cat <<'EOF'
-TASK: Trim docs/findings-cli-spec-gaps.md (gates 9.A3 + 9.A4).
+TASK: Trim docs/findings/2026-05-21T1856-cli-spec-gaps.md (gates 9.A3 + 9.A4).
 
   The "Missing verbs" bullet list must no longer mention:
     - dropped verbs (resolved by removal from spec)
@@ -218,7 +218,7 @@ EOF
   cat <<'EOF'
 
   If the API does not yet expose a doctor/quality endpoint, log the
-  gap in docs/findings-cli-spec-gaps.md (NOT remove this verb from
+  gap in docs/findings/2026-05-21T1856-cli-spec-gaps.md (NOT remove this verb from
   IN_SCOPE_VERBS — coordinate with the user to add an API task).
 
   Commit:
@@ -343,7 +343,7 @@ TASK: doctor.ts must fetch its verdict from the API (gate 9.C2).
     - render the response
 
   If the endpoint does not exist yet, do NOT inline rule logic here.
-  Surface the API gap in docs/findings-cli-spec-gaps.md and coordinate
+  Surface the API gap in docs/findings/2026-05-21T1856-cli-spec-gaps.md and coordinate
   an API-side task. doctor.ts stays empty-shelled until the endpoint
   ships.
 

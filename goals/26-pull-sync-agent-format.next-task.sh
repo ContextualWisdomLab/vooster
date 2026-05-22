@@ -9,7 +9,7 @@ cd "$ROOT"
 OLD_SYNC_BULLET='`pull`, `pu''sh`, `sync`'
 PUSH_BULLET='`lock release`'
 
-if grep -F "$OLD_SYNC_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "$OLD_SYNC_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Retarget prior sync sentinels.
 

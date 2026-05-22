@@ -10,13 +10,13 @@ Goal 6은 `vspec login`의 device flow와 credential store를 닫았다. 그러�
 여전히 미구현이거나 부분 구현 상태다:
 
 1. **`--format=agent` envelope.** 스펙 §4가 `{ data, context,
-   suggested_next_actions, warnings, format_version }` 봉투를 모든
+suggested_next_actions, warnings, format_version }` 봉투를 모든
    커맨드의 계약으로 명시한다. 현재 `suggested_next_actions`/`warnings`는
    6개 `*-output.ts` 파일에 산발적으로 존재하고, `format_version`/`context`는
    코드 전체에 0번 등장한다. Goal 6의 scope guard가 의도적으로 펀트했다
    (`goals/6-honest-cli.md:154-156`).
-2. **`vspec init`.** 스펙 §"Top-Level Commands"에 *"Initialize a `.vspec/`
-   in current dir; bind to a project"* 로 명시. 현재 미구현. 글로벌
+2. **`vspec init`.** 스펙 §"Top-Level Commands"에 _"Initialize a `.vspec/`
+   in current dir; bind to a project"_ 로 명시. 현재 미구현. 글로벌
    credential store(`~/.vspec/config.json`)와 별개의 per-repo 바인딩이
    필요하다.
 3. **Honest E2E의 좁은 커버리지.** Goal 6의 E1-E4 게이트는 honest
@@ -44,119 +44,119 @@ satisfy them.
 ### Tranche A — `--format=agent` envelope standardization
 
 A1. **`apps/cli/src/agent-envelope.ts` exists and exports
-    `buildAgentEnvelope`.** Signature accepts `data`, optional `context`,
-    optional `suggested_next_actions`, optional `warnings`; returns an
-    object whose top-level keys are exactly
-    `{data, context, suggested_next_actions, warnings, format_version}`.
-    The gate greps for `export function buildAgentEnvelope` and asserts
-    every key appears.
+`buildAgentEnvelope`.** Signature accepts `data`, optional `context`,
+optional `suggested_next_actions`, optional `warnings`; returns an
+object whose top-level keys are exactly
+`{data, context, suggested_next_actions, warnings, format_version}`.
+The gate greps for `export function buildAgentEnvelope` and asserts
+every key appears.
 
 A2. **Legacy agent `format_version` is the integer literal `1`, sourced
-    only from `agent-envelope.ts`; mutation agent `format_version` is
-    the integer literal `2`, sourced only from
-    `apps/cli/src/domain/envelope.ts`.** Any other source file
-    containing the string `format_version` fails the gate, unless it is
-    a test asserting an envelope contract.
+only from `agent-envelope.ts`; mutation agent `format_version` is
+the integer literal `2`, sourced only from
+`apps/cli/src/domain/envelope.ts`.** Any other source file
+containing the string `format_version` fails the gate, unless it is
+a test asserting an envelope contract.
 
 A3. **Every command file that branches on `format === "agent"` routes
-    that branch through `buildAgentEnvelope`.** Source of truth:
-    `grep -rl 'format === "agent"' apps/cli/src/commands/`. The gate
-    iterates every match and asserts the file imports from
-    `../agent-envelope` (relative path may vary; the import string is
-    enumerated).
+that branch through `buildAgentEnvelope`.** Source of truth:
+`grep -rl 'format === "agent"' apps/cli/src/commands/`. The gate
+iterates every match and asserts the file imports from
+`../agent-envelope` (relative path may vary; the import string is
+enumerated).
 
 A4. **Every agent-format output is parseable JSON containing the five
-    envelope keys.** The gate iterates the same source-of-truth file
-    list as A3, runs the matching command with `--format=agent --help`
-    (or the smoke invocation each command file declares), and parses
-    the stdout. A missing key fails the gate.
+envelope keys.** The gate iterates the same source-of-truth file
+list as A3, runs the matching command with `--format=agent --help`
+(or the smoke invocation each command file declares), and parses
+the stdout. A missing key fails the gate.
 
 A5. **No command emits a top-level field outside the envelope when
-    `--format=agent` is in effect.** The gate iterates the A3 file list
-    and asserts every JSON.stringify-style emission in the agent branch
-    goes through `buildAgentEnvelope` (no direct `JSON.stringify({...})`
-    calls inside the agent branch).
+`--format=agent` is in effect.** The gate iterates the A3 file list
+and asserts every JSON.stringify-style emission in the agent branch
+goes through `buildAgentEnvelope` (no direct `JSON.stringify({...})`
+calls inside the agent branch).
 
 ### Tranche B — `vspec init`
 
 B1. **`apps/cli/src/commands/init.ts` exists, and
-    `node apps/cli/bin/run.js init --help` exits 0.** The gate runs
-    `--help` and asserts exit code 0.
+`node apps/cli/bin/run.js init --help` exits 0.** The gate runs
+`--help` and asserts exit code 0.
 
 B2. **`vspec init --project <key>` writes a per-repo config file at
-    `./.vspec/config.json`.** The gate creates a tmp directory, runs
-    `vspec init --project ACME` from inside it, and asserts the file
-    exists with `{ "current_project_key": "ACME", ... }`. Parent
-    directory is created if missing.
+`./.vspec/config.json`.** The gate creates a tmp directory, runs
+`vspec init --project ACME` from inside it, and asserts the file
+exists with `{ "current_project_key": "ACME", ... }`. Parent
+directory is created if missing.
 
 B3. **`vspec init` without `--project` fails with exit code 2
-    (validation).** The gate runs it in a tmp directory and asserts
-    a non-zero exit + a stderr message naming `--project`.
+(validation).** The gate runs it in a tmp directory and asserts
+a non-zero exit + a stderr message naming `--project`.
 
 B4. **`vspec init` against an existing `.vspec/config.json` fails
-    without `--force`.** The gate seeds a tmp directory with a stub
-    config, runs `vspec init --project X`, and expects exit 6 (local
-    config / state error per `docs/07-cli-spec.md:325`). With
-    `--force`, the same invocation succeeds and overwrites.
+without `--force`.** The gate seeds a tmp directory with a stub
+config, runs `vspec init --project X`, and expects exit 6 (local
+config / state error per `docs/07-cli-spec.md:325`). With
+`--force`, the same invocation succeeds and overwrites.
 
 B5. **Reading the per-repo config is gated through `config-store.ts`.**
-    The gate greps `apps/cli/src/commands/init.ts` for `readConfig|writeConfig`
-    from `../config-store` (no direct `fs.writeFile(".vspec/...")` calls
-    in any command file other than `init.ts` itself, and even there it
-    goes through the store API). Source of truth: every file under
-    `apps/cli/src/commands/`.
+The gate greps `apps/cli/src/commands/init.ts` for `readConfig|writeConfig`
+from `../config-store` (no direct `fs.writeFile(".vspec/...")` calls
+in any command file other than `init.ts` itself, and even there it
+goes through the store API). Source of truth: every file under
+`apps/cli/src/commands/`.
 
 B6. **The per-repo `.vspec/config.json` is actually read by subsequent
-    commands run from the same cwd.** "Binding" means the file is not
-    just written but observed. The gate runs `vspec init --project BOUND`
-    in a tmp directory, then `vspec status` from the same directory, and
-    asserts stdout contains `current_project_key BOUND`. Without the
-    `config-store.ts` cwd-discovery overlay, status falls back to the
-    global config and the assertion fails.
+commands run from the same cwd.** "Binding" means the file is not
+just written but observed. The gate runs `vspec init --project BOUND`
+in a tmp directory, then `vspec status` from the same directory, and
+asserts stdout contains `current_project_key BOUND`. Without the
+`config-store.ts` cwd-discovery overlay, status falls back to the
+global config and the assertion fails.
 
 B7. **`vspec init --help` prints init-specific usage, not the global
-    `VspecCommand` help dump.** The gate runs `vspec init --help`,
-    asserts exit 0, and requires stdout to contain both
-    `vspec init --project` and `force`. A regression to the global
-    help (which lacks the `--project`/`--force` synopsis lines) fails
-    the gate.
+`VspecCommand` help dump.** The gate runs `vspec init --help`,
+asserts exit 0, and requires stdout to contain both
+`vspec init --project` and `force`. A regression to the global
+help (which lacks the `--project`/`--force` synopsis lines) fails
+the gate.
 
 ### Tranche C — Honest E2E coverage expansion
 
 C1. **`apps/cli/tests/e2e-cli-honest/cli-setup.ts` exists.** It exports
-    a `seedViaCli({ apiUrl, runCli, ...overrides })` helper that
-    performs login + project + actor + usecase setup using only
-    `runCli` invocations (no `fetch(` in this file). The gate greps
-    the file for the export and for `fetch(` (the latter fails the
-    gate if present).
+a `seedViaCli({ apiUrl, runCli, ...overrides })` helper that
+performs login + project + actor + usecase setup using only
+`runCli` invocations (no `fetch(` in this file). The gate greps
+the file for the export and for `fetch(` (the latter fails the
+gate if present).
 
 C2. **Every use case in the honest-required set has a matching honest
-    test file.** Source of truth: the literal array `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` enumerating the core write-path
-    UCs (UC-004 project, UC-005 actor, UC-006 stakeholder, UC-007 goal,
-    UC-009 usecase, UC-011 main scenario, UC-013 edit step, UC-016
-    start session, UC-019 create branch, UC-022 lock). For each UC in
-    the list, the gate asserts `apps/cli/tests/e2e-cli-honest/UC-NNN-*.test.ts`
-    exists. A missing file fails the gate.
+test file.** Source of truth: the literal array `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` enumerating the core write-path
+UCs (UC-004 project, UC-005 actor, UC-006 stakeholder, UC-007 goal,
+UC-009 usecase, UC-011 main scenario, UC-013 edit step, UC-016
+start session, UC-019 create branch, UC-022 lock). For each UC in
+the list, the gate asserts `apps/cli/tests/e2e-cli-honest/UC-NNN-*.test.ts`
+exists. A missing file fails the gate.
 
 C3. **Zero `fetch(` calls under `apps/cli/tests/e2e-cli-honest/`.** The
-    gate iterates every `*.ts` in that directory; a single match fails.
-    (This restates Goal 6 E2 but enforces it on the expanded test set.)
+gate iterates every `*.ts` in that directory; a single match fails.
+(This restates Goal 6 E2 but enforces it on the expanded test set.)
 
 C4. **Every honest test isolates its config via `VSPEC_CONFIG_PATH`.**
-    The gate iterates every `*.test.ts` in `e2e-cli-honest/` and asserts
-    each file mentions `VSPEC_CONFIG_PATH`. (Restates Goal 6 A4 across
-    the expanded set.)
+The gate iterates every `*.test.ts` in `e2e-cli-honest/` and asserts
+each file mentions `VSPEC_CONFIG_PATH`. (Restates Goal 6 A4 across
+the expanded set.)
 
 C5. **`scripts/check-honest-cli-e2e.sh` exits 0 on the expanded set.**
-    The existing script already enforces C1-C4 invariants; the gate
-    re-invokes it after the new files land.
+The existing script already enforces C1-C4 invariants; the gate
+re-invokes it after the new files land.
 
 ### Tranche D — Meta: rigor
 
 D1. **`scripts/check-gate-rigor.sh goals/7-cli-spec-parity.md` passes.**
-    Every universal claim above is paired with a `for|while|find|xargs`
-    iteration in `goals/7-cli-spec-parity.gates.sh`.
+Every universal claim above is paired with a `for|while|find|xargs`
+iteration in `goals/7-cli-spec-parity.gates.sh`.
 
 ## Scope Guards (additive to Goals 0–6)
 
@@ -171,7 +171,7 @@ D1. **`scripts/check-gate-rigor.sh goals/7-cli-spec-parity.md` passes.**
 - **Migrations under Tranche C must not introduce new CLI verbs.** If
   a UC's honest test reveals a missing or broken CLI command (e.g.
   `vspec scenario add` cannot be invoked from a script), file the gap
-  in `docs/findings-cli-spec-gaps.md` and **skip** that UC from
+  in `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and **skip** that UC from
   `HONEST_UC_SET` for this goal — do not silently add the verb. The
   finding doc is the queue for the next CLI goal.
 - **No `--format=agent` shape divergence per command.** Every command
@@ -242,7 +242,7 @@ bash scripts/diagnose.sh
    author `apps/cli/tests/e2e-cli-honest/UC-NNN-<slug>.test.ts`. Each
    test reuses `cli-setup.ts` for shared seed; UC-specific seed steps
    are also CLI calls. If a UC reveals a CLI gap, log to
-   `docs/findings-cli-spec-gaps.md` and remove it from `HONEST_UC_SET`
+   `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and remove it from `HONEST_UC_SET`
    in the same commit.
 
 6. **Re-run `scripts/check-honest-cli-e2e.sh` (C5).** Confirm the
@@ -280,7 +280,7 @@ Same red → green → refactor as prior goals. Reusable scopes:
 - Adding any new test under `e2e-cli-honest/` that calls `fetch(`. The
   honest invariant is the whole point of the directory.
 - Silently introducing a new CLI verb during Tranche C UC migrations.
-  Log the gap to `docs/findings-cli-spec-gaps.md` and skip the UC.
+  Log the gap to `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and skip the UC.
 - Touching prior goals' `.md` text or `.gates.sh` files. Goal 7 is
   purely additive — see the self-audit in the file header.
 

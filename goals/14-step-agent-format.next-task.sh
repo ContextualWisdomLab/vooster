@@ -20,7 +20,7 @@ EOF
   exit 0
 fi
 
-if grep -F '`step add` / `step edit`' docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F '`step add` / `step edit`' docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Remove step add/edit from the agent-format debt list.
 

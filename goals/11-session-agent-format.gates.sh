@@ -20,7 +20,7 @@ GATE_INPUTS=(
   apps/cli/tests/unit
   apps/cli/tests/e2e-cli-honest
   docs/07-cli-spec.md
-  docs/findings-cli-spec-gaps.md
+  docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/11-session-agent-format.gates.sh
@@ -36,7 +36,7 @@ fi
 PASS=true
 
 CLI_SPEC=docs/07-cli-spec.md
-FINDINGS=docs/findings-cli-spec-gaps.md
+FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_INDEX=apps/cli/src/index.ts
 SESSION_CMD=apps/cli/src/commands/session.ts
 UNIT_TEST=apps/cli/tests/unit/session-agent-format.test.ts

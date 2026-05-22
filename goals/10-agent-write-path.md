@@ -7,7 +7,7 @@
 
 Goal 7 introduced the `buildAgentEnvelope` shape and Goal 9 expanded it to
 project/actor/stakeholder/goal/doctor command files. The remaining problem is
-proof: `docs/findings-cli-spec-gaps.md` still lists core write-path agent
+proof: `docs/findings/2026-05-21T1856-cli-spec-gaps.md` still lists core write-path agent
 envelope debt, and one high-traffic write path (`usecase create`) still prints
 human output even when an agent asks for `--format=agent`.
 
@@ -50,8 +50,8 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The stale write-path entries are gone from the
-    `docs/findings-cli-spec-gaps.md` `--format=agent` coverage debt list.**
-    Source of truth:
+`docs/findings/2026-05-21T1856-cli-spec-gaps.md` `--format=agent` coverage debt list.**
+Source of truth:
 
     ```
     goal create
@@ -66,7 +66,7 @@ A1. **The stale write-path entries are gone from the
 ### Tranche B — Handler-Level Agent Branches
 
 B1. **Every core write-path handler builds an agent envelope when
-    `--format=agent` is requested.** Source of truth:
+`--format=agent` is requested.** Source of truth:
 
     ```
     actor create        -> apps/cli/src/commands/actor.ts:createActor
@@ -85,18 +85,18 @@ B1. **Every core write-path handler builds an agent envelope when
 ### Tranche C — Unit Proof
 
 C1. **Every core write-path verb has a distinct unit proof.** The file
-    `apps/cli/tests/unit/agent-format-write-path.test.ts` contains a distinct
-    test title of the form `agent <verb>`, invokes the command with
-    `--format=agent`, parses the output JSON, and asserts `format_version`.
+`apps/cli/tests/unit/agent-format-write-path.test.ts` contains a distinct
+test title of the form `agent <verb>`, invokes the command with
+`--format=agent`, parses the output JSON, and asserts `format_version`.
 
 ### Tranche D — Honest E2E Proof
 
 D1. **Every core write-path verb has a distinct honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts` contains a
-    distinct test title of the form `agent <verb>`, invokes `runCli([ ... ])`
-    with the exact topic/action tokens and `--format=agent`, uses
-    `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses the output JSON, and
-    asserts `format_version`.
+`apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts` contains a
+distinct test title of the form `agent <verb>`, invokes `runCli([ ... ])`
+with the exact topic/action tokens and `--format=agent`, uses
+`VSPEC_CONFIG_PATH`, does not call `fetch(`, parses the output JSON, and
+asserts `format_version`.
 
 ### Tranche E — Rigor
 
@@ -111,7 +111,7 @@ E1. **`scripts/check-gate-rigor.sh goals/10-agent-write-path.md` passes.**
 
 ## Recommended Order
 
-1. Remove the stale write-path bullets from `docs/findings-cli-spec-gaps.md`.
+1. Remove the stale write-path bullets from `docs/findings/2026-05-21T1856-cli-spec-gaps.md`.
 2. Add the missing `usecase create --format=agent` branch.
 3. Add focused unit proofs for the declared verbs.
 4. Add one honest E2E file covering the declared verbs.

@@ -214,4 +214,3 @@ The finding is resolved when:
 3. `refactor(api): use shared route contracts`
 4. `refactor(cli): add typed api client`
 5. `refactor(web): parse api responses with contracts`
-

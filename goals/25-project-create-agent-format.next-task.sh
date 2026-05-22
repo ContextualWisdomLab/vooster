@@ -9,7 +9,7 @@ cd "$ROOT"
 PROJECT_BULLET='`project create`'
 SYNC_BULLET='`lock release`'
 
-if grep -F "$PROJECT_BULLET" docs/findings-cli-spec-gaps.md >/dev/null 2>&1; then
+if grep -F "$PROJECT_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Retarget Goal 24's sentinel, then remove project-create debt.
 

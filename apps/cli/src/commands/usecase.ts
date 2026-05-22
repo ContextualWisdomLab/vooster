@@ -26,6 +26,8 @@ import {
   type UsecaseUpdateResponse
 } from "./usecase-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import { runMutation } from "../application/mutation-runner.js";
+import type { SuggestedNextAction } from "../domain/envelope.js";
 import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class UsecaseCommand extends Command {
@@ -142,23 +144,48 @@ async function createUsecase(
   writeLine: (message: string) => void
 ): Promise<void> {
   const usecaseFlags = usecaseCreateFlagsFrom(flags);
-  const response = await postJson(
-    `${usecaseFlags.apiUrl}/v1/projects/${usecaseFlags.projectId}/usecases`,
-    {
+  const result = await runMutation<UsecaseResponse>({
+    apiUrl: usecaseFlags.apiUrl,
+    cookie: usecaseFlags.sessionCookie,
+    method: "POST",
+    path: `/v1/projects/${usecaseFlags.projectId}/usecases`,
+    body: {
       primary_actor: usecaseFlags.primaryActor,
       title: usecaseFlags.title
     },
-    {
-      Cookie: usecaseFlags.sessionCookie
-    }
-  );
+    successHints: hintsFromResponse
+  });
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(result.envelope, null, 2));
+    if (result.failed) {
+      process.exitCode = 1;
+    }
     return;
   }
 
-  printUsecase(response.body as UsecaseResponse, writeLine);
+  if (result.envelope.status === "error") {
+    throw new Error(result.envelope.error?.message ?? "Use case creation failed.");
+  }
+
+  const data = result.envelope.data;
+  if (data === null) {
+    throw new Error("Use case creation succeeded but returned no data.");
+  }
+  printUsecase(data, writeLine);
+}
+
+function hintsFromResponse(data: UsecaseResponse): SuggestedNextAction[] {
+  const hints = (data as { suggested_next_actions?: unknown }).suggested_next_actions;
+  if (!Array.isArray(hints)) {
+    return [];
+  }
+  return hints.filter(
+    (hint): hint is SuggestedNextAction =>
+      typeof hint === "object" &&
+      hint !== null &&
+      typeof (hint as { command?: unknown }).command === "string"
+  );
 }
 
 async function addStakeholderInterest(

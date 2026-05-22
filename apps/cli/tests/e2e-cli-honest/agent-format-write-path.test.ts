@@ -145,7 +145,7 @@ async function createGoal(description: string): Promise<string> {
 function expectAgentEnvelope(stdout: string, dataKey: string): void {
   const envelope = JSON.parse(stdout) as Record<string, unknown>;
 
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

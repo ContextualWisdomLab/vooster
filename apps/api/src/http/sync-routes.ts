@@ -6,10 +6,15 @@ import { problem } from "./signup-support.js";
 import { parseFileErrors, parseFilesProblem } from "./sync-markdown.js";
 import { sendSyncPushResult, syncAccessProblem } from "./sync-results.js";
 import type { SignupState } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../ports/stakeholder-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const pullSchema = z.object({
@@ -36,24 +41,45 @@ type PushFile = z.infer<typeof pushSchema>["files"][number];
 export function registerSyncRoutes(
   app: FastifyInstance,
   state: SignupState,
+  actorStore: ActorStore,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
-    pullFiles(request, reply, state, membershipStore, useCaseStore)
+    pullFiles(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore,
+      stepStore,
+      useCaseStore
+    )
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
     pushFiles(
       request,
       reply,
       state,
+      actorStore,
       branchStore,
       membershipStore,
       projectStore,
       revisionStore,
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore,
+      stepStore,
       useCaseStore
     )
   );
@@ -63,7 +89,12 @@ async function pullFiles(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  actorStore: ActorStore,
   membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -72,7 +103,15 @@ async function pullFiles(
     return reply.code(400).send(problem(400, "Invalid sync pull request"));
   }
   const result = await pullSyncFiles(
-    { membershipStore, useCaseStore },
+    {
+      actorStore,
+      membershipStore,
+      scenarioStore,
+      stakeholderInterestStore,
+      stakeholderStore,
+      stepStore,
+      useCaseStore
+    },
     {
       projectId,
       userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
@@ -87,10 +126,15 @@ async function pushFiles(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  actorStore: ActorStore,
   branchStore: BranchStore,
   membershipStore: MembershipStore,
   projectStore: ProjectStore,
   revisionStore: RevisionStore,
+  scenarioStore: ScenarioStore,
+  stakeholderInterestStore: StakeholderInterestStore,
+  stakeholderStore: StakeholderStore,
+  stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = projectIdFrom(request.params);
@@ -107,9 +151,14 @@ async function pushFiles(
     await pushSyncFiles(
       {
         branchStore,
+        actorStore,
         membershipStore,
         projectStore,
         revisionStore,
+        scenarioStore,
+        stakeholderInterestStore,
+        stakeholderStore,
+        stepStore,
         useCaseStore
       },
       {

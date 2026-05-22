@@ -59,20 +59,20 @@ agent does not re-invent them. Anything stated here is binding.
   "type": "module",
   "bin": { "vspec": "./dist/cli/index.js" },
   "scripts": {
-    "build":         "tsc -p tsconfig.build.json",
-    "dev":           "tsx watch src/index.ts",
-    "start:server":  "node --env-file=.env dist/http/server.js",
-    "start:cli":     "node dist/cli/index.js",
-    "test":          "vitest run",
-    "test:watch":    "vitest",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/index.ts",
+    "start:server": "node --env-file=.env dist/http/server.js",
+    "start:cli": "node dist/cli/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint":          "eslint .",
-    "format":        "prettier --write .",
-    "typecheck":     "tsc --noEmit",
-    "prisma:gen":    "prisma generate",
-    "prisma:migrate":"prisma migrate dev",
-    "prisma:reset":  "prisma migrate reset --force",
-    "dogfood":       "bash scripts/dogfood-test.sh"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "prisma:gen": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:reset": "prisma migrate reset --force",
+    "dogfood": "bash scripts/dogfood-test.sh"
   }
 }
 ```
@@ -160,28 +160,58 @@ export default [
     plugins: { boundaries },
     settings: {
       "boundaries/elements": [
-        { type: "domain",         pattern: "src/domain/**" },
-        { type: "ports",          pattern: "src/ports/**" },
-        { type: "application",    pattern: "src/application/**" },
+        { type: "domain", pattern: "src/domain/**" },
+        { type: "ports", pattern: "src/ports/**" },
+        { type: "application", pattern: "src/application/**" },
         { type: "infrastructure", pattern: "src/infrastructure/**" },
-        { type: "http",           pattern: "src/http/**" },
-        { type: "cli",            pattern: "src/cli/**" },
-        { type: "root",           pattern: ["src/index.ts", "src/composition-root.ts"] }
+        { type: "http", pattern: "src/http/**" },
+        { type: "cli", pattern: "src/cli/**" },
+        { type: "root", pattern: ["src/index.ts", "src/composition-root.ts"] }
       ]
     },
     rules: {
-      "boundaries/element-types": ["error", {
-        default: "disallow",
-        rules: [
-          { from: "domain",         allow: ["domain"] },
-          { from: "ports",          allow: ["domain", "ports"] },
-          { from: "application",    allow: ["domain", "ports", "application"] },
-          { from: "infrastructure", allow: ["domain", "ports", "infrastructure"] },
-          { from: "http",           allow: ["domain", "ports", "application", "http"] },
-          { from: "cli",            allow: ["domain", "ports", "application", "cli"] },
-          { from: "root",           allow: ["domain", "ports", "application", "infrastructure", "http", "cli", "root"] }
-        ]
-      }]
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "disallow",
+          rules: [
+            { from: { type: "domain" }, allow: { to: { type: "domain" } } },
+            { from: { type: "ports" }, allow: { to: { type: ["domain", "ports"] } } },
+            {
+              from: { type: "application" },
+              allow: { to: { type: ["domain", "ports", "application"] } }
+            },
+            {
+              from: { type: "infrastructure" },
+              allow: { to: { type: ["domain", "ports", "infrastructure"] } }
+            },
+            {
+              from: { type: "http" },
+              allow: { to: { type: ["domain", "ports", "application", "http"] } }
+            },
+            {
+              from: { type: "cli" },
+              allow: { to: { type: ["domain", "ports", "application", "cli"] } }
+            },
+            {
+              from: { type: "root" },
+              allow: {
+                to: {
+                  type: [
+                    "domain",
+                    "ports",
+                    "application",
+                    "infrastructure",
+                    "http",
+                    "cli",
+                    "root"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   }
 ];
@@ -189,16 +219,16 @@ export default [
 
 ## Environment Variables (canonical names)
 
-| Variable               | Purpose                                                  | Default                                              |
-| ---------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL`         | Postgres connection                                      | (required in non-stub)                               |
-| `VSPEC_PORT`           | HTTP port                                                | `4455`                                               |
-| `VSPEC_PROFILE`        | CLI profile name                                         | `default`                                            |
-| `VSPEC_API_URL`        | Base URL the CLI talks to                                | `http://localhost:4455`                              |
-| `VSPEC_AUTH_STUB`      | `1` enables stubbed OAuth (test/dogfood only)            | unset                                                |
-| `GITHUB_CLIENT_ID`     | OAuth                                                    | required when `VSPEC_AUTH_STUB` is unset             |
-| `GITHUB_CLIENT_SECRET` | OAuth                                                    | required when `VSPEC_AUTH_STUB` is unset             |
-| `VSPEC_LOG_LEVEL`      | pino level                                               | `info`                                               |
+| Variable               | Purpose                                       | Default                                  |
+| ---------------------- | --------------------------------------------- | ---------------------------------------- |
+| `DATABASE_URL`         | Postgres connection                           | (required in non-stub)                   |
+| `VSPEC_PORT`           | HTTP port                                     | `4455`                                   |
+| `VSPEC_PROFILE`        | CLI profile name                              | `default`                                |
+| `VSPEC_API_URL`        | Base URL the CLI talks to                     | `http://localhost:4455`                  |
+| `VSPEC_AUTH_STUB`      | `1` enables stubbed OAuth (test/dogfood only) | unset                                    |
+| `GITHUB_CLIENT_ID`     | OAuth                                         | required when `VSPEC_AUTH_STUB` is unset |
+| `GITHUB_CLIENT_SECRET` | OAuth                                         | required when `VSPEC_AUTH_STUB` is unset |
+| `VSPEC_LOG_LEVEL`      | pino level                                    | `info`                                   |
 
 `VSPEC_AUTH_STUB=1` behavior (binding):
 
@@ -218,13 +248,13 @@ export default [
 
 Every project is seeded with one canonical built-in actor:
 
-| Field        | Value                                       |
-| ------------ | ------------------------------------------- |
-| `name`       | `system`                                    |
-| `display`    | `System`                                    |
-| `type`       | `SUPPORTING`                                |
-| `is_human`   | `false`                                     |
-| `aliases`    | `["the system"]`                            |
+| Field      | Value            |
+| ---------- | ---------------- |
+| `name`     | `system`         |
+| `display`  | `System`         |
+| `type`     | `SUPPORTING`     |
+| `is_human` | `false`          |
+| `aliases`  | `["the system"]` |
 
 Created in `UC-004` (project creation), not as a separate UC. Step parser maps
 `**System**` to this actor.

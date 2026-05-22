@@ -43,16 +43,34 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/consistent-type-imports": "error",
-      "boundaries/element-types": ["error", {
-        default: "disallow",
-        rules: [
-          { from: "cli", allow: ["http", "application", "ports", "domain"] },
-          { from: "http", allow: ["application", "ports", "domain"] },
-          { from: "application", allow: ["ports", "domain"] },
-          { from: "infrastructure", allow: ["ports", "domain"] },
-          { from: "ports", allow: ["domain"] }
-        ]
-      }]
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "disallow",
+          rules: [
+            {
+              from: { type: "cli" },
+              allow: { to: { type: ["http", "application", "ports", "domain"] } }
+            },
+            {
+              from: { type: "http" },
+              allow: { to: { type: ["application", "ports", "domain"] } }
+            },
+            {
+              from: { type: "application" },
+              allow: { to: { type: ["ports", "domain"] } }
+            },
+            {
+              from: { type: "infrastructure" },
+              allow: { to: { type: ["ports", "domain"] } }
+            },
+            {
+              from: { type: "ports" },
+              allow: { to: { type: "domain" } }
+            }
+          ]
+        }
+      ]
     }
   }
 );

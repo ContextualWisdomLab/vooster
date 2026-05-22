@@ -26,13 +26,13 @@ describe("honest gates script", () => {
         'import { expect, test } from "vitest";',
         'test("dishonest", () => {',
         '  const body = readFileSync("eslint.config.js", "utf8");',
-        '  expect(body).toContain("boundaries/element-types");',
+        '  expect(body).toContain("boundaries/dependencies");',
         "});"
       ].join("\n")
     );
 
-    await expect(runHonestGates(testsDir)).rejects.toSatisfy(
-      (error: unknown) => outputFrom(error).stdout.includes("dishonest.test.ts")
+    await expect(runHonestGates(testsDir)).rejects.toSatisfy((error: unknown) =>
+      outputFrom(error).stdout.includes("dishonest.test.ts")
     );
   });
 

@@ -34,7 +34,7 @@ TASK: Replace the fake boundary test with a real one (gate 4.A1).
         test("ports cannot import from http", async () => {
           const fixture = "src/ports/_fixture-bad.ts";
           // write a temp file that imports from ../http/, lint it,
-          // expect the boundaries/element-types rule to error.
+          // expect the boundaries/dependencies rule to error.
         });
 
         test("application can import from ports", async () => {
@@ -57,10 +57,10 @@ fi
 # ─── A3: ESLint still default: allow ─────────────────────────────────────
 if ! grep -qE 'default:\s*"disallow"' eslint.config.js 2>/dev/null; then
   cat <<'EOF'
-TASK: Switch boundaries/element-types to deny-by-default (gate 4.A3).
+TASK: Switch boundaries/dependencies to deny-by-default (gate 4.A3).
 
   In eslint.config.js, inside the rule definition for
-  "boundaries/element-types", change:
+  "boundaries/dependencies", change:
 
       { default: "allow", rules: [...] }
 
@@ -250,10 +250,10 @@ TASK: Drive ESLint to zero (gate 4.A2).
 
   npm run lint reports violations. See /tmp/4-a2-eslint.log.
 
-  Most likely cluster: boundaries/element-types errors on files that
+  Most likely cluster: boundaries/dependencies errors on files that
   still import upward. Tranches B1–B3 above are the primary fix.
   Whatever remains is normal lint cleanup; do not add
-  `eslint-disable boundaries/element-types` — Forbidden Actions.
+  `eslint-disable boundaries/dependencies` — Forbidden Actions.
 
   Commit each batch as you go:
       green(boundaries): drive eslint to zero — <area>

@@ -22,12 +22,14 @@ PG="vspec_managed_pg_${SUFFIX}"
 APP="vspec_managed_app_${SUFFIX}"
 IMAGE="vspec-managed-test:${SUFFIX}"
 LOG=$(mktemp)
+COOKIE_JAR=$(mktemp)
+CALLBACK_BODY=$(mktemp)
 
 cleanup() {
   docker rm -f "$APP" "$PG" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
   docker image rm "$IMAGE" >/dev/null 2>&1 || true
-  rm -f "$LOG" /tmp/vspec-managed-jar /tmp/vspec-managed-cb.json
+  rm -f "$LOG" "$COOKIE_JAR" "$CALLBACK_BODY"
 }
 trap cleanup EXIT
 
@@ -93,7 +95,7 @@ if [ "$app_ready" != true ]; then
 fi
 
 SLUG="managed-$(date +%s)-$$"
-START=$(curl -fsS -c /tmp/vspec-managed-jar -X POST \
+START=$(curl -fsS -c "$COOKIE_JAR" -X POST \
   -H 'Content-Type: application/json' \
   -d "{\"workspace\":{\"name\":\"Managed Test\",\"slug\":\"$SLUG\"}}" \
   "http://127.0.0.1:${PORT}/v1/auth/github/start" 2>/dev/null || echo "")
@@ -104,12 +106,12 @@ if [ -z "$STATE" ]; then
   exit 1
 fi
 
-CB_STATUS=$(curl -s -b /tmp/vspec-managed-jar -o /tmp/vspec-managed-cb.json -w '%{http_code}' \
+CB_STATUS=$(curl -s -b "$COOKIE_JAR" -o "$CALLBACK_BODY" -w '%{http_code}' \
   "http://127.0.0.1:${PORT}/v1/auth/github/callback?code=stub-managed&state=${STATE}" \
   2>/dev/null || echo "000")
 if [ "$CB_STATUS" != "201" ]; then
   echo "✗ check-managed-db: signup callback returned $CB_STATUS"
-  cat /tmp/vspec-managed-cb.json 2>/dev/null | sed 's/^/    /'
+  cat "$CALLBACK_BODY" 2>/dev/null | sed 's/^/    /'
   exit 1
 fi
 

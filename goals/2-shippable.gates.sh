@@ -224,7 +224,8 @@ else
 fi
 
 echo "[2.C4] Boundary rules reject direct adapter→infrastructure imports"
-if node --input-type=module <<'NODE' >/tmp/2-c4-boundaries.log 2>&1
+C4_LOG=$(mktemp)
+if node --input-type=module <<'NODE' >"$C4_LOG" 2>&1
 import { unlink, writeFile } from "node:fs/promises";
 import { ESLint } from "eslint";
 
@@ -269,7 +270,7 @@ NODE
 then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — ESLint did not reject both adapter→infrastructure fixtures"
+  echo "    ✗ fail — ESLint did not reject both adapter→infrastructure fixtures; see $C4_LOG"
   PASS=false
 fi
 

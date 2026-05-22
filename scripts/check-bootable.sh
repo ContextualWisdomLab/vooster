@@ -30,13 +30,18 @@ if [ ! -s apps/api/src/index.ts ] || ! grep -qE '(listen|createServer|Fastify)' 
   exit 1
 fi
 
+if [ ! -f dist/apps/api/src/index.js ]; then
+  echo "✗ check-bootable: built API entrypoint missing."
+  echo "  Run a build first; goal _meta M.4 owns shared dist/ output."
+  exit 1
+fi
+
 PORT=${VSPEC_BOOT_TEST_PORT:-3917}
 export PORT
 LOG=$(mktemp)
 mkdir -p .state
 
-# Start the server in the background; allow generous TS build time on first run.
-pnpm run --silent build >/dev/null 2>&1 || true
+# Start the server in the background.
 ( pnpm start >"$LOG" 2>&1 ) &
 PID=$!
 

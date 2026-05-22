@@ -9,7 +9,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-LOG="$ROOT/.state/dogfood.log"
+LOG="${VSPEC_DOGFOOD_LOG:-$ROOT/.state/dogfood-${PPID:-0}-$$.log}"
 mkdir -p "$(dirname "$LOG")"
 : > "$LOG"
 

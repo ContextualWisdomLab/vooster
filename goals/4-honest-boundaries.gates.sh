@@ -162,7 +162,8 @@ echo "[4.A5] ESLint actually rejects upward imports and accepts allowed arrows"
 # rule must produce exactly one error for the forbidden case and zero
 # for the allowed case. This catches the failure mode where 4.A4's
 # allow-list text is correct but the rule itself is misconfigured.
-if node --input-type=module >/tmp/4-a5-eslint.log 2>&1 <<'NODE'
+A5_LOG=$(mktemp)
+if node --input-type=module >"$A5_LOG" 2>&1 <<'NODE'
 import { unlink, writeFile } from "node:fs/promises";
 import { ESLint } from "eslint";
 
@@ -221,7 +222,7 @@ NODE
 then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — see /tmp/4-a5-eslint.log"
+  echo "    ✗ fail — see $A5_LOG"
   PASS=false
 fi
 

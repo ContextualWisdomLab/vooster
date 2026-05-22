@@ -40,6 +40,8 @@ export VSPEC_DEPLOY_HOST_PORT="$PORT"
 export VSPEC_AUTH_STUB=1
 export DATABASE_URL="${VSPEC_DEPLOY_DATABASE_URL:-postgresql://vspec:vspec@db:5432/vspec}"
 LOG=$(mktemp)
+COOKIE_JAR=$(mktemp)
+CALLBACK_BODY=$(mktemp)
 
 compose() {
   docker compose -p "$PROJECT" -f docker-compose.prod.yml "$@"
@@ -47,7 +49,7 @@ compose() {
 
 cleanup() {
   compose down -v >/dev/null 2>&1 || true
-  rm -f "$LOG"
+  rm -f "$LOG" "$COOKIE_JAR" "$CALLBACK_BODY"
 }
 trap cleanup EXIT
 
@@ -77,7 +79,7 @@ if [ "$ok" != true ]; then
 fi
 
 SLUG="deploy-$(date +%s)-$$"
-START=$(curl -fsS -c /tmp/dep-jar -X POST \
+START=$(curl -fsS -c "$COOKIE_JAR" -X POST \
   -H 'Content-Type: application/json' \
   -d "{\"workspace\":{\"name\":\"Deploy Test\",\"slug\":\"$SLUG\"}}" \
   "http://127.0.0.1:${PORT}/v1/auth/github/start" 2>/dev/null || echo "")
@@ -93,12 +95,12 @@ if [ -z "$STATE" ]; then
   exit 1
 fi
 
-CB_STATUS=$(curl -s -b /tmp/dep-jar -o /tmp/dep-cb.json -w '%{http_code}' \
+CB_STATUS=$(curl -s -b "$COOKIE_JAR" -o "$CALLBACK_BODY" -w '%{http_code}' \
   "http://127.0.0.1:${PORT}/v1/auth/github/callback?code=stub-deploy&state=${STATE}" \
   2>/dev/null || echo "000")
 if [ "$CB_STATUS" != "201" ]; then
   echo "✗ check-deployable: signup callback returned $CB_STATUS"
-  cat /tmp/dep-cb.json 2>/dev/null | sed 's/^/    /'
+  cat "$CALLBACK_BODY" 2>/dev/null | sed 's/^/    /'
   exit 1
 fi
 

@@ -2,11 +2,13 @@
 title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
-resolved: false
+resolved: partial
+status_notes: "A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
   - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
+  - docs/findings/2026-05-23T1825-doctor-route.md
 ---
 
 # Dogfood Follow-Ups — queued from 2026-05-23
@@ -46,7 +48,7 @@ as long as it closes each declared item with an enumerated gate.
 - **Round-trip closure (P0, scoped by [2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md))**: A1, A3, A10, A11.
 - **Self-teaching CLI** (`core differentiator #3` in
   `docs/00-overview.md`): A5, A6, B2, B3.
-- **Doctor & status surface**: A2, A4, B5.
+- **Doctor & status surface**: A4.
 - **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: A12, B1, B4.
@@ -63,13 +65,6 @@ stakeholders, no scenarios, no steps, no extensions. The proper
 renderer in `markdown-renderer.ts` (which `vspec export markdown`
 uses) is bypassed. Round-trip is lost; `vspec push` after `pull`
 would erase scenarios server-side.
-
-### A2 — `vspec doctor` returns 404
-
-No `/v1/doctor` route is registered. The CLI calls it, hits 404, and
-surfaces a bare `ApiError`. Multiple endpoints already suggest
-`vspec doctor` as a next action, so this also misleads agents who follow
-`suggested_next_actions`.
 
 ### A3 — `vspec usecase show` discards almost everything the API returns _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
 
@@ -91,8 +86,7 @@ has no visible surface.
 
 API responses carry `suggested_next_actions` and (for
 `usecase create`) `suggested_titles[]`; the CLI drops both. `actor
-create --human` emits a raw oclif stack trace; `doctor PAY-001` emits
-`ApiError: API request failed with 404.`
+create --human` emits a raw oclif stack trace.
 
 ### A6 — `vspec --help` and `vspec help <command>` are broken
 
@@ -220,11 +214,6 @@ a representative task) is not met.
 the dogfood that read verbs have the envelope but several write verbs
 (notably `lock release` and the missing verbs from A14) do not.
 
-### B5 — `vspec doctor` is recommended by multiple endpoints but is itself broken
-
-Four endpoints suggest `vspec doctor` as a next action. All four
-mislead until A2 lands.
-
 ### B6 — `session_file` API contract is not honored by the CLI
 
 Direct consequence of A7. Either the API drops the field or the CLI
@@ -253,6 +242,13 @@ Two near-identical regexes:
 `apps/api/src/application/goal-promotion.ts:161`. Same 14-verb
 limitation. Centralize, or move the check out of the API into a
 CLI-side warning per the soft-warning spec.
+
+## Already closed
+
+- **A2 / B5** — Closed by
+  [2026-05-23T1825-doctor-route.md](./2026-05-23T1825-doctor-route.md):
+  `GET /v1/doctor` now returns structured diagnostics, and the honest CLI
+  doctor command exits cleanly instead of surfacing a 404.
 
 ## Round-trip cluster — code pending (P0)
 

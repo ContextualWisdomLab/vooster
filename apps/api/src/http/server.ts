@@ -26,6 +26,7 @@ import { registerBranchRoutes } from "./branch-routes.js";
 import { registerBranchTestRoutes } from "./branch-test-routes.js";
 import { registerChangeCommitRoutes } from "./change-commit-routes.js";
 import { registerCommentRoutes } from "./comment-routes.js";
+import { registerDoctorRoutes } from "./doctor-routes.js";
 import { registerGherkinExportRoutes } from "./gherkin-export-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
@@ -114,6 +115,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     userStore,
     workspaceStore
   );
+  registerDoctorRoutes(app, state, {
+    membershipStore,
+    projectStore,
+    scenarioStore,
+    stakeholderInterestStore,
+    stepStore,
+    useCaseStore
+  });
   registerProjectRoutes(
     app,
     state,

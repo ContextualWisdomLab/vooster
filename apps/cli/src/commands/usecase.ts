@@ -41,7 +41,9 @@ export class UsecaseCommand extends Command {
   static override flags = {
     "actor-id": Flags.string(),
     "api-url": Flags.string(),
+    branch: Flags.string(),
     cursor: Flags.string(),
+    "dry-run": Flags.boolean(),
     field: Flags.string(),
     format: Flags.string(),
     interest: Flags.string(),
@@ -52,6 +54,7 @@ export class UsecaseCommand extends Command {
     "protection-mechanism": Flags.string(),
     q: Flags.string(),
     revision: Flags.string(),
+    root: Flags.string(),
     session: Flags.string(),
     "session-cookie": Flags.string(),
     stakeholder: Flags.string(),
@@ -153,7 +156,15 @@ async function createUsecase(
       primary_actor: usecaseFlags.primaryActor,
       title: usecaseFlags.title
     },
-    successHints: hintsFromResponse
+    successHints: hintsFromResponse,
+    dryRun: usecaseFlags.dryRun,
+    autoExport: {
+      apiUrl: usecaseFlags.apiUrl,
+      branch: usecaseFlags.branch,
+      cookie: usecaseFlags.sessionCookie,
+      projectId: usecaseFlags.projectId,
+      root: usecaseFlags.root
+    }
   });
 
   if (flags.format === "agent") {

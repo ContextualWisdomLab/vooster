@@ -3,7 +3,9 @@ import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from
 export type UsecaseCliFlags = {
   "actor-id"?: string;
   "api-url"?: string;
+  branch?: string;
   cursor?: string;
+  "dry-run"?: boolean;
   field?: string;
   format?: string;
   interest?: string;
@@ -14,6 +16,7 @@ export type UsecaseCliFlags = {
   "protection-mechanism"?: string;
   q?: string;
   revision?: string;
+  root?: string;
   session?: string;
   "session-cookie"?: string;
   stakeholder?: string;
@@ -24,8 +27,11 @@ export type UsecaseCliFlags = {
 
 export type UsecaseCreateFlags = {
   apiUrl: string;
+  branch: string;
+  dryRun: boolean;
   primaryActor: string;
   projectId: string;
+  root: string;
   sessionCookie: string;
   title: string;
 };
@@ -77,8 +83,11 @@ export type StakeholderInterestFlags = {
 export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
     primaryActor: requiredFlag(flags, "primary-actor"),
     projectId: requiredFlag(flags, "project-id"),
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     title: requiredFlag(flags, "title")
   };

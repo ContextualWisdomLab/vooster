@@ -8,6 +8,8 @@ import { buildErrorEnvelope, buildOkEnvelope } from "../domain/envelope.js";
 import { extractError, extractSuggestedNextActions } from "../domain/error-codes.js";
 import { ApiError, isApiError } from "../infrastructure/http/api-error.js";
 import { deleteJson, patchJson, postJson } from "../infrastructure/http/client.js";
+import type { AutoExportConfig } from "./auto-export.js";
+import { autoExport } from "./auto-export.js";
 
 export type MutationMethod = "POST" | "PATCH" | "DELETE";
 
@@ -20,7 +22,7 @@ export type MutationInput<TData> = {
   context?: Partial<EnvelopeContext>;
   selectData?: (responseBody: unknown) => TData;
   successHints?: (data: TData) => SuggestedNextAction[];
-  affectedFiles?: AffectedFile[];
+  autoExport?: AutoExportConfig;
   dryRun?: boolean;
 };
 
@@ -41,11 +43,15 @@ export async function runMutation<TData>(
       input.body
     );
     const data = input.selectData ? input.selectData(responseBody) : (responseBody as TData);
+    const affectedFiles: AffectedFile[] =
+      input.dryRun === true || input.autoExport === undefined
+        ? []
+        : await autoExport(input.autoExport);
     return {
       envelope: buildOkEnvelope({
         data,
         context: input.context,
-        affectedFiles: input.affectedFiles,
+        affectedFiles,
         dryRun: input.dryRun,
         suggestedNextActions: input.successHints?.(data) ?? []
       }),

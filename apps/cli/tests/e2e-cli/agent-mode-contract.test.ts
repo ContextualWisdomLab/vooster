@@ -9,7 +9,7 @@ import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
 type SignupResponse = { workspace: { id: string } };
 type OAuthStartResponse = { state: string };
 type ProjectResponse = { project: { id: string } };
-type UsecaseListResponse = { usecases: Array<{ title: string }> };
+type UsecaseListResponse = { items: Array<{ title: string }> };
 
 type SuccessEnvelope = {
   status: "ok" | "error";
@@ -72,7 +72,7 @@ describe("vspec usecase create --format=agent — auto-export & error envelope &
 
       expect(envelope.affected_files.length).toBeGreaterThan(0);
       const usecaseFile = envelope.affected_files.find((file) =>
-        /^specs\/usecases\/UC-.+\.md$/.test(file.path)
+        /^specs\/[A-Z]+-\d+\.md$/.test(file.path)
       );
       expect(usecaseFile).toBeDefined();
 
@@ -162,7 +162,7 @@ describe("vspec usecase create --format=agent — auto-export & error envelope &
         { headers: { Cookie: setup.cookie } }
       );
       const listBody = (await listResponse.json()) as UsecaseListResponse;
-      expect(listBody.usecases.find((u) => u.title === "Reviews would-be flow")).toBeUndefined();
+      expect(listBody.items.find((u) => u.title === "Reviews would-be flow")).toBeUndefined();
     } finally {
       await server.stop();
       await rm(workdir, { recursive: true, force: true });

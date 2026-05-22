@@ -5,6 +5,8 @@ pnpm-debug.log*
 *.log
 .npm
 
+form-data/
+
 # Builds
 dist/
 build/

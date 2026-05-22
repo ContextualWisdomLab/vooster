@@ -200,7 +200,7 @@ else
   fi
   for token in \
     "agent merge open" \
-    "runCli([" \
+    "runCli(" \
     '"branch"' \
     '"merge"' \
     "--format=agent" \

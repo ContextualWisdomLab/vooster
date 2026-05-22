@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { goalIdFrom, projectIdFrom } from "./goal-support.js";
+import { goalPatchSchema, goalRequestSchema } from "./goal-validation.js";
 import {
   createGoal as createGoalUseCase,
   listGoals as listGoalsUseCase,
@@ -22,15 +23,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-const goalRequestSchema = z.object({
-  actor_id: z.string().min(1),
-  description: z.string(),
-  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]),
-  priority: z.enum(["P0", "P1", "P2", "P3"])
-});
-const goalPatchSchema = z.object({
-  status: z.enum(["IDENTIFIED", "IN_DESIGN", "PROMOTED", "REJECTED"]).optional()
-});
+
 export function registerGoalRoutes(
   app: FastifyInstance,
   state: SignupState,

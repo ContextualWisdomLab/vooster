@@ -162,7 +162,7 @@ else
   fi
   for token in \
     "agent lock acquire" \
-    "runCli([" \
+    "runCli(" \
     '"lock"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

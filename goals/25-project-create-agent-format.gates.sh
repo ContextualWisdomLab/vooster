@@ -197,7 +197,7 @@ else
   fi
   for token in \
     "agent project create updates active project" \
-    "runCli([" \
+    "runCli(" \
     '"project"' \
     '"create"' \
     '"status"' \

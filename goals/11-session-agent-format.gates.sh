@@ -208,7 +208,7 @@ else
   if grep -E '\bfetch\(' "$HONEST_TEST" >/dev/null 2>&1; then
     E1_OFFENDERS+=("$HONEST_TEST calls fetch(")
   fi
-  for token in "VSPEC_CONFIG_PATH" "runCli([" "--format=agent" "format_version" "context.session_id" "total_conflicts"; do
+  for token in "VSPEC_CONFIG_PATH" "runCli(" "--format=agent" "format_version" "context.session_id" "total_conflicts"; do
     if ! grep -F -- "$token" "$HONEST_TEST" >/dev/null 2>&1; then
       E1_OFFENDERS+=("$HONEST_TEST missing $token")
     fi

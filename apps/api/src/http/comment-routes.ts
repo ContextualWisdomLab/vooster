@@ -11,17 +11,9 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import { emptyBodyProblem } from "./comment-problems.js";
 import { sendCommentResult } from "./comment-results.js";
+import { commentBodySchema, commentPatchSchema } from "./comment-validation.js";
 import { authenticatedUserId } from "./session-support.js";
 import type { SignupState } from "./signup-types.js";
-
-const bodySchema = z.object({
-  body: z.string().min(1),
-  simulate_write_failure: z.boolean().optional()
-});
-const patchSchema = z.object({
-  body: z.string().min(1).optional(),
-  resolved: z.literal(true).optional()
-});
 
 export function registerCommentRoutes(
   app: FastifyInstance,
@@ -52,7 +44,7 @@ async function addComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = bodySchema.safeParse(request.body);
+  const parsed = commentBodySchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }
@@ -93,7 +85,7 @@ async function patchComment(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = patchSchema.safeParse(request.body);
+  const parsed = commentPatchSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(422).send(emptyBodyProblem());
   }

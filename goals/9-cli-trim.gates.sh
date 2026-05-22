@@ -352,11 +352,11 @@ honest_file_for_verb() {
   for cand in "${candidates[@]}"; do
     if [ -f "$HONEST_DIR/$cand" ]; then
       # For grouped files the gate additionally requires the action keyword
-      # to actually appear inside a runCli([ ... ]) call to prevent stub
+      # to actually appear inside a runCli( ... ]) call to prevent stub
       # files from passing.
       if [ -n "$action" ] && [[ "$cand" != "${topic}-${action}.test.ts" ]]; then
         if ! awk -v action="$action" '
-          /runCli\(\[/ { inCall=1 }
+          /runCli\(/ { inCall=1 }
           inCall && index($0, "\"" action "\"") { hit=1 }
           /\]/ { inCall=0 }
           END { exit hit ? 0 : 1 }

@@ -9,10 +9,10 @@ import {
   hardLockedPinProblem,
   semanticLockProblem
 } from "./session-pin-support.js";
+import { sessionStartResponse, writeFailureProblem } from "./session-start-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-import type { StoredSpecBranch, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -116,47 +116,6 @@ function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) 
           )
         );
   }
-}
-
-function sessionStartResponse(
-  session: StoredWorkSession,
-  keys: string[],
-  warning?: { message: string; type: "UNKNOWN_AGENT_TYPE" },
-  branch?: StoredSpecBranch
-) {
-  return {
-    session,
-    ...(branch === undefined ? {} : { branch }),
-    ...(warning === undefined ? {} : { warnings: [warning] }),
-    session_file: {
-      path: ".vspec/session.json",
-      session_id: session.id
-    },
-    suggested_next_actions: [
-      ...keys.map((key) => ({
-        command: `vspec usecase show ${key} --session ${session.id}`,
-        reason: "Open the pinned use case revision."
-      })),
-      {
-        command: "vspec session complete",
-        reason: "Close the session when the work is done."
-      }
-    ]
-  };
-}
-
-function writeFailureProblem() {
-  return problem(
-    500,
-    "Session creation failed",
-    { created_branch: false, created_session: false },
-    [
-      {
-        command: "vspec session start --retry",
-        reason: "Retry after the failed transaction."
-      }
-    ]
-  );
 }
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {

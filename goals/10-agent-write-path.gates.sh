@@ -151,7 +151,7 @@ else
   if grep -E '\bfetch\(' "$HONEST_TEST" >/dev/null 2>&1; then
     D1_OFFENDERS+=("$HONEST_TEST calls fetch(")
   fi
-  for required in "VSPEC_CONFIG_PATH" "runCli([" "--format=agent" "format_version"; do
+  for required in "VSPEC_CONFIG_PATH" "runCli(" "--format=agent" "format_version"; do
     if ! grep -F -- "$required" "$HONEST_TEST" >/dev/null 2>&1; then
       D1_OFFENDERS+=("$HONEST_TEST missing $required")
     fi

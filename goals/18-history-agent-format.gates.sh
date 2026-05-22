@@ -196,7 +196,7 @@ else
   fi
   for token in \
     "agent history" \
-    "runCli([" \
+    "runCli(" \
     '"history"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

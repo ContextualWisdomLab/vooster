@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureLockSession } from "./prisma-lock-session.js";
 import {
   deleteProjectViaPrisma,
   updateProjectNameViaPrisma
@@ -55,14 +56,14 @@ import {
   workSessionUpdate,
   workspaceData
 } from "./prisma-signup-mappers.js";
-import type { StoredApiKey } from "../domain/entities/index.js";
-import type { StoredComment } from "../domain/entities/index.js";
-import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type {
   StoredActor,
+  StoredApiKey,
+  StoredComment,
   StoredGoal,
   StoredLock,
   StoredMembership,
+  StoredMergeRequest,
   StoredProject,
   StoredRevision,
   StoredScenario,
@@ -643,7 +644,7 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async saveLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.create({ data: lockData(lock) });
   }
 
@@ -827,7 +828,7 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async updateLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.update({
       data: lockUpdate(lock),
       where: { id: lock.id ?? lock.usecase_id }
@@ -975,28 +976,5 @@ class PrismaSignupStore implements SignupStore {
       authorId: project.workspace.owner_id,
       branchId
     };
-  }
-
-  private async ensureLockSession(lock: StoredLock): Promise<void> {
-    if (lock.held_by_session_id === null || lock.held_by_session_id === undefined) {
-      return;
-    }
-    const usecase = await this.prisma.useCase.findUnique({
-      select: { project_id: true },
-      where: { id: lock.target_id ?? lock.usecase_id }
-    });
-    if (usecase === null) {
-      return;
-    }
-    await this.prisma.workSession.upsert({
-      create: {
-        id: lock.held_by_session_id,
-        intent: "Hold use case lock",
-        project_id: usecase.project_id,
-        user_id: lock.held_by_user_id ?? lock.holder
-      },
-      update: {},
-      where: { id: lock.held_by_session_id }
-    });
   }
 }

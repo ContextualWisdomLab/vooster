@@ -3,7 +3,11 @@ import { z } from "zod";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-import type { StoredActor, StoredUseCase } from "../domain/entities/index.js";
+import {
+  decodeCursor,
+  encodeCursor,
+  useCasePreview
+} from "./usecase-search-results.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
@@ -102,7 +106,7 @@ async function searchUseCases(
         }
       : {};
   return reply.send({
-    items: items.map((usecase) => preview(usecase, actors)),
+    items: items.map((usecase) => useCasePreview(usecase, actors)),
     next_cursor:
       sorted.length > items.length && items.length > 0
         ? encodeCursor(items[items.length - 1]?.key ?? "")
@@ -127,33 +131,4 @@ async function filteredUseCases(
       (cursor === null || usecase.key > cursor) &&
       (text === undefined || usecase.title.toLowerCase().includes(text))
   );
-}
-
-function preview(usecase: StoredUseCase, actors: StoredActor[]) {
-  return {
-    key: usecase.key,
-    level: usecase.level,
-    primary_actor:
-      actors.find((actor) => actor.id === usecase.primary_actor_id)?.name ?? "",
-    status: usecase.status,
-    title: usecase.title,
-    trigger_excerpt: ""
-  };
-}
-
-function encodeCursor(key: string) {
-  return Buffer.from(JSON.stringify({ key }), "utf8").toString("base64url");
-}
-
-function decodeCursor(cursor: string | undefined): false | null | string {
-  if (cursor === undefined) {
-    return null;
-  }
-  try {
-    return z
-      .object({ key: z.string() })
-      .parse(JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"))).key;
-  } catch {
-    return false;
-  }
 }

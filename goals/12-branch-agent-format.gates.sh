@@ -163,7 +163,7 @@ else
   fi
   for token in \
     "agent branch create" \
-    "runCli([" \
+    "runCli(" \
     '"branch"' \
     '"create"' \
     "--format=agent" \

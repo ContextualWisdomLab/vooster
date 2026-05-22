@@ -35,7 +35,8 @@ import { runWho } from "./commands/who.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 export class VspecCommand extends Command {
-  static override description = "Cockburn-style use case management for concurrent agents.";
+  static override description =
+    "Cockburn-style use case management for concurrent agents.";
 
   static override args = {
     command: Args.string()
@@ -135,7 +136,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "init") {
-      runInit(parsed.flags, process.cwd(), this.log.bind(this));
+      await runInit(parsed.flags, process.cwd(), this.log.bind(this));
       return;
     }
     if (parsed.args.command === "member" && this.argv[1] === "invite") {
@@ -199,7 +200,13 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "diff") {
-      await runDiff(parsed.flags, this.argv[1], this.argv[2], this.argv[3], this.log.bind(this));
+      await runDiff(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.argv[3],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "revert") {
@@ -279,23 +286,48 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
-      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      await runStakeholder(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "list") {
-      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      await runStakeholder(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "show") {
-      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      await runStakeholder(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "edit") {
-      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      await runStakeholder(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "stakeholder" && this.argv[1] === "archive") {
-      await runStakeholder(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      await runStakeholder(
+        parsed.flags,
+        this.argv[1],
+        this.argv[2],
+        this.log.bind(this)
+      );
       return;
     }
     if (parsed.args.command === "goal" && this.argv[1] === "create") {
@@ -373,7 +405,6 @@ export class VspecCommand extends Command {
 
     this.log("vspec CLI");
   }
-
 }
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {

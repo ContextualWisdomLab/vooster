@@ -1,9 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
 import { pullSyncFiles, pushSyncFiles } from "../application/sync-files.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { parseFileErrors, parseFilesProblem } from "./sync-markdown.js";
+import {
+  projectIdFrom,
+  pullSchema,
+  pushSchema,
+  syncFileInput
+} from "./sync-route-support.js";
 import { sendSyncPushResult, syncAccessProblem } from "./sync-results.js";
 import type { SignupState } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
@@ -17,26 +22,19 @@ import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
-const pullSchema = z.object({
-  branch: z.string().default("main"),
-  since: z.string().optional()
-});
-const pushSchema = z.object({
-  branch: z.string().default("main"),
-  dry_run: z.boolean().default(false),
-  files: z
-    .array(
-      z.object({
-        base_revision: z.string().min(1),
-        content: z.string().min(1),
-        path: z.string().min(1)
-      })
-    )
-    .min(1),
-  simulate_network_failure: z.boolean().default(false)
-});
-
-type PushFile = z.infer<typeof pushSchema>["files"][number];
+type SyncRouteDeps = {
+  actorStore: ActorStore;
+  branchStore: BranchStore;
+  membershipStore: MembershipStore;
+  projectStore: ProjectStore;
+  revisionStore: RevisionStore;
+  scenarioStore: ScenarioStore;
+  stakeholderInterestStore: StakeholderInterestStore;
+  stakeholderStore: StakeholderStore;
+  state: SignupState;
+  stepStore: StepStore;
+  useCaseStore: UseCaseStore;
+};
 
 export function registerSyncRoutes(
   app: FastifyInstance,
@@ -52,50 +50,32 @@ export function registerSyncRoutes(
   stepStore: StepStore,
   useCaseStore: UseCaseStore
 ) {
+  const deps = {
+    actorStore,
+    branchStore,
+    membershipStore,
+    projectStore,
+    revisionStore,
+    scenarioStore,
+    stakeholderInterestStore,
+    stakeholderStore,
+    state,
+    stepStore,
+    useCaseStore
+  };
+
   app.post("/v1/projects/:projectId/sync/pull", (request, reply) =>
-    pullFiles(
-      request,
-      reply,
-      state,
-      actorStore,
-      membershipStore,
-      scenarioStore,
-      stakeholderInterestStore,
-      stakeholderStore,
-      stepStore,
-      useCaseStore
-    )
+    pullFiles(request, reply, deps)
   );
   app.post("/v1/projects/:projectId/sync/push", (request, reply) =>
-    pushFiles(
-      request,
-      reply,
-      state,
-      actorStore,
-      branchStore,
-      membershipStore,
-      projectStore,
-      revisionStore,
-      scenarioStore,
-      stakeholderInterestStore,
-      stakeholderStore,
-      stepStore,
-      useCaseStore
-    )
+    pushFiles(request, reply, deps)
   );
 }
 
 async function pullFiles(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
-  actorStore: ActorStore,
-  membershipStore: MembershipStore,
-  scenarioStore: ScenarioStore,
-  stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore,
-  stepStore: StepStore,
-  useCaseStore: UseCaseStore
+  deps: SyncRouteDeps
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pullSchema.safeParse(request.body);
@@ -104,17 +84,17 @@ async function pullFiles(
   }
   const result = await pullSyncFiles(
     {
-      actorStore,
-      membershipStore,
-      scenarioStore,
-      stakeholderInterestStore,
-      stakeholderStore,
-      stepStore,
-      useCaseStore
+      actorStore: deps.actorStore,
+      membershipStore: deps.membershipStore,
+      scenarioStore: deps.scenarioStore,
+      stakeholderInterestStore: deps.stakeholderInterestStore,
+      stakeholderStore: deps.stakeholderStore,
+      stepStore: deps.stepStore,
+      useCaseStore: deps.useCaseStore
     },
     {
       projectId,
-      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+      userId: authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken)
     }
   );
   return result.status === "FORBIDDEN"
@@ -125,17 +105,7 @@ async function pullFiles(
 async function pushFiles(
   request: FastifyRequest,
   reply: FastifyReply,
-  state: SignupState,
-  actorStore: ActorStore,
-  branchStore: BranchStore,
-  membershipStore: MembershipStore,
-  projectStore: ProjectStore,
-  revisionStore: RevisionStore,
-  scenarioStore: ScenarioStore,
-  stakeholderInterestStore: StakeholderInterestStore,
-  stakeholderStore: StakeholderStore,
-  stepStore: StepStore,
-  useCaseStore: UseCaseStore
+  deps: SyncRouteDeps
 ) {
   const projectId = projectIdFrom(request.params);
   const parsed = pushSchema.safeParse(request.body);
@@ -150,36 +120,24 @@ async function pushFiles(
     reply,
     await pushSyncFiles(
       {
-        branchStore,
-        actorStore,
-        membershipStore,
-        projectStore,
-        revisionStore,
-        scenarioStore,
-        stakeholderInterestStore,
-        stakeholderStore,
-        stepStore,
-        useCaseStore
+        actorStore: deps.actorStore,
+        branchStore: deps.branchStore,
+        membershipStore: deps.membershipStore,
+        projectStore: deps.projectStore,
+        revisionStore: deps.revisionStore,
+        scenarioStore: deps.scenarioStore,
+        stakeholderInterestStore: deps.stakeholderInterestStore,
+        stakeholderStore: deps.stakeholderStore,
+        stepStore: deps.stepStore,
+        useCaseStore: deps.useCaseStore
       },
       {
         dryRun: parsed.data.dry_run,
         files: parsed.data.files.map(syncFileInput),
         projectId,
         simulateNetworkFailure: parsed.data.simulate_network_failure,
-        userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+        userId: authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken)
       }
     )
   );
-}
-
-function projectIdFrom(params: unknown) {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
-}
-
-function syncFileInput(file: PushFile) {
-  return {
-    baseRevision: file.base_revision,
-    content: file.content,
-    path: file.path
-  };
 }

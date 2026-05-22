@@ -30,6 +30,7 @@ export async function addComment(
   deps: CommentsDeps,
   input: {
     body: string;
+    dryRun?: boolean;
     simulateWriteFailure?: boolean;
     usecaseId: string;
     userId: string | undefined;
@@ -57,7 +58,9 @@ export async function addComment(
     target_type: "USECASE" as const,
     updated_at: null
   };
-  await deps.commentStore.saveComment(comment);
+  if (input.dryRun !== true) {
+    await deps.commentStore.saveComment(comment);
+  }
   return { comment, status: "ADDED", usecase: found.usecase };
 }
 

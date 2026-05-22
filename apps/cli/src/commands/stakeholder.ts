@@ -13,8 +13,12 @@ import {
   type StakeholderSummary
 } from "./stakeholder-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
+import { deleteJson, fetchJson, patchJson } from "../http-client.js";
 
 export class StakeholderCommand extends Command {
   static override description = "Manage project stakeholders.";
@@ -26,10 +30,13 @@ export class StakeholderCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    branch: Flags.string(),
     description: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
     name: Flags.string(),
     "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string(),
     type: Flags.string()
   };
@@ -136,22 +143,19 @@ async function createStakeholder(
   writeLine: (message: string) => void
 ): Promise<void> {
   const stakeholderFlags = stakeholderCreateFlagsFrom(flags);
-  const response = await postJson(
-    `${stakeholderFlags.apiUrl}/v1/projects/${stakeholderFlags.projectId}/stakeholders`,
+  await runMutationCommand<StakeholderResponse>(
     {
-      description: stakeholderFlags.description,
-      name: stakeholderFlags.name,
-      type: stakeholderFlags.type
+      body: {
+        description: stakeholderFlags.description,
+        name: stakeholderFlags.name,
+        type: stakeholderFlags.type
+      },
+      method: "POST",
+      path: `/v1/projects/${stakeholderFlags.projectId}/stakeholders`
     },
-    {
-      Cookie: stakeholderFlags.sessionCookie
-    }
+    commonMutationContextFrom(stakeholderFlags),
+    { format: flags.format, human: printStakeholderCreated, writeLine }
   );
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
-    return;
-  }
-  printStakeholderCreated(response.body as StakeholderResponse, writeLine);
 }
 
 async function listStakeholders(

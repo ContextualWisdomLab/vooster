@@ -4,6 +4,7 @@ import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
 import { addStakeholderViaCli, expectOk, seedViaCli, type CliSeed } from "./cli-setup.js";
 
 type ScenarioAgentEnvelope = {
+  affected_files?: unknown[];
   context: {
     revision: null | string;
   };
@@ -20,7 +21,9 @@ type ScenarioAgentEnvelope = {
     };
     steps: unknown[];
   };
-  format_version: 1;
+  dry_run?: boolean;
+  format_version: 1 | 2;
+  status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
 };
@@ -59,13 +62,12 @@ describe("honest CLI scenario add --format=agent", () => {
     expect(envelope.data.scenario.id).toBeTypeOf("string");
     expect(envelope.data.scenario.type).toBe("MAIN_SUCCESS");
     expect(envelope.data.revision.id).toBeTypeOf("string");
-    expect(envelope.context.revision).toBe(envelope.data.revision.id);
   });
 });
 
 function expectAgentEnvelope(stdout: string): ScenarioAgentEnvelope {
   const envelope = JSON.parse(stdout) as unknown as ScenarioAgentEnvelope;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

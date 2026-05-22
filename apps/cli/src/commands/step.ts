@@ -1,15 +1,23 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { patchJson, postJson } from "../http-client.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { patchJson } from "../http-client.js";
 
 type StepCliFlags = {
   action?: string;
   actor?: string;
   "api-url"?: string;
   "base-revision"?: string;
+  branch?: string;
+  "dry-run"?: boolean;
   format?: string;
+  "project-id"?: string;
+  root?: string;
   "session-cookie"?: string;
 };
 
@@ -17,6 +25,10 @@ type StepCreateFlags = {
   action: string;
   actor: string;
   apiUrl: string;
+  branch: string;
+  dryRun: boolean;
+  projectId: string | null;
+  root: string;
   scenarioId: string;
   sessionCookie: string;
 };
@@ -71,7 +83,11 @@ export class StepCommand extends Command {
     actor: Flags.string(),
     "api-url": Flags.string(),
     "base-revision": Flags.string(),
+    branch: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
+    "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -105,31 +121,33 @@ async function addStep(
   scenarioId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const stepFlags = stepCreateFlagsFrom(flags, scenarioId);
-  const response = await postJson(
-    `${stepFlags.apiUrl}/v1/scenarios/${stepFlags.scenarioId}/steps`,
+  const s = stepCreateFlagsFrom(flags, scenarioId);
+  const actor = s.actor;
+  await runMutationCommand<StepResponse>(
     {
-      action: stepFlags.action,
-      actor: stepFlags.actor
+      body: {
+        action: s.action,
+        actor: s.actor
+      },
+      method: "POST",
+      path: `/v1/scenarios/${s.scenarioId}/steps`
     },
+    commonMutationContextFrom(s),
     {
-      Cookie: stepFlags.sessionCookie
+      format: flags.format,
+      human: (body, write) => printStepAdd(body, actor, write),
+      writeLine
     }
   );
-  const body = response.body as StepResponse;
+}
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: body.revision.id
-      }
-    }), null, 2));
-    return;
-  }
-
+function printStepAdd(
+  body: StepResponse,
+  actor: string,
+  writeLine: (message: string) => void
+): void {
   writeLine(`Step ${body.step.id}`);
-  writeLine(`${String(body.step.step_number)}. ${stepFlags.actor} ${body.step.action}`);
+  writeLine(`${String(body.step.step_number)}. ${actor} ${body.step.action}`);
   writeLine(`Revision id ${body.revision.id}`);
   writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
   for (const step of body.scenario_steps) {
@@ -171,6 +189,10 @@ function stepCreateFlagsFrom(flags: StepCliFlags, scenarioId: string | undefined
     action: requiredFlag(flags, "action"),
     actor: requiredFlag(flags, "actor"),
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
+    projectId: optionalFlag(flags, "project-id") ?? null,
+    root: flags.root ?? process.cwd(),
     scenarioId: requiredArgument(scenarioId, "scenario-id"),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };

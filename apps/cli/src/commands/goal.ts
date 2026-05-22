@@ -15,6 +15,10 @@ import {
   type GoalResponse
 } from "./goal-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { fetchJson, patchJson, postJson } from "../http-client.js";
 
 export class GoalCommand extends Command {
@@ -28,11 +32,14 @@ export class GoalCommand extends Command {
   static override flags = {
     "actor-id": Flags.string(),
     "api-url": Flags.string(),
+    branch: Flags.string(),
     description: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
     level: Flags.string(),
     priority: Flags.string(),
     "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -115,26 +122,24 @@ async function showGoal(
 
 async function createGoal(flags: GoalCliFlags, writeLine: (message: string) => void): Promise<void> {
   const goalFlags = goalCreateFlagsFrom(flags);
-  const response = await postJson(
-    `${goalFlags.apiUrl}/v1/projects/${goalFlags.projectId}/goals`,
+  await runMutationCommand<GoalResponse>(
     {
-      actor_id: goalFlags.actorId,
-      description: goalFlags.description,
-      level: goalFlags.level,
-      priority: goalFlags.priority
+      body: {
+        actor_id: goalFlags.actorId,
+        description: goalFlags.description,
+        level: goalFlags.level,
+        priority: goalFlags.priority
+      },
+      method: "POST",
+      path: `/v1/projects/${goalFlags.projectId}/goals`,
+      successHints: (data) =>
+        data.recommended_next_command === undefined
+          ? []
+          : [{ command: data.recommended_next_command }]
     },
-    {
-      Cookie: goalFlags.sessionCookie
-    }
+    commonMutationContextFrom(goalFlags),
+    { format: flags.format, human: printGoalResponse, writeLine }
   );
-  const body = response.body as GoalResponse;
-
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
-    return;
-  }
-
-  printGoalResponse(body, writeLine);
 }
 
 async function listGoals(flags: GoalCliFlags, writeLine: (message: string) => void): Promise<void> {

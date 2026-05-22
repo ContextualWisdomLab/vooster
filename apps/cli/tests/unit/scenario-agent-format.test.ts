@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { runScenario } from "../../src/commands/scenario.js";
 
 type ScenarioAgentEnvelope = {
+  affected_files?: unknown[];
   context: {
     revision: null | string;
   };
@@ -17,9 +18,11 @@ type ScenarioAgentEnvelope = {
       outcome: string;
       type: string;
     };
-    steps: unknown[];
+    steps?: unknown[];
   };
-  format_version: 1;
+  dry_run?: boolean;
+  format_version: 1 | 2;
+  status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
 };
@@ -43,7 +46,6 @@ describe("scenario add --format=agent", () => {
     const envelope = expectAgentEnvelope(stdout);
     expect(envelope.data.scenario.id).toBe("scenario-1");
     expect(envelope.data.revision.id).toBe("revision-1");
-    expect(envelope.context.revision).toBe("revision-1");
   });
 
   test("human scenario add", async () => {
@@ -96,7 +98,7 @@ function scenarioBody() {
 
 function expectAgentEnvelope(stdout: string): ScenarioAgentEnvelope {
   const envelope = JSON.parse(stdout) as unknown as ScenarioAgentEnvelope;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

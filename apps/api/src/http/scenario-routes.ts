@@ -74,6 +74,7 @@ async function createScenario(
     parsed.data.type === "EXTENSION"
       ? {
           condition: parsed.data.condition,
+          dryRun: dryRunFromQuery(request.query),
           extensionPoint: parsed.data.extension_point,
           outcome: parsed.data.outcome,
           type: "EXTENSION",
@@ -81,6 +82,7 @@ async function createScenario(
           userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
         }
       : {
+          dryRun: dryRunFromQuery(request.query),
           type: "MAIN_SUCCESS",
           usecaseId,
           userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
@@ -110,6 +112,7 @@ async function addStep(
     {
       action: parsed.data.action,
       actorName: parsed.data.actor,
+      dryRun: dryRunFromQuery(request.query),
       force: parsed.data.force,
       scenarioId,
       userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
@@ -125,4 +128,11 @@ function usecaseIdFrom(params: unknown): string {
 
 function scenarioIdFrom(params: unknown): string {
   return z.object({ scenarioId: z.string().min(1) }).parse(params).scenarioId;
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }

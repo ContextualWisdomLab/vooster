@@ -7,13 +7,21 @@ import {
   type CommentResponse
 } from "./comment-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
+import { deleteJson, fetchJson, patchJson } from "../http-client.js";
 
 type CommentCliFlags = {
   "api-url"?: string;
   body?: string;
+  branch?: string;
+  "dry-run"?: boolean;
   format?: string;
+  "project-id"?: string;
+  root?: string;
   "session-cookie"?: string;
 };
 
@@ -27,6 +35,17 @@ type CommentBodyFlags = CommentTargetFlags & {
   body: string;
 };
 
+type CommentAddFlags = {
+  apiUrl: string;
+  body: string;
+  branch: string;
+  dryRun: boolean;
+  projectId: string;
+  root: string;
+  sessionCookie: string;
+  targetId: string;
+};
+
 export class CommentCommand extends Command {
   static override description = "Manage use case comments.";
 
@@ -38,7 +57,11 @@ export class CommentCommand extends Command {
   static override flags = {
     "api-url": Flags.string(),
     body: Flags.string(),
+    branch: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
+    "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string()
   };
 
@@ -89,24 +112,16 @@ async function addComment(
   targetId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const commentFlags = commentBodyFlagsFrom(flags, targetId, "usecase-id");
-  const response = await postJson(
-    `${commentFlags.apiUrl}/v1/usecases/${commentFlags.targetId}/comments`,
-    { body: commentFlags.body },
+  const c = commentAddFlagsFrom(flags, targetId);
+  await runMutationCommand<CommentResponse>(
     {
-      Cookie: commentFlags.sessionCookie
-    }
+      body: { body: c.body },
+      method: "POST",
+      path: `/v1/usecases/${c.targetId}/comments`
+    },
+    commonMutationContextFrom(c),
+    { format: flags.format, human: printCommentResponse, writeLine }
   );
-  const body = response.body as CommentResponse;
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
-    return;
-  }
-
-  printCommentResponse(body, writeLine);
 }
 
 async function listComments(
@@ -228,5 +243,21 @@ function commentBodyFlagsFrom(
   return {
     ...commentTargetFlagsFrom(flags, targetId, argumentName),
     body: requiredFlag(flags, "body")
+  };
+}
+
+function commentAddFlagsFrom(
+  flags: CommentCliFlags,
+  targetId: string | undefined
+): CommentAddFlags {
+  return {
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    body: requiredFlag(flags, "body"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
+    projectId: requiredFlag(flags, "project-id"),
+    root: flags.root ?? process.cwd(),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    targetId: requiredArgument(targetId, "usecase-id")
   };
 }

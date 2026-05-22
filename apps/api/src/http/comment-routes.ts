@@ -57,6 +57,7 @@ async function addComment(
     deps(commentStore, membershipStore, useCaseStore),
     {
       body: parsed.data.body,
+      dryRun: dryRunFromQuery(request.query),
       simulateWriteFailure: parsed.data.simulate_write_failure,
       usecaseId: usecaseId(request),
       userId: userId(request, state)
@@ -133,4 +134,11 @@ function commentId(request: FastifyRequest) {
 
 function userId(request: FastifyRequest, state: SignupState) {
   return authenticatedUserId(request.headers.cookie, state.sessionsByToken);
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }

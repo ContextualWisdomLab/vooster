@@ -93,6 +93,7 @@ async function createStakeholder(
       {
         attachToStep: parsed.data.attach_to_step === true,
         description: parsed.data.description,
+        dryRun: dryRunFromQuery(request.query),
         name: parsed.data.name,
         projectId,
         type: parsed.data.type
@@ -103,4 +104,11 @@ async function createStakeholder(
 
 function projectIdFrom(params: unknown): string {
   return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }

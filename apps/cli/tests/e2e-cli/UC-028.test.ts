@@ -26,6 +26,8 @@ describe("UC-028 CLI - Comment on a use case", () => {
         setup.usecaseId,
         "--body",
         "**Review** this flow",
+        "--project-id",
+        setup.projectId,
         "--session-cookie",
         setup.cookie,
         "--api-url",
@@ -136,6 +138,7 @@ async function createCommentReadyUseCase(apiUrl: string) {
 
   return {
     cookie: signedUp.cookie,
+    projectId: project.project.id,
     usecaseId: usecase.usecase.id,
     usecaseKey: usecase.usecase.key
   };

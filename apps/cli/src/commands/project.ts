@@ -1,15 +1,22 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { writeConfig } from "../config-store.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { fetchJson, postJson } from "../http-client.js";
+import { fetchJson } from "../http-client.js";
 
 type ProjectCliFlags = {
   "api-url"?: string;
+  branch?: string;
+  "dry-run"?: boolean;
   format?: string;
   key?: string;
   name?: string;
+  root?: string;
   "session-cookie"?: string;
   visibility?: string;
   "workspace-id"?: string;
@@ -17,8 +24,12 @@ type ProjectCliFlags = {
 
 type ProjectFlags = {
   apiUrl: string;
+  branch: string;
+  dryRun: boolean;
   key: string;
   name: string;
+  projectId: null;
+  root: string;
   sessionCookie: string;
   visibility: "INTERNAL" | "PRIVATE";
   workspaceId: string;
@@ -53,9 +64,12 @@ export class ProjectCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    branch: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
     key: Flags.string(),
     name: Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string(),
     visibility: Flags.string(),
     "workspace-id": Flags.string()
@@ -95,32 +109,36 @@ async function createProject(
   writeLine: (message: string) => void
 ): Promise<void> {
   const projectFlags = projectFlagsFrom(flags);
-  const response = await postJson(
-    `${projectFlags.apiUrl}/v1/workspaces/${projectFlags.workspaceId}/projects`,
+  await runMutationCommand<ProjectResponse>(
     {
-      key: projectFlags.key,
-      name: projectFlags.name,
-      visibility: projectFlags.visibility
+      body: {
+        key: projectFlags.key,
+        name: projectFlags.name,
+        visibility: projectFlags.visibility
+      },
+      method: "POST",
+      path: `/v1/workspaces/${projectFlags.workspaceId}/projects`,
+      successHints: (data) => {
+        if (!projectFlags.dryRun) {
+          writeConfig({
+            current_project_id: data.project.id,
+            current_project_key: data.project.key
+          });
+        }
+        return [{ command: data.recommended_next_command }];
+      }
     },
+    commonMutationContextFrom(projectFlags),
     {
-      Cookie: projectFlags.sessionCookie
+      format: flags.format,
+      human: (data, write) => {
+        write(`Project ${data.project.name} ${data.project.key} ${data.project.id}`);
+        write(`Branch ${data.default_branch.name}`);
+        write(data.recommended_next_command);
+      },
+      writeLine
     }
   );
-  const body = response.body as ProjectResponse;
-
-  writeConfig({
-    current_project_id: body.project.id,
-    current_project_key: body.project.key
-  });
-
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
-    return;
-  }
-
-  writeLine(`Project ${body.project.name} ${body.project.key} ${body.project.id}`);
-  writeLine(`Branch ${body.default_branch.name}`);
-  writeLine(body.recommended_next_command);
 }
 
 async function listProjects(
@@ -174,8 +192,12 @@ function switchProject(
 function projectFlagsFrom(flags: ProjectCliFlags): ProjectFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
     key: requiredFlag(flags, "key"),
     name: requiredFlag(flags, "name"),
+    projectId: null,
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     visibility: projectVisibility(flags.visibility ?? "PRIVATE"),
     workspaceId: resolveContextFlag(flags, "workspace-id")

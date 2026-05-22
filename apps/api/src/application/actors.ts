@@ -19,6 +19,7 @@ export type ActorDefinitionDeps = {
 export type ActorDefinitionInput = {
   aliases: string[];
   description: string;
+  dryRun?: boolean;
   isHuman: boolean;
   name: string;
   projectId: string;
@@ -77,8 +78,10 @@ export async function defineActor(
 
   const actor = actorFrom(deps, input);
   const revision = actorRevision(deps, actor);
-  await deps.actorStore.saveActor(actor);
-  await deps.revisionStore.saveRevision(revision);
+  if (input.dryRun !== true) {
+    await deps.actorStore.saveActor(actor);
+    await deps.revisionStore.saveRevision(revision);
+  }
 
   return {
     actor,

@@ -13,8 +13,12 @@ import {
   type ActorSummary
 } from "./actor-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { deleteJson, fetchJson, patchJson, postJson } from "../http-client.js";
+import { deleteJson, fetchJson, patchJson } from "../http-client.js";
 
 export class ActorCommand extends Command {
   static override description = "Manage project actors.";
@@ -27,10 +31,13 @@ export class ActorCommand extends Command {
   static override flags = {
     aliases: Flags.string(),
     "api-url": Flags.string(),
+    branch: Flags.string(),
     description: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
     name: Flags.string(),
     "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string(),
     type: Flags.string()
   };
@@ -125,22 +132,21 @@ async function createActor(
   writeLine: (message: string) => void
 ): Promise<void> {
   const actorFlags = actorCreateFlagsFrom(flags);
-  const response = await postJson(
-    `${actorFlags.apiUrl}/v1/projects/${actorFlags.projectId}/actors`,
+  await runMutationCommand<ActorResponse>(
     {
-      aliases: actorFlags.aliases,
-      description: actorFlags.description,
-      is_human: true,
-      name: actorFlags.name,
-      type: actorFlags.type
+      body: {
+        aliases: actorFlags.aliases,
+        description: actorFlags.description,
+        is_human: true,
+        name: actorFlags.name,
+        type: actorFlags.type
+      },
+      method: "POST",
+      path: `/v1/projects/${actorFlags.projectId}/actors`
     },
-    { Cookie: actorFlags.sessionCookie }
+    commonMutationContextFrom(actorFlags),
+    { format: flags.format, human: printActorCreated, writeLine }
   );
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
-    return;
-  }
-  printActorCreated(response.body as ActorResponse, writeLine);
 }
 
 async function listActors(

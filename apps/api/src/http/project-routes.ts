@@ -119,6 +119,7 @@ async function createProject(
         workspaceStore
       },
       {
+        dryRun: dryRunFromQuery(request.query),
         key: parsed.data.key,
         name: parsed.data.name,
         simulateBranchInsertFailure:
@@ -129,6 +130,13 @@ async function createProject(
       }
     )
   );
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }
 
 async function archiveWorkspace(

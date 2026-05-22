@@ -26,6 +26,7 @@ export type ActorGoalsDeps = {
 export type CreateGoalInput = {
   actorId: string;
   description: string;
+  dryRun?: boolean;
   level: StoredGoal["level"];
   priority: StoredGoal["priority"];
   projectId: string;
@@ -95,8 +96,10 @@ export async function createGoal(
   );
   const revision = goalRevision(deps, goal, 1);
 
-  await deps.goalStore.saveGoal(goal);
-  await deps.revisionStore.saveRevision(revision);
+  if (input.dryRun !== true) {
+    await deps.goalStore.saveGoal(goal);
+    await deps.revisionStore.saveRevision(revision);
+  }
 
   return { duplicateGoalId: duplicateGoal?.id, goal, revision, status: "CREATED" };
 }

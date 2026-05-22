@@ -25,9 +25,10 @@ export type ScenarioAuthoringDeps = {
 };
 
 export type CreateScenarioInput =
-  | { type: "MAIN_SUCCESS"; usecaseId: string; userId?: string }
+  | { dryRun?: boolean; type: "MAIN_SUCCESS"; usecaseId: string; userId?: string }
   | {
       condition?: string;
+      dryRun?: boolean;
       extensionPoint?: string;
       outcome?: "FAILURE" | "PARTIAL" | "SUCCESS";
       type: "EXTENSION";
@@ -51,6 +52,7 @@ export type CreateScenarioResult =
 export type AddScenarioStepInput = {
   action: string;
   actorName: string;
+  dryRun?: boolean;
   force: boolean;
   scenarioId: string;
   userId?: string;
@@ -77,7 +79,7 @@ export async function createScenario(
   }
   return input.type === "EXTENSION"
     ? createExtensionScenario(deps, found, input)
-    : createMainSuccessScenario(deps, found);
+    : createMainSuccessScenario(deps, found, input.dryRun === true);
 }
 
 export async function addScenarioStep(
@@ -117,11 +119,15 @@ export async function addScenarioStep(
     step_number: steps.length + 1
   };
   const scenarioSteps = [...steps, step];
-  await deps.stepStore.saveStep(step);
+  const dryRun = input.dryRun === true;
+  if (!dryRun) {
+    await deps.stepStore.saveStep(step);
+  }
   const revision = await appendUseCaseRevision(
     deps,
     found.usecase,
-    `Added step ${String(step.step_number)} to main success scenario`
+    `Added step ${String(step.step_number)} to main success scenario`,
+    dryRun
   );
 
   return {
@@ -135,7 +141,8 @@ export async function addScenarioStep(
 
 async function createMainSuccessScenario(
   deps: ScenarioAuthoringDeps,
-  found: { projectId: string; status: "AUTHORIZED"; usecase: StoredUseCase }
+  found: { projectId: string; status: "AUTHORIZED"; usecase: StoredUseCase },
+  dryRun: boolean
 ): Promise<CreateScenarioResult> {
   const existing = await deps.scenarioStore.findMainScenario(found.usecase.id);
   if (existing !== undefined) {
@@ -155,11 +162,14 @@ async function createMainSuccessScenario(
     type: "MAIN_SUCCESS" as const,
     usecase_id: found.usecase.id
   };
-  await deps.scenarioStore.saveScenario(scenario);
+  if (!dryRun) {
+    await deps.scenarioStore.saveScenario(scenario);
+  }
   const revision = await appendUseCaseRevision(
     deps,
     found.usecase,
-    `Created main success scenario ${scenario.id}`
+    `Created main success scenario ${scenario.id}`,
+    dryRun
   );
   return { revision, scenario, status: "CREATED", steps: [] };
 }
@@ -207,11 +217,15 @@ async function createExtensionScenario(
     type: "EXTENSION" as const,
     usecase_id: found.usecase.id
   };
-  await deps.scenarioStore.saveScenario(scenario);
+  const dryRun = input.dryRun === true;
+  if (!dryRun) {
+    await deps.scenarioStore.saveScenario(scenario);
+  }
   const revision = await appendUseCaseRevision(
     deps,
     found.usecase,
-    `Created extension scenario ${scenario.id}`
+    `Created extension scenario ${scenario.id}`,
+    dryRun
   );
   return {
     defaultOutcome: input.outcome === undefined,
@@ -256,7 +270,8 @@ async function scenarioWithUseCase(
 async function appendUseCaseRevision(
   deps: Pick<ScenarioAuthoringDeps, "idFactory" | "revisionStore">,
   usecase: StoredUseCase,
-  changeSummary: string
+  changeSummary: string,
+  dryRun = false
 ): Promise<StoredRevision> {
   const revision = {
     change_summary: changeSummary,
@@ -267,7 +282,9 @@ async function appendUseCaseRevision(
     snapshot: { ...usecase },
     version_number: await deps.revisionStore.nextVersionNumber(usecase.id)
   };
-  await deps.revisionStore.saveRevision(revision);
+  if (!dryRun) {
+    await deps.revisionStore.saveRevision(revision);
+  }
   return revision;
 }
 

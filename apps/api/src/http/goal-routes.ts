@@ -96,6 +96,7 @@ async function createGoal(
   const result = await createGoalUseCase(deps, {
     actorId: parsed.data.actor_id,
     description: parsed.data.description,
+    dryRun: dryRunFromQuery(request.query),
     level: parsed.data.level,
     priority: parsed.data.priority,
     projectId,
@@ -103,6 +104,13 @@ async function createGoal(
   });
 
   return sendCreateGoalResult(reply, result);
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }
 
 async function patchGoal(

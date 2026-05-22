@@ -1,24 +1,34 @@
 import { Args, Command, Flags } from "@oclif/core";
 
-import { buildAgentEnvelope } from "../agent-envelope.js";
-import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
-import { postJson } from "../http-client.js";
+import {
+  commonMutationContextFrom,
+  runMutationCommand
+} from "../application/mutation-command.js";
+import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
 
 type ScenarioCliFlags = {
   at?: string;
   condition?: string;
   "api-url"?: string;
+  branch?: string;
+  "dry-run"?: boolean;
   format?: string;
   outcome?: string;
+  "project-id"?: string;
+  root?: string;
   "session-cookie"?: string;
   type?: string;
 };
 
 type ScenarioCreateFlags = {
   apiUrl: string;
+  branch: string;
   condition: string | undefined;
+  dryRun: boolean;
   extensionPoint: string | undefined;
   outcome: "FAILURE" | "PARTIAL" | "SUCCESS" | undefined;
+  projectId: string | null;
+  root: string;
   sessionCookie: string;
   type: "EXTENSION" | "MAIN_SUCCESS";
   usecaseId: string;
@@ -37,6 +47,7 @@ type ScenarioResponse = {
     outcome: string;
     type: string;
   };
+  steps?: unknown[];
 };
 
 export class ScenarioCommand extends Command {
@@ -51,8 +62,12 @@ export class ScenarioCommand extends Command {
     at: Flags.string(),
     condition: Flags.string(),
     "api-url": Flags.string(),
+    branch: Flags.string(),
+    "dry-run": Flags.boolean(),
     format: Flags.string(),
     outcome: Flags.string(),
+    "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string(),
     type: Flags.string()
   };
@@ -83,31 +98,24 @@ async function addScenario(
   usecaseId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const scenarioFlags = scenarioCreateFlagsFrom(flags, usecaseId);
-  const response = await postJson(
-    `${scenarioFlags.apiUrl}/v1/usecases/${scenarioFlags.usecaseId}/scenarios`,
+  const s = scenarioCreateFlagsFrom(flags, usecaseId);
+  await runMutationCommand<ScenarioResponse>(
     {
-      condition: scenarioFlags.condition,
-      extension_point: scenarioFlags.extensionPoint,
-      outcome: scenarioFlags.outcome,
-      type: scenarioFlags.type
+      body: {
+        condition: s.condition,
+        extension_point: s.extensionPoint,
+        outcome: s.outcome,
+        type: s.type
+      },
+      method: "POST",
+      path: `/v1/usecases/${s.usecaseId}/scenarios`
     },
-    {
-      Cookie: scenarioFlags.sessionCookie
-    }
+    commonMutationContextFrom(s),
+    { format: flags.format, human: printScenario, writeLine }
   );
-  const body = response.body as ScenarioResponse;
+}
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: body.revision.id
-      }
-    }), null, 2));
-    return;
-  }
-
+function printScenario(body: ScenarioResponse, writeLine: (message: string) => void): void {
   writeLine(`Scenario ${body.scenario.id}`);
   writeLine(`Type ${body.scenario.type}`);
   if (body.scenario.extension_point !== null) {
@@ -127,9 +135,13 @@ function scenarioCreateFlagsFrom(
   const type = scenarioType(requiredFlag(flags, "type"));
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
     condition: scenarioCondition(flags, type),
+    dryRun: flags["dry-run"] === true,
     extensionPoint: scenarioExtensionPoint(flags, type),
     outcome: scenarioOutcome(flags.outcome),
+    projectId: optionalFlag(flags, "project-id") ?? null,
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type,
     usecaseId: requiredArgument(usecaseId, "usecase-id")

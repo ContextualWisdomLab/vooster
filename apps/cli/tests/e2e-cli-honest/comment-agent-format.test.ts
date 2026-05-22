@@ -11,7 +11,7 @@ type CommentAgentEnvelope<TData> = {
     session_id: null | string;
   };
   data: TData;
-  format_version: 1;
+  format_version: 1 | 2;
   suggested_next_actions: Array<{ command: string }>;
   warnings: unknown[];
 };
@@ -56,6 +56,8 @@ describe("honest CLI comment --format=agent", () => {
       seed.usecaseKey,
       "--body",
       "Review this flow.",
+      "--project-id",
+      seed.projectId,
       "--format=agent"
     ], seed.env));
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
@@ -113,7 +115,7 @@ describe("honest CLI comment --format=agent", () => {
 
 function expectAgentEnvelope<TData>(stdout: string): CommentAgentEnvelope<TData> {
   const envelope = JSON.parse(stdout) as unknown as CommentAgentEnvelope<TData>;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

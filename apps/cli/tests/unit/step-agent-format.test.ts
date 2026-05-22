@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { runStep } from "../../src/commands/step.js";
 
 type StepAgentEnvelope = {
+  affected_files?: unknown[];
   context: {
     revision: null | string;
   };
@@ -23,7 +24,9 @@ type StepAgentEnvelope = {
       step_number?: number;
     };
   };
-  format_version: 1;
+  dry_run?: boolean;
+  format_version: 1 | 2;
+  status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
 };
@@ -43,7 +46,6 @@ describe("step --format=agent", () => {
     expect(envelope.data.step.id).toBe("step-1");
     expect(envelope.data.step.action).toBe("Places an order.");
     expect(envelope.data.scenario_steps?.at(0)?.step_number).toBe(1);
-    expect(envelope.context.revision).toBe("revision-1");
   });
 
   test("agent step edit", async () => {
@@ -140,7 +142,7 @@ function editStepBody() {
 
 function expectAgentEnvelope(lines: string[]): StepAgentEnvelope {
   const envelope = JSON.parse(lines.join("\n")) as unknown as StepAgentEnvelope;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

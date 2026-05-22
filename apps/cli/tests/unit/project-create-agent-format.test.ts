@@ -14,7 +14,7 @@ type AgentEnvelope<TData> = {
     session_id: null | string;
   };
   data: TData;
-  format_version: 1;
+  format_version: 1 | 2;
   suggested_next_actions: Array<{ command: string }>;
   warnings: unknown[];
 };
@@ -57,7 +57,7 @@ describe("project create --format=agent", () => {
     expect(envelope.data.project.key).toBe("PAY");
     expect(envelope.data.default_branch.name).toBe("main");
     expect(envelope.data.recommended_next_command).toBe("vspec actor define");
-    expect(envelope.suggested_next_actions).toEqual([]);
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec actor define");
     expect(envelope.warnings).toEqual([]);
     expect(readConfig().current_project_id).toBe("project-1");
     expect(readConfig().current_project_key).toBe("PAY");
@@ -121,7 +121,7 @@ function projectCreateResponse(): ProjectCreateData {
 
 function expectAgentEnvelope<TData>(stdout: string): AgentEnvelope<TData> {
   const envelope = JSON.parse(stdout) as unknown as AgentEnvelope<TData>;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

@@ -20,6 +20,7 @@ export type ProjectCreationDeps = {
 };
 
 export type ProjectCreationInput = {
+  dryRun?: boolean;
   key: string;
   name: string;
   simulateBranchInsertFailure: boolean;
@@ -62,11 +63,13 @@ export async function createProject(
   const defaultBranch = mainBranch(deps, project, membership);
   project.default_branch_id = defaultBranch.id;
 
-  if (deps.signupStore === undefined) {
-    await deps.projectStore.saveProject(project);
-    await deps.branchStore.saveBranch(defaultBranch);
-  } else {
-    await deps.signupStore.saveProjectWithDefaultBranch(project, defaultBranch);
+  if (input.dryRun !== true) {
+    if (deps.signupStore === undefined) {
+      await deps.projectStore.saveProject(project);
+      await deps.branchStore.saveBranch(defaultBranch);
+    } else {
+      await deps.signupStore.saveProjectWithDefaultBranch(project, defaultBranch);
+    }
   }
 
   return { defaultBranch, project, status: "CREATED" };

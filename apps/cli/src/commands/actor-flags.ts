@@ -3,10 +3,13 @@ import { requiredFlag, resolveContextFlag } from "../flag-values.js";
 export type ActorCliFlags = {
   aliases?: string;
   "api-url"?: string;
+  branch?: string;
   description?: string;
+  "dry-run"?: boolean;
   format?: string;
   name?: string;
   "project-id"?: string;
+  root?: string;
   "session-cookie"?: string;
   type?: string;
 };
@@ -16,9 +19,12 @@ export type ActorType = "OFFSTAGE" | "PRIMARY" | "SUPPORTING";
 export type ActorCreateFlags = {
   aliases: string[];
   apiUrl: string;
+  branch: string;
   description: string;
+  dryRun: boolean;
   name: string;
   projectId: string;
+  root: string;
   sessionCookie: string;
   type: ActorType;
 };
@@ -27,9 +33,12 @@ export function actorCreateFlagsFrom(flags: ActorCliFlags): ActorCreateFlags {
   return {
     aliases: aliasesFrom(flags.aliases),
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
     description: flags.description ?? "",
+    dryRun: flags["dry-run"] === true,
     name: requiredFlag(flags, "name"),
     projectId: requiredFlag(flags, "project-id"),
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type: actorType(requiredFlag(flags, "type"))
   };

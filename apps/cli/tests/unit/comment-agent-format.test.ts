@@ -10,7 +10,7 @@ type CommentAgentEnvelope<TData> = {
     session_id: null | string;
   };
   data: TData;
-  format_version: 1;
+  format_version: 1 | 2;
   suggested_next_actions: Array<{ command: string }>;
   warnings: unknown[];
 };
@@ -151,6 +151,7 @@ function commentFlags(overrides: Record<string, string> = {}): Record<string, st
   return {
     "api-url": "https://api.example.test",
     body: "Review this flow.",
+    "project-id": "project-1",
     "session-cookie": "session-token",
     ...overrides
   };
@@ -192,7 +193,7 @@ function commentPayload(
 
 function expectAgentEnvelope<TData>(stdout: string): CommentAgentEnvelope<TData> {
   const envelope = JSON.parse(stdout) as unknown as CommentAgentEnvelope<TData>;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

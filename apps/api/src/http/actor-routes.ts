@@ -83,6 +83,7 @@ async function createActor(
       {
         aliases: parsed.data.aliases,
         description: parsed.data.description,
+        dryRun: dryRunFromQuery(request.query),
         isHuman: parsed.data.is_human,
         name: parsed.data.name,
         projectId,
@@ -99,4 +100,11 @@ function isActorType(type: string): type is StoredActor["type"] {
 
 function projectIdFrom(params: unknown): string {
   return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+}
+
+function dryRunFromQuery(query: unknown): boolean {
+  if (typeof query !== "object" || query === null) {
+    return false;
+  }
+  return (query as { dry_run?: unknown }).dry_run === "true";
 }

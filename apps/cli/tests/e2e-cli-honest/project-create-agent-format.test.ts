@@ -11,7 +11,7 @@ type AgentEnvelope<TData> = {
     session_id: null | string;
   };
   data: TData;
-  format_version: 1;
+  format_version: 1 | 2;
   suggested_next_actions: Array<{ command: string }>;
   warnings: unknown[];
 };
@@ -83,7 +83,7 @@ describe("honest CLI project create --format=agent", () => {
 
 function expectAgentEnvelope<TData>(stdout: string): AgentEnvelope<TData> {
   const envelope = JSON.parse(stdout) as unknown as AgentEnvelope<TData>;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

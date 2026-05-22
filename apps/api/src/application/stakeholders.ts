@@ -19,6 +19,7 @@ export type StakeholderDeps = {
 export type CreateStakeholderInput = {
   attachToStep: boolean;
   description: string;
+  dryRun?: boolean;
   name: string;
   projectId: string;
   type: string;
@@ -60,8 +61,10 @@ export async function createStakeholder(
 
   const stakeholder = newStakeholder(deps, input, input.type);
   const revision = initialRevision(deps, stakeholder);
-  await deps.stakeholderStore.saveStakeholder(stakeholder);
-  await deps.revisionStore.saveRevision(revision);
+  if (input.dryRun !== true) {
+    await deps.stakeholderStore.saveStakeholder(stakeholder);
+    await deps.revisionStore.saveRevision(revision);
+  }
   return { revision, stakeholder, status: "CREATED" };
 }
 

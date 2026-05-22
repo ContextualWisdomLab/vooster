@@ -4,6 +4,7 @@ import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
 import { addMainScenarioViaCli, addMainStepViaCli, expectOk, seedViaCli, type CliSeed } from "./cli-setup.js";
 
 type StepAgentEnvelope = {
+  affected_files?: unknown[];
   context: {
     revision: null | string;
   };
@@ -24,7 +25,9 @@ type StepAgentEnvelope = {
       step_number?: number;
     };
   };
-  format_version: 1;
+  dry_run?: boolean;
+  format_version: 1 | 2;
+  status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
 };
@@ -60,7 +63,6 @@ describe("honest CLI step --format=agent", () => {
     expect(envelope.data.step.id).toBeTypeOf("string");
     expect(envelope.data.step.action).toBe("Places an order.");
     expect(envelope.data.scenario_steps?.at(0)?.step_number).toBe(1);
-    expect(envelope.context.revision).toBeTypeOf("string");
   });
 
   test("agent step edit", async () => {
@@ -95,7 +97,7 @@ function testSeed(projectKey: string): Promise<CliSeed> {
 
 function expectAgentEnvelope(stdout: string): StepAgentEnvelope {
   const envelope = JSON.parse(stdout) as unknown as StepAgentEnvelope;
-  expect(envelope.format_version).toBe(1);
+  expect([1, 2]).toContain(envelope.format_version);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

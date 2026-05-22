@@ -31,7 +31,7 @@ const navLinks = [
     </div>
   </nav>
 
-  <section id="top" class="relative overflow-hidden pt-24 md:pt-28 pb-20 md:pb-24" aria-labelledby="hero-title">
+  <section id="top" class="relative overflow-hidden pt-24 md:pt-32 pb-24 md:pb-32" aria-labelledby="hero-title">
     <div
       class="absolute -top-[18%] left-1/2 -translate-x-1/2 w-[820px] h-[820px] rounded-full blur-[40px] pointer-events-none"
       style="background: radial-gradient(circle at center, rgba(45,212,191,0.10) 0%, rgba(45,212,191,0) 60%);"
@@ -39,24 +39,75 @@ const navLinks = [
     ></div>
 
     <div class="shell relative">
-      <div class="max-w-[860px]">
-        <p class="eyebrow">v0.1 · 오픈소스 · 한국어 작업실</p>
+      <div class="max-w-[860px] mx-auto text-center">
+        <a
+          href="https://www.youtube.com/@vibematfia"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="yt-pill flex w-fit mx-auto items-center gap-2 mb-5 pl-0.5 pr-2.5 py-0.5 rounded-[9999px] border border-hairline bg-canvas-soft hover:border-primary-soft hover:bg-canvas-raised transition-colors duration-150 text-[12.5px] leading-none"
+          data-yt-pill
+          aria-label="VibeMafia YouTube 채널 — 빌드 인 퍼블릭 진행 중"
+        >
+          <span class="relative inline-flex">
+            <img
+              src="/vibemafia-avatar.jpg"
+              alt=""
+              width="20"
+              height="20"
+              class="rounded-full"
+              loading="eager"
+              decoding="async"
+            />
+            <span
+              class="yt-pill-dot absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary"
+              style="box-shadow: 0 0 0 1.5px var(--color-canvas-soft), 0 0 6px rgba(45,212,191,0.45);"
+              aria-hidden="true"
+            ></span>
+          </span>
+          <span class="text-ink-strong">YouTube에서 빌드 중</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="yt-pill-arrow text-mute transition-colors" aria-hidden="true">
+            <path d="M7 17L17 7" />
+            <path d="M9 7h8v8" />
+          </svg>
+        </a>
+
+        <p class="eyebrow justify-center">베타 테스터 모집중</p>
 
         <h1
           id="hero-title"
-          class="text-ink-strong font-normal tracking-tight m-0"
+          class="hero-title text-ink-strong font-normal tracking-tight m-0 mx-auto"
           style="font-size: clamp(2.5rem, 6.6vw, 5.25rem); line-height: 1.04; letter-spacing: -0.025em;"
+          aria-label="AI 에이전트를 위한 기획·하네스 도구"
         >
-          AI 에이전트를 위한<br />
-          <em class="not-italic text-primary-soft">기획·하네스 도구</em>
+          <span data-hero-line="1">AI 에이전트를 위한</span><br />
+          <em class="not-italic text-primary-soft" data-hero-line="2">기획·하네스 도구</em><span class="hero-cursor" aria-hidden="true"></span>
         </h1>
+        <script is:inline>
+          /* 페인트 직전에 텍스트를 비워 "완성된 문장이 잠깐 보이는" 플래시를 차단한다. */
+          (function () {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            var h1 = document.getElementById('hero-title');
+            if (!h1) return;
+            var line1 = h1.querySelector('[data-hero-line="1"]');
+            var line2 = h1.querySelector('[data-hero-line="2"]');
+            var cursor = h1.querySelector('.hero-cursor');
+            var br = h1.querySelector('br');
+            if (!line1 || !line2 || !cursor || !br) return;
+            line1.dataset.text = line1.textContent;
+            line2.dataset.text = line2.textContent;
+            line1.textContent = '';
+            line2.textContent = '';
+            br.parentNode.insertBefore(cursor, br);
+            h1.dataset.typingReady = '1';
+          })();
+        </script>
 
-        <p class="max-w-[640px] mt-8 text-body text-lg md:text-xl leading-[1.65]">
+        <p class="mx-auto max-w-[640px] mt-8 text-body text-lg md:text-xl leading-[1.65]">
           느낌으로 짜는 코딩은 이제 그만.<br />
           스펙 기반으로 정확하게 개발하세요.
         </p>
 
-        <div class="flex flex-wrap gap-3 mt-10">
+        <div class="flex flex-wrap justify-center gap-3 mt-10">
           <a href="https://tally.so/r/J9Wd9K" target="_blank" rel="noopener noreferrer" class="btn-primary">
             사전신청하기
             <span aria-hidden="true">→</span>
@@ -65,9 +116,10 @@ const navLinks = [
         </div>
       </div>
 
-      <!-- Hero anchor mockup: 자연어 → spec 자동 구조화 채팅 -->
+      <!-- Hero anchor mockup: 자연어 → spec 자동 구조화 채팅 (스크롤에 따라 축소) -->
       <div
-        class="relative mt-16 md:mt-20 mx-auto max-w-[920px] rounded-[10px] border border-hairline bg-canvas-soft overflow-hidden"
+        data-hero-mockup
+        class="hero-mockup relative mt-16 md:mt-20 mx-auto max-w-[920px] rounded-[10px] border border-hairline bg-canvas-soft overflow-hidden will-change-transform"
         style="box-shadow: 0 24px 80px -32px rgba(45,212,191,0.18), 0 0 0 1px rgba(255,255,255,0.02) inset;"
         aria-label="에이전트가 자연어 요청을 spec으로 자동 구조화하는 예시"
       >
@@ -122,8 +174,77 @@ const navLinks = [
   </section>
 </header>
 
+<style>
+  /* Centered eyebrow: hide leading bar */
+  .eyebrow.justify-center::before {
+    display: none;
+  }
+
+  /* 타이핑 영역 — 빈 상태에서도 2줄 높이를 점유해 CLS 방지 */
+  .hero-title {
+    min-height: 2.15em;
+  }
+
+  /* YouTube pill 라이브 닷: 외곽으로 퍼져나가는 pulse 링 */
+  .yt-pill-dot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    animation: yt-pill-pulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  @keyframes yt-pill-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.6);
+    }
+    80%, 100% {
+      box-shadow: 0 0 0 7px rgba(45, 212, 191, 0);
+    }
+  }
+
+  /* 타이핑 커서 */
+  .hero-cursor {
+    display: inline-block;
+    width: 0.52ch;
+    height: 0.92em;
+    margin-left: 0.06em;
+    background: var(--color-primary-soft);
+    vertical-align: -0.1em;
+    border-radius: 1px;
+    animation: hero-cursor-blink 0.95s steps(2, jump-none) infinite;
+  }
+
+  @keyframes hero-cursor-blink {
+    0%, 49.9% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  /* mockup 축소 기준점: 상단에서 멀어지듯 줄어들도록 위쪽을 고정 */
+  .hero-mockup {
+    transform-origin: 50% 0%;
+    transform: translateY(0) scale(1);
+    transition: opacity 80ms linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-cursor {
+      display: none;
+    }
+    .hero-mockup {
+      transform: none !important;
+      opacity: 1 !important;
+    }
+    .yt-pill-dot::before {
+      animation: none;
+    }
+  }
+</style>
+
 <script is:inline>
   document.addEventListener('DOMContentLoaded', function () {
+    /* ── 기존 PostHog 이벤트 핸들러 ───────────────────────────── */
     document.querySelectorAll('a[href="https://tally.so/r/J9Wd9K"].btn-primary').forEach(function (el) {
       el.addEventListener('click', function () {
         window.posthog?.capture('cta_clicked', {
@@ -145,5 +266,85 @@ const navLinks = [
         window.posthog?.capture('github_clicked', { location: 'hero_nav' });
       });
     }
+
+    initHeroTyping();
+    initHeroShrink();
   });
+
+  /**
+   * 헤드라인을 한 글자씩 타이핑한다.
+   * 1줄을 끝낸 뒤 커서를 다음 줄 끝으로 옮겨서 자연스럽게 이어진다.
+   * 페인트 직전 인라인 스크립트가 텍스트를 비웠을 때만 동작한다(reduce-motion 회피).
+   */
+  function initHeroTyping() {
+    var h1 = document.getElementById('hero-title');
+    if (!h1 || h1.dataset.typingReady !== '1') return;
+
+    var line1 = h1.querySelector('[data-hero-line="1"]');
+    var line2 = h1.querySelector('[data-hero-line="2"]');
+    var cursor = h1.querySelector('.hero-cursor');
+    if (!line1 || !line2 || !cursor) return;
+
+    var t1 = line1.dataset.text || '';
+    var t2 = line2.dataset.text || '';
+    var speed = 72;
+
+    var i = 0;
+    function tickLine1() {
+      if (i < t1.length) {
+        line1.textContent = t1.substring(0, i + 1);
+        i++;
+        setTimeout(tickLine1, speed);
+      } else {
+        setTimeout(startLine2, 240);
+      }
+    }
+
+    function startLine2() {
+      h1.appendChild(cursor);
+      var j = 0;
+      (function tickLine2() {
+        if (j < t2.length) {
+          line2.textContent = t2.substring(0, j + 1);
+          j++;
+          setTimeout(tickLine2, speed);
+        }
+      })();
+    }
+
+    setTimeout(tickLine1, 240);
+  }
+
+  /**
+   * Hero mockup을 스크롤 진행도에 따라 축소·페이드한다.
+   * 스크롤된 거리를 hero 높이의 70%로 정규화해 0..1 progress를 만든다.
+   */
+  function initHeroShrink() {
+    var mockup = document.querySelector('[data-hero-mockup]');
+    var hero = document.getElementById('top');
+    if (!mockup || !hero) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var ticking = false;
+    function update() {
+      var rect = hero.getBoundingClientRect();
+      var heroHeight = hero.offsetHeight || 1;
+      var scrolled = Math.max(0, -rect.top);
+      var progress = Math.min(scrolled / (heroHeight * 0.7), 1);
+      var scale = 1 - progress * 0.18;
+      var translateY = progress * -28;
+      var opacity = Math.max(0.4, 1 - progress * 0.5);
+      mockup.style.transform = 'translateY(' + translateY + 'px) scale(' + scale + ')';
+      mockup.style.opacity = String(opacity);
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+    update();
+  }
 </script>

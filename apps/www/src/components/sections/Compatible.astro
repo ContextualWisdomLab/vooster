@@ -1,17 +1,63 @@
 ---
-// 호환되는 coding agent 라인 — conductor.build 의 logo cloud 자리에 대응.
-// 가상의 고객 로고 대신 실제 호환 가능한 agent 워드마크를 보여준다.
+// 호환 가능한 coding agent 라인 — 산개(scatter) 레이아웃 + 스크롤 spread 인터랙션.
+// 각 항목은 "휴식 위치(top/left %)" + "spread 방향(--dx, --dy)" + "회전(--rot)"을 갖는다.
 const agents = [
-  { name: "Claude Code", note: "Anthropic" },
-  { name: "Cursor", note: "AI Editor" },
-  { name: "Codex CLI", note: "OpenAI" },
-  { name: "Aider", note: "Pair-programmer" },
-  { name: "Cline", note: "VS Code" },
-  { name: "Continue", note: "Open-source" },
+  {
+    name: "Claude Code",
+    note: "Anthropic",
+    pos: { top: "14%", left: "10%" },
+    dir: { x: -0.95, y: -0.9 },
+    rot: -5,
+    size: "lg",
+  },
+  {
+    name: "Cursor",
+    note: "AI Editor",
+    pos: { top: "6%", left: "80%" },
+    dir: { x: 1.0, y: -1.1 },
+    rot: 4,
+    size: "md",
+  },
+  {
+    name: "Codex CLI",
+    note: "OpenAI",
+    pos: { top: "48%", left: "3%" },
+    dir: { x: -1.25, y: 0.0 },
+    rot: -3,
+    size: "md",
+  },
+  {
+    name: "Aider",
+    note: "Pair-program",
+    pos: { top: "44%", left: "94%" },
+    dir: { x: 1.3, y: 0.05 },
+    rot: 5,
+    size: "lg",
+  },
+  {
+    name: "Cline",
+    note: "VS Code",
+    pos: { top: "84%", left: "20%" },
+    dir: { x: -0.7, y: 1.2 },
+    rot: -4,
+    size: "md",
+  },
+  {
+    name: "Continue",
+    note: "Open-source",
+    pos: { top: "82%", left: "78%" },
+    dir: { x: 0.75, y: 1.05 },
+    rot: 3,
+    size: "lg",
+  },
 ] as const;
 ---
 
-<section id="compatible" class="section-tight bg-canvas border-b border-hairline" aria-labelledby="compatible-title">
+<section
+  id="compatible"
+  class="section-tight bg-canvas border-b border-hairline"
+  aria-labelledby="compatible-title"
+>
   <div class="shell">
     <div class="text-center">
       <p class="eyebrow justify-center">COMPATIBLE WITH</p>
@@ -20,20 +66,259 @@ const agents = [
       </p>
     </div>
 
-    <ul class="mt-10 md:mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-hairline rounded-[8px] overflow-hidden border border-hairline list-none p-0">
+    <div
+      class="logo-cloud mt-12 md:mt-16 mx-auto"
+      data-logo-cloud
+      role="list"
+      aria-label="호환되는 coding agent 목록"
+    >
+      <!-- Center: vooster anchor -->
+      <div class="logo-cloud-center" aria-hidden="true">
+        <div class="logo-cloud-anchor">
+          <span class="logo-cloud-anchor-icon">
+            <span class="logo-cloud-anchor-square" aria-hidden="true"></span>
+          </span>
+          <div class="logo-cloud-anchor-text">
+            <div class="logo-cloud-anchor-name">vooster</div>
+            <div class="logo-cloud-anchor-tag">SPEC HUB</div>
+          </div>
+        </div>
+      </div>
+
       {agents.map((agent) => (
-        <li class="bg-canvas px-4 py-6 flex flex-col items-center justify-center gap-1 transition-colors duration-200 hover:bg-canvas-soft">
-          <span class="text-ink-strong text-[15px] font-semibold tracking-tight">{agent.name}</span>
-          <span class="font-mono text-[10.5px] text-mute uppercase tracking-[0.16em]">{agent.note}</span>
-        </li>
+        <div
+          class={`logo-cloud-item logo-cloud-size-${agent.size}`}
+          role="listitem"
+          style={`top: ${agent.pos.top}; left: ${agent.pos.left}; --dx: ${agent.dir.x}; --dy: ${agent.dir.y}; --rot: ${agent.rot}deg;`}
+        >
+          <div class="logo-cloud-card">
+            <span class="logo-cloud-card-name">{agent.name}</span>
+            <span class="logo-cloud-card-note">{agent.note}</span>
+          </div>
+        </div>
       ))}
-    </ul>
+    </div>
   </div>
 </section>
 
 <style>
   .eyebrow.justify-center::before {
-    /* center variant: hide the leading bar so the label stays centered */
     display: none;
   }
+
+  /* ── 컨테이너 ─────────────────────────────────────────────────── */
+  .logo-cloud {
+    position: relative;
+    width: 100%;
+    max-width: 1080px;
+    height: clamp(420px, 50vw, 560px);
+    /* JS가 갱신하는 두 변수: 스크롤에 따른 외곽 spread, fade */
+    --spread: 0px;
+    --fade: 1;
+  }
+
+  /* ── 중앙 vooster 앵커 ────────────────────────────────────────── */
+  .logo-cloud-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+  }
+
+  .logo-cloud-anchor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 22px;
+    border-radius: 14px;
+    border: 1px solid var(--color-primary-deep);
+    background: var(--color-canvas-raised);
+    box-shadow:
+      0 0 0 4px rgba(45, 212, 191, 0.08),
+      0 24px 60px -28px rgba(45, 212, 191, 0.32);
+  }
+
+  .logo-cloud-anchor-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--color-canvas);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px var(--color-hairline);
+  }
+
+  .logo-cloud-anchor-square {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.2);
+  }
+
+  .logo-cloud-anchor-text {
+    text-align: center;
+  }
+
+  .logo-cloud-anchor-name {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink-strong);
+    letter-spacing: -0.01em;
+  }
+
+  .logo-cloud-anchor-tag {
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--color-mute);
+    letter-spacing: 0.18em;
+  }
+
+  /* ── 떠다니는 agent 카드 ─────────────────────────────────────── */
+  .logo-cloud-item {
+    position: absolute;
+    z-index: 1;
+    will-change: transform, opacity;
+    transform:
+      translate(-50%, -50%)
+      translate(
+        calc(var(--dx) * var(--spread)),
+        calc(var(--dy) * var(--spread))
+      )
+      rotate(var(--rot));
+    opacity: var(--fade);
+  }
+
+  .logo-cloud-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 11px 15px;
+    border-radius: 12px;
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas-soft);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.02) inset,
+      0 18px 38px -28px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+  }
+
+  .logo-cloud-size-lg .logo-cloud-card {
+    padding: 12px 17px;
+  }
+  .logo-cloud-size-md .logo-cloud-card {
+    padding: 10px 14px;
+  }
+
+  .logo-cloud-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink-strong);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  .logo-cloud-card-note {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    line-height: 1.3;
+  }
+
+  /* ── 좁은 화면 폴백 ─────────────────────────────────────────────
+   * 640px 미만에서는 scatter를 포기하고 grid로. spread/fade는 비활성화.
+   */
+  @media (max-width: 640px) {
+    .logo-cloud {
+      height: auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .logo-cloud-center {
+      position: relative;
+      top: auto;
+      left: auto;
+      transform: none;
+      grid-column: 1 / -1;
+      justify-self: center;
+      margin-bottom: 4px;
+    }
+
+    .logo-cloud-item {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
+
+    .logo-cloud-card {
+      white-space: normal;
+      padding: 10px 12px !important;
+    }
+  }
+
+  /* ── 모션 감소 ─────────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .logo-cloud-item {
+      transform: translate(-50%, -50%) rotate(var(--rot));
+      opacity: 1 !important;
+    }
+  }
 </style>
+
+<script is:inline>
+  /**
+   * Compatible 섹션 산개 인터랙션.
+   * 스크롤 진행도 0..1에 따라 카드들이 중심에서 바깥으로 더 멀어지고 fade out.
+   * 좁은 화면(< 640px)에서는 CSS가 transform/opacity를 무력화하므로 JS는 그대로 돌려도 무해하다.
+   */
+  (function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var cloud = document.querySelector('[data-logo-cloud]');
+    if (!cloud) return;
+    var section = cloud.closest('section');
+    if (!section) return;
+
+    var ticking = false;
+    function update() {
+      var rect = section.getBoundingClientRect();
+      var vh = window.innerHeight || 1;
+
+      /**
+       * triggerStart: section 상단이 viewport 60% 지점에 닿는 순간부터 spread 시작.
+       * triggerEnd: section 상단이 자기 높이의 -30% 만큼 위로 빠져나가는 시점에 spread 최대.
+       */
+      var triggerStart = vh * 0.6;
+      var triggerEnd = -section.offsetHeight * 0.3;
+      var raw = (triggerStart - rect.top) / (triggerStart - triggerEnd);
+      var progress = Math.max(0, Math.min(1, raw));
+
+      // 외곽 거리: 화면 폭에 비례하지만 60~140px로 클램프
+      var maxSpread = Math.max(60, Math.min(140, window.innerWidth * 0.09));
+      cloud.style.setProperty('--spread', (progress * maxSpread) + 'px');
+      cloud.style.setProperty('--fade', String(Math.max(0.08, 1 - progress * 0.92)));
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+</script>

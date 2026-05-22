@@ -2,6 +2,7 @@
 title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc form"
 created_at: 2026-05-23T17:00:00Z
 resolved: false
+priority: high
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md

@@ -1,3 +1,21 @@
+---
+title: harness-engineer / harness-advisor Spec Debt
+created_at: 2026-05-21T16:42:09Z
+resolved: false
+status_notes: |
+  Item 1 (case (d) in goal-design.md §5) — open.
+  Item 2 (Step 4 tiebreaker in harness-engineer.md) — open.
+  Item 3 (HONEST_UC_SET hardcoded in goals/7-cli-spec-parity.gates.sh) — open.
+  Item 4 (Goal-9 read-path routes missing) — CLOSED on 2026-05-23
+  (actor/stakeholder/goal management routes exist; check-honest-cli-e2e.sh
+  passes 39 files / 47 tests).
+related:
+  - docs/findings/2026-05-21T1635-perf-log.md
+  - docs/goal-design.md
+  - .claude/agents/harness-engineer.md
+  - goals/7-cli-spec-parity.gates.sh
+---
+
 # Findings — harness-engineer / harness-advisor Spec Debt
 
 _Captured 2026-05-22 during the 2nd validation invocation of `harness-engineer`

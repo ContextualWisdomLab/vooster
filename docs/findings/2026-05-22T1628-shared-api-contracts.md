@@ -1,3 +1,16 @@
+---
+title: Shared API Contracts Plan
+created_at: 2026-05-22T16:28:28Z
+resolved: false
+status_notes: |
+  Not started. packages/ workspace directory does not exist yet.
+related:
+  - apps/api
+  - apps/cli
+  - apps/web
+  - pnpm-workspace.yaml
+---
+
 # Findings — Shared API Contracts Plan
 
 Captured 2026-05-23 while reviewing tests that were overfit to implementation

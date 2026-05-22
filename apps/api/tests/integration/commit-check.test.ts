@@ -13,7 +13,7 @@ describe("commit-check", () => {
       "pnpm exec prettier --check --ignore-unknown apps/api/src/application/actors.ts"
     );
     expect(result.stdout).toContain(
-      "pnpm exec eslint --max-warnings 0 apps/api/src/application/actors.ts"
+      "pnpm exec eslint --max-warnings 0 --no-warn-ignored apps/api/src/application/actors.ts"
     );
     expect(result.stdout).toContain(
       "pnpm exec vitest run apps/api/tests/unit/application/actors.test.ts"

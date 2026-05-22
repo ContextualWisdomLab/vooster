@@ -1,3 +1,4 @@
+import { Breadcrumb } from "../../../../components/Breadcrumb";
 import { StatusPill } from "../../../../../components/StatusPill";
 import { fetchUsecaseDetail } from "../../../../../data";
 
@@ -13,6 +14,13 @@ export default async function UsecasePage({
 
   return (
     <article className="grid">
+      <Breadcrumb
+        items={[
+          { label: "Projects", href: "/" },
+          { label: key, href: `/projects/${key}` },
+          { label: ucKey }
+        ]}
+      />
       <div>
         <div className="eyebrow">{ucKey}</div>
         <h1>{title}</h1>

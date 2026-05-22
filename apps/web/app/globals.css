@@ -46,8 +46,15 @@ a:hover {
 }
 
 .brand {
+  align-items: center;
+  display: inline-flex;
   font-size: 18px;
   font-weight: 700;
+  line-height: 0;
+}
+
+.brand:hover {
+  text-decoration: none;
 }
 
 .panel {

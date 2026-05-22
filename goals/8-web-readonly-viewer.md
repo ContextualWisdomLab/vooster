@@ -99,11 +99,12 @@ B1. **Every Tier-1 page file exists.** Source of truth: the declared
     ```
     app/page.tsx
     app/login/page.tsx
-    app/projects/page.tsx
     app/projects/[key]/page.tsx
     app/projects/[key]/usecases/[ucKey]/page.tsx
     ```
     The gate iterates and asserts each path under `apps/web/` exists.
+    `app/page.tsx` is the project list (the "home" surface); a separate
+    `app/projects/page.tsx` is intentionally absent.
 
 B2. **Every Tier-1 page is a Server Component.** The gate iterates the
     same page set and asserts the file does **not** open with
@@ -138,10 +139,12 @@ C2. **Server-side fetches in `apps/web/app/` forward the
 
 C3. **Every authenticated page redirects unauthenticated requests to
     `/login`.** Source of truth: the declared set
-    `(app/projects/page.tsx app/projects/[key]/page.tsx
-      app/projects/[key]/usecases/[ucKey]/page.tsx)` (`/` and `/login`
+    `(app/page.tsx app/projects/[key]/page.tsx
+      app/projects/[key]/usecases/[ucKey]/page.tsx)` (`/login`
     excluded). The gate iterates and asserts each file references
-    `redirect(` from `next/navigation` and the string `/login`.
+    `redirect(` from `next/navigation` and the string `/login`. The
+    home route `/` is now the project list and is therefore
+    authenticated.
 
 ### Tranche D — Playwright E2E (honest)
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasSessionCookie } from "../../../../auth";
+import { Header } from "../../../../components/Header";
 import { fetchUsecaseDetail } from "../../../../data";
 
 export default async function UsecasePage({
@@ -19,10 +20,9 @@ export default async function UsecasePage({
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand">Vooster</div>
+      <Header>
         <Link href={`/projects/${key}`}>Use cases</Link>
-      </header>
+      </Header>
       <article className="grid">
         <div>
           <div className="eyebrow">{ucKey}</div>

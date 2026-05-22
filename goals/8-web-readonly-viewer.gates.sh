@@ -60,13 +60,12 @@ VERCEL_PROJECT_NAME=vooster-new-web
 TIER1_PAGES=(
   app/page.tsx
   app/login/page.tsx
-  app/projects/page.tsx
   app/projects/[key]/page.tsx
   app/projects/[key]/usecases/[ucKey]/page.tsx
 )
 
 AUTH_PAGES=(
-  app/projects/page.tsx
+  app/page.tsx
   app/projects/[key]/page.tsx
   app/projects/[key]/usecases/[ucKey]/page.tsx
 )

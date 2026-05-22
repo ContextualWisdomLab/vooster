@@ -1,24 +1,36 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasSessionCookie } from "./auth";
+import { Header } from "./components/Header";
+import { fetchProjects } from "./data";
 
-export default function HomePage() {
+export default async function HomePage() {
+  if (!(await hasSessionCookie())) {
+    redirect("/login");
+  }
+
+  const projects = await fetchProjects();
+
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand">Vooster</div>
-        <Link href="/projects">Projects</Link>
-      </header>
-      <section className="panel grid">
-        <div className="eyebrow">Read-only viewer</div>
-        <h1>Review pinned use-case specs</h1>
-        <p className="meta">
-          Browse projects, inspect Cockburn fields, and hand review context back to CLI-driven
-          agents.
-        </p>
+      <Header>
+        <Link href="/login">Account</Link>
+      </Header>
+      <section className="grid">
         <div>
-          <Link className="button" href="/projects">
-            Open projects
-          </Link>
+          <div className="eyebrow">Projects</div>
+          <h1>Project specs</h1>
         </div>
+        <ul className="list">
+          {projects.map((project) => (
+            <li className="list-item" key={project.id}>
+              <Link href={`/projects/${project.id}`}>{project.name}</Link>
+              <span className="meta">
+                {project.key} · {project.visibility}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );

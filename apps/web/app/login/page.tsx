@@ -1,11 +1,11 @@
+import { Header } from "../components/Header";
+
 export default function LoginPage() {
   const loginPath = "/v1/auth/github/start";
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand">Vooster</div>
-      </header>
+      <Header />
       <section className="panel grid">
         <div className="eyebrow">Authentication</div>
         <h1>Sign in to review specs</h1>

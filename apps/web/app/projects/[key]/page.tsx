@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasSessionCookie } from "../../auth";
+import { Header } from "../../components/Header";
 import { fetchProjectUsecases } from "../../data";
 
 export default async function ProjectPage({ params }: { params: Promise<{ key: string }> }) {
@@ -13,10 +14,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand">Vooster</div>
-        <Link href="/projects">Projects</Link>
-      </header>
+      <Header>
+        <Link href="/">Projects</Link>
+      </Header>
       <section className="grid">
         <div>
           <div className="eyebrow">Project {key}</div>

@@ -7,7 +7,7 @@ export type CommonMutationContext = {
   branch: string;
   cookie: string;
   dryRun: boolean;
-  projectId: string;
+  projectId: string | null;
   root: string;
 };
 
@@ -15,7 +15,7 @@ export type CommonContextFlags = {
   apiUrl: string;
   branch: string;
   dryRun: boolean;
-  projectId: string;
+  projectId: string | null;
   root: string;
   sessionCookie: string;
 };
@@ -41,13 +41,16 @@ export async function runMutationCommand<TData>(
 ): Promise<void> {
   const input: MutationInput<TData> = {
     apiUrl: ctx.apiUrl,
-    autoExport: {
-      apiUrl: ctx.apiUrl,
-      branch: ctx.branch,
-      cookie: ctx.cookie,
-      projectId: ctx.projectId,
-      root: ctx.root
-    },
+    autoExport:
+      ctx.projectId === null
+        ? undefined
+        : {
+            apiUrl: ctx.apiUrl,
+            branch: ctx.branch,
+            cookie: ctx.cookie,
+            projectId: ctx.projectId,
+            root: ctx.root
+          },
     body: verb.body,
     cookie: ctx.cookie,
     dryRun: ctx.dryRun,

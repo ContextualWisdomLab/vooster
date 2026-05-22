@@ -73,9 +73,9 @@ A1. **The fake boundary test is gone.**
     test file.
 
 A2. **ESLint passes with zero violations.**
-    `npx eslint . --max-warnings 0` exits 0. The lint step that already
-    exists in CI (`npm run lint`) is the source of truth; the gate
-    runs it.
+    `npx eslint . --max-warnings 0` exits 0. *(This is enforced by
+    `goals/_meta.md` M.2; this goal's gate does not re-run ESLint, so the
+    same lint pass that proves M.2 also proves A2.)*
 
 A3. **`boundaries/element-types` is deny-by-default.**
     `eslint.config.js` sets `default: "disallow"`. Every allowed

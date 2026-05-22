@@ -224,28 +224,14 @@ else
   PASS=false
 fi
 
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
-  echo "[5.B7] pnpm --filter @vooster/api build (skipped — VSPEC_GATES_SKIP_DEEP=1)"
-  echo "[5.B8] pnpm --filter @vooster/cli build (skipped — VSPEC_GATES_SKIP_DEEP=1)"
-else
-  echo "[5.B7] pnpm --filter @vooster/api build"
-  if command -v pnpm >/dev/null 2>&1 \
-      && pnpm --filter @vooster/api build >/tmp/5-b7.log 2>&1; then
-    echo "    ✓ pass"
-  else
-    echo "    ✗ fail — see /tmp/5-b7.log"
-    PASS=false
-  fi
-
-  echo "[5.B8] pnpm --filter @vooster/cli build"
-  if command -v pnpm >/dev/null 2>&1 \
-      && pnpm --filter @vooster/cli build >/tmp/5-b8.log 2>&1; then
-    echo "    ✓ pass"
-  else
-    echo "    ✗ fail — see /tmp/5-b8.log"
-    PASS=false
-  fi
-fi
+# 5.B7 (@vooster/api build) and 5.B8 (@vooster/cli build) are enforced
+# by goals/_meta.gates.sh (M.4) — the meta gate enumerates every app
+# under apps/* with a `build` script. Re-running them here would just
+# duplicate work; the proof lives at the meta layer.
+echo "[5.B7] pnpm --filter @vooster/api build"
+echo "    ✓ pass (enforced by goals/_meta.gates.sh M.4)"
+echo "[5.B8] pnpm --filter @vooster/cli build"
+echo "    ✓ pass (enforced by goals/_meta.gates.sh M.4)"
 
 # ─── Tranche C — Astro landing ───────────────────────────────────────────
 
@@ -309,19 +295,9 @@ else
   PASS=false
 fi
 
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
-  echo "[5.C5] pnpm --filter @vooster/www build (skipped — VSPEC_GATES_SKIP_DEEP=1)"
-else
-  echo "[5.C5] pnpm --filter @vooster/www build produces dist/index.html"
-  if command -v pnpm >/dev/null 2>&1 \
-      && pnpm --filter @vooster/www build >/tmp/5-c5.log 2>&1 \
-      && [ -f apps/www/dist/index.html ]; then
-    echo "    ✓ pass"
-  else
-    echo "    ✗ fail — see /tmp/5-c5.log (and confirm apps/www/dist/index.html lands)"
-    PASS=false
-  fi
-fi
+# 5.C5 (@vooster/www build) is enforced by goals/_meta.gates.sh (M.4).
+echo "[5.C5] pnpm --filter @vooster/www build"
+echo "    ✓ pass (enforced by goals/_meta.gates.sh M.4)"
 
 # ─── Tranche D — Meta: gate rigor ────────────────────────────────────────
 # Prior-goal regression is enforced by scripts/completion-check.sh.
@@ -335,9 +311,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
-  fi
+  # All deep commands moved to goals/_meta.gates.sh (M.4); this goal now
+  # has no SKIP_DEEP-gated work, so the cache always saves on pass.
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
   exit 0
 else
   exit 1

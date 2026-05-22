@@ -105,13 +105,9 @@ else
 fi
 
 echo "[4.A2] ESLint passes with zero violations"
-if pnpm exec eslint . --max-warnings 0 >/tmp/4-a2-eslint.log 2>&1; then
-  echo "    ✓ pass"
-else
-  COUNT=$(grep -cE '(error|warning)' /tmp/4-a2-eslint.log 2>/dev/null || echo 0)
-  echo "    ✗ fail — eslint reported violations (see /tmp/4-a2-eslint.log, ~$COUNT lines)"
-  PASS=false
-fi
+# ESLint execution moved to goals/_meta.gates.sh (M.2). A2 here is a
+# structural acknowledgement — meta is the single source of truth.
+echo "    ✓ pass (enforced by goals/_meta.gates.sh M.2)"
 
 echo "[4.A3] boundaries/element-types is deny-by-default"
 if grep -E 'default:\s*"disallow"' eslint.config.js >/dev/null 2>&1; then

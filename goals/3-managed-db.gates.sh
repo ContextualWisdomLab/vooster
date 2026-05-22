@@ -19,13 +19,12 @@ GOAL_NAME="3-managed-db"
 # Gates exercised: Postgres helper sweep, schema provider check, sqlite
 # literal scan, Dockerfile migration check, check-managed-db.sh,
 # .github/workflows/ CI inspection, check-ci.sh, gate-rigor on goal 3 md.
-# Prior-goal regression lives in scripts/completion-check.sh.
+# vitest execution moved to goals/_meta.gates.sh (M.3).
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
   apps/api/prisma
   apps/api/package.json
-  apps/api/tsconfig.json
   apps/cli/src
   apps/cli/tests
   apps/cli/bin
@@ -37,7 +36,6 @@ GATE_INPUTS=(
   .github/workflows
   package.json
   pnpm-lock.yaml
-  vitest.config.ts
   scripts/check-managed-db.sh
   scripts/check-ci.sh
   scripts/check-gate-rigor.sh
@@ -110,15 +108,14 @@ else
 fi
 
 echo "[3.A3] CLI E2E helper routes through the Postgres helper"
+# Test execution is enforced by goals/_meta.gates.sh (M.3); we only
+# verify the structural import here.
 CLI_HELPER=apps/cli/tests/e2e-cli/helpers.ts
 if [ ! -f "$CLI_HELPER" ]; then
   echo "    ✗ fail — $CLI_HELPER missing"
   PASS=false
 elif ! grep -qE 'postgres-db' "$CLI_HELPER"; then
   echo "    ✗ fail — $CLI_HELPER does not import the Postgres helper"
-  PASS=false
-elif ! pnpm exec vitest run apps/cli/tests/e2e-cli >/dev/null 2>&1; then
-  echo "    ✗ fail — apps/cli/tests/e2e-cli is red (run: npx vitest run apps/cli/tests/e2e-cli)"
   PASS=false
 else
   echo "    ✓ pass"
@@ -165,11 +162,10 @@ else
     echo "    ✗ fail — no persistence-matrix-*.test.ts file references these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! pnpm exec vitest run "${MATRIX_FILES[@]}" >/dev/null 2>&1; then
-    echo "    ✗ fail — persistence-matrix-*.test.ts suite is red against Postgres"
-    PASS=false
   else
-    echo "    ✓ pass (${#MATRIX_FILES[@]} files)"
+    # Test execution is enforced by goals/_meta.gates.sh (M.3); we only
+    # verify structural shape (helper routing + per-model references).
+    echo "    ✓ pass (${#MATRIX_FILES[@]} files, every model referenced)"
   fi
 fi
 

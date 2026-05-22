@@ -52,14 +52,17 @@ A2. **No `file:` URL survives in `tests/`.**
 A3. **`tests/e2e-cli/helpers.ts` uses A1.**
     `startNetworkServer` (and any sibling) calls into
     `tests/helpers/postgres-db.ts`. The thirty-five CLI E2E files inherit
-    this without modification, but the gate runs `vitest run tests/e2e-cli`
-    and refuses to pass if any UC test is red.
+    this without modification. *(The "test passes" half is enforced by
+    `goals/_meta.md` M.3; this goal's gate enumerates the helper import
+    and helper file presence only.)*
 
 A4. **`tests/integration/persistence-matrix.test.ts` uses A1.**
     Every model stanza in the matrix calls the helper rather than building
     a `file:` URL. The test still enumerates every model from
     `prisma/schema.prisma` (Goal 2.A4 unchanged), but now restart survival
-    is proven against Postgres. `vitest run` on the matrix is green.
+    is proven against Postgres. *(The "test passes" half is enforced by
+    `goals/_meta.md` M.3; this goal's gate enumerates per-model references
+    and helper routing only.)*
 
 A5. **Every other server-spawning test routes through A1.** Enumerated:
     any file under `tests/` that contains both `spawn(` and `DATABASE_URL`

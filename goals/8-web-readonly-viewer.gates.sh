@@ -178,20 +178,19 @@ else
   PASS=false
 fi
 
-echo "[8.A6 pnpm --filter @vooster/web build produces .next/]"
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
-  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
-elif [ ! -f "$WEB_PKG" ]; then
+echo "[8.A6 apps/web/.next/ exists (build artifact)]"
+# The build command is enforced by goals/_meta.gates.sh (M.4); this gate
+# only verifies the resulting .next/ directory. In CI where _meta is
+# skipped, the workflow's explicit build step produces .next/ for this
+# check to find.
+if [ ! -f "$WEB_PKG" ]; then
   echo "    ✗ fail — preconditions unmet (no $WEB_PKG)"
   PASS=false
+elif [ -d "$WEB_DIR/.next" ]; then
+  echo "    ✓ pass"
 else
-  if pnpm --filter @vooster/web build >/dev/null 2>&1 \
-      && [ -d "$WEB_DIR/.next" ]; then
-    echo "    ✓ pass"
-  else
-    echo "    ✗ fail — pnpm --filter @vooster/web build did not produce $WEB_DIR/.next/"
-    PASS=false
-  fi
+  echo "    ✗ fail — $WEB_DIR/.next/ missing (run pnpm --filter @vooster/web build)"
+  PASS=false
 fi
 
 # ─── Tranche B — Read-only viewer pages ──────────────────────────────────

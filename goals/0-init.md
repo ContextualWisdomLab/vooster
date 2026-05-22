@@ -11,9 +11,12 @@ once tests pass. You never write production code without a failing test.
 Build the vspec MVP such that all four conditions below hold:
 
 1. Every use case in `docs/usecases/UC-*.md` has at least one passing E2E test in
-   `tests/e2e/<UC-ID>.test.ts`, plus one E2E test per documented extension flow.
-2. All quality gates in `docs/04-tdd-protocol.md` pass (lint, types, coverage,
-   no-bypass, mutation sample).
+   `apps/api/tests/e2e/<UC-ID>.test.ts`, plus one E2E test per documented extension
+   flow.
+2. `scripts/check-bypass.sh` passes — no test-bypass patterns slip into committed
+   code. The cross-cutting quality gates (lint, types, vitest + coverage) are
+   enforced by `goals/_meta.md` (M.1/M.2/M.3); this goal's gate no longer
+   re-runs them.
 3. vspec can manage its own use cases (`scripts/dogfood-test.sh` passes).
 4. `scripts/completion-check.sh` returns exit code 0.
 

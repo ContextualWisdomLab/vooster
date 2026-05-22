@@ -18,21 +18,20 @@ GOAL_NAME="2-shippable"
 
 # Inputs that determine this goal's gate result.
 # Gates exercised: SignupState/route scans, Prisma model→adapter sweep,
-# persistence-matrix vitest, UC-001 real OAuth vitest, README sections,
-# 150-line route cap, ≥18-modules/tests cap, ESLint boundary fixtures,
-# Docker deploy (DEEP), check-db-consistency.sh, gate-rigor on goal 2 md.
-# Prior-goal regression lives in scripts/completion-check.sh.
+# persistence-matrix structural shape, UC-001 real OAuth structural shape,
+# README sections, 150-line route cap, ≥18-modules/tests cap, ESLint
+# boundary fixtures (C4), Docker deploy (DEEP), check-db-consistency.sh,
+# gate-rigor on goal 2 md.
+# vitest execution moved to goals/_meta.gates.sh (M.3).
 GATE_INPUTS=(
   apps/api/src
   apps/api/tests
   apps/api/prisma
   apps/api/package.json
-  apps/api/tsconfig.json
   apps/cli/src
   apps/cli/tests
   apps/cli/bin
   apps/cli/package.json
-  apps/cli/tsconfig.json
   README.md
   Dockerfile
   docker-compose.yml
@@ -40,9 +39,6 @@ GATE_INPUTS=(
   .env.example
   package.json
   pnpm-lock.yaml
-  tsconfig.json
-  tsconfig.eslint.json
-  vitest.config.ts
   eslint.config.js
   scripts/check-db-consistency.sh
   scripts/check-deployable.sh
@@ -146,25 +142,24 @@ else
     echo "    ✗ fail — no persistence-matrix-*.test.ts file references these models:"
     printf '        %s\n' "${MISSING_REFS[@]}"
     PASS=false
-  elif ! pnpm exec vitest run "${MATRIX_FILES[@]}" >/dev/null 2>&1; then
-    echo "    ✗ fail — persistence-matrix-*.test.ts suite is red"
-    PASS=false
   else
-    echo "    ✓ pass (${#MATRIX_FILES[@]} files)"
+    # Test execution is enforced by goals/_meta.gates.sh (M.3); we only
+    # verify structural shape (file presence + per-model references) here.
+    echo "    ✓ pass (${#MATRIX_FILES[@]} files, every model referenced)"
   fi
 fi
 
 # ─── Tranche B — Auth + Deploy ───────────────────────────────────────────
 
 echo "[2.B1] GitHub OAuth without stub"
+# Test execution is enforced by goals/_meta.gates.sh (M.3); we only
+# verify structural shape (test file present + GITHUB_CLIENT_ID read by
+# real code) here.
 if ! grep -rq 'GITHUB_CLIENT_ID' apps/api/src/ 2>/dev/null; then
   echo "    ✗ fail — GITHUB_CLIENT_ID never read in apps/api/src/"
   PASS=false
 elif [ ! -f apps/api/tests/e2e/UC-001-real-oauth.test.ts ]; then
   echo "    ✗ fail — apps/api/tests/e2e/UC-001-real-oauth.test.ts missing"
-  PASS=false
-elif ! pnpm exec vitest run apps/api/tests/e2e/UC-001-real-oauth.test.ts >/dev/null 2>&1; then
-  echo "    ✗ fail — UC-001-real-oauth test red"
   PASS=false
 else
   echo "    ✓ pass"

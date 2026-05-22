@@ -101,12 +101,13 @@ B6. **Every app declares standard scripts** — `build`, `test`,
     `(api, cli, web, www) × (build, test, typecheck)` and reads each
     `package.json` with `node -e`.
 
-B7. **(DEEP) `pnpm --filter @vooster/api build` exits 0.** The build
-    actually runs. Skippable with `VSPEC_GATES_SKIP_DEEP=1`; partial
-    runs do not save the gate cache.
+B7. **`pnpm --filter @vooster/api build` exits 0.** *(Enforced by
+    `goals/_meta.md` M.4 — the meta gate enumerates every app in
+    `apps/*` with a `build` script and runs it. This goal's gate does
+    not re-run the build.)*
 
-B8. **(DEEP) `pnpm --filter @vooster/cli build` exits 0.** Same deep
-    flag.
+B8. **`pnpm --filter @vooster/cli build` exits 0.** *(Enforced by
+    `goals/_meta.md` M.4 — same enumeration as B7.)*
 
 ### Tranche C — Astro landing (`apps/www`)
 
@@ -126,12 +127,12 @@ C4. **Every landing file is in Korean.** The gate iterates
     character (U+AC00 – U+D7A3) per file. An English-only section file
     fails the gate even if `index.astro` is Korean.
 
-C5. **(DEEP) `pnpm --filter @vooster/www build` exits 0** and produces
-    `apps/www/dist/index.html`. Skipped under
-    `VSPEC_GATES_SKIP_DEEP=1`. Landing-page section composition is
+C5. **`pnpm --filter @vooster/www build` exits 0.** *(Enforced by
+    `goals/_meta.md` M.4 — the meta gate enumerates every app in
+    `apps/*` with a `build` script. Landing-page section composition is
     intentionally left to the www app's own design iteration — the
-    monorepo goal only enforces that the app exists, has Korean copy
-    (C4), and builds.
+    monorepo goal only enforces that the app exists and has Korean copy
+    via C4; the build proof lives at the meta layer.)*
 
 ### Tranche D — Meta: regression + rigor
 

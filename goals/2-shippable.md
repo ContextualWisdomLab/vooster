@@ -53,7 +53,9 @@ A4. **Restart survival is proven per entity.**
     creates one instance of every Prisma model via the **public HTTP API**,
     sends `SIGTERM`, restarts against the same DB file, and asserts every
     instance is still readable. The test references every model name; you
-    cannot pass A4 by persisting only some models.
+    cannot pass A4 by persisting only some models. *(The "test passes" half
+    is enforced by `goals/_meta.md` M.3; this goal's gate enumerates file
+    presence and per-model references.)*
 
 ### Tranche B — Real auth + reproducible deploy
 
@@ -63,6 +65,8 @@ B1. **GitHub OAuth works without the stub.** With `VSPEC_AUTH_STUB` unset
     GitHub's token + user endpoints (via `undici` `MockAgent` or
     equivalent). `grep -rq 'GITHUB_CLIENT_ID' src/` returns nonzero — the
     secret is read by real code, not just documented in `.env.example`.
+    *(The "test passes" half is enforced by `goals/_meta.md` M.3; this
+    goal's gate enumerates file presence and code references.)*
 
 B2. **DB configuration is consistent across files.** `prisma/schema.prisma`,
     `.env.example`, `package.json`, and `docker-compose*.yml` all agree on

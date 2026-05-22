@@ -38,7 +38,8 @@ vspec is runnable end-to-end such that all six conditions below hold:
 4. **CLI E2E.** `tests/e2e-cli/UC-XXX.test.ts` exists for every UC. Each test
    spawns the CLI as a child process against a real server bound to a random
    port and asserts the main success scenario succeeds. Extension flows can
-   stay in `tests/e2e/`.
+   stay in `tests/e2e/`. *(The "test passes" half is enforced by `goals/_meta.md`
+   M.3; this goal's gate enumerates file presence only.)*
 5. **Layered.** `src/http/` contains only routing + validation. Business logic
    lives in `src/application/`, domain types in `src/domain/`, adapters in
    `src/infrastructure/`, port interfaces in `src/ports/`. `eslint-plugin-

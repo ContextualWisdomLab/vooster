@@ -86,8 +86,11 @@ A5. **`apps/web` declares `build`, `test`, `typecheck`, and `test:e2e`
     Goal 5 B6 for the new app — extending the script list).
 
 A6. **`pnpm --filter @vooster/web build` produces `apps/web/.next/`.**
-    Deep gate. Skipped when `VSPEC_GATES_SKIP_DEEP=1` (no cache save on
-    skip per `_gate-cache.sh` semantics).
+    *(The build command itself is enforced by `goals/_meta.md` M.4 — the
+    meta gate enumerates every app under `apps/*` with a `build` script.
+    This goal's gate verifies the `.next/` directory is the resulting
+    artifact. In CI, where `_meta` is skipped, the workflow's explicit
+    build step produces `.next/` for this gate to find.)*
 
 ### Tranche B — Read-only viewer pages (Tier 1)
 

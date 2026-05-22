@@ -24,6 +24,21 @@ import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
 
 describe("usecase agent application", () => {
+  test("returns scenario and stakeholder data for human readers", async () => {
+    const result = await showUseCaseForAgent(depsFor(), input({ format: "human" }));
+
+    expect(result.status).toBe("SIMPLE");
+    if (result.status !== "SIMPLE") {
+      throw new Error("expected simple result");
+    }
+    expect(result.data.stakeholder_interests).toEqual([
+      { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }
+    ]);
+    expect(result.data.scenarios[0]?.steps).toEqual([
+      { action: "Places an order.", actor: "Customer", step_number: 1 }
+    ]);
+  });
+
   test("builds a structured agent envelope for an authorized reader", async () => {
     const result = await showUseCaseForAgent(
       depsFor(),

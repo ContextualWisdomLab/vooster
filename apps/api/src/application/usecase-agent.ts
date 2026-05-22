@@ -29,7 +29,11 @@ export async function showUseCaseForAgent(
     return { status: "ARCHIVED" };
   }
   if (input.format !== "agent") {
-    return { status: "SIMPLE", usecase: found.usecase };
+    return {
+      data: await agentData(deps, found.projectId, found.usecase),
+      status: "SIMPLE",
+      usecase: found.usecase
+    };
   }
 
   const session = await activeSession(deps.workSessionStore, input.sessionId);

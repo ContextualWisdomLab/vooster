@@ -28,7 +28,7 @@ describe("doctor application", () => {
     await expect(
       diagnoseUseCase(depsFor({ usecase: null }), "missing")
     ).resolves.toEqual({
-      status: "USECASE_NOT_FOUND"
+      status: "usecase_not_found"
     });
   });
 
@@ -52,7 +52,7 @@ describe("doctor application", () => {
       })
     );
     expect(result.checks).toContainEqual(
-      expect.objectContaining({ id: "main_success.steps", status: "warning" })
+      expect.objectContaining({ id: "main_success.steps", status: "fail" })
     );
     expect(result.suggested_next_actions.map((action) => action.command)).toEqual([
       "vspec stakeholder interest add PAY-001",

@@ -18,12 +18,12 @@ describe("doctor routes", () => {
   test("requires exactly one diagnostic scope", async () => {
     const app = doctorApp();
 
-    for (const query of ["", "?project_id=project-1&usecase_id=uc-1"]) {
+    for (const query of ["", "?project_id=project-1&usecase=uc-1"]) {
       const response = await app.inject({ method: "GET", url: `/v1/doctor${query}` });
 
       expect(response.statusCode).toBe(400);
       expect(response.json<ProblemBody>().title).toBe(
-        "Provide exactly one of project_id or usecase_id"
+        "Provide exactly one of project_id or usecase"
       );
     }
   });
@@ -39,13 +39,35 @@ describe("doctor routes", () => {
     const usecase = await app.inject({
       headers: authHeaders(),
       method: "GET",
-      url: "/v1/doctor?usecase_id=missing"
+      url: "/v1/doctor?usecase=missing"
     });
 
     expect(project.statusCode).toBe(404);
     expect(project.json<ProblemBody>().title).toBe("Project not found");
     expect(usecase.statusCode).toBe(404);
     expect(usecase.json<ProblemBody>().title).toBe("Use case not found");
+  });
+
+  test("rejects anonymous use case diagnostics before deep lookup", async () => {
+    const calls: string[] = [];
+    const app = doctorApp({
+      calls,
+      usecaseLookup: { projectId: "project-1", usecase: usecase() }
+    });
+
+    const existing = await app.inject({
+      method: "GET",
+      url: "/v1/doctor?usecase=PAY-001"
+    });
+    const missing = await app.inject({
+      method: "GET",
+      url: "/v1/doctor?usecase=missing"
+    });
+
+    expect(existing.statusCode).toBe(403);
+    expect(missing.statusCode).toBe(403);
+    expect(existing.json<ProblemBody>()).toEqual(missing.json<ProblemBody>());
+    expect(calls).toEqual([]);
   });
 
   test("rejects diagnostics for non-members", async () => {
@@ -87,6 +109,7 @@ type DoctorBody = {
 };
 type DoctorOptions = {
   member?: boolean;
+  calls?: string[];
   project?: StoredProject;
   usecaseLookup?: { projectId: string; usecase: StoredUseCase };
   usecases?: StoredUseCase[];
@@ -105,7 +128,10 @@ function doctorApp(options: DoctorOptions = {}) {
     },
     projectStore: {
       deleteProject: () => Promise.resolve("NOT_FOUND"),
-      findProjectById: () => Promise.resolve(options.project),
+      findProjectById: () => {
+        options.calls?.push("project.findProjectById");
+        return Promise.resolve(options.project);
+      },
       findProjectByWorkspaceAndKey: () => Promise.resolve(undefined),
       listProjectsForWorkspace: () => Promise.resolve([]),
       saveProject: () => Promise.resolve(),
@@ -113,14 +139,23 @@ function doctorApp(options: DoctorOptions = {}) {
     },
     scenarioStore: {} as never,
     stakeholderInterestStore: {
-      listStakeholderInterests: () => Promise.resolve([])
+      listStakeholderInterests: () => {
+        options.calls?.push("stakeholderInterest.listStakeholderInterests");
+        return Promise.resolve([]);
+      }
     } as never,
     stepStore: {} as never,
     useCaseStore: {
       findUseCaseById: () => Promise.resolve(undefined),
-      findUseCaseWithProject: () => Promise.resolve(options.usecaseLookup),
+      findUseCaseWithProject: () => {
+        options.calls?.push("usecase.findUseCaseWithProject");
+        return Promise.resolve(options.usecaseLookup);
+      },
       findUseCasesByKey: () => Promise.resolve([]),
-      listUseCases: () => Promise.resolve(options.usecases ?? []),
+      listUseCases: () => {
+        options.calls?.push("usecase.listUseCases");
+        return Promise.resolve(options.usecases ?? []);
+      },
       saveUseCase: () => Promise.resolve(),
       updateUseCase: () => Promise.resolve()
     }

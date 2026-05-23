@@ -51,7 +51,7 @@ describe("GET /v1/doctor", () => {
       "Submit refund request"
     );
 
-    const response = await server.fetch(`/v1/doctor?usecase_id=${usecase.key}`, {
+    const response = await server.fetch(`/v1/doctor?usecase=${usecase.key}`, {
       headers: { Cookie: setup.cookie }
     });
 

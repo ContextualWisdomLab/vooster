@@ -1,12 +1,13 @@
 ---
 title: Spec ↔ implementation audit (docs vs apps)
 created_at: 2026-05-24T11:00:00Z
-resolved: false
+resolved: partial
 priority: high
 kind: snapshot
 status_notes: |
+  Gap C — CLOSED 2026-05-24 (commit `632df72`): UC-016 auto-branch sessions now create one session-held SEMANTIC lock per pinned use case; verified by `apps/api/tests/e2e/UC-016.test.ts`, `pnpm exec vitest run apps/api/tests`, and `bash scripts/completion-check.sh`.
   Cross-cutting reference docs (06/07/08/09) annotated with 🔵 Planned markers on 2026-05-24 — drift between target design and MVP surface is now explicit in-doc.
-  Code gaps A/B/C below remain OPEN (see "Code gaps" section for sizing).
+  Code gaps A/B below remain OPEN; Gap B is deferred by 260524-goal.md Out of scope.
 related:
   - docs/06-api-contract.md
   - docs/07-cli-spec.md

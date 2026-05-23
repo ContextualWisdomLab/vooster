@@ -7,7 +7,6 @@ import {
   historyRevisions,
   expectNetworkFailureSyncPush,
   expectUnauthorizedSyncPush,
-  pulledSyncFile,
   syncPull,
   syncPush,
   type PullResponse,

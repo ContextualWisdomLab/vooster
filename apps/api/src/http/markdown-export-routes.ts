@@ -113,7 +113,10 @@ async function exportMarkdown(
     .send(result.markdown);
 }
 
-function sendMarkdownExportProblem(reply: FastifyReply, result: MarkdownExportResult) {
+function sendMarkdownExportProblem(
+  reply: FastifyReply,
+  result: Exclude<MarkdownExportResult, { status: "EXPORTED" }>
+) {
   switch (result.status) {
     case "FORBIDDEN":
       return reply.code(403).send(problem(403, "Not authorized to export markdown"));
@@ -125,8 +128,6 @@ function sendMarkdownExportProblem(reply: FastifyReply, result: MarkdownExportRe
         .send(missingMarkdownRevisionProblem(result.usecase, result.revisionId));
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(problem(404, "Use case not found"));
-    case "EXPORTED":
-      return reply.send(result.markdown);
   }
 }
 

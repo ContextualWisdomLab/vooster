@@ -55,22 +55,33 @@ async function commitSpecChange(
   useCaseStore: UseCaseStore
 ) {
   const parsed = commitSchema.safeParse(request.body);
-  const preview = parsed.success ? previews(state).get(parsed.data.preview_id) : undefined;
+  const preview = parsed.success
+    ? previews(state).get(parsed.data.preview_id)
+    : undefined;
   if (preview === undefined) {
-    return reply.code(400).send(previewProblem(
-      400,
-      "Every commit must reference a still-valid preview",
-      "Generate a preview before committing a spec change."
-    ));
+    return reply
+      .code(400)
+      .send(
+        previewProblem(
+          400,
+          "Every commit must reference a still-valid preview",
+          "Generate a preview before committing a spec change."
+        )
+      );
   }
   if (Date.parse(preview.expires_at) <= Date.now()) {
-    return reply.code(410).send(previewProblem(
-      410,
-      "Change preview expired",
-      "Regenerate the preview before committing."
-    ));
+    return reply
+      .code(410)
+      .send(
+        previewProblem(
+          410,
+          "Change preview expired",
+          "Regenerate the preview before committing."
+        )
+      );
   }
-  const usecase = (await useCaseStore.findUseCaseWithProject(preview.usecase_id))?.usecase;
+  const usecase = (await useCaseStore.findUseCaseWithProject(preview.usecase_id))
+    ?.usecase;
   if (usecase === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }
@@ -88,7 +99,10 @@ async function commitSpecChange(
   return reply.send({
     revisions: [{ entity_id: usecase.id, revision_id: revision.id }],
     suggested_next_actions: [
-      { command: `vspec history ${usecase.key}`, reason: "Review the committed revision." }
+      {
+        command: `vspec history ${usecase.key}`,
+        reason: "Review the committed revision."
+      }
     ]
   });
 }
@@ -117,11 +131,15 @@ async function appendPreviewRevision(
   await useCaseStore.updateUseCase(usecase);
   await revisionStore.saveRevision(revision);
   const project = await projectStore.findProjectById(usecase.project_id);
-  const main = project === undefined
-    ? undefined
-    : await branchStore.findBranchById(project.default_branch_id);
+  const main =
+    project === undefined
+      ? undefined
+      : await branchStore.findBranchById(project.default_branch_id);
   if (main !== undefined) {
-    main.head_revision_ids = { ...(main.head_revision_ids ?? {}), [usecase.id]: revision.id };
+    main.head_revision_ids = {
+      ...(main.head_revision_ids ?? {}),
+      [usecase.id]: revision.id
+    };
     await branchStore.updateBranch(main);
   }
   return revision;

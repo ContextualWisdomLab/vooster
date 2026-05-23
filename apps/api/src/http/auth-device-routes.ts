@@ -6,15 +6,21 @@ import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
 import { establishSession } from "./session-support.js";
 import { sendCompleteOAuthResult, sendGithubUnavailable } from "./signup-results.js";
-import { fetchGithubProfileByAccessToken, problem, readCookie } from "./signup-support.js";
+import {
+  fetchGithubProfileByAccessToken,
+  problem,
+  readCookie
+} from "./signup-support.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
 
 const deviceTokenSchema = z.object({
   access_token: z.string().min(1),
-  workspace: z.object({
-    name: z.string().min(1),
-    slug: z.string().min(1)
-  }).optional()
+  workspace: z
+    .object({
+      name: z.string().min(1),
+      slug: z.string().min(1)
+    })
+    .optional()
 });
 
 export function registerDeviceAuthRoutes(
@@ -26,7 +32,15 @@ export function registerDeviceAuthRoutes(
   workspaceStore: WorkspaceStore
 ) {
   app.post("/v1/auth/github/token", (request, reply) =>
-    completeDeviceFlow(request, reply, options, state, membershipStore, userStore, workspaceStore)
+    completeDeviceFlow(
+      request,
+      reply,
+      options,
+      state,
+      membershipStore,
+      userStore,
+      workspaceStore
+    )
   );
   app.post("/v1/auth/logout", (request, reply) => {
     const token = readCookie(request.headers.cookie, "vspec_session");
@@ -52,15 +66,24 @@ async function completeDeviceFlow(
     return reply.code(400).send(problem(400, "Invalid device token request"));
   }
 
-  const profile = await fetchGithubProfileByAccessToken(options, parsed.data.access_token);
+  const profile = await fetchGithubProfileByAccessToken(
+    options,
+    parsed.data.access_token
+  );
   if (profile === undefined) {
     return sendGithubUnavailable(reply, "login");
   }
 
-  const deps = { membershipStore, signupStore: options.signupStore, userStore, workspaceStore };
-  const pending = parsed.data.workspace === undefined
-    ? { flow: "login" as const }
-    : { flow: "signup" as const, workspace: parsed.data.workspace };
+  const deps = {
+    membershipStore,
+    signupStore: options.signupStore,
+    userStore,
+    workspaceStore
+  };
+  const pending =
+    parsed.data.workspace === undefined
+      ? { flow: "login" as const }
+      : { flow: "signup" as const, workspace: parsed.data.workspace };
   const result = await completeOAuth(deps, { pending, profile });
   if (result.status !== "USER_NOT_FOUND" || parsed.data.workspace !== undefined) {
     return sendCompleteOAuthResult(reply, state.sessionsByToken, result);
@@ -95,6 +118,12 @@ function sendFallbackSignupAsLogin(
   establishSession(reply, sessionsByToken, result.user.id);
   return reply.code(200).send({
     user: result.user,
-    workspaces: [{ id: result.workspace.id, role: result.membership.role, slug: result.workspace.slug }]
+    workspaces: [
+      {
+        id: result.workspace.id,
+        role: result.membership.role,
+        slug: result.workspace.slug
+      }
+    ]
   });
 }

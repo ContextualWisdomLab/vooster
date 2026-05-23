@@ -1,32 +1,49 @@
+import { pathToFileURL } from "node:url";
 import { createServer } from "./http/server.js";
 import { createPrismaSignupStore } from "./infrastructure/prisma-signup-store.js";
 
 const defaultPort = 8080;
 
-async function main() {
-  const app = await createServer({
-    authStub: process.env.VSPEC_AUTH_STUB === "1",
-    githubOAuth: githubOAuthFromEnv(process.env.VSPEC_AUTH_STUB === "1"),
-    signupStore: process.env.DATABASE_URL === undefined
-      ? undefined
-      : createPrismaSignupStore(process.env.DATABASE_URL)
+type RuntimeEnv = Record<string, string | undefined>;
+
+export type ApiRuntime = {
+  createServer: typeof createServer;
+  createSignupStore: typeof createPrismaSignupStore;
+  env: RuntimeEnv;
+  once: (signal: NodeJS.Signals, listener: () => void) => unknown;
+};
+
+export async function startApi(runtime: Partial<ApiRuntime> = {}) {
+  const env = runtime.env ?? process.env;
+  const authStub = env.VSPEC_AUTH_STUB === "1";
+  const port = portFrom(env.PORT);
+  const app = await (runtime.createServer ?? createServer)({
+    authStub,
+    githubOAuth: githubOAuthFromEnv(authStub, env),
+    signupStore:
+      env.DATABASE_URL === undefined
+        ? undefined
+        : (runtime.createSignupStore ?? createPrismaSignupStore)(env.DATABASE_URL)
   });
 
   const shutdown = async () => {
     await app.close();
   };
 
-  process.once("SIGINT", () => {
+  const once = runtime.once ?? process.once.bind(process);
+  once("SIGINT", () => {
     void shutdown();
   });
-  process.once("SIGTERM", () => {
+  once("SIGTERM", () => {
     void shutdown();
   });
 
   await app.listen({
     host: "0.0.0.0",
-    port: portFrom(process.env.PORT)
+    port
   });
+
+  return app;
 }
 
 function portFrom(rawPort: string | undefined): number {
@@ -43,13 +60,13 @@ function portFrom(rawPort: string | undefined): number {
   return port;
 }
 
-function githubOAuthFromEnv(authStub: boolean) {
+function githubOAuthFromEnv(authStub: boolean, env: RuntimeEnv) {
   if (authStub) {
     return undefined;
   }
 
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const clientId = env.GITHUB_CLIENT_ID;
+  const clientSecret = env.GITHUB_CLIENT_SECRET;
 
   if (clientId === undefined || clientSecret === undefined) {
     return undefined;
@@ -58,7 +75,13 @@ function githubOAuthFromEnv(authStub: boolean) {
   return { clientId, clientSecret };
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  /* v8 ignore next 3 -- direct process launch is covered by boot gates. */
+  startApi().catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

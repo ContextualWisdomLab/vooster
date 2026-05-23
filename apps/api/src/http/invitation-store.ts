@@ -27,7 +27,11 @@ export async function activeMembershipForEmail(
     : membershipStore.membershipForWorkspace(workspaceId, user.id);
 }
 
-export function pendingInvitationForEmail(state: SignupState, workspaceId: string, email: string) {
+export function pendingInvitationForEmail(
+  state: SignupState,
+  workspaceId: string,
+  email: string
+) {
   const now = Date.now();
   return [...invitations(state).values()].find(
     (invitation) =>

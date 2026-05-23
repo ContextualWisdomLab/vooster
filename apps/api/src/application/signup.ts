@@ -51,7 +51,9 @@ export type CompleteOAuthResult =
   | { status: "UNVERIFIED_EMAIL" | "USER_NOT_FOUND" }
   | { status: "WORKSPACE_SLUG_TAKEN"; suggestedSlug: string };
 
-export function startGithubOAuth(options: StartGithubOAuthOptions): StartGithubOAuthResult {
+export function startGithubOAuth(
+  options: StartGithubOAuthOptions
+): StartGithubOAuthResult {
   const state = (options.idFactory ?? randomUUID)();
   const pending = pendingOAuth(options.input);
   return {
@@ -102,7 +104,10 @@ async function completeSignup(
   };
 }
 
-async function completeLogin(deps: SignupApplicationDeps, profile: GithubProfile): Promise<CompleteOAuthResult> {
+async function completeLogin(
+  deps: SignupApplicationDeps,
+  profile: GithubProfile
+): Promise<CompleteOAuthResult> {
   const user = await deps.userStore.findUserByGithubId(profile.githubId);
   if (user === undefined) {
     return { status: "USER_NOT_FOUND" };
@@ -110,9 +115,10 @@ async function completeLogin(deps: SignupApplicationDeps, profile: GithubProfile
 
   user.last_login_at = (deps.now ?? (() => new Date()))().toISOString();
   await deps.userStore.updateLastLoginAt(user.id, user.last_login_at);
-  const workspaces = deps.signupStore === undefined
-    ? await workspacesForUser(deps.membershipStore, deps.workspaceStore, user.id)
-    : await deps.signupStore.workspaceSummariesForUser(user.id);
+  const workspaces =
+    deps.signupStore === undefined
+      ? await workspacesForUser(deps.membershipStore, deps.workspaceStore, user.id)
+      : await deps.signupStore.workspaceSummariesForUser(user.id);
 
   return {
     ...(workspaces.length === 0
@@ -139,11 +145,15 @@ async function workspacesForUser(
     })
   );
 
-  return summaries.filter((summary): summary is WorkspaceSummary => summary !== undefined);
+  return summaries.filter(
+    (summary): summary is WorkspaceSummary => summary !== undefined
+  );
 }
 
 function pendingOAuth(input: StartGithubOAuthInput): PendingOAuth {
-  return "flow" in input ? { flow: "login" } : { flow: "signup", workspace: input.workspace };
+  return "flow" in input
+    ? { flow: "login" }
+    : { flow: "signup", workspace: input.workspace };
 }
 
 function authorizationUrl(options: StartGithubOAuthOptions, state: string): string {

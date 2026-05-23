@@ -1,8 +1,18 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { goalIdFrom, projectIdFrom } from "./goal-support.js";
-import { createGoal as createGoalUseCase, listGoals as listGoalsUseCase, patchGoal as patchGoalUseCase, type ActorGoalsDeps } from "../application/actor-goals.js";
-import { sendCreateGoalResult, sendListGoalsResult, sendPatchGoalResult } from "./goal-results.js";
+import { goalPatchSchema, goalRequestSchema } from "./goal-validation.js";
+import {
+  createGoal as createGoalUseCase,
+  listGoals as listGoalsUseCase,
+  patchGoal as patchGoalUseCase,
+  type ActorGoalsDeps
+} from "../application/actor-goals.js";
+import {
+  sendCreateGoalResult,
+  sendListGoalsResult,
+  sendPatchGoalResult
+} from "./goal-results.js";
 import { showGoal } from "./goal-show-routes.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -13,15 +23,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-const goalRequestSchema = z.object({
-  actor_id: z.string().min(1),
-  description: z.string(),
-  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]),
-  priority: z.enum(["P0", "P1", "P2", "P3"])
-});
-const goalPatchSchema = z.object({
-  status: z.enum(["IDENTIFIED", "IN_DESIGN", "PROMOTED", "REJECTED"]).optional()
-});
+
 export function registerGoalRoutes(
   app: FastifyInstance,
   state: SignupState,
@@ -101,8 +103,11 @@ async function createGoal(
 }
 
 function dryRunFromQuery(query: unknown): boolean {
-  return typeof query === "object" && query !== null &&
-    (query as { dry_run?: unknown }).dry_run === "true";
+  return (
+    typeof query === "object" &&
+    query !== null &&
+    (query as { dry_run?: unknown }).dry_run === "true"
+  );
 }
 
 async function patchGoal(

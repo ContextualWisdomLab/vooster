@@ -2,11 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  emailMismatchProblem, invitationExpiredProblem
+  emailMismatchProblem,
+  invitationExpiredProblem
 } from "./invitation-problems.js";
-import {
-  invitations, pendingInvitationForEmail
-} from "./invitation-store.js";
+import { invitations, pendingInvitationForEmail } from "./invitation-store.js";
 import { sendCreateInvitationResult } from "./invitation-results.js";
 import { authenticatedUserId, establishSession } from "./session-support.js";
 import { githubProfile, problem } from "./signup-support.js";

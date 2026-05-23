@@ -1,10 +1,15 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureLockSession } from "./prisma-lock-session.js";
 import {
   deleteProjectViaPrisma,
   updateProjectNameViaPrisma
 } from "./prisma-project-mutations.js";
 import type { DeleteProjectOutcome } from "../ports/project-store.js";
-import type { SignupEntities, SignupStore, WorkspaceSummary } from "../ports/signup-store.js";
+import type {
+  SignupEntities,
+  SignupStore,
+  WorkspaceSummary
+} from "../ports/signup-store.js";
 import {
   apiKeyData,
   apiKeyUpdate,
@@ -51,14 +56,14 @@ import {
   workSessionUpdate,
   workspaceData
 } from "./prisma-signup-mappers.js";
-import type { StoredApiKey } from "../domain/entities/index.js";
-import type { StoredComment } from "../domain/entities/index.js";
-import type { StoredMergeRequest } from "../domain/entities/index.js";
 import type {
   StoredActor,
+  StoredApiKey,
+  StoredComment,
   StoredGoal,
   StoredLock,
   StoredMembership,
+  StoredMergeRequest,
   StoredProject,
   StoredRevision,
   StoredScenario,
@@ -271,10 +276,7 @@ class PrismaSignupStore implements SignupStore {
   ): Promise<{ projectId: string; usecase: StoredUseCase } | undefined> {
     const usecase = await this.prisma.useCase.findFirst({
       where: {
-        OR: [
-          { id: usecaseIdOrKey },
-          { key: usecaseIdOrKey }
-        ]
+        OR: [{ id: usecaseIdOrKey }, { key: usecaseIdOrKey }]
       }
     });
 
@@ -355,7 +357,12 @@ class PrismaSignupStore implements SignupStore {
     stakeholderId: string
   ): Promise<StoredStakeholderInterest | undefined> {
     const interest = await this.prisma.stakeholderInterest.findUnique({
-      where: { usecase_id_stakeholder_id: { stakeholder_id: stakeholderId, usecase_id: usecaseId } }
+      where: {
+        usecase_id_stakeholder_id: {
+          stakeholder_id: stakeholderId,
+          usecase_id: usecaseId
+        }
+      }
     });
 
     return interest === null ? undefined : storedStakeholderInterest(interest);
@@ -517,9 +524,10 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async listWorkSessionsForUseCase(usecaseId: string): Promise<StoredWorkSession[]> {
-    return (await this.listWorkSessions()).filter((session) =>
-      session.usecase_id === usecaseId ||
-      session.pinned_revisions?.[usecaseId] !== undefined
+    return (await this.listWorkSessions()).filter(
+      (session) =>
+        session.usecase_id === usecaseId ||
+        session.pinned_revisions?.[usecaseId] !== undefined
     );
   }
 
@@ -636,7 +644,7 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async saveLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.create({ data: lockData(lock) });
   }
 
@@ -680,9 +688,7 @@ class PrismaSignupStore implements SignupStore {
     });
   }
 
-  async saveStakeholderInterest(
-    interest: StoredStakeholderInterest
-  ): Promise<void> {
+  async saveStakeholderInterest(interest: StoredStakeholderInterest): Promise<void> {
     await this.prisma.stakeholderInterest.create({
       data: stakeholderInterestData(interest)
     });
@@ -822,7 +828,7 @@ class PrismaSignupStore implements SignupStore {
   }
 
   async updateLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.update({
       data: lockUpdate(lock),
       where: { id: lock.id ?? lock.usecase_id }
@@ -938,10 +944,10 @@ class PrismaSignupStore implements SignupStore {
       return null;
     }
 
-    return await this.prisma.revision.findUnique({
+    return (await this.prisma.revision.findUnique({
       select: { id: true },
       where: { id: revision.parent_revision_id }
-    }) === null
+    })) === null
       ? null
       : revision.parent_revision_id;
   }
@@ -957,7 +963,10 @@ class PrismaSignupStore implements SignupStore {
       },
       where: { id: projectId }
     });
-    if (project?.default_branch_id === null || project?.default_branch_id === undefined) {
+    if (
+      project?.default_branch_id === null ||
+      project?.default_branch_id === undefined
+    ) {
       throw new Error(`Missing default branch for revision ${revision.id}`);
     }
     const branchId = revision.branch_id ?? project.default_branch_id;
@@ -967,28 +976,5 @@ class PrismaSignupStore implements SignupStore {
       authorId: project.workspace.owner_id,
       branchId
     };
-  }
-
-  private async ensureLockSession(lock: StoredLock): Promise<void> {
-    if (lock.held_by_session_id === null || lock.held_by_session_id === undefined) {
-      return;
-    }
-    const usecase = await this.prisma.useCase.findUnique({
-      select: { project_id: true },
-      where: { id: lock.target_id ?? lock.usecase_id }
-    });
-    if (usecase === null) {
-      return;
-    }
-    await this.prisma.workSession.upsert({
-      create: {
-        id: lock.held_by_session_id,
-        intent: "Hold use case lock",
-        project_id: usecase.project_id,
-        user_id: lock.held_by_user_id ?? lock.holder
-      },
-      update: {},
-      where: { id: lock.held_by_session_id }
-    });
   }
 }

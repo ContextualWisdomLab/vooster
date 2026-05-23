@@ -1,7 +1,4 @@
-import type {
-  StoredProject,
-  StoredWorkSession
-} from "../domain/entities/index.js";
+import type { StoredProject, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -59,7 +56,13 @@ export async function listSessionSnapshot(
   deps: SessionListDeps,
   input: SessionListInput
 ): Promise<SessionListResult> {
-  if (!(await hasWorkspaceMembership(deps.membershipStore, input.userId, input.workspaceId))) {
+  if (
+    !(await hasWorkspaceMembership(
+      deps.membershipStore,
+      input.userId,
+      input.workspaceId
+    ))
+  ) {
     return { status: "FORBIDDEN" };
   }
 
@@ -67,9 +70,12 @@ export async function listSessionSnapshot(
   const allSessions = await deps.workSessionStore.listWorkSessions();
   const matchingSessions = allSessions
     .filter((session) => sessionMatches(session, projects, input))
-    .sort((left, right) => (right.started_at ?? "").localeCompare(left.started_at ?? ""));
-  const sessions = await Promise.all(matchingSessions
-    .map((session) => sessionRow(deps, matchingSessions, session)));
+    .sort((left, right) =>
+      (right.started_at ?? "").localeCompare(left.started_at ?? "")
+    );
+  const sessions = await Promise.all(
+    matchingSessions.map((session) => sessionRow(deps, matchingSessions, session))
+  );
 
   return {
     snapshot: {
@@ -92,8 +98,10 @@ async function hasWorkspaceMembership(
   userId: string | undefined,
   workspaceId: string
 ): Promise<boolean> {
-  return userId !== undefined &&
-    await membershipStore.membershipForWorkspace(workspaceId, userId) !== undefined;
+  return (
+    userId !== undefined &&
+    (await membershipStore.membershipForWorkspace(workspaceId, userId)) !== undefined
+  );
 }
 
 function sessionMatches(
@@ -154,22 +162,33 @@ async function branchName(
 ): Promise<null | string> {
   return session.branch_id === null || session.branch_id === undefined
     ? null
-    : (await branchStore.findBranchById(session.branch_id))?.name ?? null;
+    : ((await branchStore.findBranchById(session.branch_id))?.name ?? null);
 }
 
 function idleSeconds(deps: SessionListDeps, startedAt: string | undefined): number {
-  return Math.max(0, Math.floor((now(deps).getTime() - Date.parse(startedAt ?? "")) / 1000));
+  return Math.max(
+    0,
+    Math.floor((now(deps).getTime() - Date.parse(startedAt ?? "")) / 1000)
+  );
 }
 
-async function lockCount(lockStore: LockStore, session: StoredWorkSession): Promise<number> {
+async function lockCount(
+  lockStore: LockStore,
+  session: StoredWorkSession
+): Promise<number> {
   return (await lockStore.listLocksHeldBySession(session.id)).length;
 }
 
-function conflictMarkers(allSessions: StoredWorkSession[], session: StoredWorkSession): string[] {
+function conflictMarkers(
+  allSessions: StoredWorkSession[],
+  session: StoredWorkSession
+): string[] {
   const pinned = new Set(Object.keys(session.pinned_revisions ?? {}));
   return allSessions
     .filter((other) => other.id !== session.id)
-    .filter((other) => Object.keys(other.pinned_revisions ?? {}).some((key) => pinned.has(key)))
+    .filter((other) =>
+      Object.keys(other.pinned_revisions ?? {}).some((key) => pinned.has(key))
+    )
     .map((other) => `PINNED_BY:${other.id}`);
 }
 
@@ -181,7 +200,12 @@ function sessionMarkers(deps: SessionListDeps, session: StoredWorkSession): stri
 
 function nextActions(sessions: SessionListRow[]) {
   return sessions.length === 0
-    ? [{ command: "vspec session start --intent \"...\"", reason: "Start a session when work begins." }]
+    ? [
+        {
+          command: 'vspec session start --intent "..."',
+          reason: "Start a session when work begins."
+        }
+      ]
     : sessions
         .filter((session) => session.markers.includes("ZOMBIE"))
         .map((session) => ({

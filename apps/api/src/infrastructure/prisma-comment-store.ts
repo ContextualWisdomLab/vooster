@@ -2,11 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredComment } from "../domain/entities/index.js";
 import type { CommentStore } from "../ports/comment-store.js";
-import {
-  commentData,
-  commentUpdate,
-  storedComment
-} from "./prisma-signup-mappers.js";
+import { commentData, commentUpdate, storedComment } from "./prisma-signup-mappers.js";
 
 export function createPrismaCommentStore(prisma: PrismaClient): CommentStore {
   return new PrismaCommentStore(prisma);

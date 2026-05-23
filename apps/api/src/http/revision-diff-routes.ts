@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  compareUseCaseRevisions, type CompareUseCaseRevisionsDeps, type CompareUseCaseRevisionsResult
+  compareUseCaseRevisions,
+  type CompareUseCaseRevisionsDeps,
+  type CompareUseCaseRevisionsResult
 } from "../application/revision-diff.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -83,26 +85,23 @@ function sendDiffResult(reply: FastifyReply, result: CompareUseCaseRevisionsResu
     case "FORBIDDEN":
       return reply.code(403).send(diffAccessProblem());
     case "MISSING_REVISION":
-      return reply.code(404).send(missingRevisionProblem(result.usecase, result.missingRevision));
+      return reply
+        .code(404)
+        .send(missingRevisionProblem(result.usecase, result.missingRevision));
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(problem(404, "Use case not found"));
   }
 }
 
 function diffAccessProblem() {
-  return problem(
-    403,
-    "Not authorized to compare revisions",
-    {},
-    [
-      {
-        command: "vspec login",
-        reason: "Authenticate with an account that has project access."
-      },
-      {
-        command: "vspec member set-role",
-        reason: "Ask a workspace owner for read access."
-      }
-    ]
-  );
+  return problem(403, "Not authorized to compare revisions", {}, [
+    {
+      command: "vspec login",
+      reason: "Authenticate with an account that has project access."
+    },
+    {
+      command: "vspec member set-role",
+      reason: "Ask a workspace owner for read access."
+    }
+  ]);
 }

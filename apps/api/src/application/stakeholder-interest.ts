@@ -43,7 +43,11 @@ export type AddStakeholderInterestResult =
     }
   | { existingInterest: string; status: "DUPLICATE_INTEREST" }
   | { status: "FORBIDDEN" }
-  | { status: "STAKEHOLDER_NOT_FOUND"; candidateStakeholders: string[]; stakeholderName: string }
+  | {
+      status: "STAKEHOLDER_NOT_FOUND";
+      candidateStakeholders: string[];
+      stakeholderName: string;
+    }
   | { status: "USECASE_NOT_FOUND" };
 
 export type RemoveStakeholderInterestInput = {
@@ -88,10 +92,11 @@ export async function addStakeholderInterest(
       status: "STAKEHOLDER_NOT_FOUND"
     };
   }
-  const existing = await deps.stakeholderInterestStore.findStakeholderInterestForStakeholder(
-    found.usecase.id,
-    stakeholder.id
-  );
+  const existing =
+    await deps.stakeholderInterestStore.findStakeholderInterestForStakeholder(
+      found.usecase.id,
+      stakeholder.id
+    );
   if (existing !== undefined) {
     return { existingInterest: existing.interest, status: "DUPLICATE_INTEREST" };
   }
@@ -104,8 +109,17 @@ export async function addStakeholderInterest(
     usecase_id: found.usecase.id
   };
   await deps.stakeholderInterestStore.saveStakeholderInterest(stakeholderInterest);
-  const revision = await saveRevision(deps, found.usecase, "NON_BREAKING", `Added stakeholder interest ${stakeholderInterest.id}`);
-  const stakeholderInterests = await interestsWithStakeholders(deps, found.usecase.id, found.projectId);
+  const revision = await saveRevision(
+    deps,
+    found.usecase,
+    "NON_BREAKING",
+    `Added stakeholder interest ${stakeholderInterest.id}`
+  );
+  const stakeholderInterests = await interestsWithStakeholders(
+    deps,
+    found.usecase.id,
+    found.projectId
+  );
   return {
     nextMissingRoleHint: missingRoleHint(stakeholderInterests),
     revision,
@@ -132,8 +146,17 @@ export async function removeStakeholderInterest(
   }
 
   await deps.stakeholderInterestStore.deleteStakeholderInterest(removed.id);
-  const revision = await saveRevision(deps, found.usecase, "BREAKING", `Removed stakeholder interest ${removed.id}`);
-  const stakeholderInterests = await interestsWithStakeholders(deps, found.usecase.id, found.projectId);
+  const revision = await saveRevision(
+    deps,
+    found.usecase,
+    "BREAKING",
+    `Removed stakeholder interest ${removed.id}`
+  );
+  const stakeholderInterests = await interestsWithStakeholders(
+    deps,
+    found.usecase.id,
+    found.projectId
+  );
   return {
     noStakeholderInterests: stakeholderInterests.length === 0,
     removedStakeholderInterestId: removed.id,
@@ -157,7 +180,8 @@ async function authorizedUseCase(
   }
   if (
     userId === undefined ||
-    await deps.membershipStore.membershipForProject(found.projectId, userId) === undefined
+    (await deps.membershipStore.membershipForProject(found.projectId, userId)) ===
+      undefined
   ) {
     return { status: "FORBIDDEN" };
   }
@@ -197,12 +221,17 @@ async function interestsWithStakeholders(
     (await deps.stakeholderInterestStore.listStakeholderInterests(usecaseId)).map(
       async (interest) => ({
         interest,
-        stakeholder: await deps.stakeholderStore.findStakeholderById(projectId, interest.stakeholder_id)
+        stakeholder: await deps.stakeholderStore.findStakeholderById(
+          projectId,
+          interest.stakeholder_id
+        )
       })
     )
   );
   return rows.flatMap((row) =>
-    row.stakeholder === undefined ? [] : [{ interest: row.interest, stakeholder: row.stakeholder }]
+    row.stakeholder === undefined
+      ? []
+      : [{ interest: row.interest, stakeholder: row.stakeholder }]
   );
 }
 

@@ -2,11 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredStep } from "../domain/entities/index.js";
 import type { StepStore } from "../ports/step-store.js";
-import {
-  stepData,
-  stepUpdate,
-  storedStep
-} from "./prisma-signup-mappers.js";
+import { stepData, stepUpdate, storedStep } from "./prisma-signup-mappers.js";
 
 export function createPrismaStepStore(prisma: PrismaClient): StepStore {
   return new PrismaStepStore(prisma);

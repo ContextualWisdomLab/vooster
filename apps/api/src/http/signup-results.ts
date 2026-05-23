@@ -6,11 +6,13 @@ import { githubUnavailable, problem, signupResponse } from "./signup-support.js"
 
 export function sendDeniedOAuth(reply: FastifyReply, flow: PendingOAuth["flow"]) {
   if (flow === "login") {
-    return reply.code(401).send(
-      problem(401, "GitHub authorization denied", {}, [
-        { command: "vspec login", reason: "Retry login." }
-      ])
-    );
+    return reply
+      .code(401)
+      .send(
+        problem(401, "GitHub authorization denied", {}, [
+          { command: "vspec login", reason: "Retry login." }
+        ])
+      );
   }
 
   return reply.code(400).send(problem(400, "GitHub authorization denied"));
@@ -43,11 +45,13 @@ export function sendCompleteOAuthResult(
     case "UNVERIFIED_EMAIL":
       return reply.code(422).send(problem(422, "Verify your GitHub email"));
     case "USER_NOT_FOUND":
-      return reply.code(404).send(
-        problem(404, "No vspec user exists for GitHub identity", {}, [
-          { command: "vspec login", reason: "Sign up before logging in." }
-        ])
-      );
+      return reply
+        .code(404)
+        .send(
+          problem(404, "No vspec user exists for GitHub identity", {}, [
+            { command: "vspec login", reason: "Sign up before logging in." }
+          ])
+        );
     case "WORKSPACE_SLUG_TAKEN":
       return reply.code(422).send(
         problem(422, "Workspace slug is already taken", {

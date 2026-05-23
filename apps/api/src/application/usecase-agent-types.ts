@@ -11,6 +11,20 @@ import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export type AgentWarning = { message: string; type: string };
+export type UseCaseShowData = {
+  primary_actor: { name: string };
+  scenarios: Array<{
+    condition: null | string;
+    extension_point: null | string;
+    id: string;
+    steps: Array<{ action: string; actor: string; step_number: number }>;
+    type: string;
+  }>;
+  stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
+  title: string;
+  usecase: { id: string; key: string };
+};
+
 export type AgentEnvelope = {
   context: {
     branch: "main";
@@ -19,17 +33,7 @@ export type AgentEnvelope = {
     revision: string;
     session_id: null | string;
   };
-  data: {
-    primary_actor: { name: string };
-    scenarios: Array<{
-      id: string;
-      steps: Array<{ action: string; actor: string; step_number: number }>;
-      type: string;
-    }>;
-    stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
-    title: string;
-    usecase: { id: string; key: string };
-  };
+  data: UseCaseShowData;
   format_version: 1;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   warnings: AgentWarning[];
@@ -61,6 +65,6 @@ export type ShowUseCaseResult =
   | { status: "NOT_FOUND" }
   | { status: "AUTHENTICATION_REQUIRED" }
   | { status: "ARCHIVED" }
-  | { status: "SIMPLE"; usecase: StoredUseCase }
+  | { data: UseCaseShowData; status: "SIMPLE"; usecase: StoredUseCase }
   | { revision: string | undefined; status: "REVISION_NOT_FOUND"; usecaseKey: string }
   | { envelope: AgentEnvelope; status: "AGENT_ENVELOPE" };

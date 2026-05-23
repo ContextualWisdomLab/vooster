@@ -47,7 +47,8 @@ export async function promoteGoal(
   if (
     input.userId === undefined ||
     deps.membershipStore === undefined ||
-    await deps.membershipStore.membershipForProject(goal.project_id, input.userId) === undefined
+    (await deps.membershipStore.membershipForProject(goal.project_id, input.userId)) ===
+      undefined
   ) {
     return { status: "FORBIDDEN" };
   }
@@ -72,10 +73,12 @@ export async function promoteLoadedGoal(
   }
   if (input.goal.linked_usecase_id !== null) {
     return {
-      existingUseCaseKey: (await deps.useCaseStore.findUseCaseById(
-        input.projectId,
-        input.goal.linked_usecase_id
-      ))?.key,
+      existingUseCaseKey: (
+        await deps.useCaseStore.findUseCaseById(
+          input.projectId,
+          input.goal.linked_usecase_id
+        )
+      )?.key,
       status: "ALREADY_PROMOTED"
     };
   }

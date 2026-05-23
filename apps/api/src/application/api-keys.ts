@@ -5,7 +5,7 @@ import type { ApiKeyStore } from "../ports/api-key-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 
 const allowedScopes = ["read", "write"] as const;
-export type ApiKeyScope = typeof allowedScopes[number];
+export type ApiKeyScope = (typeof allowedScopes)[number];
 
 export type ApiKeyDeps = {
   apiKeyStore: ApiKeyStore;
@@ -30,7 +30,11 @@ export type CreateApiKeyResult =
   | { apiKey: StoredApiKey; plaintextToken: string; status: "CREATED" }
   | { apiKey: StoredApiKey; status: "TOKEN_NOT_DELIVERED" }
   | { status: "OWNER_REQUIRED" }
-  | { allowedScopes: ApiKeyScope[]; offendingScope: string; status: "UNSUPPORTED_SCOPE" };
+  | {
+      allowedScopes: ApiKeyScope[];
+      offendingScope: string;
+      status: "UNSUPPORTED_SCOPE";
+    };
 
 export type ListApiKeysResult =
   | { apiKeys: PublicApiKey[]; status: "LISTED" }
@@ -52,7 +56,11 @@ export async function createApiKey(
       status: "UNSUPPORTED_SCOPE"
     };
   }
-  const membership = await ownerMembership(deps.membershipStore, input.workspaceId, input.userId);
+  const membership = await ownerMembership(
+    deps.membershipStore,
+    input.workspaceId,
+    input.userId
+  );
   if (membership === undefined) {
     return { status: "OWNER_REQUIRED" };
   }
@@ -78,11 +86,16 @@ export async function listApiKeys(
   deps: ApiKeyDeps,
   input: { userId: string | undefined; workspaceId: string }
 ): Promise<ListApiKeysResult> {
-  if (await ownerMembership(deps.membershipStore, input.workspaceId, input.userId) === undefined) {
+  if (
+    (await ownerMembership(deps.membershipStore, input.workspaceId, input.userId)) ===
+    undefined
+  ) {
     return { status: "OWNER_REQUIRED" };
   }
   return {
-    apiKeys: (await deps.apiKeyStore.listApiKeysForWorkspace(input.workspaceId)).map(publicApiKey),
+    apiKeys: (await deps.apiKeyStore.listApiKeysForWorkspace(input.workspaceId)).map(
+      publicApiKey
+    ),
     status: "LISTED"
   };
 }
@@ -94,7 +107,8 @@ export async function revokeApiKey(
   const apiKey = await deps.apiKeyStore.findApiKeyById(input.apiKeyId);
   if (
     apiKey === undefined ||
-    await ownerMembership(deps.membershipStore, apiKey.workspace_id, input.userId) === undefined
+    (await ownerMembership(deps.membershipStore, apiKey.workspace_id, input.userId)) ===
+      undefined
   ) {
     return { status: "NOT_FOUND" };
   }

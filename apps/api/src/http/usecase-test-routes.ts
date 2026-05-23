@@ -19,7 +19,9 @@ async function archiveUseCase(
   reply: FastifyReply,
   useCaseStore: UseCaseStore
 ) {
-  const found = await useCaseStore.findUseCaseWithProject(usecaseIdFrom(request.params));
+  const found = await useCaseStore.findUseCaseWithProject(
+    usecaseIdFrom(request.params)
+  );
   if (found === undefined) {
     return reply.code(404).send(problem(404, "Use case not found"));
   }

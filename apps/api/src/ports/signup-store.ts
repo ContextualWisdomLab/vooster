@@ -54,11 +54,11 @@ export type SignupStore = ActorStore &
   UserStore &
   WorkSessionStore &
   WorkspaceStore & {
-  close: () => Promise<void>;
-  saveSignup: (entities: SignupEntities) => Promise<void>;
-  saveProjectWithDefaultBranch: (
-    project: StoredProject,
-    branch: StoredSpecBranch
-  ) => Promise<void>;
-  workspaceSummariesForUser: (userId: string) => Promise<WorkspaceSummary[]>;
-};
+    close: () => Promise<void>;
+    saveSignup: (entities: SignupEntities) => Promise<void>;
+    saveProjectWithDefaultBranch: (
+      project: StoredProject,
+      branch: StoredSpecBranch
+    ) => Promise<void>;
+    workspaceSummariesForUser: (userId: string) => Promise<WorkspaceSummary[]>;
+  };

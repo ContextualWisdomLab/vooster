@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { StoredRevision, StoredUseCase } from "../domain/entities/index.js";
+import { renderMarkdown, type MarkdownRenderDeps } from "./markdown-renderer.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
@@ -13,7 +14,7 @@ export type SyncFileDeps = {
   projectStore: ProjectStore;
   revisionStore: RevisionStore;
   useCaseStore: UseCaseStore;
-};
+} & MarkdownRenderDeps;
 
 export type SyncFileInput = {
   baseRevision: string;
@@ -58,18 +59,27 @@ export type SyncPushResult =
     };
 
 export async function pullSyncFiles(
-  deps: Pick<SyncFileDeps, "membershipStore" | "useCaseStore">,
+  deps: Pick<
+    SyncFileDeps,
+    | "actorStore"
+    | "membershipStore"
+    | "scenarioStore"
+    | "stakeholderInterestStore"
+    | "stakeholderStore"
+    | "stepStore"
+    | "useCaseStore"
+  >,
   input: { projectId: string; userId: string | undefined }
 ): Promise<SyncPullResult> {
   if (!(await authorized(deps.membershipStore, input.projectId, input.userId))) {
     return { status: "FORBIDDEN" };
   }
-  const files = (await activeUseCases(deps.useCaseStore, input.projectId)).map(
-    (usecase) => ({
-      content: usecaseMarkdown(usecase),
+  const files = await Promise.all(
+    (await activeUseCases(deps.useCaseStore, input.projectId)).map(async (usecase) => ({
+      content: await renderMarkdown(deps, input.projectId, usecase),
       path: usecasePath(usecase),
       revision: usecase.current_revision_id
-    })
+    }))
   );
   return {
     cursor: files[0]?.revision ?? "",

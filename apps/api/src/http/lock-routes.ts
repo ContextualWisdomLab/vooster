@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  acquireLock, renewLock as renewLockApplication
+  acquireLock,
+  renewLock as renewLockApplication
 } from "../application/locks.js";
 import { sendLockResult } from "./lock-results.js";
 import { authenticatedUserId } from "./session-support.js";

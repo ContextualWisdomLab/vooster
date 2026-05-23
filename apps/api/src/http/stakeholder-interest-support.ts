@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { StoredStakeholder, StoredStakeholderInterest } from "../domain/entities/index.js";
+import type {
+  StoredStakeholder,
+  StoredStakeholderInterest
+} from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
@@ -9,7 +12,9 @@ export async function interestsWithStakeholders(
   stakeholderStore: StakeholderStore,
   usecaseId: string,
   projectId: string
-): Promise<Array<{ interest: StoredStakeholderInterest; stakeholder: StoredStakeholder }>> {
+): Promise<
+  Array<{ interest: StoredStakeholderInterest; stakeholder: StoredStakeholder }>
+> {
   const rows = await Promise.all(
     (await stakeholderInterestStore.listStakeholderInterests(usecaseId)).map(
       async (interest) => ({
@@ -23,7 +28,9 @@ export async function interestsWithStakeholders(
   );
 
   return rows.flatMap((row) =>
-    row.stakeholder === undefined ? [] : [{ interest: row.interest, stakeholder: row.stakeholder }]
+    row.stakeholder === undefined
+      ? []
+      : [{ interest: row.interest, stakeholder: row.stakeholder }]
   );
 }
 
@@ -33,14 +40,14 @@ export async function missingRoleHint(
   usecaseId: string,
   projectId: string
 ): Promise<string> {
-  const hasRegulatory = (await interestsWithStakeholders(
-    stakeholderInterestStore,
-    stakeholderStore,
-    usecaseId,
-    projectId
-  )).some(
-    ({ stakeholder }) => stakeholder.type === "REGULATORY"
-  );
+  const hasRegulatory = (
+    await interestsWithStakeholders(
+      stakeholderInterestStore,
+      stakeholderStore,
+      usecaseId,
+      projectId
+    )
+  ).some(({ stakeholder }) => stakeholder.type === "REGULATORY");
   return hasRegulatory ? "" : "No regulatory stakeholder yet.";
 }
 

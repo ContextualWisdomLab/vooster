@@ -16,7 +16,9 @@ export function parseFileErrors(file: SyncFile): SyncParseError[] {
   if (!file.content.startsWith("---\n")) {
     return [{ line: 1, message: "Missing frontmatter", path: file.path }];
   }
-  if (file.content.split("\n").findIndex((line, index) => index > 0 && line === "---") < 1) {
+  if (
+    file.content.split("\n").findIndex((line, index) => index > 0 && line === "---") < 1
+  ) {
     return [{ line: 1, message: "Unclosed frontmatter", path: file.path }];
   }
   return [];

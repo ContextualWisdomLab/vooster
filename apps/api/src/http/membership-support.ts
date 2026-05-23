@@ -36,5 +36,7 @@ export function isReadOnlyMembership(
   state: SignupState,
   membership: StoredMembership
 ): boolean {
-  return state.readOnlyMemberships.has(`${membership.user_id}:${membership.workspace_id}`);
+  return state.readOnlyMemberships.has(
+    `${membership.user_id}:${membership.workspace_id}`
+  );
 }

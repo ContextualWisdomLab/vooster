@@ -4,6 +4,7 @@ import { startServer, type TestServer } from "../helpers/server.js";
 import {
   expectDryRunSyncPush,
   expectHistoryRevisions,
+  historyRevisions,
   expectNetworkFailureSyncPush,
   expectUnauthorizedSyncPush,
   pulledSyncFile,
@@ -13,6 +14,7 @@ import {
   type PushResponse,
   type SyncProblem
 } from "../helpers/sync-fixtures.js";
+import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -111,23 +113,23 @@ describe("UC-029 - Sync local files with the server", () => {
   });
 
   test("4a: stale base revision returns conflict details without overwriting", async () => {
-    const { setup, usecase } = await projectUseCase(
+    const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Sync Conflict",
       "sync-conflict",
       "stub-sync-conflict"
     );
-    const { content: originalContent, path } = await pulledSyncFile(
-      server,
-      setup,
-      usecase.key
-    );
+    const pulled = await syncPull(server, setup);
+    const pull = (await pulled.json()) as PullResponse;
+    const originalContent = pull.files[0]?.content ?? "";
+    const baseRevision = pull.files[0]?.revision ?? "";
+    const path = `specs/${usecase.key}.md`;
 
     const serverPush = await syncPush(server, setup, {
-      base_revision: usecase.current_revision_id,
+      base_revision: baseRevision,
       content: originalContent.replace(
-        "# Reviews a refund",
-        "# Reviews a refund on server"
+        "# Places an order",
+        "# Places an order on server"
       ),
       path
     });
@@ -135,10 +137,10 @@ describe("UC-029 - Sync local files with the server", () => {
       ((await serverPush.json()) as PushResponse).results[0]?.current_revision ?? "";
 
     const stalePush = await syncPush(server, setup, {
-      base_revision: usecase.current_revision_id,
+      base_revision: baseRevision,
       content: originalContent.replace(
-        "# Reviews a refund",
-        "# Reviews a refund locally"
+        "# Places an order",
+        "# Places an order locally"
       ),
       path
     });
@@ -156,6 +158,9 @@ describe("UC-029 - Sync local files with the server", () => {
     expect(conflict.results[0]?.conflict_content).toContain(
       `>>>>>>> remote (${serverRevision}`
     );
+    const remoteConflict = remoteHalf(conflict.results[0]?.conflict_content ?? "");
+    expect(remoteConflict).toContain("## Stakeholders and Interests");
+    expect(remoteConflict).toContain("## Main Success Scenario");
     expect(conflict.cache.entries).toContainEqual({
       path,
       revision: serverRevision,
@@ -170,10 +175,8 @@ describe("UC-029 - Sync local files with the server", () => {
       reason: "Push again after removing conflict markers."
     });
 
-    await expectHistoryRevisions(server, setup.cookie, usecase.id, [
-      serverRevision,
-      usecase.current_revision_id
-    ]);
+    const revisions = await historyRevisions(server, setup.cookie, usecase.id);
+    expect(revisions[0]).toBe(serverRevision);
   });
 
   test("1a: dry-run push reports outcome without revision or cache update", async () => {
@@ -188,3 +191,7 @@ describe("UC-029 - Sync local files with the server", () => {
     await expectUnauthorizedSyncPush(server);
   });
 });
+
+function remoteHalf(conflictContent: string) {
+  return conflictContent.split("=======\n")[1]?.split("\n>>>>>>> remote")[0] ?? "";
+}

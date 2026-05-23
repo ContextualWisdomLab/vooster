@@ -11,6 +11,10 @@ BUILD_PATTERN='^[[:space:]]*(if[[:space:]]+!?[[:space:]]*)?(pnpm (run )?(--silen
 TEMP_PATTERN='/tmp/[A-Za-z0-9._-]+|\.state/[A-Za-z0-9._-]+\.log'
 
 target_files() {
+  if [ -n "${VSPEC_GOAL30_TARGET_FILES:-}" ]; then
+    printf '%s\n' "$VSPEC_GOAL30_TARGET_FILES"
+    return
+  fi
   find goals -maxdepth 1 -name '*.gates.sh' -type f | sort
   find scripts -maxdepth 1 \( -name 'check-*.sh' -o -name 'dogfood-test.sh' \) -type f | sort
 }
@@ -53,6 +57,26 @@ else
   echo "    ✗ fail"
   bash "$ROOT/scripts/check-gate-rigor.sh" "$ROOT/goals/30-in-tree-isolation.md" | sed 's/^/      /'
   PASS=false
+fi
+
+echo "[30.B2 Pattern self-test]"
+if [ "${VSPEC_GOAL30_SKIP_SELF_TEST:-0}" = "1" ]; then
+  echo "    ⊘ skipped"
+else
+  SELF_TEST_DIR=$(mktemp -d)
+  tmp_prefix="/tmp"
+  pass_fixture="$SELF_TEST_DIR/pass.sh"
+  fail_fixture="$SELF_TEST_DIR/fail.sh"
+  printf '%s\n' "# was ${tmp_prefix}/foo" >"$pass_fixture"
+  printf '%s\n' "bash -c 'cp ${tmp_prefix}/literal /dest'" >"$fail_fixture"
+  if VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$pass_fixture" bash "$0" >/dev/null 2>&1 &&
+    ! VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$fail_fixture" bash "$0" >/dev/null 2>&1; then
+    echo "    ✓ pass"
+  else
+    echo "    ✗ fail"
+    PASS=false
+  fi
+  rm -rf "$SELF_TEST_DIR"
 fi
 
 if [ "$PASS" = true ]; then

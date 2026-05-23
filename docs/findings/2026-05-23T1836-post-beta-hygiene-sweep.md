@@ -8,7 +8,7 @@ status_notes: |
   H1 — CLOSED 2026-05-24 as superseded: `pushSyncFiles` now needs MarkdownRenderDeps for stale-conflict canonical remote rendering.
   H2 — CLOSED 2026-05-24 (commit e12d9da).
   H3 — CLOSED 2026-05-24 (commit 9e7b37d).
-  H4 — open.
+  H4 — CLOSED 2026-05-24 (commit d4a77f1).
   H5 — open.
 related:
   - docs/findings/2026-05-23T1700-dogfood-followups.md

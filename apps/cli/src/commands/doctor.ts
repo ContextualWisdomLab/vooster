@@ -45,7 +45,7 @@ export async function runDoctor(
   const doctorFlags = doctorFlagsFrom(flags);
   const url = new URL("/v1/doctor", doctorFlags.apiUrl);
   if (doctorFlags.usecaseId !== undefined) {
-    url.searchParams.set("usecase_id", doctorFlags.usecaseId);
+    url.searchParams.set("usecase", doctorFlags.usecaseId);
   } else {
     url.searchParams.set(
       "project_id",

@@ -12,8 +12,8 @@ export type DoctorCheck = {
 };
 
 export type DoctorResult =
-  | { status: "PROJECT_NOT_FOUND" }
-  | { status: "USECASE_NOT_FOUND" }
+  | { status: "project_not_found" }
+  | { status: "usecase_not_found" }
   | {
       checks: DoctorCheck[];
       scope: {
@@ -42,7 +42,7 @@ export async function diagnoseProject(
 ): Promise<DoctorResult> {
   const project = await deps.projectStore.findProjectById(projectId);
   if (project === undefined) {
-    return { status: "PROJECT_NOT_FOUND" };
+    return { status: "project_not_found" };
   }
 
   const usecases = await deps.useCaseStore.listUseCases(projectId);
@@ -78,7 +78,7 @@ export async function diagnoseUseCase(
 ): Promise<DoctorResult> {
   const found = await deps.useCaseStore.findUseCaseWithProject(usecaseIdOrKey);
   if (found === undefined) {
-    return { status: "USECASE_NOT_FOUND" };
+    return { status: "usecase_not_found" };
   }
 
   const interests = await deps.stakeholderInterestStore.listStakeholderInterests(
@@ -143,7 +143,7 @@ function useCaseChecks(
         mainStepCount === 0
           ? "Main success scenario has no steps."
           : `Main success scenario has ${String(mainStepCount)} step(s).`,
-      status: mainStepCount === 0 ? "warning" : "pass"
+      status: mainStepCount === 0 ? "fail" : "pass"
     }
   ];
 }

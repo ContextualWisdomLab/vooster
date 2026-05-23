@@ -24,7 +24,7 @@ describe("doctor application", () => {
         },
         "missing-project"
       )
-    ).resolves.toEqual({ status: "PROJECT_NOT_FOUND" });
+    ).resolves.toEqual({ status: "project_not_found" });
     await expect(
       diagnoseUseCase(depsFor({ usecase: null }), "missing")
     ).resolves.toEqual({

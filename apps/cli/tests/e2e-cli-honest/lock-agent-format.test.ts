@@ -39,19 +39,24 @@ describe("honest CLI lock acquire --format=agent", () => {
   });
 
   test("agent lock acquire", async () => {
-    const result = await expectOk(runCli([
-      "lock",
-      seed.usecaseKey,
-      "--type",
-      "semantic",
-      "--reason",
-      "Agent is editing the lock envelope.",
-      "--ttl",
-      "15",
-      "--session",
-      "session-agent-lock",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "lock",
+          seed.usecaseKey,
+          "--type",
+          "semantic",
+          "--reason",
+          "Agent is editing the lock envelope.",
+          "--ttl",
+          "15",
+          "--session",
+          "session-agent-lock",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -60,7 +65,9 @@ describe("honest CLI lock acquire --format=agent", () => {
     expect(envelope.data.lock.target_id).toBeTypeOf("string");
     expect(envelope.data.lock.held_by_session_id).toBe("session-agent-lock");
     expect(envelope.context.session_id).toBe("session-agent-lock");
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec lock renew");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec lock renew"
+    );
   });
 });
 

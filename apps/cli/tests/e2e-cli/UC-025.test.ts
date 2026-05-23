@@ -39,7 +39,9 @@ describe("UC-025 CLI - Compare two use case revisions", () => {
       expect(result.stdout).toContain("Change ADD STEP main_success.steps[2]");
       expect(result.stdout).toContain(`Revision ${setup.toRevision}`);
       expect(result.stdout).toContain("Severity NON_BREAKING");
-      expect(result.stdout).toContain(`vspec revert ${setup.usecaseKey} --to ${setup.fromRevision}`);
+      expect(result.stdout).toContain(
+        `vspec revert ${setup.usecaseKey} --to ${setup.fromRevision}`
+      );
       expect(result.stdout).toContain(`vspec impact ${setup.usecaseKey}`);
       expect(result.stdout).toContain("vspec merge open");
     } finally {
@@ -56,35 +58,57 @@ async function createUseCaseWithTwoSteps(apiUrl: string) {
     { key: "DIF", name: "Diff", visibility: "PRIVATE" },
     headers
   );
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/actors`, {
-    aliases: ["Buyer"],
-    description: "Person buying a product.",
-    is_human: true,
-    name: "Customer",
-    type: "PRIMARY"
-  }, headers);
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/stakeholders`, {
-    description: "Owns checkout revenue.",
-    name: "Product Manager",
-    type: "INTERNAL"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/actors`,
+    {
+      aliases: ["Buyer"],
+      description: "Person buying a product.",
+      is_human: true,
+      name: "Customer",
+      type: "PRIMARY"
+    },
+    headers
+  );
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/stakeholders`,
+    {
+      description: "Owns checkout revenue.",
+      name: "Product Manager",
+      type: "INTERNAL"
+    },
+    headers
+  );
   const usecase = await postJson<UseCaseResponse>(
     `${apiUrl}/v1/projects/${project.project.id}/usecases`,
     { primary_actor: "Customer", title: "Reviews order revisions" },
     headers
   );
-  await postJson(`${apiUrl}/v1/usecases/${usecase.usecase.id}/stakeholder-interests`, {
-    interest: "Order review changes stay understandable.",
-    protection_mechanism: "Success guarantee",
-    stakeholder: "Product Manager"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/usecases/${usecase.usecase.id}/stakeholder-interests`,
+    {
+      interest: "Order review changes stay understandable.",
+      protection_mechanism: "Success guarantee",
+      stakeholder: "Product Manager"
+    },
+    headers
+  );
   const scenario = await postJson<ScenarioResponse>(
     `${apiUrl}/v1/usecases/${usecase.usecase.id}/scenarios`,
     { type: "MAIN_SUCCESS" },
     headers
   );
-  const firstStep = await addStep(apiUrl, scenario.scenario.id, "Reviews order status.", headers);
-  const secondStep = await addStep(apiUrl, scenario.scenario.id, "Confirms order.", headers);
+  const firstStep = await addStep(
+    apiUrl,
+    scenario.scenario.id,
+    "Reviews order status.",
+    headers
+  );
+  const secondStep = await addStep(
+    apiUrl,
+    scenario.scenario.id,
+    "Confirms order.",
+    headers
+  );
 
   return {
     cookie: signedUp.cookie,
@@ -109,12 +133,16 @@ async function addStep(
 }
 
 async function signup(apiUrl: string) {
-  const start = await postJson<OAuthStartResponse>(`${apiUrl}/v1/auth/github/start`, {
-    workspace: {
-      name: "CLI Diff",
-      slug: "cli-diff"
-    }
-  }, jsonHeaders());
+  const start = await postJson<OAuthStartResponse>(
+    `${apiUrl}/v1/auth/github/start`,
+    {
+      workspace: {
+        name: "CLI Diff",
+        slug: "cli-diff"
+      }
+    },
+    jsonHeaders()
+  );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-diff-owner");
   callbackUrl.searchParams.set("state", start.state);
@@ -124,7 +152,7 @@ async function signup(apiUrl: string) {
       Cookie: start.cookie
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -142,7 +170,7 @@ async function postJson<T>(
     headers,
     method: "POST"
   });
-  const responseBody = await response.json() as T;
+  const responseBody = (await response.json()) as T;
   if (!response.ok) {
     throw new Error(`Setup request failed with ${String(response.status)}`);
   }

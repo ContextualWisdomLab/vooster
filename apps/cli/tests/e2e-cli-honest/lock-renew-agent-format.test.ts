@@ -40,36 +40,48 @@ describe("honest CLI lock renew --format=agent", () => {
   });
 
   test("agent lock renew", async () => {
-    const acquired = await expectOk(runCli([
-      "lock",
-      seed.usecaseKey,
-      "--type",
-      "semantic",
-      "--reason",
-      "Agent is editing the lock renew envelope.",
-      "--ttl",
-      "5",
-      "--session",
-      "session-agent-lock-renew",
-      "--format=agent"
-    ], seed.env));
+    const acquired = await expectOk(
+      runCli(
+        [
+          "lock",
+          seed.usecaseKey,
+          "--type",
+          "semantic",
+          "--reason",
+          "Agent is editing the lock renew envelope.",
+          "--ttl",
+          "5",
+          "--session",
+          "session-agent-lock-renew",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     const acquiredEnvelope = expectAgentEnvelope(acquired.stdout);
 
-    const renewed = await expectOk(runCli([
-      "lock",
-      "renew",
-      acquiredEnvelope.data.lock.id,
-      "--ttl",
-      "15",
-      "--session",
-      "session-agent-lock-renew",
-      "--format=agent"
-    ], seed.env));
+    const renewed = await expectOk(
+      runCli(
+        [
+          "lock",
+          "renew",
+          acquiredEnvelope.data.lock.id,
+          "--ttl",
+          "15",
+          "--session",
+          "session-agent-lock-renew",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const renewedEnvelope = expectAgentEnvelope(renewed.stdout);
     expect(renewedEnvelope.data.lock.id).toBe(acquiredEnvelope.data.lock.id);
-    expect(renewedEnvelope.data.lock.expires_at).not.toBe(acquiredEnvelope.data.lock.expires_at);
+    expect(renewedEnvelope.data.lock.expires_at).not.toBe(
+      acquiredEnvelope.data.lock.expires_at
+    );
     expect(renewedEnvelope.context.session_id).toBe("session-agent-lock-renew");
     expect(renewedEnvelope.suggested_next_actions).toEqual([]);
   });

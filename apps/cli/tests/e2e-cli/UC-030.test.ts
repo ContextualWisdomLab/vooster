@@ -76,28 +76,40 @@ async function createGherkinReadyUseCase(apiUrl: string) {
     { key: "GHR", name: "Gherkin", visibility: "PRIVATE" },
     headers
   );
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/actors`, {
-    aliases: ["Buyer"],
-    description: "Person buying a product.",
-    is_human: true,
-    name: "Customer",
-    type: "PRIMARY"
-  }, headers);
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/stakeholders`, {
-    description: "Owns checkout revenue.",
-    name: "Product Manager",
-    type: "INTERNAL"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/actors`,
+    {
+      aliases: ["Buyer"],
+      description: "Person buying a product.",
+      is_human: true,
+      name: "Customer",
+      type: "PRIMARY"
+    },
+    headers
+  );
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/stakeholders`,
+    {
+      description: "Owns checkout revenue.",
+      name: "Product Manager",
+      type: "INTERNAL"
+    },
+    headers
+  );
   const usecase = await postJson<UseCaseResponse>(
     `${apiUrl}/v1/projects/${project.project.id}/usecases`,
     { primary_actor: "Customer", title: "Places an order" },
     headers
   );
-  await postJson(`${apiUrl}/v1/usecases/${usecase.usecase.id}/stakeholder-interests`, {
-    interest: "Checkout revenue is protected.",
-    protection_mechanism: "Success guarantee",
-    stakeholder: "Product Manager"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/usecases/${usecase.usecase.id}/stakeholder-interests`,
+    {
+      interest: "Checkout revenue is protected.",
+      protection_mechanism: "Success guarantee",
+      stakeholder: "Product Manager"
+    },
+    headers
+  );
   const main = await postJson<ScenarioResponse>(
     `${apiUrl}/v1/usecases/${usecase.usecase.id}/scenarios`,
     { type: "MAIN_SUCCESS" },
@@ -129,25 +141,33 @@ async function addStep(
   action: string,
   headers: Record<string, string>
 ) {
-  await postJson(`${apiUrl}/v1/scenarios/${scenarioId}/steps`, {
-    action,
-    actor: "Customer"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/scenarios/${scenarioId}/steps`,
+    {
+      action,
+      actor: "Customer"
+    },
+    headers
+  );
 }
 
 async function signup(apiUrl: string) {
-  const start = await postJson<OAuthStartResponse>(`${apiUrl}/v1/auth/github/start`, {
-    workspace: {
-      name: "CLI Gherkin",
-      slug: "cli-gherkin"
-    }
-  }, jsonHeaders());
+  const start = await postJson<OAuthStartResponse>(
+    `${apiUrl}/v1/auth/github/start`,
+    {
+      workspace: {
+        name: "CLI Gherkin",
+        slug: "cli-gherkin"
+      }
+    },
+    jsonHeaders()
+  );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-gherkin-owner");
   callbackUrl.searchParams.set("state", start.state);
 
   const callback = await fetch(callbackUrl, { headers: { Cookie: start.cookie } });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -165,7 +185,7 @@ async function postJson<T>(
     headers,
     method: "POST"
   });
-  const responseBody = await response.json() as T;
+  const responseBody = (await response.json()) as T;
   if (!response.ok) {
     throw new Error(`Setup request failed with ${String(response.status)}`);
   }

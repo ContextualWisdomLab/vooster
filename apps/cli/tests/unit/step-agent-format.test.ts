@@ -40,7 +40,9 @@ describe("step --format=agent", () => {
     stubFetch(addStepBody());
     const lines: string[] = [];
 
-    await runStep(stepFlags({ format: "agent" }), "add", "scenario-1", (line) => lines.push(line));
+    await runStep(stepFlags({ format: "agent" }), "add", "scenario-1", (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     expect(envelope.data.step.id).toBe("step-1");
@@ -52,10 +54,15 @@ describe("step --format=agent", () => {
     stubFetch(editStepBody());
     const lines: string[] = [];
 
-    await runStep(stepFlags({
-      "base-revision": "revision-1",
-      format: "agent"
-    }), "edit", "step-1", (line) => lines.push(line));
+    await runStep(
+      stepFlags({
+        "base-revision": "revision-1",
+        format: "agent"
+      }),
+      "edit",
+      "step-1",
+      (line) => lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     expect(envelope.data.step.id).toBe("step-1");
@@ -79,7 +86,12 @@ describe("step --format=agent", () => {
     stubFetch(editStepBody());
     const lines: string[] = [];
 
-    await runStep(stepFlags({ "base-revision": "revision-1" }), "edit", "step-1", (line) => lines.push(line));
+    await runStep(
+      stepFlags({ "base-revision": "revision-1" }),
+      "edit",
+      "step-1",
+      (line) => lines.push(line)
+    );
 
     expect(lines).toContain("Step step-1");
     expect(lines).toContain("Action Reviews the order.");
@@ -88,11 +100,16 @@ describe("step --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function stepFlags(overrides: Record<string, string> = {}): Record<string, string> {

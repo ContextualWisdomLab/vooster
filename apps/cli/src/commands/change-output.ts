@@ -42,7 +42,9 @@ export function printChangePreview(
   writeLine(`Preview ${body.preview_id}`);
   writeLine(`Severity ${body.severity}`);
   writeLine(`Expires ${body.expires_at}`);
-  writeLine(`Affected sessions ${formatPreviewAffectedSessions(body.impact.affected_sessions)}`);
+  writeLine(
+    `Affected sessions ${formatPreviewAffectedSessions(body.impact.affected_sessions)}`
+  );
   for (const diff of body.diff) {
     writeLine(`Diff ${diff.entity_type} ${diff.path} ${diff.severity}`);
     writeLine(`Before ${diff.before}`);

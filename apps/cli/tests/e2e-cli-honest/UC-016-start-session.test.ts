@@ -11,18 +11,23 @@ describe("UC-016 honest CLI - Start a work session", () => {
         projectKey: "SES",
         runCli
       });
-      const session = await expectOk(runCli([
-        "session",
-        "start",
-        "--intent",
-        "Implement checkout validation",
-        "--pin",
-        seed.usecaseKey,
-        "--agent-type",
-        "CODEX",
-        "--project-id",
-        seed.projectId
-      ], seed.env));
+      const session = await expectOk(
+        runCli(
+          [
+            "session",
+            "start",
+            "--intent",
+            "Implement checkout validation",
+            "--pin",
+            seed.usecaseKey,
+            "--agent-type",
+            "CODEX",
+            "--project-id",
+            seed.projectId
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(session.stdout).toContain("Intent Implement checkout validation");

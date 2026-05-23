@@ -17,7 +17,7 @@ import {
   commonMutationContextFrom,
   runMutationCommand
 } from "../application/mutation-command.js";
-import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, patchJson } from "../http-client.js";
 
 export class ActorCommand extends Command {
@@ -45,7 +45,12 @@ export class ActorCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(ActorCommand);
 
-    await runActor(parsed.flags, parsed.args.action, parsed.args.actorId, this.log.bind(this));
+    await runActor(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.actorId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -84,9 +89,12 @@ async function showActor(
   actorId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const response = await fetchJson(actorUrl(flags, requiredArgument(actorId, "actor id")), {
-    headers: authHeaders(flags)
-  });
+  const response = await fetchJson(
+    actorUrl(flags, requiredArgument(actorId, "actor id")),
+    {
+      headers: authHeaders(flags)
+    }
+  );
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
     return;
@@ -103,7 +111,13 @@ async function archiveActor(
   await deleteJson(actorUrl(flags, id), authHeaders(flags));
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: { actor_id: id, archived: true } }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({ data: { actor_id: id, archived: true } }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -153,12 +167,9 @@ async function listActors(
   flags: ActorCliFlags,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const response = await fetchJson(
-    actorsUrl(flags),
-    {
-      headers: authHeaders(flags)
-    }
-  );
+  const response = await fetchJson(actorsUrl(flags), {
+    headers: authHeaders(flags)
+  });
   const body = response.body as ActorListResponse;
 
   if (flags.format === "agent") {
@@ -176,7 +187,7 @@ function authHeaders(flags: ActorCliFlags): Record<string, string> {
 }
 
 function actorsUrl(flags: ActorCliFlags): string {
-  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${requiredFlag(flags, "project-id")}/actors`;
+  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${resolveContextFlag(flags, "project-id")}/actors`;
 }
 
 function actorUrl(flags: ActorCliFlags, actorId: string): string {

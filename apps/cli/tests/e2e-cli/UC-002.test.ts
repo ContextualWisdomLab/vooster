@@ -9,25 +9,24 @@ describe("UC-002 CLI - Log in", () => {
   test("MAIN: returning user gets a fresh session and workspace list", async () => {
     const server = await startNetworkServer("vspec-cli-uc002-");
     try {
-      const signup = await runCli([
-        "login",
-        "--workspace-name",
-        "Returning Workspace",
-        "--workspace-slug",
-        "returning-workspace",
-        "--api-url",
-        server.apiUrl
-      ], {
-        VSPEC_AUTH_STUB: "1",
-        VSPEC_AUTH_STUB_ID: "stub-cli-returning-user"
-      });
+      const signup = await runCli(
+        [
+          "login",
+          "--workspace-name",
+          "Returning Workspace",
+          "--workspace-slug",
+          "returning-workspace",
+          "--api-url",
+          server.apiUrl
+        ],
+        {
+          VSPEC_AUTH_STUB: "1",
+          VSPEC_AUTH_STUB_ID: "stub-cli-returning-user"
+        }
+      );
       expect(signup.status).toBe(0);
 
-      const login = await runCli([
-        "login",
-        "--api-url",
-        server.apiUrl
-      ], {
+      const login = await runCli(["login", "--api-url", server.apiUrl], {
         VSPEC_AUTH_STUB: "1",
         VSPEC_AUTH_STUB_ID: "stub-cli-returning-user"
       });

@@ -28,7 +28,9 @@ describe("lock acquire --format=agent", () => {
     stubFetch(lockBody());
     const lines: string[] = [];
 
-    await runLock(lockFlags({ format: "agent" }), "acquire", "LCK-001", (line) => lines.push(line));
+    await runLock(lockFlags({ format: "agent" }), "acquire", "LCK-001", (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     expect(envelope.data.lock.id).toBe("lock-1");
@@ -36,7 +38,9 @@ describe("lock acquire --format=agent", () => {
     expect(envelope.data.lock.target_id).toBe("LCK-001");
     expect(envelope.data.lock.held_by_session_id).toBe("session-1");
     expect(envelope.context.session_id).toBe("session-1");
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec lock renew lock-1");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+      "vspec lock renew lock-1"
+    );
   });
 
   test("human lock acquire", async () => {
@@ -52,11 +56,16 @@ describe("lock acquire --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function lockFlags(overrides: Record<string, string> = {}): Record<string, string> {

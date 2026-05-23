@@ -38,7 +38,9 @@ describe("comment --format=agent", () => {
     stubFetch(commentResponse("Review this flow."));
     const lines: string[] = [];
 
-    await runComment(commentFlags({ format: "agent" }), "add", "CMT-001", (line) => lines.push(line));
+    await runComment(commentFlags({ format: "agent" }), "add", "CMT-001", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<CommentData>(stdout);
@@ -46,7 +48,9 @@ describe("comment --format=agent", () => {
     expect(envelope.data.comment.id).toBe("comment-1");
     expect(envelope.data.comment.body).toBe("Review this flow.");
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec comment list");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec comment list"
+    );
     expect(envelope.warnings).toEqual([]);
   });
 
@@ -54,7 +58,9 @@ describe("comment --format=agent", () => {
     stubFetch({ comments: [commentPayload("Review this flow.")] });
     const lines: string[] = [];
 
-    await runComment(commentFlags({ format: "agent" }), "list", "CMT-001", (line) => lines.push(line));
+    await runComment(commentFlags({ format: "agent" }), "list", "CMT-001", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<CommentListData>(stdout);
@@ -82,14 +88,21 @@ describe("comment --format=agent", () => {
     expect(envelope.data.comment.id).toBe("comment-1");
     expect(envelope.data.comment.body).toBe("Addressed in spec.");
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec comment list");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec comment list"
+    );
   });
 
   test("agent comment resolve", async () => {
     stubFetch(commentResponse("Review this flow.", { resolved: true }));
     const lines: string[] = [];
 
-    await runComment(commentFlags({ format: "agent" }), "resolve", "comment-1", (line) => lines.push(line));
+    await runComment(
+      commentFlags({ format: "agent" }),
+      "resolve",
+      "comment-1",
+      (line) => lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<CommentData>(stdout);
@@ -97,14 +110,18 @@ describe("comment --format=agent", () => {
     expect(envelope.data.comment.id).toBe("comment-1");
     expect(envelope.data.comment.resolved).toBe(true);
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec comment list");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec comment list"
+    );
   });
 
   test("agent comment delete", async () => {
     stubFetch(commentResponse("Review this flow.", { resolved: true }));
     const lines: string[] = [];
 
-    await runComment(commentFlags({ format: "agent" }), "delete", "comment-1", (line) => lines.push(line));
+    await runComment(commentFlags({ format: "agent" }), "delete", "comment-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<CommentData>(stdout);
@@ -112,7 +129,9 @@ describe("comment --format=agent", () => {
     expect(stdout).not.toContain("Deleted true");
     expect(envelope.data.comment.id).toBe("comment-1");
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec comment list");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec comment list"
+    );
   });
 
   test("human comment lifecycle", async () => {
@@ -133,18 +152,25 @@ describe("comment --format=agent", () => {
 
     stubFetch(commentResponse("Review this flow.", { resolved: true }));
     const deleteLines: string[] = [];
-    await runComment(commentFlags(), "delete", "comment-1", (line) => deleteLines.push(line));
+    await runComment(commentFlags(), "delete", "comment-1", (line) =>
+      deleteLines.push(line)
+    );
     expect(deleteLines).toContain("Comment comment-1");
     expect(deleteLines).toContain("Deleted true");
   });
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function commentFlags(overrides: Record<string, string> = {}): Record<string, string> {

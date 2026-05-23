@@ -1,6 +1,11 @@
 import { readConfig, type VspecConfig } from "./config-store.js";
 
-export function optionalFlag<T extends object>(values: T, name: keyof T): string | undefined {
+type ContextFlagKey = "api-url" | "project-id" | "session-cookie" | "workspace-id";
+
+export function optionalFlag<T extends object>(
+  values: T,
+  name: keyof T
+): string | undefined {
   const value = values[name];
   if (typeof value !== "string" || value.trim() === "") {
     return undefined;
@@ -20,7 +25,7 @@ export function requiredFlag<T extends object>(values: T, name: keyof T): string
 
 export function resolveContextFlag(
   flags: Record<string, unknown>,
-  key: "api-url" | "session-cookie" | "workspace-id"
+  key: ContextFlagKey
 ): string {
   const fromFlag = optionalFlag(flags, key);
   if (fromFlag !== undefined) {
@@ -50,13 +55,12 @@ export function requiredArgument(value: string | undefined, name: string): strin
   return value;
 }
 
-function configValueFor(
-  config: VspecConfig,
-  key: "api-url" | "session-cookie" | "workspace-id"
-): string | undefined {
+function configValueFor(config: VspecConfig, key: ContextFlagKey): string | undefined {
   switch (key) {
     case "api-url":
       return config.api_url;
+    case "project-id":
+      return config.current_project_id;
     case "session-cookie":
       return config.session_token;
     case "workspace-id":
@@ -64,7 +68,7 @@ function configValueFor(
   }
 }
 
-function sessionCookieValue(key: "api-url" | "session-cookie" | "workspace-id", value: string): string {
+function sessionCookieValue(key: ContextFlagKey, value: string): string {
   if (key !== "session-cookie" || value.includes("vspec_session=")) {
     return value;
   }

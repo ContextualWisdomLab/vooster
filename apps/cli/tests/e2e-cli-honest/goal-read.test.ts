@@ -7,21 +7,30 @@ describe("honest CLI - goal read", () => {
   test("shows a goal through the CLI", async () => {
     const server = await startNetworkServer("vspec-honest-goal-read-");
     try {
-      const seed = await seedViaCli({ apiUrl: server.apiUrl, projectKey: "GLR", runCli });
-      const created = await expectOk(runCli([
-        "goal",
-        "create",
-        "--project-id",
-        seed.projectId,
-        "--actor-id",
-        seed.actorId,
-        "--description",
-        "Submit an order",
-        "--level",
-        "USER_GOAL",
-        "--priority",
-        "P1"
-      ], seed.env));
+      const seed = await seedViaCli({
+        apiUrl: server.apiUrl,
+        projectKey: "GLR",
+        runCli
+      });
+      const created = await expectOk(
+        runCli(
+          [
+            "goal",
+            "create",
+            "--project-id",
+            seed.projectId,
+            "--actor-id",
+            seed.actorId,
+            "--description",
+            "Submit an order",
+            "--level",
+            "USER_GOAL",
+            "--priority",
+            "P1"
+          ],
+          seed.env
+        )
+      );
       const goalId = created.stdout.match(/Goal id ([^\s]+)/u)?.[1] ?? "";
       const shown = await expectOk(runCli(["goal", "show", goalId], seed.env));
 

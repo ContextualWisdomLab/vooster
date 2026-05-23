@@ -7,7 +7,12 @@ import {
   type MergeResolveResponse
 } from "./merge-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type MergeCliFlags = {
@@ -64,7 +69,12 @@ export class MergeCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(MergeCommand);
 
-    await runMerge(parsed.flags, parsed.args.action, parsed.args.targetId, this.log.bind(this));
+    await runMerge(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.targetId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -106,13 +116,19 @@ async function openMerge(
   const body = response.body as MergeOpenResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        branch: body.source_branch.name
-      },
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            branch: body.source_branch.name
+          },
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -145,14 +161,20 @@ async function resolveMerge(
   const body = response.body as MergeResolveResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        branch: body.source_branch.name,
-        revision: body.new_revisions.at(0)?.id ?? null
-      },
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            branch: body.source_branch.name,
+            revision: body.new_revisions.at(0)?.id ?? null
+          },
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -172,7 +194,10 @@ function mergeOpenFlagsFrom(
   };
 }
 
-function mergeResolveFlagsFrom(flags: MergeCliFlags, mergeId: string | undefined): MergeResolveFlags {
+function mergeResolveFlagsFrom(
+  flags: MergeCliFlags,
+  mergeId: string | undefined
+): MergeResolveFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
     baseRevision: requiredFlag(flags, "base-revision"),
@@ -185,7 +210,9 @@ function mergeResolveFlagsFrom(flags: MergeCliFlags, mergeId: string | undefined
   };
 }
 
-function mergeStrategy(rawStrategy: string | undefined): "FAST_FORWARD" | "SQUASH" | undefined {
+function mergeStrategy(
+  rawStrategy: string | undefined
+): "FAST_FORWARD" | "SQUASH" | undefined {
   if (rawStrategy === undefined) {
     return undefined;
   }

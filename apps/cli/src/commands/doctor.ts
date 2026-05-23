@@ -1,7 +1,7 @@
 import { Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { optionalFlag, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { optionalFlag, resolveContextFlag } from "../flag-values.js";
 import { fetchJson } from "../http-client.js";
 
 type DoctorCliFlags = {
@@ -47,7 +47,10 @@ export async function runDoctor(
   if (doctorFlags.usecaseId !== undefined) {
     url.searchParams.set("usecase_id", doctorFlags.usecaseId);
   } else {
-    url.searchParams.set("project_id", doctorFlags.projectId ?? requiredFlag(flags, "project-id"));
+    url.searchParams.set(
+      "project_id",
+      doctorFlags.projectId ?? resolveContextFlag(flags, "project-id")
+    );
   }
 
   const response = await fetchJson(url, {

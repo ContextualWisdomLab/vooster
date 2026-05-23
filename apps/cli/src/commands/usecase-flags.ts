@@ -1,4 +1,9 @@
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 
 export type UsecaseCliFlags = {
   "actor-id"?: string;
@@ -86,7 +91,7 @@ export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFla
     branch: flags.branch ?? "main",
     dryRun: flags["dry-run"] === true,
     primaryActor: requiredFlag(flags, "primary-actor"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     title: requiredFlag(flags, "title")
@@ -100,7 +105,7 @@ export function usecaseListFlagsFrom(flags: UsecaseCliFlags): UsecaseListFlags {
     cursor: optionalFlag(flags, "cursor"),
     level: optionalFlag(flags, "level"),
     limit: optionalFlag(flags, "limit"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     q: optionalFlag(flags, "q"),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status")

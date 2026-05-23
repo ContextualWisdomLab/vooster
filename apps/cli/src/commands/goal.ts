@@ -46,7 +46,12 @@ export class GoalCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(GoalCommand);
 
-    await runGoal(parsed.flags, parsed.args.action, parsed.args.goalId, this.log.bind(this));
+    await runGoal(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.goalId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -120,7 +125,10 @@ async function showGoal(
   printGoalResponse(response.body as GoalResponse, writeLine);
 }
 
-async function createGoal(flags: GoalCliFlags, writeLine: (message: string) => void): Promise<void> {
+async function createGoal(
+  flags: GoalCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
   const goalFlags = goalCreateFlagsFrom(flags);
   await runMutationCommand<GoalResponse>(
     {
@@ -142,7 +150,10 @@ async function createGoal(flags: GoalCliFlags, writeLine: (message: string) => v
   );
 }
 
-async function listGoals(flags: GoalCliFlags, writeLine: (message: string) => void): Promise<void> {
+async function listGoals(
+  flags: GoalCliFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
   const goalFlags = goalListFlagsFrom(flags);
   const url = new URL(`/v1/projects/${goalFlags.projectId}/goals`, goalFlags.apiUrl);
   if (goalFlags.actorId !== undefined) {

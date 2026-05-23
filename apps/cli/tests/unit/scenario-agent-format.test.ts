@@ -36,7 +36,9 @@ describe("scenario add --format=agent", () => {
     stubFetch(scenarioBody());
     const lines: string[] = [];
 
-    await runScenario(scenarioFlags({ format: "agent" }), "add", "UC-001", (line) => lines.push(line));
+    await runScenario(scenarioFlags({ format: "agent" }), "add", "UC-001", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Scenario ");
@@ -62,11 +64,16 @@ describe("scenario add --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function scenarioFlags(overrides: Record<string, string> = {}): Record<string, string> {

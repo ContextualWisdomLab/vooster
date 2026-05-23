@@ -80,7 +80,9 @@ export async function runMutationCommand<TData>(
   render.human(data, render.writeLine);
 }
 
-export function commonMutationContextFrom(flags: CommonContextFlags): CommonMutationContext {
+export function commonMutationContextFrom(
+  flags: CommonContextFlags
+): CommonMutationContext {
   return {
     apiUrl: flags.apiUrl,
     branch: flags.branch,

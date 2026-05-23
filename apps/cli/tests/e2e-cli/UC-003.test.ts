@@ -59,7 +59,7 @@ async function signupOwner(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-invite-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -69,7 +69,7 @@ async function signupOwner(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

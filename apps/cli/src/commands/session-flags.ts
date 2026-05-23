@@ -1,4 +1,9 @@
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 
 export type SessionCliFlags = {
   "agent-type"?: string;
@@ -51,7 +56,7 @@ export function sessionStartFlagsFrom(flags: SessionCliFlags): SessionStartFlags
     branchName: optionalFlag(flags, "branch-name"),
     intent: requiredFlag(flags, "intent"),
     pins: pinsFrom(requiredFlag(flags, "pin")),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
@@ -80,7 +85,10 @@ export function sessionCompleteFlagsFrom(
 }
 
 function pinsFrom(rawPins: string): string[] {
-  return rawPins.split(",").map((pin) => pin.trim()).filter(Boolean);
+  return rawPins
+    .split(",")
+    .map((pin) => pin.trim())
+    .filter(Boolean);
 }
 
 function agentType(rawAgentType: string): string {

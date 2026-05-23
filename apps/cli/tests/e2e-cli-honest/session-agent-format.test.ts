@@ -49,19 +49,24 @@ describe("honest CLI session --format=agent", () => {
   });
 
   test("agent session start", async () => {
-    const result = await expectOk(runCli([
-      "session",
-      "start",
-      "--intent",
-      "Implement session envelope",
-      "--pin",
-      seed.usecaseKey,
-      "--agent-type",
-      "CODEX",
-      "--project-id",
-      seed.projectId,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "session",
+          "start",
+          "--intent",
+          "Implement session envelope",
+          "--pin",
+          seed.usecaseKey,
+          "--agent-type",
+          "CODEX",
+          "--project-id",
+          seed.projectId,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -76,13 +81,12 @@ describe("honest CLI session --format=agent", () => {
   });
 
   test("agent session list", async () => {
-    const result = await expectOk(runCli([
-      "session",
-      "list",
-      "--project-id",
-      seed.projectId,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        ["session", "list", "--project-id", seed.projectId, "--format=agent"],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -94,15 +98,20 @@ describe("honest CLI session --format=agent", () => {
 
   test("agent session complete", async () => {
     const id = await startSession();
-    const result = await expectOk(runCli([
-      "session",
-      "complete",
-      id,
-      "--summary",
-      "Session envelope verified",
-      "--no-merge",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "session",
+          "complete",
+          id,
+          "--summary",
+          "Session envelope verified",
+          "--no-merge",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -118,19 +127,24 @@ describe("honest CLI session --format=agent", () => {
 });
 
 async function startSession(): Promise<string> {
-  const result = await expectOk(runCli([
-    "session",
-    "start",
-    "--intent",
-    "Implement session envelope",
-    "--pin",
-    seed.usecaseKey,
-    "--agent-type",
-    "CODEX",
-    "--project-id",
-    seed.projectId,
-    "--format=agent"
-  ], seed.env));
+  const result = await expectOk(
+    runCli(
+      [
+        "session",
+        "start",
+        "--intent",
+        "Implement session envelope",
+        "--pin",
+        seed.usecaseKey,
+        "--agent-type",
+        "CODEX",
+        "--project-id",
+        seed.projectId,
+        "--format=agent"
+      ],
+      seed.env
+    )
+  );
   return expectAgentEnvelope(result.stdout).data.session.id;
 }
 

@@ -28,7 +28,9 @@ describe("history --format=agent", () => {
     stubFetch(historyBody());
     const lines: string[] = [];
 
-    await runHistory(historyFlags({ format: "agent" }), "HIS-001", (line) => lines.push(line));
+    await runHistory(historyFlags({ format: "agent" }), "HIS-001", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("UseCase ");
@@ -46,7 +48,9 @@ describe("history --format=agent", () => {
     expect(envelope.data.usecase.key).toBe("HIS-001");
     expect(firstRevision.revision).toBe("revision-2");
     expect(envelope.context.revision).toBe("revision-2");
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec usecase show");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec usecase show"
+    );
   });
 
   test("agent history without revisions", async () => {
@@ -60,7 +64,9 @@ describe("history --format=agent", () => {
     });
     const lines: string[] = [];
 
-    await runHistory(historyFlags({ format: "agent" }), "HIS-001", (line) => lines.push(line));
+    await runHistory(historyFlags({ format: "agent" }), "HIS-001", (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines.join("\n"));
     expect(envelope.context.revision).toBeNull();
@@ -80,11 +86,16 @@ describe("history --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function historyFlags(overrides: Record<string, string> = {}): Record<string, string> {

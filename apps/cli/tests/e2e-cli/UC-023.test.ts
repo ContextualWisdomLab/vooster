@@ -102,7 +102,7 @@ async function createBusyUseCase(apiUrl: string) {
       method: "POST"
     }
   );
-  const projectBody = await projectResponse.json() as ProjectResponse;
+  const projectBody = (await projectResponse.json()) as ProjectResponse;
   await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/actors`, {
     body: JSON.stringify({
       aliases: ["Buyer"],
@@ -131,7 +131,7 @@ async function createBusyUseCase(apiUrl: string) {
       method: "POST"
     }
   );
-  const useCaseBody = await useCaseResponse.json() as UseCaseResponse;
+  const useCaseBody = (await useCaseResponse.json()) as UseCaseResponse;
   const sessionResponse = await fetch(`${apiUrl}/v1/sessions`, {
     body: JSON.stringify({
       agent_type: "CODEX",
@@ -146,7 +146,7 @@ async function createBusyUseCase(apiUrl: string) {
     },
     method: "POST"
   });
-  const sessionBody = await sessionResponse.json() as SessionStartResponse;
+  const sessionBody = (await sessionResponse.json()) as SessionStartResponse;
   const lockResponse = await fetch(`${apiUrl}/v1/locks`, {
     body: JSON.stringify({
       lock_type: "SEMANTIC",
@@ -161,16 +161,19 @@ async function createBusyUseCase(apiUrl: string) {
     },
     method: "POST"
   });
-  const lockBody = await lockResponse.json() as LockResponse;
-  const branchResponse = await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/branches`, {
-    body: JSON.stringify({ name: "feature/who-open-merge" }),
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: signedUp.cookie
-    },
-    method: "POST"
-  });
-  const branchBody = await branchResponse.json() as BranchCreateResponse;
+  const lockBody = (await lockResponse.json()) as LockResponse;
+  const branchResponse = await fetch(
+    `${apiUrl}/v1/projects/${projectBody.project.id}/branches`,
+    {
+      body: JSON.stringify({ name: "feature/who-open-merge" }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: signedUp.cookie
+      },
+      method: "POST"
+    }
+  );
+  const branchBody = (await branchResponse.json()) as BranchCreateResponse;
   await fetch(
     `${apiUrl}/__test/branches/${branchBody.branch.id}/usecases/${useCaseBody.usecase.id}/revisions`,
     {
@@ -207,7 +210,7 @@ async function createBusyUseCase(apiUrl: string) {
     },
     method: "POST"
   });
-  const mergeBody = await mergeResponse.json() as MergeOpenResponse;
+  const mergeBody = (await mergeResponse.json()) as MergeOpenResponse;
 
   return {
     branchId: branchBody.branch.id,
@@ -234,7 +237,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-who-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -244,7 +247,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

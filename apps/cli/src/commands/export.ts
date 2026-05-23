@@ -41,7 +41,12 @@ export class ExportCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(ExportCommand);
 
-    await runExport(parsed.flags, parsed.args.format, parsed.args.usecaseId, this.log.bind(this));
+    await runExport(
+      parsed.flags,
+      parsed.args.format,
+      parsed.args.usecaseId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -119,7 +124,10 @@ async function writeExportResponse(
   writeLine(`Bytes ${String(Buffer.byteLength(body, "utf8"))}`);
 }
 
-function exportFlagsFrom(flags: ExportCliFlags, usecaseId: string | undefined): ExportFlags {
+function exportFlagsFrom(
+  flags: ExportCliFlags,
+  usecaseId: string | undefined
+): ExportFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
     force: flags.force ?? false,
@@ -130,7 +138,11 @@ function exportFlagsFrom(flags: ExportCliFlags, usecaseId: string | undefined): 
   };
 }
 
-async function writeOutputFile(root: string, path: string, content: string): Promise<void> {
+async function writeOutputFile(
+  root: string,
+  path: string,
+  content: string
+): Promise<void> {
   const absolutePath = resolve(root, path);
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content);

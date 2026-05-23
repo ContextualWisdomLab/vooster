@@ -57,13 +57,17 @@ async function createAdvancedUseCase(apiUrl: string) {
     { key: "IMP", name: "Impact", visibility: "PRIVATE" },
     headers
   );
-  await postJson(`${apiUrl}/v1/projects/${project.project.id}/actors`, {
-    aliases: ["Reviewer"],
-    description: "Person reviewing refund wording.",
-    is_human: true,
-    name: "Customer",
-    type: "PRIMARY"
-  }, headers);
+  await postJson(
+    `${apiUrl}/v1/projects/${project.project.id}/actors`,
+    {
+      aliases: ["Reviewer"],
+      description: "Person reviewing refund wording.",
+      is_human: true,
+      name: "Customer",
+      type: "PRIMARY"
+    },
+    headers
+  );
   const usecase = await postJson<UseCaseResponse>(
     `${apiUrl}/v1/projects/${project.project.id}/usecases`,
     { primary_actor: "Customer", title: "Reviews a refund" },
@@ -83,12 +87,16 @@ async function createAdvancedUseCase(apiUrl: string) {
 }
 
 async function signup(apiUrl: string) {
-  const start = await postJson<OAuthStartResponse>(`${apiUrl}/v1/auth/github/start`, {
-    workspace: {
-      name: "CLI Impact",
-      slug: "cli-impact"
-    }
-  }, jsonHeaders());
+  const start = await postJson<OAuthStartResponse>(
+    `${apiUrl}/v1/auth/github/start`,
+    {
+      workspace: {
+        name: "CLI Impact",
+        slug: "cli-impact"
+      }
+    },
+    jsonHeaders()
+  );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-impact-owner");
   callbackUrl.searchParams.set("state", start.state);
@@ -98,7 +106,7 @@ async function signup(apiUrl: string) {
       Cookie: start.cookie
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
@@ -116,7 +124,7 @@ async function postJson<T>(
     headers,
     method: "POST"
   });
-  const responseBody = await response.json() as T;
+  const responseBody = (await response.json()) as T;
   if (!response.ok) {
     throw new Error(`Setup request failed with ${String(response.status)}`);
   }

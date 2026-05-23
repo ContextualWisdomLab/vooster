@@ -55,36 +55,34 @@ describe("honest CLI pull/sync --format=agent", () => {
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const pullRoot = tempRoot();
 
-    const pulled = await expectOk(runCli([
-      "pull",
-      "--project-id",
-      seed.projectId,
-      "--root",
-      pullRoot,
-      "--format=agent"
-    ], seed.env));
+    const pulled = await expectOk(
+      runCli(
+        ["pull", "--project-id", seed.projectId, "--root", pullRoot, "--format=agent"],
+        seed.env
+      )
+    );
     const pullEnvelope = expectAgentEnvelope<PullData>(pulled.stdout);
     expect(pullEnvelope.context).toEqual(defaultContext());
     expect(pullEnvelope.data.cursor.length).toBeGreaterThan(0);
     expect(pullEnvelope.data.files.at(0)?.path).toBe(`specs/${seed.usecaseKey}.md`);
-    await expect(readFile(join(pullRoot, "specs", `${seed.usecaseKey}.md`), "utf8"))
-      .resolves.toContain(seed.usecaseKey);
+    await expect(
+      readFile(join(pullRoot, "specs", `${seed.usecaseKey}.md`), "utf8")
+    ).resolves.toContain(seed.usecaseKey);
 
     const syncRoot = tempRoot();
-    const synced = await expectOk(runCli([
-      "sync",
-      "--project-id",
-      seed.projectId,
-      "--root",
-      syncRoot,
-      "--format=agent"
-    ], seed.env));
+    const synced = await expectOk(
+      runCli(
+        ["sync", "--project-id", seed.projectId, "--root", syncRoot, "--format=agent"],
+        seed.env
+      )
+    );
     const syncEnvelope = expectAgentEnvelope<PullData>(synced.stdout);
     expect(syncEnvelope.context).toEqual(defaultContext());
     expect(syncEnvelope.data.cursor).toBe(pullEnvelope.data.cursor);
     expect(syncEnvelope.data.files.at(0)?.path).toBe(`specs/${seed.usecaseKey}.md`);
-    await expect(readFile(join(syncRoot, "specs", `${seed.usecaseKey}.md`), "utf8"))
-      .resolves.toContain(seed.usecaseKey);
+    await expect(
+      readFile(join(syncRoot, "specs", `${seed.usecaseKey}.md`), "utf8")
+    ).resolves.toContain(seed.usecaseKey);
   });
 });
 

@@ -103,7 +103,7 @@ async function createUseCaseWithMainStep(apiUrl: string) {
       method: "POST"
     }
   );
-  const projectBody = await projectResponse.json() as ProjectResponse;
+  const projectBody = (await projectResponse.json()) as ProjectResponse;
   await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/actors`, {
     body: JSON.stringify({
       aliases: ["Buyer"],
@@ -144,7 +144,7 @@ async function createUseCaseWithMainStep(apiUrl: string) {
       method: "POST"
     }
   );
-  const useCaseBody = await useCaseResponse.json() as UseCaseResponse;
+  const useCaseBody = (await useCaseResponse.json()) as UseCaseResponse;
   await fetch(`${apiUrl}/v1/usecases/${useCaseBody.usecase.id}/stakeholder-interests`, {
     body: JSON.stringify({
       interest: "Checkout revenue is protected.",
@@ -168,7 +168,7 @@ async function createUseCaseWithMainStep(apiUrl: string) {
       method: "POST"
     }
   );
-  const scenarioBody = await scenarioResponse.json() as ScenarioResponse;
+  const scenarioBody = (await scenarioResponse.json()) as ScenarioResponse;
   await fetch(`${apiUrl}/v1/scenarios/${scenarioBody.scenario.id}/steps`, {
     body: JSON.stringify({
       action: "Places an order.",
@@ -200,7 +200,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-extension-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -210,7 +210,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

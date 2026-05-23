@@ -100,11 +100,17 @@ async function proposeChange(
 
   const body = response.body as ChangePreviewResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions,
-      warnings: body.warnings
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions,
+          warnings: body.warnings
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -129,13 +135,19 @@ async function commitChange(
 
   const body = response.body as ChangeCommitResponse;
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: body.revisions[0]?.revision_id ?? null
-      },
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            revision: body.revisions[0]?.revision_id ?? null
+          },
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

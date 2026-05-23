@@ -165,7 +165,9 @@ describe("vspec usecase create --format=agent — auto-export & error envelope &
         { headers: { Cookie: setup.cookie } }
       );
       const listBody = (await listResponse.json()) as UsecaseListResponse;
-      expect(listBody.items.find((u) => u.title === "Reviews would-be flow")).toBeUndefined();
+      expect(
+        listBody.items.find((u) => u.title === "Reviews would-be flow")
+      ).toBeUndefined();
     } finally {
       await server.stop();
       await rm(workdir, { recursive: true, force: true });

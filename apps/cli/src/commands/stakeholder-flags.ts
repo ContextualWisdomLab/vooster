@@ -36,7 +36,7 @@ export function stakeholderCreateFlagsFrom(
     description: flags.description ?? "",
     dryRun: flags["dry-run"] === true,
     name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type: stakeholderType(requiredFlag(flags, "type"))

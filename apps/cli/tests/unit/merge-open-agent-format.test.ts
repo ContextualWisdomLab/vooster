@@ -31,7 +31,9 @@ describe("merge open --format=agent", () => {
     stubFetch(mergeOpenBody());
     const lines: string[] = [];
 
-    await runMerge(mergeFlags({ format: "agent" }), "open", "branch-1", (line) => lines.push(line));
+    await runMerge(mergeFlags({ format: "agent" }), "open", "branch-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Merge request ");
@@ -46,7 +48,9 @@ describe("merge open --format=agent", () => {
     expect(envelope.data.source_branch.id).toBe("branch-1");
     expect(envelope.data.source_branch.name).toBe("agent/merge-open");
     expect(envelope.context.branch).toBe("agent/merge-open");
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec merge resolve merge-1");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec merge resolve merge-1"
+    );
     expect(envelope.warnings).toEqual([]);
   });
 
@@ -65,11 +69,16 @@ describe("merge open --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function mergeFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -106,9 +115,7 @@ function mergeOpenBody() {
       name: "agent/merge-open",
       status: "ACTIVE"
     },
-    suggested_next_actions: [
-      { command: "vspec merge resolve merge-1" }
-    ]
+    suggested_next_actions: [{ command: "vspec merge resolve merge-1" }]
   };
 }
 

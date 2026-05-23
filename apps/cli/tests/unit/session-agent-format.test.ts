@@ -38,7 +38,9 @@ describe("session --format=agent", () => {
     stubFetch(sessionStartBody());
     const lines: string[] = [];
 
-    await runSession(sessionFlags({ format: "agent" }), "start", undefined, (line) => lines.push(line));
+    await runSession(sessionFlags({ format: "agent" }), "start", undefined, (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     const session = requiredValue(envelope.data.session);
@@ -55,7 +57,9 @@ describe("session --format=agent", () => {
     stubFetch(sessionListBody());
     const lines: string[] = [];
 
-    await runSession(sessionFlags({ format: "agent" }), "list", undefined, (line) => lines.push(line));
+    await runSession(sessionFlags({ format: "agent" }), "list", undefined, (line) =>
+      lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     expect(envelope.data.sessions).toHaveLength(1);
@@ -68,7 +72,12 @@ describe("session --format=agent", () => {
     stubFetch(sessionCompleteBody());
     const lines: string[] = [];
 
-    await runSession(sessionFlags({ format: "agent" }), "complete", "session-1", (line) => lines.push(line));
+    await runSession(
+      sessionFlags({ format: "agent" }),
+      "complete",
+      "session-1",
+      (line) => lines.push(line)
+    );
 
     const envelope = expectAgentEnvelope(lines);
     const session = requiredValue(envelope.data.session);
@@ -105,7 +114,9 @@ describe("session --format=agent", () => {
     stubFetch(sessionCompleteBody());
     const lines: string[] = [];
 
-    await runSession(sessionFlags(), "complete", "session-1", (line) => lines.push(line));
+    await runSession(sessionFlags(), "complete", "session-1", (line) =>
+      lines.push(line)
+    );
 
     expect(lines).toContain("Session session-1");
     expect(lines).toContain("Status COMPLETED");
@@ -113,11 +124,16 @@ describe("session --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function sessionFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -170,7 +186,7 @@ function sessionListBody() {
         status: "ACTIVE"
       }
     ],
-    suggested_next_actions: [{ command: "vspec session start --intent \"...\"" }],
+    suggested_next_actions: [{ command: 'vspec session start --intent "..."' }],
     summary: { total_conflicts: 0 },
     total: 1
   };

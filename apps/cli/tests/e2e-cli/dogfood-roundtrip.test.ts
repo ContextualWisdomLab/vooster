@@ -1,78 +1,99 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
+import { runCli, startNetworkServer } from "./helpers.js";
 
-type SignupResponse = { workspace: { id: string } };
+type SignupResponse = { user: { id: string }; workspace: { id: string } };
 type OAuthStartResponse = { state: string };
 type ProjectResponse = { project: { id: string } };
-type UseCaseResponse = {
-  usecase: {
-    id: string;
-    key: string;
-  };
-};
 type ScenarioResponse = { scenario: { id: string } };
+type UseCaseResponse = { usecase: { id: string; key: string } };
 
 const tempRoots: string[] = [];
 
 afterEach(() => {
-  cleanupCliE2e();
   while (tempRoots.length > 0) {
     rmSync(tempRoots.pop() ?? "", { force: true, recursive: true });
   }
 });
 
-describe("UC-031 CLI - Export a use case to markdown", () => {
-  test("MAIN: agent exports canonical markdown to a local file", async () => {
-    const server = await startNetworkServer("vspec-cli-uc031-");
-    const root = mkdtempSync(join(tmpdir(), "vspec-cli-markdown-"));
-    tempRoots.push(root);
-    try {
-      const setup = await createMarkdownReadyUseCase(server.apiUrl);
-      const outputPath = join(root, "specs", `${setup.usecaseKey}.md`);
-      const result = await runCli([
-        "export",
-        "markdown",
-        setup.usecaseId,
-        "--output",
-        outputPath,
-        "--session-cookie",
-        setup.cookie,
-        "--api-url",
-        server.apiUrl
-      ]);
+describe("CLI dogfood round-trip", () => {
+  test("initializes by project key, pulls rendered markdown, and shows body sections without --project-id", async () => {
+    const server = await startNetworkServer("vspec-cli-roundtrip-");
+    const root = tempDir("vspec-cli-roundtrip-root-");
+    const configDir = tempDir("vspec-cli-roundtrip-config-");
+    const globalConfigPath = join(configDir, "config.json");
 
-      expect(result.stderr).toBe("");
-      expect(result.status).toBe(0);
-      expect(result.stdout).toContain(`Exported ${outputPath}`);
-      expect(result.stdout).toContain("Bytes ");
-      const markdown = await readFile(outputPath, "utf8");
-      expect(markdown).toMatch(/revision: [0-9a-f-]{36}/);
+    try {
+      const setup = await createRoundTripUseCase(server.apiUrl);
+      await writeFile(
+        globalConfigPath,
+        `${JSON.stringify(
+          {
+            api_url: server.apiUrl,
+            current_workspace_id: setup.workspaceId,
+            session_token: setup.cookie
+          },
+          null,
+          2
+        )}\n`
+      );
+      const env = { VSPEC_GLOBAL_CONFIG_PATH: globalConfigPath };
+
+      const initialized = await runCli(["init", "--project", setup.projectKey], env, {
+        cwd: root
+      });
+      expect(initialized.stderr).toBe("");
+      expect(initialized.status).toBe(0);
+
+      const localConfig = JSON.parse(
+        await readFile(join(root, ".vspec", "config.json"), "utf8")
+      ) as Record<string, string>;
+      expect(localConfig).toMatchObject({
+        api_url: server.apiUrl,
+        current_project_id: setup.projectId,
+        current_project_key: setup.projectKey,
+        current_workspace_id: setup.workspaceId
+      });
+
+      const pulled = await runCli(["pull"], env, { cwd: root });
+      expect(pulled.stderr).toBe("");
+      expect(pulled.status).toBe(0);
+      expect(pulled.stdout).toContain(`File specs/${setup.usecaseKey}.md`);
+
+      const markdown = await readFile(
+        join(root, "specs", `${setup.usecaseKey}.md`),
+        "utf8"
+      );
       expect(markdown).toContain(
         "## Stakeholders and Interests\n\n- **Product Manager**: Checkout revenue is protected."
       );
       expect(markdown).toContain(
         "## Main Success Scenario\n\n1. **Customer** Places an order."
       );
-      expect(markdown).toContain(
-        "### 1a. Payment is declined.\n\n- 1a1. **Customer** Uses a backup card."
-      );
-      expect(markdown).toMatch(/## Notes\n$/);
+
+      const shown = await runCli(["usecase", "show", setup.usecaseKey], env, {
+        cwd: root
+      });
+      expect(shown.stderr).toBe("");
+      expect(shown.status).toBe(0);
+      expect(shown.stdout).toContain("Product Manager: Checkout revenue is protected.");
+      expect(shown.stdout).toContain("1. Customer Places an order.");
     } finally {
       await server.stop();
     }
-  });
+  }, 30_000);
 });
 
-async function createMarkdownReadyUseCase(apiUrl: string) {
+async function createRoundTripUseCase(apiUrl: string) {
   const signedUp = await signup(apiUrl);
   const headers = jsonHeaders(signedUp.cookie);
+  const projectKey = "RTD";
   const project = await postJson<ProjectResponse>(
     `${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`,
-    { key: "MDX", name: "Markdown", visibility: "PRIVATE" },
+    { key: projectKey, name: "Round Trip Dogfood", visibility: "PRIVATE" },
     headers
   );
   await postJson(
@@ -89,7 +110,7 @@ async function createMarkdownReadyUseCase(apiUrl: string) {
   await postJson(
     `${apiUrl}/v1/projects/${project.project.id}/stakeholders`,
     {
-      description: "Owns checkout revenue.",
+      description: "Owns the checkout business outcome.",
       name: "Product Manager",
       type: "INTERNAL"
     },
@@ -109,45 +130,24 @@ async function createMarkdownReadyUseCase(apiUrl: string) {
     },
     headers
   );
-  const main = await postJson<ScenarioResponse>(
+  const scenario = await postJson<ScenarioResponse>(
     `${apiUrl}/v1/usecases/${usecase.usecase.id}/scenarios`,
     { type: "MAIN_SUCCESS" },
     headers
   );
-  await addStep(apiUrl, main.scenario.id, "Places an order.", headers);
-  const extension = await postJson<ScenarioResponse>(
-    `${apiUrl}/v1/usecases/${usecase.usecase.id}/scenarios`,
-    {
-      condition: "Payment is declined.",
-      extension_point: "1a",
-      outcome: "FAILURE",
-      type: "EXTENSION"
-    },
+  await postJson(
+    `${apiUrl}/v1/scenarios/${scenario.scenario.id}/steps`,
+    { action: "Places an order.", actor: "Customer" },
     headers
   );
-  await addStep(apiUrl, extension.scenario.id, "Uses a backup card.", headers);
 
   return {
     cookie: signedUp.cookie,
-    usecaseId: usecase.usecase.id,
-    usecaseKey: usecase.usecase.key
+    projectId: project.project.id,
+    projectKey,
+    usecaseKey: usecase.usecase.key,
+    workspaceId: signedUp.workspaceId
   };
-}
-
-async function addStep(
-  apiUrl: string,
-  scenarioId: string,
-  action: string,
-  headers: Record<string, string>
-) {
-  await postJson(
-    `${apiUrl}/v1/scenarios/${scenarioId}/steps`,
-    {
-      action,
-      actor: "Customer"
-    },
-    headers
-  );
 }
 
 async function signup(apiUrl: string) {
@@ -155,21 +155,25 @@ async function signup(apiUrl: string) {
     `${apiUrl}/v1/auth/github/start`,
     {
       workspace: {
-        name: "CLI Markdown",
-        slug: "cli-markdown"
+        name: "CLI Round Trip",
+        slug: "cli-round-trip"
       }
     },
     jsonHeaders()
   );
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
-  callbackUrl.searchParams.set("code", "stub-cli-markdown-owner");
+  callbackUrl.searchParams.set("code", "stub-cli-roundtrip-owner");
   callbackUrl.searchParams.set("state", start.state);
 
   const callback = await fetch(callbackUrl, { headers: { Cookie: start.cookie } });
   const callbackBody = (await callback.json()) as SignupResponse;
+  if (!callback.ok) {
+    throw new Error(`Signup callback failed with ${String(callback.status)}`);
+  }
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
+    userId: callbackBody.user.id,
     workspaceId: callbackBody.workspace.id
   };
 }
@@ -195,4 +199,10 @@ function jsonHeaders(cookie?: string): Record<string, string> {
   return cookie === undefined
     ? { "Content-Type": "application/json" }
     : { "Content-Type": "application/json", Cookie: cookie };
+}
+
+function tempDir(prefix: string): string {
+  const path = mkdtempSync(join(tmpdir(), prefix));
+  tempRoots.push(path);
+  return path;
 }

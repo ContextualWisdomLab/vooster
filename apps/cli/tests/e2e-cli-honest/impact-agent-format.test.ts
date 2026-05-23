@@ -39,11 +39,9 @@ describe("honest CLI impact --format=agent", () => {
   });
 
   test("agent impact", async () => {
-    const result = await expectOk(runCli([
-      "impact",
-      seed.usecaseKey,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(["impact", seed.usecaseKey, "--format=agent"], seed.env)
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);

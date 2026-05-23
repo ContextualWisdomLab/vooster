@@ -62,51 +62,56 @@ describe("honest CLI member/API-key --format=agent", () => {
   test("agent member and api-key admin lifecycle", async () => {
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
 
-    const invited = await expectOk(runCli([
-      "member",
-      "invite",
-      "--email",
-      "teammate@example.test",
-      "--role",
-      "editor",
-      "--format=agent"
-    ], seed.env));
+    const invited = await expectOk(
+      runCli(
+        [
+          "member",
+          "invite",
+          "--email",
+          "teammate@example.test",
+          "--role",
+          "editor",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     const inviteEnvelope = expectAgentEnvelope<MemberInviteData>(invited.stdout);
     expect(inviteEnvelope.context).toEqual(defaultContext());
     expect(inviteEnvelope.data.invitation.email).toBe("teammate@example.test");
 
-    const created = await expectOk(runCli([
-      "api-key",
-      "create",
-      "--name",
-      "ci pipeline",
-      "--scopes",
-      "read,write",
-      "--format=agent"
-    ], seed.env));
+    const created = await expectOk(
+      runCli(
+        [
+          "api-key",
+          "create",
+          "--name",
+          "ci pipeline",
+          "--scopes",
+          "read,write",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     const createEnvelope = expectAgentEnvelope<ApiKeyData>(created.stdout);
     expect(createEnvelope.context).toEqual(defaultContext());
     expect(createEnvelope.data.api_key.id.length).toBeGreaterThan(0);
     expect(createEnvelope.data.plaintext_token).toMatch(/^vsp_[A-Za-z0-9]{32,}/u);
     const keyId = createEnvelope.data.api_key.id;
 
-    const listed = await expectOk(runCli([
-      "api-key",
-      "list",
-      "--format=agent"
-    ], seed.env));
+    const listed = await expectOk(
+      runCli(["api-key", "list", "--format=agent"], seed.env)
+    );
     const listEnvelope = expectAgentEnvelope<ApiKeyListData>(listed.stdout);
     expect(listEnvelope.context).toEqual(defaultContext());
     const listedKey = listEnvelope.data.api_keys.find((apiKey) => apiKey.id === keyId);
     expect(listedKey?.name).toBe("ci pipeline");
     expect(listedKey).not.toHaveProperty("plaintext_token");
 
-    const revoked = await expectOk(runCli([
-      "api-key",
-      "revoke",
-      keyId,
-      "--format=agent"
-    ], seed.env));
+    const revoked = await expectOk(
+      runCli(["api-key", "revoke", keyId, "--format=agent"], seed.env)
+    );
     const revokeEnvelope = expectAgentEnvelope<ApiKeyData>(revoked.stdout);
     expect(revokeEnvelope.context).toEqual(defaultContext());
     expect(revokeEnvelope.data.api_key.id).toBe(keyId);

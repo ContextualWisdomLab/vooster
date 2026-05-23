@@ -53,7 +53,9 @@ describe("pull/sync --format=agent", () => {
     expect(envelope.data.files.at(0)?.path).toBe("specs/PAY-1.md");
     expect(envelope.suggested_next_actions).toEqual([]);
     expect(envelope.warnings).toEqual([]);
-    await expect(readFile(join(root, "specs", "PAY-1.md"), "utf8")).resolves.toContain("# Pays an invoice");
+    await expect(readFile(join(root, "specs", "PAY-1.md"), "utf8")).resolves.toContain(
+      "# Pays an invoice"
+    );
   });
 
   test("agent sync uses pull behavior", async () => {
@@ -61,14 +63,18 @@ describe("pull/sync --format=agent", () => {
     stubFetch(pullResponse());
     const lines: string[] = [];
 
-    await runSync(syncFlags(root, { format: "agent" }), "sync", (line) => lines.push(line));
+    await runSync(syncFlags(root, { format: "agent" }), "sync", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<PullData>(stdout);
     expect(envelope.context).toEqual(defaultContext());
     expect(envelope.data.cursor).toBe("rev-2");
     expect(envelope.data.files).toHaveLength(1);
-    await expect(readFile(join(root, "specs", "PAY-1.md"), "utf8")).resolves.toContain("revision: rev-2");
+    await expect(readFile(join(root, "specs", "PAY-1.md"), "utf8")).resolves.toContain(
+      "revision: rev-2"
+    );
   });
 
   test("human pull output", async () => {
@@ -90,7 +96,10 @@ function tempRoot(): string {
   return root;
 }
 
-function syncFlags(root: string, overrides: Record<string, string> = {}): Record<string, string> {
+function syncFlags(
+  root: string,
+  overrides: Record<string, string> = {}
+): Record<string, string> {
   return {
     "api-url": "https://api.example.test",
     "project-id": "project-1",
@@ -101,11 +110,16 @@ function syncFlags(root: string, overrides: Record<string, string> = {}): Record
 }
 
 function stubFetch(body: PullData): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function pullResponse(): PullData {

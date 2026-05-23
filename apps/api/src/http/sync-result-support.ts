@@ -1,6 +1,5 @@
 import type { StoredUseCase } from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
-import { usecaseMarkdown } from "./sync-markdown.js";
 
 export type SyncResult = {
   conflict_content?: string;
@@ -52,10 +51,11 @@ export function networkFailureProblem(files: PendingFile[]) {
 
 export function staleFileConflict(
   usecase: StoredUseCase,
-  file: ConflictFile
+  file: ConflictFile,
+  remoteContent: string
 ): SyncResult {
   return {
-    conflict_content: conflictContent(file.content, usecaseMarkdown(usecase), usecase),
+    conflict_content: conflictContent(file.content, remoteContent, usecase),
     current_revision: usecase.current_revision_id,
     impact: { entity_id: usecase.id, severity: "BREAKING" },
     path: file.path,

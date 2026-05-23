@@ -52,7 +52,14 @@ describe("sync files edge cases", () => {
 
 function depsFor(): SyncFileDeps {
   return {
-    actorStore: {} as SyncFileDeps["actorStore"],
+    actorStore: {
+      archiveActor: () => Promise.resolve(false),
+      findActorById: () => Promise.resolve(undefined),
+      findActorByName: () => Promise.resolve(undefined),
+      listActors: () => Promise.resolve([]),
+      saveActor: () => Promise.resolve(),
+      updateActor: () => Promise.resolve()
+    },
     branchStore: {} as SyncFileDeps["branchStore"],
     membershipStore: {
       membershipForProject: () => Promise.resolve(member()),
@@ -62,10 +69,32 @@ function depsFor(): SyncFileDeps {
     },
     projectStore: {} as SyncFileDeps["projectStore"],
     revisionStore: {} as SyncFileDeps["revisionStore"],
-    scenarioStore: {} as SyncFileDeps["scenarioStore"],
-    stakeholderInterestStore: {} as SyncFileDeps["stakeholderInterestStore"],
-    stakeholderStore: {} as SyncFileDeps["stakeholderStore"],
-    stepStore: {} as SyncFileDeps["stepStore"],
+    scenarioStore: {
+      findMainScenario: () => Promise.resolve(undefined),
+      findScenarioById: () => Promise.resolve(undefined),
+      listScenarios: () => Promise.resolve([]),
+      saveScenario: () => Promise.resolve()
+    },
+    stakeholderInterestStore: {
+      deleteStakeholderInterest: () => Promise.resolve(),
+      findStakeholderInterestById: () => Promise.resolve(undefined),
+      findStakeholderInterestForStakeholder: () => Promise.resolve(undefined),
+      listStakeholderInterests: () => Promise.resolve([]),
+      saveStakeholderInterest: () => Promise.resolve()
+    },
+    stakeholderStore: {
+      findStakeholderById: () => Promise.resolve(undefined),
+      findStakeholderByName: () => Promise.resolve(undefined),
+      listStakeholders: () => Promise.resolve([]),
+      saveStakeholder: () => Promise.resolve(),
+      updateStakeholder: () => Promise.resolve()
+    },
+    stepStore: {
+      findStepById: () => Promise.resolve(undefined),
+      listSteps: () => Promise.resolve([]),
+      saveStep: () => Promise.resolve(),
+      updateStep: () => Promise.resolve()
+    },
     useCaseStore: {
       findUseCaseById: () => Promise.resolve(undefined),
       findUseCaseWithProject: () => Promise.resolve(undefined),

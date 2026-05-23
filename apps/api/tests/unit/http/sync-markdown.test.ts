@@ -4,7 +4,6 @@ import {
   parseFileErrors,
   parseFilesProblem,
   titleFrom,
-  usecaseMarkdown,
   usecasePath
 } from "../../../src/http/sync-markdown.js";
 
@@ -51,12 +50,10 @@ describe("sync markdown helpers", () => {
     expect(titleFrom("---\n---\nBody only\n")).toBe("Untitled use case");
   });
 
-  test("renders use case markdown and paths", () => {
+  test("renders use case paths", () => {
     const usecase = storedUseCase();
 
     expect(usecasePath(usecase)).toBe("specs/PAY-001.md");
-    expect(usecaseMarkdown(usecase)).toContain("key: PAY-001");
-    expect(usecaseMarkdown(usecase)).toContain("# Place an order\n");
   });
 });
 

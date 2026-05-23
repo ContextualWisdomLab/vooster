@@ -138,7 +138,15 @@ async function authorized(
 }
 
 async function previewFile(
-  deps: Pick<SyncFileDeps, "useCaseStore">,
+  deps: Pick<
+    SyncFileDeps,
+    | "actorStore"
+    | "scenarioStore"
+    | "stakeholderInterestStore"
+    | "stakeholderStore"
+    | "stepStore"
+    | "useCaseStore"
+  >,
   projectId: string,
   file: SyncFileInput
 ): Promise<SyncResult> {
@@ -147,7 +155,7 @@ async function previewFile(
     return { current_revision: "", dry_run: true, path: file.path, status: "SKIPPED" };
   }
   if (file.baseRevision !== usecase.current_revision_id) {
-    return staleFileConflict(usecase, file);
+    return staleFileConflict(deps, projectId, usecase, file);
   }
   return {
     current_revision: usecase.current_revision_id,
@@ -167,7 +175,7 @@ async function pushFile(
     return { current_revision: "", path: file.path, status: "SKIPPED" };
   }
   if (file.baseRevision !== usecase.current_revision_id) {
-    return staleFileConflict(usecase, file);
+    return staleFileConflict(deps, projectId, usecase, file);
   }
 
   const title = titleFrom(file.content);
@@ -247,9 +255,18 @@ function suggestedSyncActions(results: SyncResult[]) {
     : syncedActions();
 }
 
-function staleFileConflict(usecase: StoredUseCase, file: SyncFileInput): SyncResult {
+async function staleFileConflict(
+  deps: MarkdownRenderDeps,
+  projectId: string,
+  usecase: StoredUseCase,
+  file: SyncFileInput
+): Promise<SyncResult> {
   return {
-    conflict_content: conflictContent(file.content, usecaseMarkdown(usecase), usecase),
+    conflict_content: conflictContent(
+      file.content,
+      await renderMarkdown(deps, projectId, usecase),
+      usecase
+    ),
     current_revision: usecase.current_revision_id,
     impact: { entity_id: usecase.id, severity: "BREAKING" },
     path: file.path,
@@ -286,10 +303,6 @@ function conflictActions() {
 function titleFrom(content: string) {
   const title = content.split("\n").find((line) => line.startsWith("# "));
   return title?.slice(2).trim() ?? "Untitled use case";
-}
-
-function usecaseMarkdown(usecase: StoredUseCase) {
-  return `---\nvspec_format: 1\ntype: usecase\nid: ${usecase.id}\nkey: ${usecase.key}\ntitle: ${usecase.title}\nlevel: ${usecase.level}\nformat: ${usecase.format}\nstatus: ${usecase.status}\npriority: ${usecase.priority}\nscope: ${usecase.scope}\nrevision: ${usecase.current_revision_id}\n---\n\n# ${usecase.title}\n`;
 }
 
 function usecasePath(usecase: StoredUseCase) {

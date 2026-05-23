@@ -48,10 +48,14 @@ describe("sync result support", () => {
   });
 
   test("builds a conflict result with local and remote content", () => {
-    const result = staleFileConflict(storedUseCase(), {
-      content: "# Local title",
-      path: "specs/PAY-001.md"
-    });
+    const result = staleFileConflict(
+      storedUseCase(),
+      {
+        content: "# Local title",
+        path: "specs/PAY-001.md"
+      },
+      "# Place an order\n\n## Main Success Scenario"
+    );
 
     expect(result).toMatchObject({
       current_revision: "revision-current",
@@ -61,6 +65,7 @@ describe("sync result support", () => {
     });
     expect(result.conflict_content).toContain("<<<<<<< local\n# Local title");
     expect(result.conflict_content).toContain("# Place an order");
+    expect(result.conflict_content).toContain("## Main Success Scenario");
     expect(result.conflict_content).toContain(">>>>>>> remote (revision-current)");
   });
 

@@ -136,7 +136,11 @@ export async function createProjectRequest(
 
   const response = await mutateApi("/v1/projects", {
     method: "POST",
-    body: { name: input.name, key: input.key, visibility: input.visibility ?? "PRIVATE" }
+    body: {
+      name: input.name,
+      key: input.key,
+      visibility: input.visibility ?? "PRIVATE"
+    }
   });
 
   if (!response.ok) {
@@ -221,9 +225,7 @@ type MutateOptions = {
   body?: unknown;
 };
 
-type MutateResult =
-  | { ok: true; body: unknown }
-  | { ok: false; error: string };
+type MutateResult = { ok: true; body: unknown } | { ok: false; error: string };
 
 async function mutateApi(path: string, options: MutateOptions): Promise<MutateResult> {
   const cookieStore = await cookies();

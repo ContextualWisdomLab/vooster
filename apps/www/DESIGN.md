@@ -220,7 +220,7 @@ conductor.build 와 같은 모던 개발자 도구의 다크-퍼스트 미감을
 "코드 에디터" 보다는 "조명이 낮춰진 작업실"에 가까운 분위기를 만든다.
 
 - **밀도(density):** 중간. 코드 한 줄, 한 카드, 한 줄의 카피 사이에 충분한 여백.
-  conductor.build 가 그러하듯 *생각할 자리* 가 보이도록 디자인한다.
+  conductor.build 가 그러하듯 _생각할 자리_ 가 보이도록 디자인한다.
 - **색의 절제:** 액센트는 단 하나 — 에메랄드 `{colors.primary}` `#2dd4bf`.
   CTA, 상태 표시, "현재 진행 중" 인디케이터, 코드 키워드 강조에만 쓴다.
   보조 색은 헤어라인(`{colors.hairline}`) 한 가지로 카드와 구간을 가른다.
@@ -234,40 +234,40 @@ conductor.build 와 같은 모던 개발자 도구의 다크-퍼스트 미감을
 
 ### Brand & Accent
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `{colors.primary}` | `#2dd4bf` | 유일한 브랜드 액센트. CTA 배경, 라이브 인디케이터, 코드 키워드. |
-| `{colors.primary-soft}` | `#5eead4` | 호버/포커스 시 primary 의 밝은 변형. 텍스트 링크 호버. |
-| `{colors.primary-deep}` | `#0f766e` | 강조 카드 보더, 본문 인라인 링크의 기본 색. |
-| `{colors.on-primary}` | `#0c100e` | primary 위에 놓이는 텍스트(=canvas와 동일). |
+| Token                   | Hex       | Role                                                            |
+| ----------------------- | --------- | --------------------------------------------------------------- |
+| `{colors.primary}`      | `#2dd4bf` | 유일한 브랜드 액센트. CTA 배경, 라이브 인디케이터, 코드 키워드. |
+| `{colors.primary-soft}` | `#5eead4` | 호버/포커스 시 primary 의 밝은 변형. 텍스트 링크 호버.          |
+| `{colors.primary-deep}` | `#0f766e` | 강조 카드 보더, 본문 인라인 링크의 기본 색.                     |
+| `{colors.on-primary}`   | `#0c100e` | primary 위에 놓이는 텍스트(=canvas와 동일).                     |
 
 ### Surface
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `{colors.canvas}` | `#0c100e` | 기본 페이지 배경. 라이트 모드 미지원. |
-| `{colors.canvas-soft}` | `#13181a` | 인풋, 인라인 코드 칩, 보조 섹션 배경. |
+| Token                    | Hex       | Role                                          |
+| ------------------------ | --------- | --------------------------------------------- |
+| `{colors.canvas}`        | `#0c100e` | 기본 페이지 배경. 라이트 모드 미지원.         |
+| `{colors.canvas-soft}`   | `#13181a` | 인풋, 인라인 코드 칩, 보조 섹션 배경.         |
 | `{colors.canvas-raised}` | `#161c1d` | 강조 카드(featured tier 등)의 살짝 들린 표면. |
-| `{colors.hairline}` | `#28302c` | 1px 보더 — 카드/버튼/디바이더의 단일 엣지 색. |
-| `{colors.hairline-soft}` | `#1c2421` | 점선 디바이더, 보조 그리드 라인. |
+| `{colors.hairline}`      | `#28302c` | 1px 보더 — 카드/버튼/디바이더의 단일 엣지 색. |
+| `{colors.hairline-soft}` | `#1c2421` | 점선 디바이더, 보조 그리드 라인.              |
 
 ### Text
 
-| Token | Hex | Role |
-| --- | --- | --- |
+| Token                 | Hex       | Role                                                       |
+| --------------------- | --------- | ---------------------------------------------------------- |
 | `{colors.ink-strong}` | `#fffaf1` | 히어로 헤드라인, 최고 강조 카피. (살짝 따뜻한 오프-화이트) |
-| `{colors.ink}` | `#eee6d6` | 기본 본문 색 — 따뜻한 크림 톤으로 다크 캔버스에 안착. |
-| `{colors.body}` | `#b8c2bc` | 보조 본문, 카드 디스크립션. |
-| `{colors.mute}` | `#6f7d76` | 캡션, 푸터 보조 라인, 비활성 메뉴. |
-| `{colors.code-ink}` | `#e6f1ec` | 코드 목업 안 텍스트. |
+| `{colors.ink}`        | `#eee6d6` | 기본 본문 색 — 따뜻한 크림 톤으로 다크 캔버스에 안착.      |
+| `{colors.body}`       | `#b8c2bc` | 보조 본문, 카드 디스크립션.                                |
+| `{colors.mute}`       | `#6f7d76` | 캡션, 푸터 보조 라인, 비활성 메뉴.                         |
+| `{colors.code-ink}`   | `#e6f1ec` | 코드 목업 안 텍스트.                                       |
 
 ### Semantic
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `{colors.signal-success}` | `#22c55e` | "통과", "그린" 상태. |
-| `{colors.signal-warn}` | `#facc15` | "주의", "디퍼" 상태. |
-| `{colors.signal-error}` | `#f87171` | "빨간 테스트", "실패" 상태. |
+| Token                     | Hex       | Role                        |
+| ------------------------- | --------- | --------------------------- |
+| `{colors.signal-success}` | `#22c55e` | "통과", "그린" 상태.        |
+| `{colors.signal-warn}`    | `#facc15` | "주의", "디퍼" 상태.        |
+| `{colors.signal-error}`   | `#f87171` | "빨간 테스트", "실패" 상태. |
 
 > Vooster 의 도메인이 빨간/초록 테스트와 직접 맞닿아 있으므로 semantic 3색은
 > 단지 보조가 아니라 **현장 컨텍스트로 자주 표면화** 된다 — Showcase 패널의 상태 점 등.
@@ -285,19 +285,19 @@ conductor.build 와 같은 모던 개발자 도구의 다크-퍼스트 미감을
 
 ### Hierarchy
 
-| Token | 크기 | 굵기 | 행간 | 트래킹 | 용도 |
-| --- | --- | --- | --- | --- | --- |
-| `{typography.display-xl}` | `clamp(56,9vw,96)` | 400 | 1.02 | -0.025em | 히어로 H1. |
-| `{typography.display-lg}` | `clamp(36,5vw,56)` | 400 | 1.06 | -0.02em | 섹션 헤드라인. |
-| `{typography.display-md}` | `clamp(28,3.4vw,40)` | 500 | 1.12 | -0.015em | 서브섹션 헤드라인, 가격 카드 제목. |
-| `{typography.display-sm}` | 22px | 600 | 1.2 | -0.01em | 피처 카드 제목, How-step 제목. |
-| `{typography.eyebrow-mono}` | 12px | 600 | 16px | 0.18em UC | 섹션 위 eyebrow 라벨. |
-| `{typography.body-lg}` | 18px | 400 | 1.65 | 0 | 히어로/Showcase 리드 카피. |
-| `{typography.body-md}` | 16px | 400 | 1.6 | 0 | 기본 본문. |
-| `{typography.body-sm}` | 14px | 400 | 1.55 | 0 | 카드 본문, 푸터. |
-| `{typography.caption}` | 12px | 500 | 16px | 0.01em | 메타 라벨, 일자 표시. |
-| `{typography.code}` | 13px | 400 | 1.55 | 0 | 코드 목업/칩. |
-| `{typography.button-md}` | 15px | 600 | 1 | -0.005em | 버튼 라벨. |
+| Token                       | 크기                 | 굵기 | 행간 | 트래킹    | 용도                               |
+| --------------------------- | -------------------- | ---- | ---- | --------- | ---------------------------------- |
+| `{typography.display-xl}`   | `clamp(56,9vw,96)`   | 400  | 1.02 | -0.025em  | 히어로 H1.                         |
+| `{typography.display-lg}`   | `clamp(36,5vw,56)`   | 400  | 1.06 | -0.02em   | 섹션 헤드라인.                     |
+| `{typography.display-md}`   | `clamp(28,3.4vw,40)` | 500  | 1.12 | -0.015em  | 서브섹션 헤드라인, 가격 카드 제목. |
+| `{typography.display-sm}`   | 22px                 | 600  | 1.2  | -0.01em   | 피처 카드 제목, How-step 제목.     |
+| `{typography.eyebrow-mono}` | 12px                 | 600  | 16px | 0.18em UC | 섹션 위 eyebrow 라벨.              |
+| `{typography.body-lg}`      | 18px                 | 400  | 1.65 | 0         | 히어로/Showcase 리드 카피.         |
+| `{typography.body-md}`      | 16px                 | 400  | 1.6  | 0         | 기본 본문.                         |
+| `{typography.body-sm}`      | 14px                 | 400  | 1.55 | 0         | 카드 본문, 푸터.                   |
+| `{typography.caption}`      | 12px                 | 500  | 16px | 0.01em    | 메타 라벨, 일자 표시.              |
+| `{typography.code}`         | 13px                 | 400  | 1.55 | 0         | 코드 목업/칩.                      |
+| `{typography.button-md}`    | 15px                 | 600  | 1    | -0.005em  | 버튼 라벨.                         |
 
 ### Principles
 
@@ -394,18 +394,18 @@ conductor.build 와 같은 모던 개발자 도구의 다크-퍼스트 미감을
 
 ### Whitespace Philosophy
 
-"여백이 디자인이다" — conductor.build 와 같이 비어 보이는 영역이 *의도된 여백* 임을 명확히 한다.
+"여백이 디자인이다" — conductor.build 와 같이 비어 보이는 영역이 _의도된 여백_ 임을 명확히 한다.
 한 섹션 안에서 헤드라인과 본문 사이 `{spacing.2xl}`, 본문과 그리드 사이 `{spacing.5xl}` 이 기본.
 
 ## 6. Depth & Elevation
 
-| Level | Treatment | Use |
-| --- | --- | --- |
-| 0 — Flat | 그림자/보더 없음 | 풀-블리드 밴드, 푸터. |
-| 1 — Hairline | `1px solid {colors.hairline}` | 모든 카드/버튼/인풋의 기본. |
-| 2 — Glow-soft | `0 24px 60px -32px rgba(45,212,191,0.12)` + hairline | 히어로 코드 목업, featured 카드. |
+| Level            | Treatment                                                | Use                                    |
+| ---------------- | -------------------------------------------------------- | -------------------------------------- |
+| 0 — Flat         | 그림자/보더 없음                                         | 풀-블리드 밴드, 푸터.                  |
+| 1 — Hairline     | `1px solid {colors.hairline}`                            | 모든 카드/버튼/인풋의 기본.            |
+| 2 — Glow-soft    | `0 24px 60px -32px rgba(45,212,191,0.12)` + hairline     | 히어로 코드 목업, featured 카드.       |
 | 3 — Glow-emerald | `0 0 0 1px primary, 0 0 32px -8px rgba(45,212,191,0.25)` | 활성/포커스 상태, "라이브" 인디케이터. |
-| 4 — Modal | `0 30px 80px rgba(0,0,0,0.6)` + inset hairline | 모달/드로어(현 랜딩에는 미사용). |
+| 4 — Modal        | `0 30px 80px rgba(0,0,0,0.6)` + inset hairline           | 모달/드로어(현 랜딩에는 미사용).       |
 
 원칙: **shadow 보다 hairline 으로 깊이를 만든다.** 다크 캔버스에서 그림자는 거의 안 보이고
 hairline 의 명도 차가 깊이감을 만든다. 그림자는 액센트일 뿐이지 분리 도구가 아니다.
@@ -414,7 +414,7 @@ hairline 의 명도 차가 깊이감을 만든다. 그림자는 액센트일 뿐
 
 ### Do
 
-- **단일 액센트.** primary 에메랄드 외 다른 컬러 액센트를 도입하지 말 것. semantic 3색은 *상태 표시* 한정.
+- **단일 액센트.** primary 에메랄드 외 다른 컬러 액센트를 도입하지 말 것. semantic 3색은 _상태 표시_ 한정.
 - **헤어라인이 우선.** 카드/섹션 분리는 1px hairline 으로. fill 색 변경은 강조 카드에 한정.
 - **모노 eyebrow.** 섹션 위에는 항상 12px JetBrains Mono uppercase eyebrow 한 줄.
 - **숫자/메트릭은 모노.** 가격, 진행도, UC-ID 등 정렬이 중요한 숫자는 mono.
@@ -435,11 +435,11 @@ hairline 의 명도 차가 깊이감을 만든다. 그림자는 액센트일 뿐
 
 ### Breakpoints
 
-| Name | Width | Key Changes |
-| --- | --- | --- |
-| Mobile | < 640px | H1 56px → 40px, 모든 그리드 1-up, nav 햄버거. |
-| Tablet | 640–1023px | 그리드 2-up, nav 가로 유지 또는 컴팩트. |
-| Desktop | ≥ 1024px | 풀 3/4-up 그리드, 컨테이너 폭 1180. |
+| Name    | Width      | Key Changes                                   |
+| ------- | ---------- | --------------------------------------------- |
+| Mobile  | < 640px    | H1 56px → 40px, 모든 그리드 1-up, nav 햄버거. |
+| Tablet  | 640–1023px | 그리드 2-up, nav 가로 유지 또는 컴팩트.       |
+| Desktop | ≥ 1024px   | 풀 3/4-up 그리드, 컨테이너 폭 1180.           |
 
 ### Touch targets
 

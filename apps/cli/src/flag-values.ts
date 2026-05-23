@@ -44,7 +44,7 @@ export function resolveContextFlag(
     }
   }
 
-  throw new Error(`Missing ${key}. Run 'vspec login' or pass --${key}.`);
+  throw new Error(`Missing ${key}. Run 'vspec init --project <KEY>' or pass --${key}.`);
 }
 
 export function requiredArgument(value: string | undefined, name: string): string {

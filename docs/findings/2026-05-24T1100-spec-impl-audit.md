@@ -5,9 +5,10 @@ resolved: partial
 priority: high
 kind: snapshot
 status_notes: |
+  Gap A — CLOSED 2026-05-24 (commit `0ab6b0d`): UC-013 step edit now supports actor changes, rejects unknown actors, marks actor changes BREAKING, and wires CLI `--actor`; verified by `apps/api/tests/e2e/UC-013.test.ts`, `apps/cli/tests/unit/step-agent-format.test.ts`, `pnpm exec vitest run apps/api/tests`, and `bash scripts/completion-check.sh`.
   Gap C — CLOSED 2026-05-24 (commit `632df72`): UC-016 auto-branch sessions now create one session-held SEMANTIC lock per pinned use case; verified by `apps/api/tests/e2e/UC-016.test.ts`, `pnpm exec vitest run apps/api/tests`, and `bash scripts/completion-check.sh`.
   Cross-cutting reference docs (06/07/08/09) annotated with 🔵 Planned markers on 2026-05-24 — drift between target design and MVP surface is now explicit in-doc.
-  Code gaps A/B below remain OPEN; Gap B is deferred by 260524-goal.md Out of scope.
+  Gap B — OPEN (deferred — see 260524-goal.md Out of scope).
 related:
   - docs/06-api-contract.md
   - docs/07-cli-spec.md

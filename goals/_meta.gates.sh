@@ -68,6 +68,14 @@ fi
 
 PASS=true
 LOG_DIR=$(mktemp -d)
+cleanup_meta_logs() {
+  if [ "$PASS" = true ]; then
+    rm -rf "$LOG_DIR"
+  else
+    echo "    logs retained at $LOG_DIR"
+  fi
+}
+trap cleanup_meta_logs EXIT
 TSC_LOG="$LOG_DIR/tsc.log"
 ESLINT_LOG="$LOG_DIR/eslint.log"
 VITEST_LOG="$LOG_DIR/vitest.log"

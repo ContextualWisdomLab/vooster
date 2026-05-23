@@ -12,25 +12,11 @@ source "$ROOT/scripts/_gate-cache.sh"
 GOAL_NAME="22-comment-agent-format"
 
 GATE_INPUTS=(
-  apps/cli/src
-  apps/cli/tests/unit/comment-agent-format.test.ts
-  apps/cli/tests/e2e-cli-honest/comment-agent-format.test.ts
-  apps/api/src
-  apps/api/prisma
-  apps/api/tests/helpers
-  goals/7-cli-spec-parity.gates.sh
-  goals/18-history-agent-format.gates.sh
-  goals/18-history-agent-format.next-task.sh
-  goals/19-impact-agent-format.gates.sh
-  goals/19-impact-agent-format.next-task.sh
-  goals/20-who-agent-format.gates.sh
-  goals/20-who-agent-format.next-task.sh
-  goals/21-revert-agent-format.gates.sh
-  goals/21-revert-agent-format.next-task.sh
-  goals/22-comment-agent-format.gates.sh
-  goals/22-comment-agent-format.md
-  scripts/_gate-cache.sh
-  scripts/check-gate-rigor.sh
+  apps/cli/src/commands/comment*.ts
+  apps/cli/src/application/mutation-*.ts
+  apps/cli/src/[!di]*.ts
+  apps/cli/tests/*/comment-agent-format.test.ts
+  goals/22-comment-agent-format.*
 )
 
 if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then

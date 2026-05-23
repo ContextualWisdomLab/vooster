@@ -13,7 +13,7 @@ describe("commit-check", () => {
       "pnpm exec prettier --check --ignore-unknown apps/api/src/application/actors.ts"
     );
     expect(result.stdout).toContain(
-      "pnpm exec eslint --max-warnings 0 apps/api/src/application/actors.ts"
+      "pnpm exec eslint --max-warnings 0 --no-warn-ignored apps/api/src/application/actors.ts"
     );
     expect(result.stdout).toContain(
       "pnpm exec vitest run apps/api/tests/unit/application/actors.test.ts"
@@ -46,6 +46,18 @@ describe("commit-check", () => {
     expect(result.stdout).toContain("Unknown staged impact:");
     expect(result.stdout).toContain("tools/new-generator.ts");
     expect(result.stdout).toContain("bash scripts/completion-check.sh");
+  });
+
+  it("maps colocated unit fixtures to their owning test", async () => {
+    const result = await commitCheck([
+      "apps/api/tests/unit/http/scenario-support-fixtures.ts"
+    ]);
+
+    expect(result.stdout).toContain(
+      "pnpm exec vitest run apps/api/tests/unit/http/scenario-support.test.ts"
+    );
+    expect(result.stdout).not.toContain("Unknown staged impact:");
+    expect(result.stdout).not.toContain("completion-check.sh");
   });
 
   it("blocks staged secrets and generated artifacts", async () => {

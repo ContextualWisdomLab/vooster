@@ -53,15 +53,15 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The local-context agent-format debt is removed without clearing unrelated
-    debt.** The `project create` / `project switch` bullet is removed, the
-    `workspace switch` bullet is gone, the `status` bullet is gone, and the
-    `push` bullet remains. Goal 25 supersedes this goal's
-    temporary project-create sentinel.
+debt.** The `project create` / `project switch` bullet is removed, the
+`workspace switch` bullet is gone, the `status` bullet is gone, and the
+`push` bullet remains. Goal 25 supersedes this goal's
+temporary project-create sentinel.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents local context agent format.** A marked
-    `### Agent Format — Local Context` section exists and includes:
+`### Agent Format — Local Context` section exists and includes:
 
     ```
     vspec status --format=agent
@@ -78,55 +78,55 @@ B1. **`docs/07-cli-spec.md` documents local context agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`status.ts`, `workspace.ts`, and `project.ts` are discovered by the same
-    source of truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires all
-    three command files to appear.
+source of truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires all
+three command files to appear.
 
 C2. **Every targeted handler builds an agent envelope when requested.** The gate
-    extracts `runStatus`, `runWorkspace`, and `switchProject` and requires
-    `format === "agent"` plus `buildAgentEnvelope` in each handler or in a
-    local helper called by the handler.
+extracts `runStatus`, `runWorkspace`, and `switchProject` and requires
+`format === "agent"` plus `buildAgentEnvelope` in each handler or in a
+local helper called by the handler.
 
 C3. **Switch handlers mutate config before returning agent output.** The
-    workspace and project switch handlers call `writeConfig` before writing the
-    agent envelope.
+workspace and project switch handlers call `writeConfig` before writing the
+agent envelope.
 
 C4. **Local commands expose the format flag.** `StatusCommand.flags` and
-    `WorkspaceCommand.flags` include `format: Flags.string()`, and
-    `ProjectCommand.flags` continues to include `format: Flags.string()`.
+`WorkspaceCommand.flags` include `format: Flags.string()`, and
+`ProjectCommand.flags` continues to include `format: Flags.string()`.
 
 ### Tranche D — Unit Proof
 
 D1. **Local context has focused unit proof for agent and human output.** The
-    file `apps/cli/tests/unit/local-context-agent-format.test.ts` contains test
-    titles `agent status`, `agent workspace switch`, `agent project switch`,
-    and `human local context output`. Agent tests isolate config with
-    `VSPEC_CONFIG_PATH`, parse stdout as one JSON object, assert
-    `format_version`, assert the full default null context, assert
-    `data.config.current_project_key`, assert `data.workspace.slug`, assert
-    `data.config.current_workspace_slug`, assert `data.project.key`, and assert
-    default empty `suggested_next_actions` and `warnings`.
+file `apps/cli/tests/unit/local-context-agent-format.test.ts` contains test
+titles `agent status`, `agent workspace switch`, `agent project switch`,
+and `human local context output`. Agent tests isolate config with
+`VSPEC_CONFIG_PATH`, parse stdout as one JSON object, assert
+`format_version`, assert the full default null context, assert
+`data.config.current_project_key`, assert `data.workspace.slug`, assert
+`data.config.current_workspace_slug`, assert `data.project.key`, and assert
+default empty `suggested_next_actions` and `warnings`.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Local context has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/local-context-agent-format.test.ts`
-    contains test title `agent local context lifecycle`, invokes
-    `runCli([ "status", ... ])`, `runCli([ "workspace", "switch", ... ])`, and
-    `runCli([ "project", "switch", ... ])` with `--format=agent`, uses
-    `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses JSON, asserts
-    `format_version`, asserts the full default null context, asserts config
-    effects using follow-up `status --format=agent`, and asserts both
-    `current_workspace_id` and `current_workspace_slug` for workspace switch.
+`apps/cli/tests/e2e-cli-honest/local-context-agent-format.test.ts`
+contains test title `agent local context lifecycle`, invokes
+`runCli([ "status", ... ])`, `runCli([ "workspace", "switch", ... ])`, and
+`runCli([ "project", "switch", ... ])` with `--format=agent`, uses
+`VSPEC_CONFIG_PATH`, does not call `fetch(`, parses JSON, asserts
+`format_version`, asserts the full default null context, asserts config
+effects using follow-up `status --format=agent`, and asserts both
+`current_workspace_id` and `current_workspace_slug` for workspace switch.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no local-context agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no local-context agent entry.
 
 ### Tranche F — Rigor
 
 F1. **`scripts/check-gate-rigor.sh goals/24-local-context-agent-format.md`
-    passes.**
+passes.**
 
 ## Scope Guards
 

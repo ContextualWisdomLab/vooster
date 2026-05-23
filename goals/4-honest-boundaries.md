@@ -14,11 +14,13 @@ load-bearing claims that are quietly false.
    ESLint, so it cannot tell whether any actual import would be blocked.
    Meanwhile **81 files** under `src/ports/`, `src/infrastructure/`, and
    `src/application/` still `import` from `../http/`:
+
    ```
    $ grep -l 'from "../http/' src/ports/*.ts src/infrastructure/*.ts \
        src/application/*.ts | wc -l
    81
    ```
+
    The gate passes because it asks the wrong question. This is exactly
    the "narrow-gate cheat" that `scripts/check-gate-rigor.sh` was
    created to prevent (`AGENTS.md:252-281`).
@@ -28,14 +30,14 @@ load-bearing claims that are quietly false.
    `StoredActor`, every one of them — lives in
    `src/http/signup-types.ts`. `src/ports/*.ts` and
    `src/infrastructure/prisma-signup-store.ts` both `import` those
-   types *from the HTTP layer*. In a layered architecture, HTTP is
+   types _from the HTTP layer_. In a layered architecture, HTTP is
    supposed to be the outermost ring; here it owns the canonical
    entity vocabulary that every other ring depends on. Moving an HTTP
    file reshapes the whole system.
 
 3. **Two god files violate the project's own size rule.**
-   `AGENTS.md:127` says *"Keep files under 200 lines, functions under
-   20 lines."* Today:
+   `AGENTS.md:127` says _"Keep files under 200 lines, functions under
+   20 lines."_ Today:
    - `src/cli/index.ts` is **3,306 lines** — one class, one
      `run()` method, a chain of 30+ `if (parsed.args.command === …)`
      branches that hand-roll the routing oclif was built to do.
@@ -46,7 +48,7 @@ load-bearing claims that are quietly false.
      decomposed.
 
    Files this size make every change a merge-conflict magnet — the
-   exact opposite of what the *"6+ concurrent AI coding agents"* pitch
+   exact opposite of what the _"6+ concurrent AI coding agents"_ pitch
    in `package.json` promises.
 
 Goal 4 closes all three gaps. The gate script
@@ -65,33 +67,27 @@ universal claim; hardcoding a single case will not satisfy it.
 ### Tranche A — Boundaries are enforced by ESLint, not by string matching
 
 A1. **The fake boundary test is gone.**
-    `tests/unit/boundaries-config.test.ts` no longer exists, or has been
-    rewritten so it does not `readFileSync` ESLint/TS config and
-    regex-match the contents. The gate fails if any test file under
-    `tests/` both reads `eslint.config.js`/`tsconfig.json`/`package.json`
-    *and* asserts on its raw string contents. The grep iterates every
-    test file.
+`tests/unit/boundaries-config.test.ts` no longer exists, or has been
+rewritten so it does not `readFileSync` ESLint/TS config and
+regex-match the contents. The gate fails if any test file under
+`tests/` both reads `eslint.config.js`/`tsconfig.json`/`package.json`
+_and_ asserts on its raw string contents. The grep iterates every
+test file.
 
 A2. **ESLint passes with zero violations.**
-    `npx eslint . --max-warnings 0` exits 0. *(This is enforced by
-    `goals/_meta.md` M.2; this goal's gate does not re-run ESLint, so the
-    same lint pass that proves M.2 also proves A2.)*
+`npx eslint . --max-warnings 0` exits 0. _(This is enforced by
+`goals/_meta.md` M.2; this goal's gate does not re-run ESLint, so the
+same lint pass that proves M.2 also proves A2.)_
 
-A3. **`boundaries/element-types` is deny-by-default.**
-    `eslint.config.js` sets `default: "disallow"`. Every allowed
-    cross-layer edge is then listed explicitly. The gate greps for
-    `default:\s*"disallow"` in the rule body. `default: "allow"` fails
-    the gate.
+A3. **`boundaries/dependencies` is deny-by-default.**
+`eslint.config.js` sets `default: "disallow"`. Every allowed
+cross-layer edge is then listed explicitly. The gate imports the
+ESLint config and checks the rule options structurally.
+`default: "allow"` fails the gate.
 
 A4. **The explicit allow-list is the architecture from
-    `docs/01-architecture.md`.** The configured rules must permit
-    *exactly* these arrows and no others:
-    - `cli → http, application, ports, domain`
-    - `http → application, ports, domain`
-    - `application → ports, domain`
-    - `infrastructure → ports, domain`
-    - `ports → domain`
-    - `domain → (nothing)`
+`docs/01-architecture.md`.** The configured rules must permit
+_exactly_ these arrows and no others: - `cli → http, application, ports, domain` - `http → application, ports, domain` - `application → ports, domain` - `infrastructure → ports, domain` - `ports → domain` - `domain → (nothing)`
 
     The gate iterates every required arrow against the allow-list in
     `eslint.config.js` and fails on any drift from the architecture
@@ -99,93 +95,91 @@ A4. **The explicit allow-list is the architecture from
     actually fires.)
 
 A5. **The configured boundary rule actually fires at lint time.**
-    A separate `node` process drives ESLint through its Node API and
-    lints two fixture files — one forbidden upward import
-    (`ports → http`) and one allowed architecture arrow
-    (`cli → application`). The `boundaries/element-types` rule must
-    produce exactly one error on the forbidden fixture and zero on
-    the allowed one. This catches the failure mode where A4's text
-    matches but the rule itself is misconfigured. ESLint runs
-    out-of-band of vitest so the TypeScript Project build does not
-    compete with test workers — the previous unit-test version of
-    this check (`apps/api/tests/unit/boundaries-config.test.ts`)
-    timed out under CI load for exactly that reason.
+A separate `node` process drives ESLint through its Node API and
+lints two fixture files — one forbidden upward import
+(`ports → http`) and one allowed architecture arrow
+(`cli → application`). The `boundaries/dependencies` rule must
+produce exactly one error on the forbidden fixture and zero on
+the allowed one. This catches the failure mode where A4's text
+matches but the rule itself is misconfigured. ESLint runs
+out-of-band of vitest so the TypeScript Project build does not
+compete with test workers — the previous unit-test version of
+this check (`apps/api/tests/unit/boundaries-config.test.ts`)
+timed out under CI load for exactly that reason.
 
 ### Tranche B — Domain owns the entity vocabulary
 
 B1. **`src/domain/entities/` exists and is the home of every
-    `Stored<Model>` type.** For every model in `prisma/schema.prisma`,
-    a `type Stored<Model> = …` must be declared in some file under
-    `src/domain/`. The gate enumerates models with
-    `grep '^model ' prisma/schema.prisma | awk '{print $2}'` and
-    refuses to pass if any one is undeclared in `src/domain/`. There is
-    no whitelist; new models added to Prisma must show up in domain
-    automatically.
+`Stored<Model>` type.** For every model in `prisma/schema.prisma`,
+a `type Stored<Model> = …` must be declared in some file under
+`src/domain/`. The gate enumerates models with
+`grep '^model ' prisma/schema.prisma | awk '{print $2}'` and
+refuses to pass if any one is undeclared in `src/domain/`. There is
+no whitelist; new models added to Prisma must show up in domain
+automatically.
 
 B2. **`src/http/signup-types.ts` no longer exports `Stored*` types.**
-    `grep -E '^export (type|interface) Stored' src/http/*.ts` returns
-    zero lines. The gate scans every file under `src/http/`, not just
-    `signup-types.ts`, so the cheat of "rename the file" doesn't
-    work.
+`grep -E '^export (type|interface) Stored' src/http/*.ts` returns
+zero lines. The gate scans every file under `src/http/`, not just
+`signup-types.ts`, so the cheat of "rename the file" doesn't
+work.
 
 B3. **Zero upward imports from inner layers to HTTP.** For every file
-    under `src/ports/`, `src/application/`, and `src/infrastructure/`,
-    `grep -E 'from "(\.\./|\.\.\/.+/)http/' ` returns zero hits. The
-    gate enumerates every file in each directory; it doesn't sample.
-    Pair this with A2 — the lint rule catches drift, this gate
-    catches the migration.
+under `src/ports/`, `src/application/`, and `src/infrastructure/`,
+`grep -E 'from "(\.\./|\.\.\/.+/)http/' ` returns zero hits. The
+gate enumerates every file in each directory; it doesn't sample.
+Pair this with A2 — the lint rule catches drift, this gate
+catches the migration.
 
 B4. **The domain layer imports nothing from the rest of `src/`.**
-    `grep -rE 'from "(\.\.\/cli|\.\.\/http|\.\.\/application|\.\.\/ports|\.\.\/infrastructure)/' src/domain/`
-    returns zero lines. The domain is leaf in the dependency graph.
-    (This generalizes the rule the ESLint `domain` allow-list from
-    Goal 2 set, and removes that rule's no-op status.)
+`grep -rE 'from "(\.\.\/cli|\.\.\/http|\.\.\/application|\.\.\/ports|\.\.\/infrastructure)/' src/domain/`
+returns zero lines. The domain is leaf in the dependency graph.
+(This generalizes the rule the ESLint `domain` allow-list from
+Goal 2 set, and removes that rule's no-op status.)
 
 ### Tranche C — No god files
 
 C1. **No file under `src/` exceeds 1,000 lines.**
-    The gate runs `find src -name '*.ts' -exec wc -l {} +` and fails on
-    any file over 1,000 lines. Source of truth = the filesystem. The
-    1,000-line cap is a generous interpretation of `AGENTS.md`'s
-    200-line guideline; it is a hard ceiling, not a target. Two files
-    are over today:
-    - `src/cli/index.ts` (3,306)
-    - `src/infrastructure/prisma-signup-store.ts` (1,811)
+The gate runs `find src -name '*.ts' -exec wc -l {} +` and fails on
+any file over 1,000 lines. Source of truth = the filesystem. The
+1,000-line cap is a generous interpretation of `AGENTS.md`'s
+200-line guideline; it is a hard ceiling, not a target. Two files
+are over today: - `src/cli/index.ts` (3,306) - `src/infrastructure/prisma-signup-store.ts` (1,811)
 
     *How* you split them is up to you, but the canonical approaches
     are listed under Recommended Order of Attack.
 
 C2. **There is one Prisma store per port, not one for all of them.**
-    For every file under `src/ports/`, there must be a corresponding
-    Prisma adapter file under `src/infrastructure/`. The gate
-    enumerates: for each `src/ports/<name>-store.ts`, a file matching
-    `src/infrastructure/prisma-<name>-store.ts` must exist. The
-    `signup-store.ts` port is allowed to map to a different filename
-    pattern (e.g., `prisma-signup-flow.ts`) because the SignupStore
-    god intersection itself must dissolve — the in-memory adapters
-    already prove the per-port pattern works.
+For every file under `src/ports/`, there must be a corresponding
+Prisma adapter file under `src/infrastructure/`. The gate
+enumerates: for each `src/ports/<name>-store.ts`, a file matching
+`src/infrastructure/prisma-<name>-store.ts` must exist. The
+`signup-store.ts` port is allowed to map to a different filename
+pattern (e.g., `prisma-signup-flow.ts`) because the SignupStore
+god intersection itself must dissolve — the in-memory adapters
+already prove the per-port pattern works.
 
 C3. **The CLI is split per command.** `src/cli/commands/` exists and
-    holds one file per top-level subcommand. The gate enumerates every
-    distinct first-word subcommand the CLI advertises today
-    (`grep -oE '"vspec [a-z][a-z-]+' src/http/ -r | sort -u` is one
-    source; the existing inventory in `src/cli/index.ts` is another).
-    For each, a file in `src/cli/commands/` must export an oclif
-    `Command` subclass. The monolithic `if (parsed.args.command === …)`
-    chain is gone.
+holds one file per top-level subcommand. The gate enumerates every
+distinct first-word subcommand the CLI advertises today
+(`grep -oE '"vspec [a-z][a-z-]+' src/http/ -r | sort -u` is one
+source; the existing inventory in `src/cli/index.ts` is another).
+For each, a file in `src/cli/commands/` must export an oclif
+`Command` subclass. The monolithic `if (parsed.args.command === …)`
+chain is gone.
 
 ### Tranche D — Meta: honest gates and no regression
 
 D1. **`scripts/check-honest-gates.sh` exists and passes.**
-    A new meta-gate. It enumerates every test file under `tests/`. If a
-    test file both (a) reads a config file
-    (`eslint.config.js`, `tsconfig.json`, `package.json`,
-    `prisma/schema.prisma`, `docker-compose*.yml`) via `readFileSync`
-    *and* (b) asserts on the raw string contents (`toMatch`, `toContain`
-    on the file body), the test is presumed dishonest and the gate
-    fails. The script is conservative: tests that read these files but
-    assert on parsed structure (`JSON.parse`, `yaml.safe_load`,
-    invoking ESLint as a library) are allowed.
+A new meta-gate. It enumerates every test file under `tests/`. If a
+test file both (a) reads a config file
+(`eslint.config.js`, `tsconfig.json`, `package.json`,
+`prisma/schema.prisma`, `docker-compose*.yml`) via `readFileSync`
+_and_ (b) asserts on the raw string contents (`toMatch`, `toContain`
+on the file body), the test is presumed dishonest and the gate
+fails. The script is conservative: tests that read these files but
+assert on parsed structure (`JSON.parse`, `yaml.safe_load`,
+invoking ESLint as a library) are allowed.
 
     This generalizes the lesson from
     `tests/unit/boundaries-config.test.ts`. The previous goal's
@@ -211,7 +205,7 @@ Same as Goals 0–3 plus:
   not turned into `export type { StoredX } from "../domain/…"`.
   Re-exports defeat B2 because the symbol still appears under
   `src/http/`.
-- **No `eslint-disable boundaries/element-types`.** If the lint rule
+- **No `eslint-disable boundaries/dependencies`.** If the lint rule
   rejects an import, the import is wrong. Suppressing the rule on a
   line, file, or directory basis is forbidden; the gate `grep`s for
   the disable directive across `src/`.
@@ -255,7 +249,7 @@ progress without re-running the full gate.
    - Tranche B: `src/http/signup-types.ts`, `src/ports/*.ts`,
      `prisma/schema.prisma`.
    - Tranche C1/C2: `src/infrastructure/prisma-signup-store.ts`
-     + the 19 sibling `memory-*-store.ts` files as the template.
+     - the 19 sibling `memory-*-store.ts` files as the template.
    - Tranche C3: `@oclif/core` topics + multi-command docs, the
      current `src/cli/index.ts`.
 
@@ -321,7 +315,7 @@ cross-cutting work, reuse scope tags:
   on its string contents. D1 catches this; do not silence D1.
 - Re-introducing any `Stored*` declaration under `src/http/` once it
   has moved to `src/domain/`. Re-exports count.
-- Adding `// eslint-disable-next-line boundaries/element-types` (or
+- Adding `// eslint-disable-next-line boundaries/dependencies` (or
   block/file variants) anywhere in `src/`.
 - Keeping `prisma-signup-store.ts` over 1,000 lines after C2 is
   declared green. If the file dropped to 950 lines by extracting two

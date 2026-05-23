@@ -41,110 +41,110 @@ satisfy them.
 ### Tranche A — Credential store + login persistence
 
 A1. **A credential-store module exists at `apps/cli/src/config-store.ts`.**
-    It exposes `readConfig()` and `writeConfig(partial)` against the file at
-    `process.env.VSPEC_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json")`.
+It exposes `readConfig()` and `writeConfig(partial)` against the file at
+`process.env.VSPEC_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json")`.
 
 A2. **The config schema persists every field every later tranche needs.**
-    Required keys: `api_url`, `session_token`, `current_workspace_id`,
-    `profile`. The gate parses the type definition and iterates this list.
+Required keys: `api_url`, `session_token`, `current_workspace_id`,
+`profile`. The gate parses the type definition and iterates this list.
 
 A3. **`vspec login` writes the credential file on success.** It populates
-    `api_url`, `session_token` (extracted from the response `Set-Cookie`),
-    and `current_workspace_id` (the first workspace in the response).
+`api_url`, `session_token` (extracted from the response `Set-Cookie`),
+and `current_workspace_id` (the first workspace in the response).
 
 A4. **Tests honor `VSPEC_CONFIG_PATH`.** The CLI E2E helpers set
-    `VSPEC_CONFIG_PATH` to a tmp file per test. The gate iterates every
-    `*.test.ts` under `apps/cli/tests/e2e-cli-honest/` and asserts the
-    helper invocation passes a per-test `VSPEC_CONFIG_PATH`.
+`VSPEC_CONFIG_PATH` to a tmp file per test. The gate iterates every
+`*.test.ts` under `apps/cli/tests/e2e-cli-honest/` and asserts the
+helper invocation passes a per-test `VSPEC_CONFIG_PATH`.
 
 ### Tranche B — OAuth device flow
 
 B1. **Server endpoint `POST /v1/auth/github/token` exists.** It accepts
-    `{ access_token }`, verifies the token via `https://api.github.com/user`
-    (or the stub path), and establishes a vspec session using the existing
-    `completeOAuth` application path. The gate parses the routes file with
-    `grep -E "/v1/auth/github/token"`.
+`{ access_token }`, verifies the token via `https://api.github.com/user`
+(or the stub path), and establishes a vspec session using the existing
+`completeOAuth` application path. The gate parses the routes file with
+`grep -E "/v1/auth/github/token"`.
 
 B2. **Stub mode accepts `stub-access-token-*` tokens instantly.** When
-    `VSPEC_AUTH_STUB=1`, any access token starting with `stub-access-token-`
-    succeeds; the suffix becomes the github id. The gate boots the server
-    with `authStub: true`, posts `{ access_token: "stub-access-token-x" }`
-    to the new endpoint, and expects HTTP 200 with a `vspec_session=` cookie.
+`VSPEC_AUTH_STUB=1`, any access token starting with `stub-access-token-`
+succeeds; the suffix becomes the github id. The gate boots the server
+with `authStub: true`, posts `{ access_token: "stub-access-token-x" }`
+to the new endpoint, and expects HTTP 200 with a `vspec_session=` cookie.
 
 B3. **CLI module `apps/cli/src/device-flow.ts` exists.** Exports a
-    `runDeviceFlow({ apiUrl, githubClientId, authStub })` function that
-    requests a device code from GitHub, prints `user_code` + verification
-    URL, and polls for the access token honoring `interval`/`expires_in`.
-    In stub mode the polling interval is 0 and the function returns a
-    `stub-access-token-*` value without contacting GitHub.
+`runDeviceFlow({ apiUrl, githubClientId, authStub })` function that
+requests a device code from GitHub, prints `user_code` + verification
+URL, and polls for the access token honoring `interval`/`expires_in`.
+In stub mode the polling interval is 0 and the function returns a
+`stub-access-token-*` value without contacting GitHub.
 
 B4. **`--github-code` is gone.** The flag is removed from the global
-    flag block in `apps/cli/src/index.ts` and from `login.ts`. The gate
-    greps both files; either survivor fails.
+flag block in `apps/cli/src/index.ts` and from `login.ts`. The gate
+greps both files; either survivor fails.
 
 ### Tranche C — Optional flags with config fallback
 
 C1. **No command file under `apps/cli/src/commands/` requires
-    `--api-url`, `--session-cookie`, or `--workspace-id`.** The gate
-    iterates every `*.ts` in that directory and fails if it sees
-    `requiredFlag(..., "api-url"|"session-cookie"|"workspace-id")`.
+`--api-url`, `--session-cookie`, or `--workspace-id`.** The gate
+iterates every `*.ts` in that directory and fails if it sees
+`requiredFlag(..., "api-url"|"session-cookie"|"workspace-id")`.
 
 C2. **Each of those three flags is satisfied by the credential file or
-    by an explicit override.** Resolution order: command-line flag >
-    `VSPEC_CONFIG_PATH` config > environment variable (`VSPEC_API_URL`
-    only) > error. The gate iterates the flag list `(api-url
+by an explicit override.** Resolution order: command-line flag >
+`VSPEC_CONFIG_PATH` config > environment variable (`VSPEC_API_URL`
+only) > error. The gate iterates the flag list `(api-url
     session-cookie workspace-id)` and confirms each has a fallback path
-    in `apps/cli/src/flag-values.ts`.
+in `apps/cli/src/flag-values.ts`.
 
 C3. **A test confirms commands succeed without those flags when the
-    config is populated.** The gate iterates the honest-flow scenarios
-    (Tranche E) and confirms no invocation of `project create`,
-    `actor create`, or `usecase create` passes any of the three flags.
+config is populated.** The gate iterates the honest-flow scenarios
+(Tranche E) and confirms no invocation of `project create`,
+`actor create`, or `usecase create` passes any of the three flags.
 
 ### Tranche D — Context commands
 
 D1. **The CLI implements every command in the set
-    `(logout, status, workspace switch, project switch)`.** The gate
-    iterates this list and asserts
-    `node apps/cli/bin/run.js <topic> [<sub>] --help` exits 0 for each.
+`(logout, status, workspace switch, project switch)`.** The gate
+iterates this list and asserts
+`node apps/cli/bin/run.js <topic> [<sub>] --help` exits 0 for each.
 
 D2. **`logout` calls `POST /v1/auth/logout` and clears the credential
-    file.** Server endpoint exists (gate greps the routes file) and
-    deletes the session token from the in-memory `sessionsByToken` map.
+file.** Server endpoint exists (gate greps the routes file) and
+deletes the session token from the in-memory `sessionsByToken` map.
 
 D3. **`status` prints `api_url`, `current_workspace_id`, and `profile`
-    from the credential file without making a network call.** The gate
-    runs `status` against a populated config with `--api-url` pointing
-    at a closed port and expects exit 0.
+from the credential file without making a network call.** The gate
+runs `status` against a populated config with `--api-url` pointing
+at a closed port and expects exit 0.
 
 D4. **`workspace switch <slug>` and `project switch <key>` mutate only
-    the local credential file.** No network call. The gate sets a tmp
-    `VSPEC_CONFIG_PATH`, runs each command, and confirms the matching
-    config field changes.
+the local credential file.** No network call. The gate sets a tmp
+`VSPEC_CONFIG_PATH`, runs each command, and confirms the matching
+config field changes.
 
 ### Tranche E — Honest E2E
 
 E1. **`apps/cli/tests/e2e-cli-honest/` exists and contains at least one
-    test file.** The gate counts `*.test.ts` files in that directory;
-    zero fails.
+test file.** The gate counts `*.test.ts` files in that directory;
+zero fails.
 
 E2. **No test or helper under `apps/cli/tests/e2e-cli-honest/` calls
-    `fetch(`.** The gate iterates every `*.ts` in that directory and
-    greps. A single match fails the gate.
+`fetch(`.** The gate iterates every `*.ts` in that directory and
+greps. A single match fails the gate.
 
 E3. **`scripts/check-honest-cli-e2e.sh` exists and exits 0.** It
-    enforces E1 and E2 and runs `vitest` on the honest directory.
+enforces E1 and E2 and runs `vitest` on the honest directory.
 
 E4. **The honest-flow scenario covers `login → project create → actor
     create → usecase create`, end-to-end, with only `runCli`
-    invocations.** The gate greps the honest directory for each of
-    those CLI verbs.
+invocations.** The gate greps the honest directory for each of
+those CLI verbs.
 
 ### Tranche F — Meta: rigor
 
 F1. **`scripts/check-gate-rigor.sh goals/6-honest-cli.md` passes.**
-    Every universal claim above is paired with a `for|while|find|xargs`
-    iteration in `goals/6-honest-cli.gates.sh`.
+Every universal claim above is paired with a `for|while|find|xargs`
+iteration in `goals/6-honest-cli.gates.sh`.
 
 ## Scope Guards
 
@@ -152,7 +152,7 @@ Same as Goals 0–5 plus:
 
 - **No `--format=agent` payload standardization in this goal.** The spec
   §4 envelope (`{ data, context, suggested_next_actions, warnings,
-  format_version }`) is a separate concern. Touching every
+format_version }`) is a separate concern. Touching every
   `*-output.ts` doubles scope without serving Goal 6's claim.
 - **No new spec commands beyond Tranche D's four.** `doctor`, `why`,
   `examples`, `init`, `watch`, and the spec's many `list/show/edit`
@@ -223,7 +223,7 @@ bash scripts/diagnose.sh
 
 5. **Context commands (D1, D2, D3, D4).** Add `logout`, `status`,
    `workspace switch`, `project switch`. Server-side `POST
-   /v1/auth/logout` for D2.
+/v1/auth/logout` for D2.
 
 6. **Honest E2E (E1, E2, E3, E4).** New
    `apps/cli/tests/e2e-cli-honest/login-to-usecase.test.ts` (or

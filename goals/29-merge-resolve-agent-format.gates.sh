@@ -183,7 +183,7 @@ if [ ! -f "$E2E_TEST" ]; then
 else
   for token in \
     "agent merge resolve" \
-    "runCli([" \
+    "runCli(" \
     '"merge"' \
     '"resolve"' \
     "--format=agent" \

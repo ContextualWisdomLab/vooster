@@ -37,91 +37,91 @@ case will not satisfy it.
 ### Tranche A — Test infrastructure rides Postgres
 
 A1. **A single helper owns Postgres test isolation.**
-    `tests/helpers/postgres-db.ts` exports a function (e.g.,
-    `withTestDatabase()` or `createTestSchema()`) that allocates a unique
-    Postgres schema (`?schema=test_<uuid>`), runs
-    `prisma db push --skip-generate` against it, and exposes both the
-    DATABASE_URL and a teardown that drops the schema. The helper is the
-    only place in `tests/` that constructs a `DATABASE_URL`.
+`tests/helpers/postgres-db.ts` exports a function (e.g.,
+`withTestDatabase()` or `createTestSchema()`) that allocates a unique
+Postgres schema (`?schema=test_<uuid>`), runs
+`prisma db push --skip-generate` against it, and exposes both the
+DATABASE_URL and a teardown that drops the schema. The helper is the
+only place in `tests/` that constructs a `DATABASE_URL`.
 
 A2. **No `file:` URL survives in `tests/`.**
-    `grep -rE 'file:[^ "]*\.sqlite' tests/` returns zero lines. The grep
-    enumerates the whole directory; this gate cannot pass by editing one
-    file.
+`grep -rE 'file:[^ "]*\.sqlite' tests/` returns zero lines. The grep
+enumerates the whole directory; this gate cannot pass by editing one
+file.
 
 A3. **`tests/e2e-cli/helpers.ts` uses A1.**
-    `startNetworkServer` (and any sibling) calls into
-    `tests/helpers/postgres-db.ts`. The thirty-five CLI E2E files inherit
-    this without modification. *(The "test passes" half is enforced by
-    `goals/_meta.md` M.3; this goal's gate enumerates the helper import
-    and helper file presence only.)*
+`startNetworkServer` (and any sibling) calls into
+`tests/helpers/postgres-db.ts`. The thirty-five CLI E2E files inherit
+this without modification. _(The "test passes" half is enforced by
+`goals/_meta.md` M.3; this goal's gate enumerates the helper import
+and helper file presence only.)_
 
 A4. **`tests/integration/persistence-matrix.test.ts` uses A1.**
-    Every model stanza in the matrix calls the helper rather than building
-    a `file:` URL. The test still enumerates every model from
-    `prisma/schema.prisma` (Goal 2.A4 unchanged), but now restart survival
-    is proven against Postgres. *(The "test passes" half is enforced by
-    `goals/_meta.md` M.3; this goal's gate enumerates per-model references
-    and helper routing only.)*
+Every model stanza in the matrix calls the helper rather than building
+a `file:` URL. The test still enumerates every model from
+`prisma/schema.prisma` (Goal 2.A4 unchanged), but now restart survival
+is proven against Postgres. _(The "test passes" half is enforced by
+`goals/_meta.md` M.3; this goal's gate enumerates per-model references
+and helper routing only.)_
 
 A5. **Every other server-spawning test routes through A1.** Enumerated:
-    any file under `tests/` that contains both `spawn(` and `DATABASE_URL`
-    must reference the helper (`grep -l postgres-db`). No file in this set
-    is allowed to build its own DATABASE_URL.
+any file under `tests/` that contains both `spawn(` and `DATABASE_URL`
+must reference the helper (`grep -l postgres-db`). No file in this set
+is allowed to build its own DATABASE_URL.
 
 ### Tranche B — Production schema is Postgres
 
 B1. **`prisma/schema.prisma` declares Postgres.**
-    `provider = "postgresql"`. The string `"sqlite"` no longer appears in
-    `prisma/`, `src/`, `scripts/`, `docker-compose*.yml`, `package.json`,
-    or `.env.example`. The gate greps each directory; one hit fails the
-    gate.
+`provider = "postgresql"`. The string `"sqlite"` no longer appears in
+`prisma/`, `src/`, `scripts/`, `docker-compose*.yml`, `package.json`,
+or `.env.example`. The gate greps each directory; one hit fails the
+gate.
 
 B2. **`.env.example`, `package.json`, and `docker-compose*.yml` agree on
-    Postgres.** `scripts/check-db-consistency.sh` (Goal 2.B2) still
-    passes, with the rule "Postgres for prod *and* tests; SQLite forbidden"
-    instead of "Postgres for prod, SQLite for tests." The check script
-    itself is updated; the new version refuses to accept any `file:` URL
-    in `.env.example`.
+Postgres.** `scripts/check-db-consistency.sh` (Goal 2.B2) still
+passes, with the rule "Postgres for prod _and_ tests; SQLite forbidden"
+instead of "Postgres for prod, SQLite for tests." The check script
+itself is updated; the new version refuses to accept any `file:` URL
+in `.env.example`.
 
 B3. **The Docker image applies migrations on startup.**
-    `Dockerfile`'s runtime stage runs
-    `prisma db push --skip-generate` (or equivalent) before
-    `node dist/src/index.js`, so a fresh managed Postgres becomes usable
-    without any manual step. `scripts/check-deployable.sh` (existing) is
-    extended to write through the database — it must call `/callback`,
-    not just `/start`, so the gate proves the running container can
-    actually persist.
+`Dockerfile`'s runtime stage runs
+`prisma db push --skip-generate` (or equivalent) before
+`node dist/src/index.js`, so a fresh managed Postgres becomes usable
+without any manual step. `scripts/check-deployable.sh` (existing) is
+extended to write through the database — it must call `/callback`,
+not just `/start`, so the gate proves the running container can
+actually persist.
 
 B4. **The production compose accepts an external `DATABASE_URL`.**
-    `docker-compose.prod.yml` uses `${DATABASE_URL:-...}` substitution so
-    that operators on managed Postgres can drop the embedded `db` service
-    entirely. `scripts/check-managed-db.sh` is a new gate: it boots the
-    `app` container against an externally-supplied Postgres (a separate
-    docker network, mimicking a managed provider), runs the full signup
-    roundtrip including `/callback`, and tears down. The gate is what
-    proves the deploy works without compose's bundled `db`.
+`docker-compose.prod.yml` uses `${DATABASE_URL:-...}` substitution so
+that operators on managed Postgres can drop the embedded `db` service
+entirely. `scripts/check-managed-db.sh` is a new gate: it boots the
+`app` container against an externally-supplied Postgres (a separate
+docker network, mimicking a managed provider), runs the full signup
+roundtrip including `/callback`, and tears down. The gate is what
+proves the deploy works without compose's bundled `db`.
 
 ### Tranche C — CI runs the suite against Postgres
 
 C1. **A CI workflow file exists** at `.github/workflows/ci.yml` (or
-    `ci.yaml`). It runs on `push` and `pull_request` against `main`.
+`ci.yaml`). It runs on `push` and `pull_request` against `main`.
 
 C2. **The workflow declares a Postgres service** — a `services:`
-    block (or runtime equivalent) named `postgres` using
-    `postgres:16-alpine`, with a healthcheck. `DATABASE_URL` is wired
-    into the test job's env.
+block (or runtime equivalent) named `postgres` using
+`postgres:16-alpine`, with a healthcheck. `DATABASE_URL` is wired
+into the test job's env.
 
 C3. **The workflow runs the full suite.** At minimum:
-    `npm ci` (or equivalent), `npm run lint`, `npm run typecheck`,
-    `npm test`, and `bash scripts/completion-check.sh`. Any of these
-    failing must fail the workflow.
+`npm ci` (or equivalent), `npm run lint`, `npm run typecheck`,
+`npm test`, and `bash scripts/completion-check.sh`. Any of these
+failing must fail the workflow.
 
 C4. **The workflow file is parseable YAML.** `scripts/check-ci.sh`
-    (new) runs `yq` or `python -c "import yaml; yaml.safe_load(...)"`
-    against every workflow file in `.github/workflows/` and refuses to
-    pass on a parse error or on a workflow that doesn't reference both
-    `postgres` and `completion-check.sh`.
+(new) runs `yq` or `python -c "import yaml; yaml.safe_load(...)"`
+against every workflow file in `.github/workflows/` and refuses to
+pass on a parse error or on a workflow that doesn't reference both
+`postgres` and `completion-check.sh`.
 
 ### Tranche D — Meta: no regression and gate rigor
 
@@ -129,7 +129,7 @@ D1. `goals/0-init.gates.sh` still passes.
 D2. `goals/1-runnable.gates.sh` still passes, now against Postgres.
 D3. `goals/2-shippable.gates.sh` still passes, now against Postgres.
 D4. `scripts/check-gate-rigor.sh` passes — the active goal's gate file
-    iterates whenever its markdown contains "every X" language.
+iterates whenever its markdown contains "every X" language.
 
 ## Scope Guards
 
@@ -143,7 +143,7 @@ Same as Goals 0–2 plus:
 - **No goal-2 narrowing.** `scripts/check-persistence.sh`,
   `check-deployable.sh`, `check-db-consistency.sh`, `check-bootable.sh`,
   `check-cli.sh`, and the gate scripts for Goals 0/1/2 must remain
-  *unchanged or strengthened*. You may rewrite a script to require
+  _unchanged or strengthened_. You may rewrite a script to require
   Postgres; you may not weaken any existing assertion.
 - **No "single-schema" cheat in tests.** The helper in A1 must allocate a
   unique schema per call (cuid, uuid, ts+pid — implementer's choice).
@@ -155,7 +155,7 @@ Same as Goals 0–2 plus:
   rely on the operator running `prisma db push` by hand. The image must
   be self-sufficient against an empty Postgres.
 - **No "shadow" managed-db gate.** `check-managed-db.sh` must boot the
-  app against a Postgres that is *not* the one declared in
+  app against a Postgres that is _not_ the one declared in
   `docker-compose.prod.yml`'s embedded `db` service. The gate's whole
   point is to prove the prod path works without that embedded service.
 - **No hardcoded entity lists in gate scripts.** Enumerate models from
@@ -195,7 +195,7 @@ re-running the full gate.
 `goals/3-managed-db.next-task.sh` enforces this order. Rationale:
 
 1. **Test helper first.** Author `tests/helpers/postgres-db.ts`. Write
-   it against a *real* local Postgres (the `db` service in
+   it against a _real_ local Postgres (the `db` service in
    `docker-compose.yml` is fine). Add one passing usage from a small
    integration test before touching the existing 55+ tests. ~1 TDD cycle.
 2. **Switch the noisiest consumers next.**

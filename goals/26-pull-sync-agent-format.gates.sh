@@ -194,7 +194,7 @@ else
   fi
   for token in \
     "agent pull and sync write canonical files" \
-    "runCli([" \
+    "runCli(" \
     '"pull"' \
     '"sync"' \
     "--format=agent" \

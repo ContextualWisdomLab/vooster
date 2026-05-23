@@ -256,7 +256,7 @@ if ! grep -qE 'from:\s*"http"[^}]*disallow[^}]*"domain"' eslint.config.js \
   cat <<'EOF'
 TASK: Tighten boundaries rules (gate 2.C4).
 
-  In eslint.config.js, extend the boundaries/element-types rules array
+  In eslint.config.js, extend the boundaries/dependencies rules array
   with:
       { from: "http", disallow: ["domain"] }
       { from: "cli",  disallow: ["infrastructure"] }

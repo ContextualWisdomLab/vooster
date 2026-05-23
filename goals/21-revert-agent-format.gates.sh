@@ -226,7 +226,7 @@ else
   fi
   for token in \
     "agent revert" \
-    "runCli([" \
+    "runCli(" \
     '"revert"' \
     "--format=agent" \
     "--to" \

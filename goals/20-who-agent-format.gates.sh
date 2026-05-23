@@ -228,7 +228,7 @@ else
   fi
   for token in \
     "agent who" \
-    "runCli([" \
+    "runCli(" \
     '"who"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

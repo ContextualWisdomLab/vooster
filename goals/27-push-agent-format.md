@@ -48,19 +48,19 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The push agent-format debt is removed without clearing unrelated debt.**
-    The `push` bullet is gone, and the
-    `` `lock release` / `lock renew` `` and `merge resolve` bullets remain.
+The `push` bullet is gone, and the
+`` `lock release` / `lock renew` `` and `merge resolve` bullets remain.
 
 A2. **Every prior findings sentinel is retargeted without weakening its
-    invariant.** Every prior `goals/*.gates.sh` and `goals/*.next-task.sh` file
-    no longer requires the `push` bullet and instead requires
-    `` `lock release` / `lock renew` `` when it needs a remaining-debt
-    sentinel.
+invariant.** Every prior `goals/*.gates.sh` and `goals/*.next-task.sh` file
+no longer requires the `push` bullet and instead requires
+`` `lock release` / `lock renew` `` when it needs a remaining-debt
+sentinel.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents push agent format.** A marked
-    `### Agent Format - Push` section exists and includes:
+`### Agent Format - Push` section exists and includes:
 
     ```
     vspec push --format=agent
@@ -75,48 +75,48 @@ B1. **`docs/07-cli-spec.md` documents push agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`PushCommand` exposes the format flag.** `PushCommand.flags` includes
-    `format: Flags.string()`, and the push flag type contains `format?: string`.
+`format: Flags.string()`, and the push flag type contains `format?: string`.
 
 C2. **`pushFiles` builds an agent envelope when requested.** The gate extracts
-    `pushFiles` from `apps/cli/src/commands/sync.ts` and requires
-    `format === "agent"`, `buildAgentEnvelope`, and
-    `suggested_next_actions: body.suggested_next_actions`.
+`pushFiles` from `apps/cli/src/commands/sync.ts` and requires
+`format === "agent"`, `buildAgentEnvelope`, and
+`suggested_next_actions: body.suggested_next_actions`.
 
 C3. **Push agent output preserves current write ordering.** The `pushFiles`
-    implementation still calls `applySyncResults` before its agent envelope
-    branch.
+implementation still calls `applySyncResults` before its agent envelope
+branch.
 
 C4. **Pull and current sync behavior stay out of scope.** `pullFiles` still
-    writes files before the pull/sync envelope, and `runSync` still routes only
-    the `"push"` action to `pushFiles`.
+writes files before the pull/sync envelope, and `runSync` still routes only
+the `"push"` action to `pushFiles`.
 
 ### Tranche D — Unit Proof
 
 D1. **Push has focused unit proof for agent and human output.** The file
-    `apps/cli/tests/unit/push-agent-format.test.ts` contains test titles
-    `agent push`, `agent push applies revisions before output`,
-    `agent dry-run leaves files unchanged`, and `human push output`. Agent tests
-    use temp roots, parse stdout as one JSON object, assert `format_version`,
-    assert the full default null context, assert `data.results`, assert
-    `data.cache.entries`, assert `data.suggested_next_actions`, assert copied
-    top-level `suggested_next_actions`, assert empty `warnings`, and prove file
-    revisions are applied for non-dry-run push but unchanged for dry-run push.
+`apps/cli/tests/unit/push-agent-format.test.ts` contains test titles
+`agent push`, `agent push applies revisions before output`,
+`agent dry-run leaves files unchanged`, and `human push output`. Agent tests
+use temp roots, parse stdout as one JSON object, assert `format_version`,
+assert the full default null context, assert `data.results`, assert
+`data.cache.entries`, assert `data.suggested_next_actions`, assert copied
+top-level `suggested_next_actions`, assert empty `warnings`, and prove file
+revisions are applied for non-dry-run push but unchanged for dry-run push.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Push has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts` contains test
-    title `agent push writes canonical file revisions`, invokes
-    `runCli([ "push", ... ])` with `--format=agent`, uses `VSPEC_CONFIG_PATH`,
-    does not call `fetch(`, parses JSON, asserts `format_version`, asserts the
-    full default null context, asserts `data.results`, asserts
-    `data.cache.entries`, asserts `data.suggested_next_actions`, asserts copied
-    top-level `suggested_next_actions`, and asserts the pushed file revision is
-    updated on disk.
+`apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts` contains test
+title `agent push writes canonical file revisions`, invokes
+`runCli([ "push", ... ])` with `--format=agent`, uses `VSPEC_CONFIG_PATH`,
+does not call `fetch(`, parses JSON, asserts `format_version`, asserts the
+full default null context, asserts `data.results`, asserts
+`data.cache.entries`, asserts `data.suggested_next_actions`, asserts copied
+top-level `suggested_next_actions`, and asserts the pushed file revision is
+updated on disk.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no push agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no push agent entry.
 
 ### Tranche F — Rigor
 

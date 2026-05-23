@@ -7,7 +7,7 @@ status_notes: |
   Queue finding. Each H<n> is independent; close per-item with commit sha.
   H1 — CLOSED 2026-05-24 as superseded: `pushSyncFiles` now needs MarkdownRenderDeps for stale-conflict canonical remote rendering.
   H2 — CLOSED 2026-05-24 (commit e12d9da).
-  H3 — open.
+  H3 — CLOSED 2026-05-24 (commit 9e7b37d).
   H4 — open.
   H5 — open.
 related:

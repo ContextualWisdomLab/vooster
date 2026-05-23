@@ -76,7 +76,7 @@ export function outputPathProblem(outputPath: string | undefined) {
   if (outputPath === undefined || !outputPath.startsWith("missing/")) {
     return undefined;
   }
-  const directory = outputPath.split("/")[0] ?? outputPath;
+  const directory = outputPath.slice(0, outputPath.indexOf("/"));
   return problem(
     400,
     "Output directory is not writable",

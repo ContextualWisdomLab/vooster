@@ -12,15 +12,20 @@ describe("UC-013 honest CLI - Edit a use case step", () => {
         runCli
       });
       const step = await addMainStepViaCli(seed, runCli);
-      const edited = await expectOk(runCli([
-        "step",
-        "edit",
-        step.stepId,
-        "--action",
-        "Reviews the order.",
-        "--base-revision",
-        step.baseRevision
-      ], seed.env));
+      const edited = await expectOk(
+        runCli(
+          [
+            "step",
+            "edit",
+            step.stepId,
+            "--action",
+            "Reviews the order.",
+            "--base-revision",
+            step.baseRevision
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(edited.stdout).toContain("Reviews the order.");

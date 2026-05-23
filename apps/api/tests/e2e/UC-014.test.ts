@@ -22,18 +22,32 @@ type SearchProblem = {
 };
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-014 - Search and filter use cases", () => {
   test("MAIN: list filtered use case previews with cursor pagination", async () => {
-    const setup = await createProject(server, "Search Use Cases", "search-usecases", "stub-search");
+    const setup = await createProject(
+      server,
+      "Search Use Cases",
+      "search-usecases",
+      "stub-search"
+    );
     const customer = await createActor(server, setup, "Customer");
     await createUseCase(server, setup, "Customer", "Reviews a refund");
     await createUseCase(server, setup, "Customer", "Reviews an invoice");
     await createActor(server, setup, "Admin");
     await createUseCase(server, setup, "Admin", "Reviews an admin report");
-    const archived = await createUseCase(server, setup, "Customer", "Reviews an archived refund");
+    const archived = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews an archived refund"
+    );
     await archiveUseCase(archived.id, setup.cookie);
 
     const first = await searchUseCases(setup.cookie, setup.projectId, {
@@ -46,14 +60,16 @@ describe("UC-014 - Search and filter use cases", () => {
 
     expect(first.status).toBe(200);
     const firstBody = (await first.json()) as SearchResponse;
-    expect(firstBody.items).toEqual([{
-      key: "CHK-001",
-      level: "USER_GOAL",
-      primary_actor: "Customer",
-      status: "DRAFT",
-      title: "Reviews a refund",
-      trigger_excerpt: ""
-    }]);
+    expect(firstBody.items).toEqual([
+      {
+        key: "CHK-001",
+        level: "USER_GOAL",
+        primary_actor: "Customer",
+        status: "DRAFT",
+        title: "Reviews a refund",
+        trigger_excerpt: ""
+      }
+    ]);
     expect(firstBody.next_cursor).toEqual(expect.any(String));
 
     const second = await searchUseCases(setup.cookie, setup.projectId, {
@@ -72,7 +88,12 @@ describe("UC-014 - Search and filter use cases", () => {
   });
 
   test("2a: unknown enum filters are rejected with valid values", async () => {
-    const setup = await createProject(server, "Search Filters", "search-filters", "stub-filter");
+    const setup = await createProject(
+      server,
+      "Search Filters",
+      "search-filters",
+      "stub-filter"
+    );
 
     const response = await searchUseCases(setup.cookie, setup.projectId, {
       level: "EPIC",
@@ -82,13 +103,23 @@ describe("UC-014 - Search and filter use cases", () => {
     expect(response.status).toBe(400);
     const problem = (await response.json()) as SearchProblem;
     expect(problem.title).toMatch(/unknown use case filter/i);
-    expect(problem.valid_statuses).toEqual(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]);
+    expect(problem.valid_statuses).toEqual([
+      "DRAFT",
+      "IN_REVIEW",
+      "APPROVED",
+      "DEPRECATED"
+    ]);
     expect(problem.valid_levels).toEqual(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]);
     expect(problem.items).toBeUndefined();
   });
 
   test("2b: unresolved actor filter returns empty result with guidance", async () => {
-    const setup = await createProject(server, "Search Actor", "search-actor", "stub-actor-filter");
+    const setup = await createProject(
+      server,
+      "Search Actor",
+      "search-actor",
+      "stub-actor-filter"
+    );
 
     const response = await searchUseCases(setup.cookie, setup.projectId, {
       actor_id: "actor-missing"
@@ -105,7 +136,12 @@ describe("UC-014 - Search and filter use cases", () => {
   });
 
   test("*a: no matching use cases suggests broadening filters", async () => {
-    const setup = await createProject(server, "Search Empty", "search-empty", "stub-empty");
+    const setup = await createProject(
+      server,
+      "Search Empty",
+      "search-empty",
+      "stub-empty"
+    );
 
     const response = await searchUseCases(setup.cookie, setup.projectId, {
       q: "no matching use case"
@@ -126,7 +162,12 @@ describe("UC-014 - Search and filter use cases", () => {
   });
 
   test("4a: malformed cursor fails and stale cursor returns plain empty page", async () => {
-    const setup = await createProject(server, "Search Cursor", "search-cursor", "stub-cursor");
+    const setup = await createProject(
+      server,
+      "Search Cursor",
+      "search-cursor",
+      "stub-cursor"
+    );
     await createActor(server, setup, "Customer");
     await createUseCase(server, setup, "Customer", "Reviews a cursor");
 
@@ -135,7 +176,9 @@ describe("UC-014 - Search and filter use cases", () => {
     });
     expect(malformed.status).toBe(400);
     const problem = (await malformed.json()) as SearchProblem;
-    expect(problem.title).toBe("cursor is opaque — pass exactly what the previous response returned");
+    expect(problem.title).toBe(
+      "cursor is opaque — pass exactly what the previous response returned"
+    );
 
     const stale = await searchUseCases(setup.cookie, setup.projectId, {
       cursor: Buffer.from(JSON.stringify({ key: "ZZZ" }), "utf8").toString("base64url")
@@ -160,7 +203,10 @@ function searchUseCases(
   projectId: string,
   query: Record<string, string>
 ) {
-  return server.fetch(`/v1/projects/${projectId}/usecases?${String(new URLSearchParams(query))}`, {
-    headers: { Cookie: cookie }
-  });
+  return server.fetch(
+    `/v1/projects/${projectId}/usecases?${String(new URLSearchParams(query))}`,
+    {
+      headers: { Cookie: cookie }
+    }
+  );
 }

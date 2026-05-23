@@ -49,7 +49,11 @@ export function addComment(
   });
 }
 
-export async function listComments(server: TestServer, usecaseId: string, cookie: string) {
+export async function listComments(
+  server: TestServer,
+  usecaseId: string,
+  cookie: string
+) {
   const response = await server.fetch(`/v1/usecases/${usecaseId}/comments`, {
     headers: { Cookie: cookie }
   });

@@ -26,6 +26,7 @@ import { registerBranchRoutes } from "./branch-routes.js";
 import { registerBranchTestRoutes } from "./branch-test-routes.js";
 import { registerChangeCommitRoutes } from "./change-commit-routes.js";
 import { registerCommentRoutes } from "./comment-routes.js";
+import { registerDoctorRoutes } from "./doctor-routes.js";
 import { registerGherkinExportRoutes } from "./gherkin-export-routes.js";
 import { registerGoalRoutes } from "./goal-routes.js";
 import { registerGoalPromotionRoutes } from "./goal-promotion-routes.js";
@@ -71,10 +72,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const projectStore = serverOptions.signupStore ?? createMemoryProjectStore();
   const membershipStore =
     serverOptions.signupStore ??
-    createMemoryMembershipStore(async (projectId) =>
-      (await projectStore.findProjectById(projectId))?.workspace_id
+    createMemoryMembershipStore(
+      async (projectId) => (await projectStore.findProjectById(projectId))?.workspace_id
     );
-  const mergeRequestStore = serverOptions.signupStore ?? createMemoryMergeRequestStore();
+  const mergeRequestStore =
+    serverOptions.signupStore ?? createMemoryMergeRequestStore();
   const revisionStore = serverOptions.signupStore ?? createMemoryRevisionStore();
   const scenarioStore = serverOptions.signupStore ?? createMemoryScenarioStore();
   const stakeholderInterestStore =
@@ -97,8 +99,30 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   registerAiGuideRoutes(app);
   registerApiKeyRoutes(app, state, membershipStore, apiKeyStore);
-  registerSignupRoutes(app, serverOptions, state, membershipStore, userStore, workspaceStore);
-  registerDeviceAuthRoutes(app, serverOptions, state, membershipStore, userStore, workspaceStore);
+  registerSignupRoutes(
+    app,
+    serverOptions,
+    state,
+    membershipStore,
+    userStore,
+    workspaceStore
+  );
+  registerDeviceAuthRoutes(
+    app,
+    serverOptions,
+    state,
+    membershipStore,
+    userStore,
+    workspaceStore
+  );
+  registerDoctorRoutes(app, state, {
+    membershipStore,
+    projectStore,
+    scenarioStore,
+    stakeholderInterestStore,
+    stepStore,
+    useCaseStore
+  });
   registerProjectRoutes(
     app,
     state,
@@ -118,7 +142,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     revisionStore,
     useCaseStore
   );
-  registerBranchTestRoutes(app, state, branchStore, projectStore, revisionStore, useCaseStore);
+  registerBranchTestRoutes(
+    app,
+    state,
+    branchStore,
+    projectStore,
+    revisionStore,
+    useCaseStore
+  );
   registerLockRoutes(app, state, lockStore, membershipStore, useCaseStore);
   registerMarkdownExportRoutes(
     app,
@@ -193,7 +224,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     workSessionStore,
     useCaseStore
   );
-  registerInvitationRoutes(app, options, state, membershipStore, userStore, workspaceStore);
+  registerInvitationRoutes(
+    app,
+    options,
+    state,
+    membershipStore,
+    userStore,
+    workspaceStore
+  );
   registerCommentRoutes(app, state, commentStore, membershipStore, useCaseStore);
   registerChangeCommitRoutes(
     app,
@@ -268,7 +306,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   );
   registerUseCaseSearchRoutes(app, state, actorStore, membershipStore, useCaseStore);
   registerUseCaseTestRoutes(app, state, useCaseStore);
-  registerRevisionDiffRoutes(app, state, branchStore, membershipStore, revisionStore, useCaseStore);
+  registerRevisionDiffRoutes(
+    app,
+    state,
+    branchStore,
+    membershipStore,
+    revisionStore,
+    useCaseStore
+  );
   registerRevisionHistoryRoutes(
     app,
     state,
@@ -354,10 +399,15 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerSyncRoutes(
     app,
     state,
+    actorStore,
     branchStore,
     membershipStore,
     projectStore,
     revisionStore,
+    scenarioStore,
+    stakeholderInterestStore,
+    stakeholderStore,
+    stepStore,
     useCaseStore
   );
 

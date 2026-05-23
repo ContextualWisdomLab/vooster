@@ -15,7 +15,14 @@ cd "$ROOT"
 # shellcheck source=../scripts/_gate-cache.sh
 source "$ROOT/scripts/_gate-cache.sh"
 
-GOAL_NAME="7-cli-spec-parity"
+BASE_GOAL_NAME="7-cli-spec-parity"
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  GOAL_NAME="${BASE_GOAL_NAME}-shallow"
+  CACHE_LABEL="goal $BASE_GOAL_NAME shallow"
+else
+  GOAL_NAME="$BASE_GOAL_NAME"
+  CACHE_LABEL="goal $BASE_GOAL_NAME"
+fi
 
 # Inputs that determine this goal's gate result.
 GATE_INPUTS=(
@@ -33,7 +40,7 @@ GATE_INPUTS=(
 )
 
 if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
-  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
+  echo "[cache hit] $CACHE_LABEL inputs unchanged"
   exit 0
 fi
 
@@ -50,6 +57,74 @@ HONEST_SETUP=apps/cli/tests/e2e-cli-honest/cli-setup.ts
 CLI_BIN=apps/cli/bin/run.js
 
 ENVELOPE_KEYS=(data context suggested_next_actions warnings format_version)
+
+start_init_fixture() {
+  INIT_FIXTURE_DIR="$(mktemp -d)"
+  INIT_FIXTURE_PORT_FILE="$INIT_FIXTURE_DIR/port"
+  INIT_FIXTURE_LOG="$INIT_FIXTURE_DIR/server.log"
+  INIT_FIXTURE_CONFIG="$INIT_FIXTURE_DIR/config.json"
+  INIT_FIXTURE_SERVER="$INIT_FIXTURE_DIR/server.cjs"
+  cat >"$INIT_FIXTURE_SERVER" <<'NODE'
+const http = require("node:http");
+const { writeFileSync } = require("node:fs");
+
+const portFile = process.argv[2];
+const projects = [
+  { id: "project-acme", key: "ACME", workspace_id: "workspace-1" },
+  { id: "project-new", key: "NEW", workspace_id: "workspace-1" },
+  { id: "project-bound", key: "BOUND", workspace_id: "workspace-1" }
+];
+const server = http.createServer((request, response) => {
+  if (request.method === "GET" && request.url === "/v1/projects") {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ items: projects }));
+    return;
+  }
+  response.writeHead(404, { "Content-Type": "application/json" });
+  response.end(JSON.stringify({ title: "Not found" }));
+});
+
+server.listen(0, "127.0.0.1", () => {
+  const address = server.address();
+  writeFileSync(portFile, String(address.port));
+});
+
+process.on("SIGTERM", () => {
+  server.close(() => process.exit(0));
+});
+NODE
+  node "$INIT_FIXTURE_SERVER" "$INIT_FIXTURE_PORT_FILE" >"$INIT_FIXTURE_LOG" 2>&1 &
+  INIT_FIXTURE_PID=$!
+  for _ in $(seq 1 50); do
+    if [ -s "$INIT_FIXTURE_PORT_FILE" ]; then
+      break
+    fi
+    sleep 0.1
+  done
+  if [ ! -s "$INIT_FIXTURE_PORT_FILE" ]; then
+    echo "    ✗ fail — init fixture server did not start"
+    cat "$INIT_FIXTURE_LOG" 2>/dev/null || true
+    return 1
+  fi
+  INIT_FIXTURE_API_URL="http://127.0.0.1:$(cat "$INIT_FIXTURE_PORT_FILE")"
+  cat >"$INIT_FIXTURE_CONFIG" <<EOF
+{
+  "api_url": "$INIT_FIXTURE_API_URL",
+  "current_workspace_id": "workspace-1",
+  "session_token": "fixture-session"
+}
+EOF
+}
+
+stop_init_fixture() {
+  if [ -n "${INIT_FIXTURE_PID:-}" ]; then
+    kill "$INIT_FIXTURE_PID" >/dev/null 2>&1 || true
+    wait "$INIT_FIXTURE_PID" >/dev/null 2>&1 || true
+  fi
+  if [ -n "${INIT_FIXTURE_DIR:-}" ]; then
+    rm -rf "$INIT_FIXTURE_DIR"
+  fi
+}
 
 # Honest-flow UC set (Tranche C scope). Adding to this list expands the
 # gate; removing requires a finding doc explaining why.
@@ -205,19 +280,27 @@ fi
 echo "[7.B2 vspec init --project writes ./.vspec/config.json]"
 if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
   B2_TMP="$(mktemp -d)"
-  trap 'rm -rf "$B2_TMP"' EXIT
-  (
-    cd "$B2_TMP"
-    node "$ROOT/$CLI_BIN" init --project ACME >/dev/null 2>&1
-  )
-  if [ -f "$B2_TMP/.vspec/config.json" ] \
-      && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"ACME"' \
-           "$B2_TMP/.vspec/config.json"; then
-    echo "    ✓ pass"
+  if start_init_fixture; then
+    (
+      cd "$B2_TMP"
+      VSPEC_GLOBAL_CONFIG_PATH="$INIT_FIXTURE_CONFIG" \
+        node "$ROOT/$CLI_BIN" init --project ACME >/dev/null 2>&1
+    )
+    if [ -f "$B2_TMP/.vspec/config.json" ] \
+        && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"ACME"' \
+             "$B2_TMP/.vspec/config.json" \
+        && grep -qE '"current_project_id"[[:space:]]*:[[:space:]]*"project-acme"' \
+             "$B2_TMP/.vspec/config.json"; then
+      echo "    ✓ pass"
+    else
+      echo "    ✗ fail — $B2_TMP/.vspec/config.json missing or no resolved project context"
+      PASS=false
+    fi
+    stop_init_fixture
   else
-    echo "    ✗ fail — $B2_TMP/.vspec/config.json missing or no current_project_key"
     PASS=false
   fi
+  rm -rf "$B2_TMP"
 else
   echo "    ✗ fail — preconditions for B2 unmet"
   PASS=false
@@ -249,37 +332,46 @@ if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
   B4_TMP="$(mktemp -d)"
   mkdir -p "$B4_TMP/.vspec"
   echo '{"current_project_key":"OLD"}' >"$B4_TMP/.vspec/config.json"
-  (
-    cd "$B4_TMP"
-    node "$ROOT/$CLI_BIN" init --project NEW >/dev/null 2>&1
-  )
-  B4_NOFORCE_STATUS=$?
-  B4_NOFORCE_OK=false
-  if [ "$B4_NOFORCE_STATUS" -ne 0 ] \
-      && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"OLD"' \
-           "$B4_TMP/.vspec/config.json"; then
-    B4_NOFORCE_OK=true
-  fi
-  (
-    cd "$B4_TMP"
-    node "$ROOT/$CLI_BIN" init --project NEW --force >/dev/null 2>&1
-  )
-  B4_FORCE_STATUS=$?
-  B4_FORCE_OK=false
-  if [ "$B4_FORCE_STATUS" -eq 0 ] \
-      && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"NEW"' \
-           "$B4_TMP/.vspec/config.json"; then
-    B4_FORCE_OK=true
-  fi
-  if [ "$B4_NOFORCE_OK" = true ] && [ "$B4_FORCE_OK" = true ]; then
-    echo "    ✓ pass"
+  if start_init_fixture; then
+    (
+      cd "$B4_TMP"
+      VSPEC_GLOBAL_CONFIG_PATH="$INIT_FIXTURE_CONFIG" \
+        node "$ROOT/$CLI_BIN" init --project NEW >/dev/null 2>&1
+    )
+    B4_NOFORCE_STATUS=$?
+    B4_NOFORCE_OK=false
+    if [ "$B4_NOFORCE_STATUS" -ne 0 ] \
+        && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"OLD"' \
+             "$B4_TMP/.vspec/config.json"; then
+      B4_NOFORCE_OK=true
+    fi
+    (
+      cd "$B4_TMP"
+      VSPEC_GLOBAL_CONFIG_PATH="$INIT_FIXTURE_CONFIG" \
+        node "$ROOT/$CLI_BIN" init --project NEW --force >/dev/null 2>&1
+    )
+    B4_FORCE_STATUS=$?
+    B4_FORCE_OK=false
+    if [ "$B4_FORCE_STATUS" -eq 0 ] \
+        && grep -qE '"current_project_key"[[:space:]]*:[[:space:]]*"NEW"' \
+             "$B4_TMP/.vspec/config.json" \
+        && grep -qE '"current_project_id"[[:space:]]*:[[:space:]]*"project-new"' \
+             "$B4_TMP/.vspec/config.json"; then
+      B4_FORCE_OK=true
+    fi
+    if [ "$B4_NOFORCE_OK" = true ] && [ "$B4_FORCE_OK" = true ]; then
+      echo "    ✓ pass"
+    else
+      if [ "$B4_NOFORCE_OK" = false ]; then
+        echo "    ✗ fail — init without --force did not refuse / preserve existing config"
+      fi
+      if [ "$B4_FORCE_OK" = false ]; then
+        echo "    ✗ fail — init --force did not overwrite to resolved project context"
+      fi
+      PASS=false
+    fi
+    stop_init_fixture
   else
-    if [ "$B4_NOFORCE_OK" = false ]; then
-      echo "    ✗ fail — init without --force did not refuse / preserve existing config"
-    fi
-    if [ "$B4_FORCE_OK" = false ]; then
-      echo "    ✗ fail — init --force did not overwrite to current_project_key=NEW"
-    fi
     PASS=false
   fi
   rm -rf "$B4_TMP"
@@ -312,30 +404,37 @@ if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
   B6_STDOUT="$(mktemp)"
   B6_STATUS_OK=false
   B6_KEY_OK=false
-  (
-    cd "$B6_TMP"
-    node "$ROOT/$CLI_BIN" init --project BOUND >/dev/null 2>&1 \
-      && node "$ROOT/$CLI_BIN" status >"$B6_STDOUT" 2>&1
-  )
-  if [ -f "$B6_TMP/.vspec/config.json" ]; then
-    B6_STATUS_OK=true
-  fi
-  if grep -qE 'current_project_key[[:space:]]+BOUND' "$B6_STDOUT"; then
-    B6_KEY_OK=true
-  fi
-  if [ "$B6_STATUS_OK" = true ] && [ "$B6_KEY_OK" = true ]; then
-    echo "    ✓ pass"
+  if start_init_fixture; then
+    (
+      cd "$B6_TMP"
+      VSPEC_GLOBAL_CONFIG_PATH="$INIT_FIXTURE_CONFIG" \
+        node "$ROOT/$CLI_BIN" init --project BOUND >/dev/null 2>&1 \
+        && VSPEC_GLOBAL_CONFIG_PATH="$INIT_FIXTURE_CONFIG" \
+          node "$ROOT/$CLI_BIN" status >"$B6_STDOUT" 2>&1
+    )
+    if [ -f "$B6_TMP/.vspec/config.json" ]; then
+      B6_STATUS_OK=true
+    fi
+    if grep -qE 'current_project_key[[:space:]]+BOUND' "$B6_STDOUT"; then
+      B6_KEY_OK=true
+    fi
+    if [ "$B6_STATUS_OK" = true ] && [ "$B6_KEY_OK" = true ]; then
+      echo "    ✓ pass"
+    else
+      if [ "$B6_STATUS_OK" = false ]; then
+        echo "    ✗ fail — init did not create $B6_TMP/.vspec/config.json"
+      fi
+      if [ "$B6_KEY_OK" = false ]; then
+        echo "    ✗ fail — vspec status from same cwd did not surface current_project_key BOUND"
+        echo "       stdout was:"
+        while IFS= read -r line; do
+          echo "         $line"
+        done <"$B6_STDOUT"
+      fi
+      PASS=false
+    fi
+    stop_init_fixture
   else
-    if [ "$B6_STATUS_OK" = false ]; then
-      echo "    ✗ fail — init did not create $B6_TMP/.vspec/config.json"
-    fi
-    if [ "$B6_KEY_OK" = false ]; then
-      echo "    ✗ fail — vspec status from same cwd did not surface current_project_key BOUND"
-      echo "       stdout was:"
-      while IFS= read -r line; do
-        echo "         $line"
-      done <"$B6_STDOUT"
-    fi
     PASS=false
   fi
   rm -rf "$B6_TMP" "$B6_STDOUT"
@@ -457,8 +556,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "$GOAL_NAME" = "$BASE_GOAL_NAME" ]; then
+    gate_cache_save "${BASE_GOAL_NAME}-shallow" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

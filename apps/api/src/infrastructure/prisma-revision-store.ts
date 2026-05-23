@@ -79,10 +79,10 @@ class PrismaRevisionStore implements RevisionStore {
       return null;
     }
 
-    return await this.prisma.revision.findUnique({
+    return (await this.prisma.revision.findUnique({
       select: { id: true },
       where: { id: revision.parent_revision_id }
-    }) === null
+    })) === null
       ? null
       : revision.parent_revision_id;
   }
@@ -98,7 +98,10 @@ class PrismaRevisionStore implements RevisionStore {
       },
       where: { id: projectId }
     });
-    if (project?.default_branch_id === null || project?.default_branch_id === undefined) {
+    if (
+      project?.default_branch_id === null ||
+      project?.default_branch_id === undefined
+    ) {
       throw new Error(`Missing default branch for revision ${revision.id}`);
     }
     const branchId = revision.branch_id ?? project.default_branch_id;

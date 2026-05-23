@@ -3,10 +3,16 @@ import type {
   AddScenarioStepResult,
   CreateScenarioResult
 } from "../application/scenario-authoring.js";
-import { duplicateMainSuccessProblem, unknownStepActorProblem } from "./scenario-support.js";
+import {
+  duplicateMainSuccessProblem,
+  unknownStepActorProblem
+} from "./scenario-support.js";
 import { problem } from "./signup-support.js";
 
-export function sendCreateScenarioResult(reply: FastifyReply, result: CreateScenarioResult) {
+export function sendCreateScenarioResult(
+  reply: FastifyReply,
+  result: CreateScenarioResult
+) {
   switch (result.status) {
     case "CREATED":
       return reply.code(201).send({
@@ -25,7 +31,9 @@ export function sendCreateScenarioResult(reply: FastifyReply, result: CreateScen
     case "DUPLICATE_MAIN_SUCCESS":
       return reply.code(409).send(duplicateMainSuccessProblem(result.existingScenario));
     case "EXTENSION_PARENT_OUT_OF_RANGE":
-      return reply.code(422).send(parentStepOutOfRangeProblem(result.usecaseKey, result.parentStepNumber));
+      return reply
+        .code(422)
+        .send(parentStepOutOfRangeProblem(result.usecaseKey, result.parentStepNumber));
     case "FORBIDDEN":
       return reply.code(403).send(accessProblem());
     case "INVALID_EXTENSION_POINT":
@@ -33,13 +41,18 @@ export function sendCreateScenarioResult(reply: FastifyReply, result: CreateScen
     case "INVALID_EXTENSION_REQUEST":
       return reply.code(400).send(problem(400, "Invalid extension scenario request"));
     case "MISSING_STAKEHOLDER_INTEREST":
-      return reply.code(422).send(problem(422, "Use case needs at least one stakeholder interest"));
+      return reply
+        .code(422)
+        .send(problem(422, "Use case needs at least one stakeholder interest"));
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(problem(404, "Use case not found"));
   }
 }
 
-export function sendAddScenarioStepResult(reply: FastifyReply, result: AddScenarioStepResult) {
+export function sendAddScenarioStepResult(
+  reply: FastifyReply,
+  result: AddScenarioStepResult
+) {
   switch (result.status) {
     case "FORBIDDEN":
       return reply.code(403).send(accessProblem());
@@ -67,7 +80,8 @@ function defaultOutcomeWarning() {
   return {
     warnings: [
       {
-        message: "Outcome defaulted to FAILURE; confirm it or edit the scenario outcome.",
+        message:
+          "Outcome defaulted to FAILURE; confirm it or edit the scenario outcome.",
         type: "DEFAULT_EXTENSION_OUTCOME"
       }
     ]
@@ -85,14 +99,18 @@ function overNineStepsWarning() {
   return {
     warnings: [
       {
-        message: "Scenarios over nine steps usually indicate the use case should be split.",
+        message:
+          "Scenarios over nine steps usually indicate the use case should be split.",
         type: "SCENARIO_OVER_NINE_STEPS"
       }
     ]
   };
 }
 
-function parentStepOutOfRangeProblem(usecaseKey: string, parentStepNumber: number | null) {
+function parentStepOutOfRangeProblem(
+  usecaseKey: string,
+  parentStepNumber: number | null
+) {
   return problem(
     422,
     "Extension parent step is out of range",

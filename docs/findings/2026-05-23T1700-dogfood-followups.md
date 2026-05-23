@@ -2,11 +2,13 @@
 title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
-resolved: false
+resolved: partial
+status_notes: "A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
   - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
+  - docs/findings/2026-05-23T1825-doctor-route.md
 ---
 
 # Dogfood Follow-Ups — queued from 2026-05-23
@@ -19,13 +21,10 @@ Each section heading below uses the original finding ID so a future
 goal can pick up an item by name and read the matching section in the
 snapshot.
 
-A1 / A3 / A10 / A11 are the round-trip-closure cluster originally
-scoped as goal-30. That goal was converted to a P0 findings doc at
-[`2026-05-23T1750-dogfood-roundtrip.md`](./2026-05-23T1750-dogfood-roundtrip.md)
-once the session realized the goal was design-only (gate teeth
-minimal, behavior enforcement living in tests yet to be written).
-Those four IDs remain listed under "Open findings" below until the
-underlying behavior is implemented and tested.
+A1 / A3 / A10 / A11 were the round-trip-closure cluster originally
+scoped by
+[`2026-05-23T1750-dogfood-roundtrip.md`](./2026-05-23T1750-dogfood-roundtrip.md).
+They are now listed under "Already closed" below.
 
 ## How to use this file
 
@@ -43,10 +42,9 @@ underlying behavior is implemented and tested.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **Round-trip closure (P0, scoped by [2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md))**: A1, A3, A10, A11.
 - **Self-teaching CLI** (`core differentiator #3` in
   `docs/00-overview.md`): A5, A6, B2, B3.
-- **Doctor & status surface**: A2, A4, B5.
+- **Doctor & status surface**: A4.
 - **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: A12, B1, B4.
@@ -54,31 +52,6 @@ as long as it closes each declared item with an enumerated gate.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A1 — `vspec pull` strips the body off every use case _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
-
-`apps/api/src/application/sync-files.ts` ships a second `usecaseMarkdown`
-function that emits only `---<frontmatter>---\n\n# <title>\n` — no
-stakeholders, no scenarios, no steps, no extensions. The proper
-renderer in `markdown-renderer.ts` (which `vspec export markdown`
-uses) is bypassed. Round-trip is lost; `vspec push` after `pull`
-would erase scenarios server-side.
-
-### A2 — `vspec doctor` returns 404
-
-No `/v1/doctor` route is registered. The CLI calls it, hits 404, and
-surfaces a bare `ApiError`. Multiple endpoints already suggest
-`vspec doctor` as a next action, so this also misleads agents who follow
-`suggested_next_actions`.
-
-### A3 — `vspec usecase show` discards almost everything the API returns _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
-
-`--format=agent` for the same use case returns a full payload with
-`primary_actor`, `stakeholder_interests[]`, `scenarios[].steps[]`,
-etc. The human renderer (`apps/cli/src/commands/usecase-output.ts`
-`printUsecaseShow`) prints only **4 lines** (`UseCase`, `Title`,
-`Status`, `Revision`). Stakeholders, scenarios, and steps are all
-dropped even when present.
 
 ### A4 — `vspec status` is a 4-line key/value dump
 
@@ -91,8 +64,7 @@ has no visible surface.
 
 API responses carry `suggested_next_actions` and (for
 `usecase create`) `suggested_titles[]`; the CLI drops both. `actor
-create --human` emits a raw oclif stack trace; `doctor PAY-001` emits
-`ApiError: API request failed with 404.`
+create --human` emits a raw oclif stack trace.
 
 ### A6 — `vspec --help` and `vspec help <command>` are broken
 
@@ -120,26 +92,6 @@ and key — or fail loudly when the key is unknown.
 Returning-user login writes `api_url`, `current_workspace_*`, and
 `session_token` but leaves any stale `current_project_*` fields in
 place. Compounds A8.
-
-### A10 — `current_project_id` is required everywhere; config fall-through is missing _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
-
-`apps/cli/src/flag-values.ts` `resolveContextFlag` reads `api-url`,
-`session-cookie`, and `workspace-id` from config, but **not**
-`project-id`. Every project-scoped command (actor, stakeholder,
-goal, usecase, scenario, step, pull, push, history, impact, who,
-comment, …) therefore requires the user to pass `--project-id <UUID>`
-explicitly even after `init`/`switch`. The UUID isn't visible in
-normal status output, so the user has to `cat ~/.vspec/config.json`
-to discover it.
-
-### A11 — `vspec init` writes only `current_project_key` _(scoped by P0 findings 2026-05-23T1750-dogfood-roundtrip)_
-
-After `vspec init --project VSPEC`, the new `.vspec/config.json`
-contains only `{ "current_project_key": "VSPEC" }`. No
-`current_project_id`, no `api_url`, no `current_workspace_id`, no
-usable handle for any subsequent command. `runInit` should resolve
-the project key against `/v1/projects/<key>` and persist all four
-fields so the next command is runnable.
 
 ### A12 — Signup re-collision exposed as Prisma 500
 
@@ -220,11 +172,6 @@ a representative task) is not met.
 the dogfood that read verbs have the envelope but several write verbs
 (notably `lock release` and the missing verbs from A14) do not.
 
-### B5 — `vspec doctor` is recommended by multiple endpoints but is itself broken
-
-Four endpoints suggest `vspec doctor` as a next action. All four
-mislead until A2 lands.
-
 ### B6 — `session_file` API contract is not honored by the CLI
 
 Direct consequence of A7. Either the API drops the field or the CLI
@@ -254,24 +201,14 @@ Two near-identical regexes:
 limitation. Centralize, or move the check out of the API into a
 CLI-side warning per the soft-warning spec.
 
-## Round-trip cluster — code pending (P0)
+## Already closed
 
-These four IDs are scoped by [P0 findings
-2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md).
-Verified against the codebase on 2026-05-23: the original failure
-modes are still present.
-
-- **A1** — `apps/api/src/application/sync-files.ts` still ships the
-  stub `usecaseMarkdown` (frontmatter + title only).
-- **A3** — `apps/cli/src/commands/usecase-output.ts`
-  `printUsecaseShow` still prints only 4 lines.
-- **A10** — `apps/cli/src/flag-values.ts` `resolveContextFlag` key
-  union is still `"api-url" | "session-cookie" | "workspace-id"` —
-  `"project-id"` arm is missing.
-- **A11** — `apps/cli/src/commands/init.ts` `runInit` still writes
-  only `current_project_key`.
-
-When the round-trip work merges, remove the four `### A1`/`A3`/`A10`/`A11`
-headings from "Open findings" above and update this section with the
-closing commit SHA. If a behavior regresses afterwards, re-open the
-corresponding heading and queue a recovery item.
+- **A2 / B5** — Closed by
+  [2026-05-23T1825-doctor-route.md](./2026-05-23T1825-doctor-route.md):
+  `GET /v1/doctor` now returns structured diagnostics, and the honest CLI
+  doctor command exits cleanly instead of surfacing a 404.
+- **A1 / A3 / A10 / A11** — Closed by
+  [2026-05-23T1750-dogfood-roundtrip.md](./2026-05-23T1750-dogfood-roundtrip.md):
+  pull now uses canonical markdown, human `usecase show` renders the body
+  sections, project id falls through from config, and `init` persists usable
+  project context.

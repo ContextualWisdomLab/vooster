@@ -11,18 +11,23 @@ describe("UC-006 honest CLI - Define a stakeholder", () => {
         projectKey: "STK",
         runCli
       });
-      const stakeholder = await expectOk(runCli([
-        "stakeholder",
-        "create",
-        "--project-id",
-        seed.projectId,
-        "--name",
-        "Product Manager",
-        "--type",
-        "INTERNAL",
-        "--description",
-        "Owns checkout revenue."
-      ], seed.env));
+      const stakeholder = await expectOk(
+        runCli(
+          [
+            "stakeholder",
+            "create",
+            "--project-id",
+            seed.projectId,
+            "--name",
+            "Product Manager",
+            "--type",
+            "INTERNAL",
+            "--description",
+            "Owns checkout revenue."
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(stakeholder.stdout).toContain("Product Manager");

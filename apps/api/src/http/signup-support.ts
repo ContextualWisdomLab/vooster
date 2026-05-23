@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
 import type {
-  GithubProfile, PendingOAuth, PendingSignup, ServerOptions } from "./signup-types.js";
-import type { StoredMembership, StoredUser, StoredWorkspace } from "../domain/entities/index.js";
+  GithubProfile,
+  PendingOAuth,
+  PendingSignup,
+  ServerOptions
+} from "./signup-types.js";
+import type {
+  StoredMembership,
+  StoredUser,
+  StoredWorkspace
+} from "../domain/entities/index.js";
 
 export class GithubNetworkError extends Error {}
 
@@ -178,7 +186,7 @@ async function exchangeGithubCode(
     throw new GithubNetworkError("GitHub token request failed.");
   }
 
-  const parsed = await response.json() as { access_token?: unknown };
+  const parsed = (await response.json()) as { access_token?: unknown };
   if (typeof parsed.access_token !== "string" || parsed.access_token === "") {
     throw new GithubNetworkError("GitHub token response was invalid.");
   }
@@ -223,14 +231,19 @@ export function githubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"
       ? "Retry login after GitHub is reachable."
       : "Retry signup after GitHub is reachable.";
 
-  return reply.code(502).send(
-    problem(502, "GitHub is unavailable", {}, [
-      { command: "vspec login", reason: action }
-    ])
-  );
+  return reply
+    .code(502)
+    .send(
+      problem(502, "GitHub is unavailable", {}, [
+        { command: "vspec login", reason: action }
+      ])
+    );
 }
 
-export function readCookie(header: string | undefined, name: string): string | undefined {
+export function readCookie(
+  header: string | undefined,
+  name: string
+): string | undefined {
   return header
     ?.split(/[;,]/)
     .map((part) => part.trim().split("="))

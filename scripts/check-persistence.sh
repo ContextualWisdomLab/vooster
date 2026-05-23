@@ -21,6 +21,12 @@ if [ ! -f package.json ] || ! grep -qE '"start"\s*:' package.json; then
   exit 1
 fi
 
+if [ ! -f dist/apps/api/src/index.js ]; then
+  echo "✗ check-persistence: built API entrypoint missing."
+  echo "  Run a build first; goal _meta M.4 owns shared dist/ output."
+  exit 1
+fi
+
 mkdir -p .state
 DB_DIR=$(mktemp -d)
 BASE_DATABASE_URL="${TEST_DATABASE_URL:-postgresql://vspec:vspec@127.0.0.1:5433/vspec_test}"
@@ -47,7 +53,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-pnpm run --silent build >/dev/null 2>&1 || true
 pnpm exec prisma db push --schema apps/api/prisma/schema.prisma --skip-generate >/dev/null 2>&1 || {
   echo "✗ check-persistence: schema setup failed."
   exit 1

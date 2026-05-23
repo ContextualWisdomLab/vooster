@@ -195,7 +195,7 @@ else
   fi
   for token in \
     "agent impact" \
-    "runCli([" \
+    "runCli(" \
     '"impact"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

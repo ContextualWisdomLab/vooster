@@ -224,8 +224,8 @@ else
 fi
 
 echo "[2.C4] Boundary rules reject direct adapter→infrastructure imports"
-if node --input-type=module <<'NODE' >/tmp/2-c4-boundaries.log 2>&1
-import { unlink, writeFile } from "node:fs/promises";
+C4_LOG=$(mktemp)
+if node --input-type=module <<'NODE' >"$C4_LOG" 2>&1
 import { ESLint } from "eslint";
 
 const cases = [
@@ -234,42 +234,39 @@ const cases = [
       'import { createMemoryUserStore } from "../infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
-    filePath: "apps/api/src/http/__goal2_rejects_infrastructure.test-fixture.ts"
+    filePath: "apps/api/src/http/server.ts"
   },
   {
     code: [
-      'import { createMemoryUserStore } from "../../api/src/infrastructure/memory-user-store.ts";',
+      'import { createMemoryUserStore } from "../../../api/src/infrastructure/memory-user-store.ts";',
       "export const boundaryFixture = createMemoryUserStore;"
     ].join("\n"),
-    filePath: "apps/cli/src/__goal2_rejects_infrastructure.test-fixture.ts"
+    filePath: "apps/cli/src/commands/login.ts"
   }
 ];
 
-try {
-  await Promise.all(cases.map((lintCase) => writeFile(lintCase.filePath, lintCase.code)));
-  const eslint = new ESLint({ cwd: process.cwd() });
-  const results = await Promise.all(cases.map((lintCase) => eslint.lintFiles([lintCase.filePath])));
+const eslint = new ESLint({ cwd: process.cwd() });
+const results = await Promise.all(
+  cases.map((lintCase) => eslint.lintText(lintCase.code, { filePath: lintCase.filePath }))
+);
 
-  for (const [index, result] of results.entries()) {
-    const lintCase = cases[index];
-    if (lintCase === undefined) {
-      throw new Error(`Missing lint case for result ${String(index)}`);
-    }
-    const boundaryErrors = result[0]?.messages.filter(
-      (message) => message.ruleId === "boundaries/element-types"
-    );
-    if (boundaryErrors?.length !== 1) {
-      throw new Error(`${lintCase.filePath} was not rejected by boundaries/element-types`);
-    }
+for (const [index, result] of results.entries()) {
+  const lintCase = cases[index];
+  if (lintCase === undefined) {
+    throw new Error(`Missing lint case for result ${String(index)}`);
   }
-} finally {
-  await Promise.all(cases.map((lintCase) => unlink(lintCase.filePath).catch(() => undefined)));
+  const boundaryErrors = (result[0]?.messages ?? []).filter(
+    (message) => message.ruleId === "boundaries/dependencies"
+  );
+  if (boundaryErrors.length !== 1) {
+    throw new Error(`${lintCase.filePath} was not rejected by boundaries/dependencies`);
+  }
 }
 NODE
 then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — ESLint did not reject both adapter→infrastructure fixtures"
+  echo "    ✗ fail — ESLint did not reject both adapter→infrastructure fixtures; see $C4_LOG"
   PASS=false
 fi
 

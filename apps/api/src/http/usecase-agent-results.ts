@@ -29,7 +29,12 @@ export function sendUseCaseAgentResult(reply: FastifyReply, result: ShowUseCaseR
         ])
       );
     case "SIMPLE":
-      return reply.send({ usecase: result.usecase });
+      return reply.send({
+        primary_actor: result.data.primary_actor,
+        scenarios: result.data.scenarios,
+        stakeholder_interests: result.data.stakeholder_interests,
+        usecase: result.usecase
+      });
     case "REVISION_NOT_FOUND":
       return reply.code(404).send(
         problem(404, "Revision not found", { revision: result.revision }, [

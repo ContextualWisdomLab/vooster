@@ -5,7 +5,12 @@ import {
   commonMutationContextFrom,
   runMutationCommand
 } from "../application/mutation-command.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 import { patchJson } from "../http-client.js";
 
 type StepCliFlags = {
@@ -94,7 +99,12 @@ export class StepCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(StepCommand);
 
-    await runStep(parsed.flags, parsed.args.actionName, parsed.args.targetId, this.log.bind(this));
+    await runStep(
+      parsed.flags,
+      parsed.args.actionName,
+      parsed.args.targetId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -151,7 +161,9 @@ function printStepAdd(
   writeLine(`Step ${body.step.id}`);
   writeLine(`${String(body.step.step_number)}. ${actor} ${body.step.action}`);
   writeLine(`Revision id ${body.revision.id}`);
-  writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  writeLine(
+    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+  );
   for (const step of body.scenario_steps) {
     writeLine(`${String(step.step_number)}. ${step.action}`);
   }
@@ -182,11 +194,16 @@ async function editStep(
 
   writeLine(`Step ${body.step.id}`);
   writeLine(`Action ${body.step.action}`);
-  writeLine(`Revision ${body.revision.severity} version ${String(body.revision.version_number)}`);
+  writeLine(
+    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+  );
   writeLine(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
 }
 
-function stepCreateFlagsFrom(flags: StepCliFlags, scenarioId: string | undefined): StepCreateFlags {
+function stepCreateFlagsFrom(
+  flags: StepCliFlags,
+  scenarioId: string | undefined
+): StepCreateFlags {
   return {
     action: requiredFlag(flags, "action"),
     actor: requiredFlag(flags, "actor"),
@@ -200,7 +217,10 @@ function stepCreateFlagsFrom(flags: StepCliFlags, scenarioId: string | undefined
   };
 }
 
-function stepEditFlagsFrom(flags: StepCliFlags, stepId: string | undefined): StepEditFlags {
+function stepEditFlagsFrom(
+  flags: StepCliFlags,
+  stepId: string | undefined
+): StepEditFlags {
   return {
     action: requiredFlag(flags, "action"),
     apiUrl: resolveContextFlag(flags, "api-url"),

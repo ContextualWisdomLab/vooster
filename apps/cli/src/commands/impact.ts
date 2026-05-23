@@ -90,13 +90,19 @@ export async function runImpact(
   const body = response.body as ImpactResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: history.revision
-      },
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            revision: history.revision
+          },
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -104,7 +110,9 @@ export async function runImpact(
   writeLine(`Cached ${String(body.cached)}`);
   writeLine(`Severity ${body.impact.severity}`);
   writeLine(`Confidence ${String(body.impact.confidence)}`);
-  writeLine(`Affected sessions ${formatAffectedSessions(body.impact.affected_sessions)}`);
+  writeLine(
+    `Affected sessions ${formatAffectedSessions(body.impact.affected_sessions)}`
+  );
   writeLine(`Affected branches ${body.impact.affected_branches.join(", ") || "none"}`);
   writeLine(`Affected tests ${body.impact.affected_tests.join(", ") || "none"}`);
   writeLine(`Input hash ${body.impact.input_hash}`);
@@ -113,7 +121,10 @@ export async function runImpact(
   }
 }
 
-function impactFlagsFrom(flags: ImpactCliFlags, usecaseId: string | undefined): ImpactFlags {
+function impactFlagsFrom(
+  flags: ImpactCliFlags,
+  usecaseId: string | undefined
+): ImpactFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
     proposedChangePath: optionalFlag(flags, "proposed-change"),
@@ -141,7 +152,9 @@ async function latestUseCaseRevision(
   return { revision: latest.revision };
 }
 
-async function proposedChangePayload(path: string | undefined): Promise<Record<string, string>> {
+async function proposedChangePayload(
+  path: string | undefined
+): Promise<Record<string, string>> {
   if (path === undefined) {
     return {};
   }
@@ -152,14 +165,17 @@ async function proposedChangePayload(path: string | undefined): Promise<Record<s
   };
 }
 
-function formatAffectedSessions(sessions: ImpactResponse["impact"]["affected_sessions"]): string {
+function formatAffectedSessions(
+  sessions: ImpactResponse["impact"]["affected_sessions"]
+): string {
   if (sessions.length === 0) {
     return "none";
   }
 
   return sessions
-    .map((session) =>
-      `${session.id} ${session.agent_type} ${session.owner} ${session.pinned_revision}`
+    .map(
+      (session) =>
+        `${session.id} ${session.agent_type} ${session.owner} ${session.pinned_revision}`
     )
     .join(", ");
 }

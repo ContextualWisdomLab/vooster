@@ -48,7 +48,9 @@ describe("project create --format=agent", () => {
     stubFetch(projectCreateResponse());
     const lines: string[] = [];
 
-    await runProject(projectCreateFlags({ format: "agent" }), "create", (line) => lines.push(line));
+    await runProject(projectCreateFlags({ format: "agent" }), "create", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<ProjectCreateData>(stdout);
@@ -81,20 +83,30 @@ describe("project create --format=agent", () => {
 });
 
 function useIsolatedConfig(): string {
-  const configPath = join(mkdtempSync(join(tmpdir(), "vspec-project-create-")), "config.json");
+  const configPath = join(
+    mkdtempSync(join(tmpdir(), "vspec-project-create-")),
+    "config.json"
+  );
   process.env.VSPEC_CONFIG_PATH = configPath;
   return configPath;
 }
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
-function projectCreateFlags(overrides: Record<string, string> = {}): Record<string, string> {
+function projectCreateFlags(
+  overrides: Record<string, string> = {}
+): Record<string, string> {
   return {
     "api-url": "https://api.example.test",
     key: "PAY",

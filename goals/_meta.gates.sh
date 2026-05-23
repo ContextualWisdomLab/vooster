@@ -25,7 +25,13 @@ cd "$ROOT"
 # shellcheck source=../scripts/_gate-cache.sh
 source "$ROOT/scripts/_gate-cache.sh"
 
-GOAL_NAME="_meta"
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  GOAL_NAME="_meta-shallow"
+  CACHE_LABEL="meta shallow"
+else
+  GOAL_NAME="_meta"
+  CACHE_LABEL="meta"
+fi
 
 # Inputs that determine this meta gate's result. Broad by design — these
 # checks are cross-cutting. Cache invalidates whenever any code, config,
@@ -56,27 +62,31 @@ GATE_INPUTS=(
 )
 
 if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
-  echo "[cache hit] meta inputs unchanged"
+  echo "[cache hit] $CACHE_LABEL inputs unchanged"
   exit 0
 fi
 
 PASS=true
+LOG_DIR=$(mktemp -d)
+TSC_LOG="$LOG_DIR/tsc.log"
+ESLINT_LOG="$LOG_DIR/eslint.log"
+VITEST_LOG="$LOG_DIR/vitest.log"
 
 # ─── M.1 TypeScript clean ───────────────────────────────────────────────
 echo "[M.1] tsc --noEmit (every TypeScript file compiles)"
-if pnpm exec tsc --noEmit >/tmp/_meta-tsc.log 2>&1; then
+if pnpm exec tsc --noEmit >"$TSC_LOG" 2>&1; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — see /tmp/_meta-tsc.log"
+  echo "    ✗ fail — see $TSC_LOG"
   PASS=false
 fi
 
 # ─── M.2 ESLint clean ───────────────────────────────────────────────────
 echo "[M.2] eslint . --max-warnings 0 (every TS/TSX file lint-clean)"
-if pnpm exec eslint . --max-warnings 0 >/tmp/_meta-eslint.log 2>&1; then
+if pnpm exec eslint . --max-warnings 0 >"$ESLINT_LOG" 2>&1; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — see /tmp/_meta-eslint.log"
+  echo "    ✗ fail — see $ESLINT_LOG"
   PASS=false
 fi
 
@@ -86,11 +96,11 @@ if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
   echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
 else
   COVERAGE_DIR=$(mktemp -d)
-  if VSPEC_COVERAGE_DIR="$COVERAGE_DIR" pnpm exec vitest run --coverage >/tmp/_meta-vitest.log 2>&1; then
+  if VSPEC_COVERAGE_DIR="$COVERAGE_DIR" pnpm exec vitest run --coverage >"$VITEST_LOG" 2>&1; then
     echo "    ✓ pass"
     rm -rf "$COVERAGE_DIR"
   else
-    echo "    ✗ fail — see /tmp/_meta-vitest.log"
+    echo "    ✗ fail — see $VITEST_LOG"
     rm -rf "$COVERAGE_DIR"
     PASS=false
   fi
@@ -112,8 +122,9 @@ else
     " 2>/dev/null || echo n)
     [ "$has_build" = "y" ] || continue
     BUILD_COUNT=$((BUILD_COUNT + 1))
-    if ! pnpm --filter "@vooster/${app_name}" build >"/tmp/_meta-build-${app_name}.log" 2>&1; then
-      BUILD_FAIL+=("${app_name} (see /tmp/_meta-build-${app_name}.log)")
+    build_log="$LOG_DIR/build-${app_name}.log"
+    if ! pnpm --filter "@vooster/${app_name}" build >"$build_log" 2>&1; then
+      BUILD_FAIL+=("${app_name} (see $build_log)")
     fi
   done < <(find apps -maxdepth 2 -name package.json -type f | sort)
   if [ "${#BUILD_FAIL[@]}" -eq 0 ]; then
@@ -126,8 +137,9 @@ else
 fi
 
 if [ "$PASS" = true ]; then
-  if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
-    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  if [ "$GOAL_NAME" = "_meta" ]; then
+    gate_cache_save "_meta-shallow" "${GATE_INPUTS[@]}"
   fi
   exit 0
 else

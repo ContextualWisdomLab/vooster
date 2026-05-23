@@ -5,10 +5,15 @@ import {
   advanceMainExtensionRevision,
   advanceMainUseCaseRevision
 } from "../../../src/application/branch-test-helpers.js";
-import type { StoredRevision, StoredSpecBranch, StoredUseCase } from "../../../src/domain/entities/index.js";
+import type {
+  StoredRevision,
+  StoredSpecBranch,
+  StoredUseCase
+} from "../../../src/domain/entities/index.js";
 describe("branch test helper application", () => {
   test("creates a branch use case revision and advances the branch head", async () => {
-    const savedRevisions: StoredRevision[] = [], updatedBranches: StoredSpecBranch[] = [];
+    const savedRevisions: StoredRevision[] = [],
+      updatedBranches: StoredSpecBranch[] = [];
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await advanceBranchUseCaseRevision(
@@ -43,7 +48,8 @@ describe("branch test helper application", () => {
   });
 
   test("creates a main use case revision and advances canonical state", async () => {
-    const savedRevisions: StoredRevision[] = [], updatedBranches: StoredSpecBranch[] = [];
+    const savedRevisions: StoredRevision[] = [],
+      updatedBranches: StoredSpecBranch[] = [];
     const updatedUseCases: StoredUseCase[] = [];
 
     const result = await advanceMainUseCaseRevision(
@@ -77,7 +83,8 @@ describe("branch test helper application", () => {
       }
     );
 
-    const mainRevisions: StoredRevision[] = [], mainUseCases: StoredUseCase[] = [];
+    const mainRevisions: StoredRevision[] = [],
+      mainUseCases: StoredUseCase[] = [];
     const mainResult = await advanceMainExtensionRevision(
       depsFor({ savedRevisions: mainRevisions, updatedUseCases: mainUseCases }),
       { condition: "Main alternate", extensionPoint: "2", usecaseId: "usecase-1" }
@@ -99,25 +106,31 @@ describe("branch test helper application", () => {
   });
 });
 
-function depsFor(overrides: {
-  branch?: StoredSpecBranch | undefined;
-  savedRevisions?: StoredRevision[];
-  updatedBranches?: StoredSpecBranch[];
-  updatedUseCases?: StoredUseCase[];
-  usecase?: StoredUseCase | undefined;
-} = {}) {
+function depsFor(
+  overrides: {
+    branch?: StoredSpecBranch | undefined;
+    savedRevisions?: StoredRevision[];
+    updatedBranches?: StoredSpecBranch[];
+    updatedUseCases?: StoredUseCase[];
+    usecase?: StoredUseCase | undefined;
+  } = {}
+) {
   const savedRevisions = overrides.savedRevisions ?? [];
   const updatedBranches = overrides.updatedBranches ?? [];
   const updatedUseCases = overrides.updatedUseCases ?? [];
   const currentUsecase = "usecase" in overrides ? overrides.usecase : usecase();
-  const featureBranch = "branch" in overrides
-    ? overrides.branch
-    : branch("branch-feature", { base_revision_ids: { "usecase-1": "revision-current" } });
+  const featureBranch =
+    "branch" in overrides
+      ? overrides.branch
+      : branch("branch-feature", {
+          base_revision_ids: { "usecase-1": "revision-current" }
+        });
   const mainBranch = branch("branch-main");
 
   return {
     branchStore: {
-      findBranchById: (id: string) => Promise.resolve(id === "branch-main" ? mainBranch : featureBranch),
+      findBranchById: (id: string) =>
+        Promise.resolve(id === "branch-main" ? mainBranch : featureBranch),
       findBranchByProjectAndName: () => Promise.resolve(undefined),
       listBranches: () => Promise.resolve([]),
       saveBranch: () => Promise.resolve(),
@@ -128,14 +141,15 @@ function depsFor(overrides: {
     },
     idFactory: () => "id-1",
     projectStore: {
-      findProjectById: () => Promise.resolve({
-        default_branch_id: "branch-main",
-        id: "project-1",
-        key: "PRJ",
-        name: "Project",
-        visibility: "INTERNAL" as const,
-        workspace_id: "workspace-1"
-      }),
+      findProjectById: () =>
+        Promise.resolve({
+          default_branch_id: "branch-main",
+          id: "project-1",
+          key: "PRJ",
+          name: "Project",
+          visibility: "INTERNAL" as const,
+          workspace_id: "workspace-1"
+        }),
       findProjectByWorkspaceAndKey: () => Promise.resolve(undefined),
       listProjectsForWorkspace: () => Promise.resolve([]),
       deleteProject: () => Promise.resolve("NOT_FOUND" as const),
@@ -171,7 +185,10 @@ function depsFor(overrides: {
   };
 }
 
-function branch(id: string, overrides: Partial<StoredSpecBranch> = {}): StoredSpecBranch {
+function branch(
+  id: string,
+  overrides: Partial<StoredSpecBranch> = {}
+): StoredSpecBranch {
   return {
     base_branch_id: null,
     id,

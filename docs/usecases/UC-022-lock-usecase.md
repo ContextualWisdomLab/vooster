@@ -68,10 +68,10 @@ The agent runs `vspec lock <KEY-NNN> --type soft|semantic|hard [--reason "<text>
 - 5a2. **System** deletes them in the same transaction as the session status flip.
 - (Outcome: SUCCESS — the lock cleanly auto-releases without operator intervention.)
 
-### *a. Background TTL sweep finds an expired lock
+### \*a. Background TTL sweep finds an expired lock
 
-- *a1. **System** lazily marks the lock as expired on next access (no background job in MVP).
-- *a2. **System** treats expired locks as absent when evaluating step 3.
+- \*a1. **System** lazily marks the lock as expired on next access (no background job in MVP).
+- \*a2. **System** treats expired locks as absent when evaluating step 3.
 - (Outcome: SUCCESS — expired locks no longer block new acquisitions.)
 
 ## Success Guarantee

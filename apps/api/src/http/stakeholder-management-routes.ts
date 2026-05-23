@@ -122,7 +122,10 @@ function projectIdFrom(params: unknown): string {
   return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
 }
 
-function stakeholderParamsFrom(params: unknown): { projectId: string; stakeholderId: string } {
+function stakeholderParamsFrom(params: unknown): {
+  projectId: string;
+  stakeholderId: string;
+} {
   return z
     .object({ projectId: z.string().min(1), stakeholderId: z.string().min(1) })
     .parse(params);

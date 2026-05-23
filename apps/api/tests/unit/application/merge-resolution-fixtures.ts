@@ -23,20 +23,26 @@ import {
 export function depsFor(
   options: {
     hardLock?: StoredLock;
+    merge?: StoredMergeRequest;
     savedRevisions?: StoredRevision[];
+    sourceBranch?: StoredSpecBranch;
+    targetBranch?: StoredSpecBranch;
     updatedBranches?: StoredSpecBranch[];
     updatedMergeRequests?: StoredMergeRequest[];
     updatedUseCases?: StoredUseCase[];
   } = {}
 ) {
-  const source = featureBranch();
-  const target = mainBranch();
+  const source = options.sourceBranch ?? featureBranch();
+  const target = options.targetBranch ?? mainBranch();
   return {
     branchStore: branchStore(source, target, options.updatedBranches ?? []),
     idFactory: idFactory(),
     lockStore: lockStore(options.hardLock),
     membershipStore: membershipStore(),
-    mergeRequestStore: mergeRequestStore(options.updatedMergeRequests ?? []),
+    mergeRequestStore: mergeRequestStore(
+      options.updatedMergeRequests ?? [],
+      "merge" in options ? options.merge : mergeRequest()
+    ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     revisionStore: revisionStore(options.savedRevisions ?? []),
     useCaseStore: useCaseStore(options.updatedUseCases ?? [])
@@ -55,13 +61,13 @@ export function input(overrides: Partial<ResolveMergeInput> = {}): ResolveMergeI
 }
 
 function branchStore(
-  source: StoredSpecBranch,
-  target: StoredSpecBranch,
+  source: StoredSpecBranch | undefined,
+  target: StoredSpecBranch | undefined,
   updated: StoredSpecBranch[]
 ): BranchStore {
   return {
     findBranchById: (branchId) =>
-      Promise.resolve([source, target].find((branch) => branch.id === branchId)),
+      Promise.resolve([source, target].find((branch) => branch?.id === branchId)),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
     listBranches: () => Promise.resolve([]),
     saveBranch: () => Promise.resolve(),
@@ -95,10 +101,13 @@ function membershipStore(): MembershipStore {
   };
 }
 
-function mergeRequestStore(updated: StoredMergeRequest[]): MergeRequestStore {
+function mergeRequestStore(
+  updated: StoredMergeRequest[],
+  merge: StoredMergeRequest | undefined
+): MergeRequestStore {
   return {
     findMergeRequestById: (mergeId) =>
-      Promise.resolve(mergeId === "merge-1" ? mergeRequest() : undefined),
+      Promise.resolve(mergeId === "merge-1" ? merge : undefined),
     listOpenMergeRequests: () => Promise.resolve([]),
     listOpenMergeRequestsByTargetBranchId: () => Promise.resolve([]),
     saveMergeRequest: () => Promise.resolve(),

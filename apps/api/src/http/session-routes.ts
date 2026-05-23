@@ -1,15 +1,18 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  startWorkSession, type StartWorkSessionResult
+  startWorkSession,
+  type StartWorkSessionResult
 } from "../application/work-session-start.js";
 import {
-  archivedPinProblem, hardLockedPinProblem, semanticLockProblem
+  archivedPinProblem,
+  hardLockedPinProblem,
+  semanticLockProblem
 } from "./session-pin-support.js";
+import { sessionStartResponse, writeFailureProblem } from "./session-start-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-import type { StoredSpecBranch, StoredWorkSession } from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -40,15 +43,20 @@ export function registerSessionRoutes(
   useCaseStore: UseCaseStore
 ) {
   app.post("/v1/sessions", (request, reply) =>
-    startSession(request, reply, {
-      branchStore,
-      lockStore,
-      membershipStore,
-      projectStore,
-      revisionStore,
-      workSessionStore,
-      useCaseStore
-    }, state)
+    startSession(
+      request,
+      reply,
+      {
+        branchStore,
+        lockStore,
+        membershipStore,
+        projectStore,
+        revisionStore,
+        workSessionStore,
+        useCaseStore
+      },
+      state
+    )
   );
 }
 
@@ -85,7 +93,9 @@ function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) 
     case "AUTO_BRANCH_COLLISION":
       return reply.code(409).send(problem(409, "Auto branch name is already in use"));
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "HARD_LOCKED":
       return reply.code(409).send(hardLockedPinProblem(result.key, result.holder));
     case "MISSING_PIN":
@@ -97,52 +107,18 @@ function sendSessionResult(reply: FastifyReply, result: StartWorkSessionResult) 
     case "STARTED":
       return reply
         .code(201)
-        .send(sessionStartResponse(result.session, result.pinnedKeys, result.warning, result.branch));
+        .send(
+          sessionStartResponse(
+            result.session,
+            result.pinnedKeys,
+            result.warning,
+            result.branch
+          )
+        );
   }
-}
-
-function sessionStartResponse(
-  session: StoredWorkSession,
-  keys: string[],
-  warning?: { message: string; type: "UNKNOWN_AGENT_TYPE" },
-  branch?: StoredSpecBranch
-) {
-  return {
-    session,
-    ...(branch === undefined ? {} : { branch }),
-    ...(warning === undefined ? {} : { warnings: [warning] }),
-    session_file: {
-      path: ".vspec/session.json",
-      session_id: session.id
-    },
-    suggested_next_actions: [
-      ...keys.map((key) => ({
-        command: `vspec usecase show ${key} --session ${session.id}`,
-        reason: "Open the pinned use case revision."
-      })),
-      {
-        command: "vspec session complete",
-        reason: "Close the session when the work is done."
-      }
-    ]
-  };
-}
-
-function writeFailureProblem() {
-  return problem(
-    500,
-    "Session creation failed",
-    { created_branch: false, created_session: false },
-    [
-      {
-        command: "vspec session start --retry",
-        reason: "Retry after the failed transaction."
-      }
-    ]
-  );
 }
 
 function agentIdentifier(request: FastifyRequest, fallback: string): string {
   const header = request.headers["x-vspec-agent"];
-  return Array.isArray(header) ? header[0] ?? fallback : header ?? fallback;
+  return Array.isArray(header) ? (header[0] ?? fallback) : (header ?? fallback);
 }

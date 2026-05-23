@@ -26,7 +26,9 @@ export function configPath(options: ConfigStoreOptions = {}): string {
 }
 
 export function globalConfigPath(): string {
-  return process.env.VSPEC_GLOBAL_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json");
+  return (
+    process.env.VSPEC_GLOBAL_CONFIG_PATH ?? join(homedir(), ".vspec", "config.json")
+  );
 }
 
 export function localConfigPath(cwd = process.cwd()): string {
@@ -69,7 +71,9 @@ export function readConfig(options: ConfigStoreOptions = {}): VspecConfig {
 
 function stripUndefined(config: VspecConfig): Partial<VspecConfig> {
   const result: Partial<VspecConfig> = {};
-  for (const [key, value] of Object.entries(config) as Array<[keyof VspecConfig, string | undefined]>) {
+  for (const [key, value] of Object.entries(config) as Array<
+    [keyof VspecConfig, string | undefined]
+  >) {
     if (value !== undefined) {
       result[key] = value;
     }

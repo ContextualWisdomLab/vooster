@@ -1,6 +1,6 @@
 # 03 — Cockburn Use Case Method (Operational Summary)
 
-Source: Alistair Cockburn, *Writing Effective Use Cases* (2000).
+Source: Alistair Cockburn, _Writing Effective Use Cases_ (2000).
 
 This document is the **authoritative interpretation** for vspec. Where Cockburn
 allows multiple styles, we pick one and stick to it.
@@ -21,22 +21,22 @@ Three operative words:
 
 vspec stores all of these as first-class fields on `UseCase`:
 
-| Field                  | Required | Notes                                       |
-| ---------------------- | -------- | ------------------------------------------- |
-| `id`                   | Yes      | e.g. `UC-009`.                              |
-| `title`                | Yes      | **Verb phrase** in active voice.            |
-| `level`                | Yes      | `SUMMARY` / `USER_GOAL` / `SUBFUNCTION`.    |
-| `scope`                | Yes      | Reference to a `SystemBoundary` name.       |
-| `primary_actor`        | Yes      | One `Actor`.                                |
-| `stakeholders_and_interests` | Yes | List of `StakeholderInterest` (≥1).         |
-| `preconditions`        | Yes      | Text list (may be empty list, not null).    |
-| `trigger`              | Yes      | Single sentence.                            |
-| `main_success_scenario` | Yes     | Numbered list of `Step`s (3–9 typical).    |
-| `extensions`           | Recommended | Numbered like `3a`, `*a`, etc.          |
-| `success_guarantee`    | Yes      | What is true on success.                    |
-| `minimal_guarantee`    | Yes      | What is true even on failure.               |
-| `frequency`            | Optional |                                             |
-| `priority`             | Optional |                                             |
+| Field                        | Required    | Notes                                    |
+| ---------------------------- | ----------- | ---------------------------------------- |
+| `id`                         | Yes         | e.g. `UC-009`.                           |
+| `title`                      | Yes         | **Verb phrase** in active voice.         |
+| `level`                      | Yes         | `SUMMARY` / `USER_GOAL` / `SUBFUNCTION`. |
+| `scope`                      | Yes         | Reference to a `SystemBoundary` name.    |
+| `primary_actor`              | Yes         | One `Actor`.                             |
+| `stakeholders_and_interests` | Yes         | List of `StakeholderInterest` (≥1).      |
+| `preconditions`              | Yes         | Text list (may be empty list, not null). |
+| `trigger`                    | Yes         | Single sentence.                         |
+| `main_success_scenario`      | Yes         | Numbered list of `Step`s (3–9 typical).  |
+| `extensions`                 | Recommended | Numbered like `3a`, `*a`, etc.           |
+| `success_guarantee`          | Yes         | What is true on success.                 |
+| `minimal_guarantee`          | Yes         | What is true even on failure.            |
+| `frequency`                  | Optional    |                                          |
+| `priority`                   | Optional    |                                          |
 
 ## Levels (Cockburn's altitude metaphor)
 
@@ -49,11 +49,11 @@ vspec stores all of these as first-class fields on `UseCase`:
 
 A common confusion. vspec enforces the distinction:
 
-- **Actor** *does* something.
-- **Stakeholder** *cares* about something.
+- **Actor** _does_ something.
+- **Stakeholder** _cares_ about something.
 
 A person can be both, but they enter the use case in different roles. Modeling
-them separately forces explicit thought about *whose interest is at stake* on
+them separately forces explicit thought about _whose interest is at stake_ on
 each step.
 
 ## Writing Steps
@@ -62,10 +62,12 @@ Each `Step` is one short sentence in **active voice, present tense**, structured
 as `<actor> <verb-phrase> <object>`.
 
 Good:
+
 - "Customer submits the order."
 - "System validates the payment method."
 
 Bad:
+
 - "The order is submitted." (passive)
 - "Customer clicks 'Submit'." (UI detail)
 - "Customer might submit." (uncertain)
@@ -92,7 +94,7 @@ vspec models extensions as `Scenario` rows with `type=EXTENSION`, plus
 
 For every use case, list **at least one** interest per stakeholder. Format:
 
-> *Stakeholder name*: *what they want to be true at the end*
+> _Stakeholder name_: _what they want to be true at the end_
 
 Example:
 
@@ -117,7 +119,7 @@ the Actor-Goal List phase. Not all goals become use cases:
 - Some are out of scope.
 - Some are folded into a larger goal.
 
-A goal that is approved is *promoted* to a `UseCase`. vspec tracks the
+A goal that is approved is _promoted_ to a `UseCase`. vspec tracks the
 promotion link (`Goal.linked_usecase_id`) so the backlog → spec evolution is
 visible.
 
@@ -135,17 +137,17 @@ unfinished promotion.
 
 ## What vspec Enforces Automatically
 
-| Rule                                                     | Enforced?              |
-| -------------------------------------------------------- | ---------------------- |
+| Rule                                                     | Enforced?                  |
+| -------------------------------------------------------- | -------------------------- |
 | Title is a verb phrase (heuristic, warn).                | Warn (`--force` overrides) |
-| At least one `StakeholderInterest`.                      | Error on commit.       |
-| Main success scenario has ≥1 step.                       | Error.                 |
-| Each step has an actor + action.                         | Error.                 |
-| Extensions reference an existing step number or `*`.     | Error.                 |
-| `success_guarantee` and `minimal_guarantee` are present. | Error.                 |
-| Level is one of the three enumerated values.             | Error (Zod).           |
-| Steps under 25 words each (warn).                        | Warn.                  |
-| Use case has ≤9 main success steps (warn).               | Warn.                  |
+| At least one `StakeholderInterest`.                      | Error on commit.           |
+| Main success scenario has ≥1 step.                       | Error.                     |
+| Each step has an actor + action.                         | Error.                     |
+| Extensions reference an existing step number or `*`.     | Error.                     |
+| `success_guarantee` and `minimal_guarantee` are present. | Error.                     |
+| Level is one of the three enumerated values.             | Error (Zod).               |
+| Steps under 25 words each (warn).                        | Warn.                      |
+| Use case has ≤9 main success steps (warn).               | Warn.                      |
 
 ## References
 

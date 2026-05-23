@@ -23,7 +23,8 @@ export async function showGoal(
   const userId = authenticatedUserId(request.headers.cookie, state.sessionsByToken);
   if (
     userId === undefined ||
-    (await deps.membershipStore.membershipForProject(goal.project_id, userId)) === undefined
+    (await deps.membershipStore.membershipForProject(goal.project_id, userId)) ===
+      undefined
   ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }

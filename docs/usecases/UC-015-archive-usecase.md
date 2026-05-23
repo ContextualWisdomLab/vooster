@@ -62,18 +62,18 @@ The developer/PM runs `vspec usecase archive <KEY-NNN>` or `vspec usecase restor
 - 3b2. **System** returns 409 with the lock holder and `expires_at`.
 - (Outcome: FAILURE — use case ends.)
 
-### *a. Restore flow
+### \*a. Restore flow
 
-- *a1. **Developer / PM** runs `vspec usecase restore <KEY-NNN>`.
-- *a2. **System** verifies `archived_at` is non-null.
-- *a3. **System** sets `archived_at = null` and writes a `Revision` noting the restore.
-- *a4. **System** re-includes the use case in default listings.
+- \*a1. **Developer / PM** runs `vspec usecase restore <KEY-NNN>`.
+- \*a2. **System** verifies `archived_at` is non-null.
+- \*a3. **System** sets `archived_at = null` and writes a `Revision` noting the restore.
+- \*a4. **System** re-includes the use case in default listings.
 - (Outcome: SUCCESS — use case ends.)
 
-### *b. Hard delete requested
+### \*b. Hard delete requested
 
-- *b1. **System** rejects any `--hard` or `--purge` flag as unsupported in MVP.
-- *b2. **System** explains that destructive deletion is post-MVP and points at archive as the only supported path.
+- \*b1. **System** rejects any `--hard` or `--purge` flag as unsupported in MVP.
+- \*b2. **System** explains that destructive deletion is post-MVP and points at archive as the only supported path.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

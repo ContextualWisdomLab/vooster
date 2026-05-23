@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  exportMarkdown as exportMarkdownWorkflow, type MarkdownExportResult
+  exportMarkdown as exportMarkdownWorkflow,
+  type MarkdownExportResult
 } from "../application/markdown-export.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -12,7 +13,9 @@ import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import {
-  existingOutputProblem, missingMarkdownRevisionProblem, outputPathProblem
+  existingOutputProblem,
+  missingMarkdownRevisionProblem,
+  outputPathProblem
 } from "./markdown-export-problems.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -110,7 +113,10 @@ async function exportMarkdown(
     .send(result.markdown);
 }
 
-function sendMarkdownExportProblem(reply: FastifyReply, result: MarkdownExportResult) {
+function sendMarkdownExportProblem(
+  reply: FastifyReply,
+  result: Exclude<MarkdownExportResult, { status: "EXPORTED" }>
+) {
   switch (result.status) {
     case "FORBIDDEN":
       return reply.code(403).send(problem(403, "Not authorized to export markdown"));
@@ -122,8 +128,6 @@ function sendMarkdownExportProblem(reply: FastifyReply, result: MarkdownExportRe
         .send(missingMarkdownRevisionProblem(result.usecase, result.revisionId));
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(problem(404, "Use case not found"));
-    case "EXPORTED":
-      return reply.send(result.markdown);
   }
 }
 

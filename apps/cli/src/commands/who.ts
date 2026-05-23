@@ -45,7 +45,8 @@ type WhoResponse = {
 };
 
 export class WhoCommand extends Command {
-  static override description = "Show active sessions, locks, and merge requests for a use case.";
+  static override description =
+    "Show active sessions, locks, and merge requests for a use case.";
 
   static override args = {
     usecase: Args.string()
@@ -70,18 +71,27 @@ export async function runWho(
   writeLine: (message: string) => void
 ): Promise<void> {
   const whoFlags = whoFlagsFrom(flags, usecaseId);
-  const response = await fetchJson(`${whoFlags.apiUrl}/v1/usecases/${whoFlags.usecaseId}/who`, {
-    headers: {
-      Cookie: whoFlags.sessionCookie
+  const response = await fetchJson(
+    `${whoFlags.apiUrl}/v1/usecases/${whoFlags.usecaseId}/who`,
+    {
+      headers: {
+        Cookie: whoFlags.sessionCookie
+      }
     }
-  });
+  );
   const body = response.body as WhoResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

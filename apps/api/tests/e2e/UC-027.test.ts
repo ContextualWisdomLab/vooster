@@ -1,32 +1,56 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { advanceMain, projectUseCase } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
+import {
+  startWorkSession,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 
 type ImpactResponse = {
   cached: boolean;
-  impact: { affected_branches: string[]; affected_sessions: unknown[];
-    affected_tests: string[]; confidence: number; input_hash: string; severity: string };
+  impact: {
+    affected_branches: string[];
+    affected_sessions: unknown[];
+    affected_tests: string[];
+    confidence: number;
+    input_hash: string;
+    severity: string;
+  };
   preview_id: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 type ImpactProblem = {
-  impact?: unknown; parser_error?: string; path?: string;
+  impact?: unknown;
+  parser_error?: string;
+  path?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;
 };
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-027 - Analyze the impact of a proposed change", () => {
   test("MAIN: preview current head impact without writing revisions", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Impact Main", "impact-main", "stub-impact-main");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Impact Main",
+      "impact-main",
+      "stub-impact-main"
+    );
     const baseRevision = usecase.current_revision_id;
-    const current = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    const current = await advanceMain(
+      server,
+      setup,
+      usecase.id,
+      "Reviews a refund manually"
+    );
 
     const body = await previewImpact(setup.cookie, {
       base_revision: current.revision_id,
@@ -64,8 +88,12 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
   });
 
   test("3a: missing proposed-change path returns guidance", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Impact Missing", "impact-missing", "stub-impact-missing");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Impact Missing",
+      "impact-missing",
+      "stub-impact-missing"
+    );
 
     const response = await previewResponse(setup.cookie, {
       base_revision: usecase.current_revision_id,
@@ -89,8 +117,12 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
   });
 
   test("3b: malformed proposed-change content returns doctor guidance", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Impact Parse", "impact-parse", "stub-impact-parse");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Impact Parse",
+      "impact-parse",
+      "stub-impact-parse"
+    );
 
     const response = await previewResponse(setup.cookie, {
       base_revision: usecase.current_revision_id,
@@ -111,10 +143,16 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
   });
 
   test("6a: active sessions are listed and force BREAKING severity", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Impact Sessions", "impact-sessions", "stub-impact-sessions");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Impact Sessions",
+      "impact-sessions",
+      "stub-impact-sessions"
+    );
     const started = await startWorkSession(server, setup, {
-      agent_type: "CODEX", intent: "Implement refund flow", pins: [usecase.key]
+      agent_type: "CODEX",
+      intent: "Implement refund flow",
+      pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
 
@@ -134,8 +172,12 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
   });
 
   test("4a: repeated preview returns cached identical impact", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Impact Cache", "impact-cache", "stub-impact-cache");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Impact Cache",
+      "impact-cache",
+      "stub-impact-cache"
+    );
     const request = {
       base_revision: usecase.current_revision_id,
       entity_id: usecase.id,
@@ -151,8 +193,18 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
   });
 
   test("*a: non-member cannot preview impact", async () => {
-    const mine = await projectUseCase(server, "Impact Mine", "impact-mine", "stub-impact-mine");
-    const other = await projectUseCase(server, "Impact Other", "impact-other", "stub-impact-other");
+    const mine = await projectUseCase(
+      server,
+      "Impact Mine",
+      "impact-mine",
+      "stub-impact-mine"
+    );
+    const other = await projectUseCase(
+      server,
+      "Impact Other",
+      "impact-other",
+      "stub-impact-other"
+    );
 
     const response = await previewResponse(mine.setup.cookie, {
       base_revision: other.usecase.current_revision_id,

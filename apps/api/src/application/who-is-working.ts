@@ -1,5 +1,9 @@
 import type { StoredMergeRequest } from "../domain/entities/index.js";
-import type { StoredLock, StoredUseCase, StoredWorkSession } from "../domain/entities/index.js";
+import type {
+  StoredLock,
+  StoredUseCase,
+  StoredWorkSession
+} from "../domain/entities/index.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -26,12 +30,17 @@ export type WhoSessionRow = {
   user_id?: string;
 };
 export type WhoLockRow = {
-  expires_at: string; held_by_session_id: null | string; held_by_user_id: string;
-  id: string; lock_type: string;
+  expires_at: string;
+  held_by_session_id: null | string;
+  held_by_user_id: string;
+  id: string;
+  lock_type: string;
 };
 export type WhoMergeRow = {
-  conflict_count: number; id: string;
-  source_branch_id: null | string; status: StoredMergeRequest["status"];
+  conflict_count: number;
+  id: string;
+  source_branch_id: null | string;
+  status: StoredMergeRequest["status"];
 };
 
 export type WhoIsWorkingResult =
@@ -57,13 +66,15 @@ export async function whoIsWorking(
   }
   if (
     input.userId === undefined ||
-    await deps.membershipStore.membershipForProject(found.projectId, input.userId) === undefined
+    (await deps.membershipStore.membershipForProject(found.projectId, input.userId)) ===
+      undefined
   ) {
     return { status: "FORBIDDEN" };
   }
 
-  const sessions = (await activeSessions(deps.workSessionStore, found.usecase.id))
-    .map((session) => sessionRow(deps, session));
+  const sessions = (await activeSessions(deps.workSessionStore, found.usecase.id)).map(
+    (session) => sessionRow(deps, session)
+  );
   const locks = (await activeLocks(deps, found.usecase.id)).map(lockRow);
   const mergeRequests = (await openMergeRequests(deps, found.usecase.id)).map(mergeRow);
   const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
@@ -74,7 +85,13 @@ export async function whoIsWorking(
     mergeRequests,
     sessions,
     status: "FOUND",
-    suggestedNextActions: nextActions(locks, mergeRequests, found.usecase, hasActiveWork, sessions),
+    suggestedNextActions: nextActions(
+      locks,
+      mergeRequests,
+      found.usecase,
+      hasActiveWork,
+      sessions
+    ),
     usecase: { id: found.usecase.id, key: found.usecase.key }
   };
 }
@@ -87,17 +104,20 @@ async function activeSessions(workSessionStore: WorkSessionStore, usecaseId: str
 
 async function activeLocks(deps: WhoIsWorkingDeps, usecaseId: string) {
   const nowTime = now(deps).getTime();
-  return (await deps.lockStore.listLocksForUseCase(usecaseId))
-    .filter((lock) => Date.parse(lock.expires_at) >= nowTime);
+  return (await deps.lockStore.listLocksForUseCase(usecaseId)).filter(
+    (lock) => Date.parse(lock.expires_at) >= nowTime
+  );
 }
 
 async function openMergeRequests(deps: WhoIsWorkingDeps, usecaseId: string) {
-  const matches = await Promise.all((await deps.mergeRequestStore.listOpenMergeRequests())
-    .map(async (merge) => ({
+  const matches = await Promise.all(
+    (await deps.mergeRequestStore.listOpenMergeRequests()).map(async (merge) => ({
       merge,
-      touches: await branchTouches(deps.branchStore, merge.source_branch_id, usecaseId) ||
-        await branchTouches(deps.branchStore, merge.target_branch_id, usecaseId)
-    })));
+      touches:
+        (await branchTouches(deps.branchStore, merge.source_branch_id, usecaseId)) ||
+        (await branchTouches(deps.branchStore, merge.target_branch_id, usecaseId))
+    }))
+  );
   return matches.filter((match) => match.touches).map((match) => match.merge);
 }
 
@@ -147,17 +167,19 @@ function nextActions(
     ];
   }
   return [
-    ...(
-      usecase.archived_at !== null
-        ? [{
+    ...(usecase.archived_at !== null
+      ? [
+          {
             command: `vspec usecase restore ${usecase.key}`,
             reason: "Restore the archived use case before coordinating active work."
-          }]
-        : []
-    ),
+          }
+        ]
+      : []),
     ...(locks.length === 0
       ? []
-      : [{ command: "vspec lock list", reason: "Review active locks before editing." }]),
+      : [
+          { command: "vspec lock list", reason: "Review active locks before editing." }
+        ]),
     ...merges.map((merge) => ({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the open merge request touching this use case."
@@ -172,11 +194,16 @@ function nextActions(
 }
 
 function sessionMarkers(deps: WhoIsWorkingDeps, session: StoredWorkSession): string[] {
-  return idleSeconds(deps, session.last_activity_at ?? session.started_at) > 1800 ? ["ZOMBIE"] : [];
+  return idleSeconds(deps, session.last_activity_at ?? session.started_at) > 1800
+    ? ["ZOMBIE"]
+    : [];
 }
 
 function idleSeconds(deps: WhoIsWorkingDeps, startedAt: string | undefined): number {
-  return Math.max(0, Math.floor((now(deps).getTime() - Date.parse(startedAt ?? "")) / 1000));
+  return Math.max(
+    0,
+    Math.floor((now(deps).getTime() - Date.parse(startedAt ?? "")) / 1000)
+  );
 }
 
 async function branchTouches(
@@ -184,8 +211,11 @@ async function branchTouches(
   branchId: null | string,
   usecaseId: string
 ): Promise<boolean> {
-  return branchId !== null &&
-    (await branchStore.findBranchById(branchId))?.head_revision_ids?.[usecaseId] !== undefined;
+  return (
+    branchId !== null &&
+    (await branchStore.findBranchById(branchId))?.head_revision_ids?.[usecaseId] !==
+      undefined
+  );
 }
 
 function now(deps: WhoIsWorkingDeps): Date {

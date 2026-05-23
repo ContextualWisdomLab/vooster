@@ -14,7 +14,7 @@ primary_actor: developer-pm
 
 # Define an actor
 
-> A developer or PM registers an Actor in the project — the entity that *does* things in use cases. The actor has a unique name within the project, a Cockburn type (PRIMARY, SUPPORTING, or OFFSTAGE), a human/non-human flag, and optional aliases. Once defined, the actor can be referenced as the primary actor of a use case or as the doer of a step.
+> A developer or PM registers an Actor in the project — the entity that _does_ things in use cases. The actor has a unique name within the project, a Cockburn type (PRIMARY, SUPPORTING, or OFFSTAGE), a human/non-human flag, and optional aliases. Once defined, the actor can be referenced as the primary actor of a use case or as the doer of a step.
 
 ## Stakeholders and Interests
 
@@ -69,9 +69,9 @@ The user invokes `vspec actor create --name <n> --type <t> [--human]` or submits
 - 1a2. **System** points to `vspec actor show System` to inspect the built-in actor.
 - (Outcome: FAILURE — use case ends.)
 
-### *a. Requester has read-only access (e.g., archived membership)
+### \*a. Requester has read-only access (e.g., archived membership)
 
-- *a1. **System** returns 403 with a hint to contact the workspace owner.
+- \*a1. **System** returns 403 with a hint to contact the workspace owner.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee
@@ -87,4 +87,4 @@ A failed create leaves no Actor row and no Revision. The name namespace within t
 - API endpoint: `POST /v1/projects/:projectId/actors`.
 - CLI: `vspec actor create`, `vspec actor list`, `vspec actor edit`, `vspec actor archive`.
 - See UC-006 for defining a stakeholder (the "cares about" counterpart).
-- Cockburn distinction: actors *do*, stakeholders *care*. See `docs/03-cockburn-method.md`.
+- Cockburn distinction: actors _do_, stakeholders _care_. See `docs/03-cockburn-method.md`.

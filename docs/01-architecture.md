@@ -157,7 +157,7 @@ For every proposed change, compute:
 
 ## Future-Friendly Seams
 
-These are *not* MVP but the architecture leaves room:
+These are _not_ MVP but the architecture leaves room:
 
 - `ExportPort` allows formats beyond Gherkin.
 - `AuthProviderPort` allows additional OIDC providers.

@@ -47,11 +47,11 @@ claude -p "/var/log/build.log 의 마지막 500줄을 분석해서 실패 원인
 
 `-p` 모드 한정으로 세 가지 포맷을 지원한다.
 
-| 값 | 용도 |
-|---|---|
-| `text` (기본값) | 사람이 읽는 평문. 파일/콘솔로 바로 보낼 때. |
-| `json` | 결과+메타데이터(세션 ID, 비용, 토큰 사용량 등) 단일 객체. **자동화 기본값으로 권장**. |
-| `stream-json` | 진행 중 이벤트를 줄 단위 JSON으로 스트리밍. 긴 작업 모니터링용. |
+| 값              | 용도                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `text` (기본값) | 사람이 읽는 평문. 파일/콘솔로 바로 보낼 때.                                           |
+| `json`          | 결과+메타데이터(세션 ID, 비용, 토큰 사용량 등) 단일 객체. **자동화 기본값으로 권장**. |
+| `stream-json`   | 진행 중 이벤트를 줄 단위 JSON으로 스트리밍. 긴 작업 모니터링용.                       |
 
 ### 2.1 JSON 포맷 예시
 
@@ -119,9 +119,9 @@ claude -p "이 diff의 이슈를 분류해줘" \
 
 ## 4. 입력 포맷 (`--input-format`)
 
-| 값 | 의미 |
-|---|---|
-| `text` (기본) | stdin은 일반 텍스트 |
+| 값            | 의미                                                       |
+| ------------- | ---------------------------------------------------------- |
+| `text` (기본) | stdin은 일반 텍스트                                        |
 | `stream-json` | stdin이 줄 단위 JSON 메시지 스트림. 다중 턴 실시간 입력용. |
 
 대부분의 경우 기본값을 쓴다. agent-to-agent 실시간 대화에서만 `stream-json`을 고려.
@@ -180,14 +180,14 @@ claude -p "..." --tools "default"            # 전체 활성화
 
 ## 7. 권한 모드 (`--permission-mode`)
 
-| 값 | 동작 |
-|---|---|
-| `default` | 읽기는 자동 허용, 쓰기/실행은 규칙에 따름. headless에서 규칙 부족 시 멈춤. |
-| `acceptEdits` | 파일 편집·생성류를 자동 승인. 자동 수정 작업에 적합. |
-| `plan` | 읽기만 허용, 변경은 하지 않고 계획만 출력. |
-| `auto` | 자동 분류기에 따라 모드 결정. |
-| `dontAsk` | `permissions.allow` 에 명시된 것만 허용, 나머지는 거부. CI 락다운. |
-| `bypassPermissions` | 모든 권한 체크 우회. **격리 환경 전용**. |
+| 값                  | 동작                                                                       |
+| ------------------- | -------------------------------------------------------------------------- |
+| `default`           | 읽기는 자동 허용, 쓰기/실행은 규칙에 따름. headless에서 규칙 부족 시 멈춤. |
+| `acceptEdits`       | 파일 편집·생성류를 자동 승인. 자동 수정 작업에 적합.                       |
+| `plan`              | 읽기만 허용, 변경은 하지 않고 계획만 출력.                                 |
+| `auto`              | 자동 분류기에 따라 모드 결정.                                              |
+| `dontAsk`           | `permissions.allow` 에 명시된 것만 허용, 나머지는 거부. CI 락다운.         |
+| `bypassPermissions` | 모든 권한 체크 우회. **격리 환경 전용**.                                   |
 
 리뷰(읽기 전용) 호출 권장 조합:
 
@@ -446,29 +446,29 @@ claude --bare -p "지적한 이슈 중 critical만 추려서 패치 diff까지 �
 
 ## 18. 빠른 참조 — 자주 쓰는 플래그 요약
 
-| 플래그 | 용도 |
-|---|---|
-| `-p, --print` | headless 모드 진입 |
-| `--bare` | 로컬 설정/캐시 비활성, CI 표준 |
-| `--output-format json\|stream-json\|text` | 출력 포맷 |
-| `--json-schema '<schema>'` | 구조화된 출력 강제 |
-| `--model sonnet\|opus\|haiku` | 모델 선택 |
-| `--fallback-model <name>` | 오버로드 시 대체 모델 |
-| `--allowedTools "Read,Edit,Bash(git *)"` | 도구 사전 승인 |
-| `--disallowedTools "WebFetch"` | 도구 차단 |
-| `--tools "Read,Grep,Glob"` | 사용 가능한 도구 집합 제한 |
-| `--permission-mode plan\|acceptEdits\|dontAsk` | 권한 베이스라인 |
-| `--system-prompt` / `--append-system-prompt` | 시스템 지시 교체/추가 |
-| `--add-dir <dirs...>` | cwd 외 접근 허용 |
-| `--mcp-config <file>` (+ `--strict-mcp-config`) | MCP 서버 |
-| `--continue` / `--resume <id>` / `--fork-session` | 세션 재개·분기 |
-| `--no-session-persistence` | 세션 디스크 저장 끄기 |
-| `--session-id <uuid>` | 세션 ID 강제 |
-| `--max-budget-usd <amount>` | 비용 상한 |
-| `--include-partial-messages` | stream-json 토큰 델타 |
-| `--include-hook-events` | stream-json hook 이벤트 |
-| `--verbose` | 상세 출력 |
-| `--dangerously-skip-permissions` | 권한 우회 (격리 환경 한정) |
+| 플래그                                            | 용도                           |
+| ------------------------------------------------- | ------------------------------ |
+| `-p, --print`                                     | headless 모드 진입             |
+| `--bare`                                          | 로컬 설정/캐시 비활성, CI 표준 |
+| `--output-format json\|stream-json\|text`         | 출력 포맷                      |
+| `--json-schema '<schema>'`                        | 구조화된 출력 강제             |
+| `--model sonnet\|opus\|haiku`                     | 모델 선택                      |
+| `--fallback-model <name>`                         | 오버로드 시 대체 모델          |
+| `--allowedTools "Read,Edit,Bash(git *)"`          | 도구 사전 승인                 |
+| `--disallowedTools "WebFetch"`                    | 도구 차단                      |
+| `--tools "Read,Grep,Glob"`                        | 사용 가능한 도구 집합 제한     |
+| `--permission-mode plan\|acceptEdits\|dontAsk`    | 권한 베이스라인                |
+| `--system-prompt` / `--append-system-prompt`      | 시스템 지시 교체/추가          |
+| `--add-dir <dirs...>`                             | cwd 외 접근 허용               |
+| `--mcp-config <file>` (+ `--strict-mcp-config`)   | MCP 서버                       |
+| `--continue` / `--resume <id>` / `--fork-session` | 세션 재개·분기                 |
+| `--no-session-persistence`                        | 세션 디스크 저장 끄기          |
+| `--session-id <uuid>`                             | 세션 ID 강제                   |
+| `--max-budget-usd <amount>`                       | 비용 상한                      |
+| `--include-partial-messages`                      | stream-json 토큰 델타          |
+| `--include-hook-events`                           | stream-json hook 이벤트        |
+| `--verbose`                                       | 상세 출력                      |
+| `--dangerously-skip-permissions`                  | 권한 우회 (격리 환경 한정)     |
 
 ## 출처
 

@@ -1,12 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
-import {
-  addMainStepViaCli,
-  expectOk,
-  seedViaCli,
-  type CliSeed
-} from "./cli-setup.js";
+import { addMainStepViaCli, expectOk, seedViaCli, type CliSeed } from "./cli-setup.js";
 
 type AgentEnvelope<TData> = {
   context: {
@@ -56,15 +51,20 @@ describe("honest CLI revert --format=agent", () => {
     const initialRevision = await currentRevision();
     await addMainStepViaCli(seed, runCli);
 
-    const result = await expectOk(runCli([
-      "revert",
-      seed.usecaseKey,
-      "--to",
-      initialRevision,
-      "--summary",
-      "Restore initial checkout wording",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "revert",
+          seed.usecaseKey,
+          "--to",
+          initialRevision,
+          "--summary",
+          "Restore initial checkout wording",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope<RevertData>(result.stdout);
@@ -77,13 +77,9 @@ describe("honest CLI revert --format=agent", () => {
 });
 
 async function currentRevision(): Promise<string> {
-  const history = await expectOk(runCli([
-    "history",
-    seed.usecaseKey,
-    "--limit",
-    "1",
-    "--format=agent"
-  ], seed.env));
+  const history = await expectOk(
+    runCli(["history", seed.usecaseKey, "--limit", "1", "--format=agent"], seed.env)
+  );
   const envelope = expectAgentEnvelope<HistoryData>(history.stdout);
   const firstRevision = envelope.data.revisions[0];
   expect(firstRevision).toBeDefined();

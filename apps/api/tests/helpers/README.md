@@ -34,7 +34,10 @@ export async function seedFixtures(name: string): Promise<void>;
 ### `auth.ts`
 
 ```ts
-export async function loginAsStub(server: TestServer, email: string): Promise<{
+export async function loginAsStub(
+  server: TestServer,
+  email: string
+): Promise<{
   token: string;
   userId: string;
 }>;

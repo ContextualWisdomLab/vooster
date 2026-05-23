@@ -98,17 +98,12 @@ export function sendProjectDeletionResult(
       return reply.code(409).send(problem(409, "Workspace has been archived"));
     case "HAS_DEPENDENCIES":
       return reply.code(409).send(
-        problem(
-          409,
-          "Project still has use cases, actors, or other data",
-          {},
-          [
-            {
-              command: "vspec project archive",
-              reason: "Archive instead of deleting when the project has data."
-            }
-          ]
-        )
+        problem(409, "Project still has use cases, actors, or other data", {}, [
+          {
+            command: "vspec project archive",
+            reason: "Archive instead of deleting when the project has data."
+          }
+        ])
       );
   }
 }

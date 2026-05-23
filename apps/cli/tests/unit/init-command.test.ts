@@ -2,15 +2,30 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Command } from "@oclif/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InitCommand, runInit } from "../../src/commands/init.js";
 import { localConfigPath } from "../../src/config-store.js";
 
 describe("init command", () => {
   const tmpDirs: string[] = [];
+  const previousConfigPath = process.env.VSPEC_CONFIG_PATH;
+
+  beforeEach(() => {
+    process.env.VSPEC_CONFIG_PATH = join(tempDir(), "login-config.json");
+    writeFileSync(
+      process.env.VSPEC_CONFIG_PATH,
+      `${JSON.stringify({ api_url: "https://api.example.test", session_token: "session-token" })}\n`
+    );
+  });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
+    if (previousConfigPath === undefined) {
+      delete process.env.VSPEC_CONFIG_PATH;
+    } else {
+      process.env.VSPEC_CONFIG_PATH = previousConfigPath;
+    }
     for (const dir of tmpDirs.splice(0)) {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -20,49 +35,92 @@ describe("init command", () => {
     expect(InitCommand.prototype).toBeInstanceOf(Command);
   });
 
-  it("writes a per-repo current project key", () => {
+  it("writes per-repo project context resolved from the API", async () => {
+    stubProjects([
+      { id: "project-1", key: "ACME", name: "Acme", workspace_id: "workspace-1" }
+    ]);
     const cwd = tempDir();
 
-    runInit({ project: "ACME" }, cwd, () => {
+    await runInit({ project: "ACME" }, cwd, () => {
       return undefined;
     });
 
     expect(JSON.parse(readFileSync(localConfigPath(cwd), "utf8"))).toEqual({
-      current_project_key: "ACME"
+      api_url: "https://api.example.test",
+      current_project_id: "project-1",
+      current_project_key: "ACME",
+      current_workspace_id: "workspace-1"
+    });
+    expect(fetch).toHaveBeenCalledWith("https://api.example.test/v1/projects", {
+      headers: { Cookie: "vspec_session=session-token" }
     });
   });
 
-  it("fails validation when --project is missing", () => {
-    expect(() => {
+  it("fails validation when --project is missing", async () => {
+    await expect(
       runInit({}, tempDir(), () => {
         return undefined;
-      });
-    }).toThrow(/--project/);
+      })
+    ).rejects.toThrow(/--project/);
   });
 
-  it("refuses existing config unless --force is set", () => {
+  it("refuses existing config unless --force is set", async () => {
+    stubProjects([
+      { id: "project-2", key: "NEW", name: "New", workspace_id: "workspace-2" }
+    ]);
     const cwd = tempDir();
     mkdirSync(join(cwd, ".vspec"), { recursive: true });
-    writeFileSync(localConfigPath(cwd), `${JSON.stringify({ current_project_key: "OLD" })}\n`);
+    writeFileSync(
+      localConfigPath(cwd),
+      `${JSON.stringify({ current_project_key: "OLD" })}\n`
+    );
 
-    expect(() => {
+    await expect(
       runInit({ project: "NEW" }, cwd, () => {
         return undefined;
-      });
-    }).toThrow(/already exists/);
+      })
+    ).rejects.toThrow(/already exists/);
 
-    runInit({ force: true, project: "NEW" }, cwd, () => {
+    await runInit({ force: true, project: "NEW" }, cwd, () => {
       return undefined;
     });
 
     expect(JSON.parse(readFileSync(localConfigPath(cwd), "utf8"))).toEqual({
-      current_project_key: "NEW"
+      api_url: "https://api.example.test",
+      current_project_id: "project-2",
+      current_project_key: "NEW",
+      current_workspace_id: "workspace-2"
     });
+  });
+
+  it("names the missing project key when the API does not list it", async () => {
+    stubProjects([
+      { id: "project-1", key: "ACME", name: "Acme", workspace_id: "workspace-1" }
+    ]);
+
+    await expect(
+      runInit({ project: "NOPE" }, tempDir(), () => undefined)
+    ).rejects.toThrow(/NOPE/);
   });
 
   function tempDir(): string {
     const dir = mkdtempSync(join(tmpdir(), "vspec-init-"));
     tmpDirs.push(dir);
     return dir;
+  }
+
+  function stubProjects(
+    items: Array<{ id: string; key: string; name: string; workspace_id: string }>
+  ): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          headers: new Headers(),
+          json: () => Promise.resolve({ items }),
+          ok: true
+        } as Response)
+      )
+    );
   }
 });

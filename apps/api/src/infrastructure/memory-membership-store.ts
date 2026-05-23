@@ -9,13 +9,11 @@ export function createMemoryMembershipStore(
   return {
     async membershipForProject(projectId, userId) {
       const workspaceId = await workspaceIdForProject(projectId);
-      return (
-        workspaceId === undefined
-          ? undefined
-          : (membershipsByUserId.get(userId) ?? []).find(
-              (membership) => membership.workspace_id === workspaceId
-            )
-      );
+      return workspaceId === undefined
+        ? undefined
+        : (membershipsByUserId.get(userId) ?? []).find(
+            (membership) => membership.workspace_id === workspaceId
+          );
     },
 
     membershipForWorkspace(workspaceId, userId) {

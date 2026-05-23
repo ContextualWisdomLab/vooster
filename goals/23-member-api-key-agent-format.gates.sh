@@ -242,7 +242,7 @@ else
   fi
   for token in \
     "agent member and api-key admin lifecycle" \
-    "runCli([" \
+    "runCli(" \
     '"member"' \
     '"invite"' \
     '"api-key"' \

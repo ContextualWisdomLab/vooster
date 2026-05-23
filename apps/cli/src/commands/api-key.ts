@@ -75,7 +75,12 @@ export class ApiKeyCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(ApiKeyCommand);
 
-    await runApiKey(parsed.flags, parsed.args.action, parsed.args.apiKeyId, this.log.bind(this));
+    await runApiKey(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.apiKeyId,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -101,7 +106,10 @@ export async function runApiKey(
   throw new Error("Missing api-key action.");
 }
 
-async function createApiKey(flags: ApiKeyFlags, writeLine: (message: string) => void): Promise<void> {
+async function createApiKey(
+  flags: ApiKeyFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
   const apiKeyFlags = apiKeyCreateFlagsFrom(flags);
   const response = await postJson(
     `${apiKeyFlags.apiUrl}/v1/api-keys`,
@@ -117,10 +125,16 @@ async function createApiKey(flags: ApiKeyFlags, writeLine: (message: string) => 
   const body = response.body as ApiKeyCreateResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -132,7 +146,10 @@ async function createApiKey(flags: ApiKeyFlags, writeLine: (message: string) => 
   }
 }
 
-async function listApiKeys(flags: ApiKeyFlags, writeLine: (message: string) => void): Promise<void> {
+async function listApiKeys(
+  flags: ApiKeyFlags,
+  writeLine: (message: string) => void
+): Promise<void> {
   const apiKeyFlags = apiKeyWorkspaceFlagsFrom(flags);
   const url = new URL("/v1/api-keys", apiKeyFlags.apiUrl);
   url.searchParams.set("workspace_id", apiKeyFlags.workspaceId);
@@ -160,16 +177,25 @@ async function revokeApiKey(
   writeLine: (message: string) => void
 ): Promise<void> {
   const apiKeyFlags = apiKeyRevokeFlagsFrom(flags, apiKeyId);
-  const response = await deleteJson(`${apiKeyFlags.apiUrl}/v1/api-keys/${apiKeyFlags.apiKeyId}`, {
-    Cookie: apiKeyFlags.sessionCookie
-  });
+  const response = await deleteJson(
+    `${apiKeyFlags.apiUrl}/v1/api-keys/${apiKeyFlags.apiKeyId}`,
+    {
+      Cookie: apiKeyFlags.sessionCookie
+    }
+  );
   const body = response.body as ApiKeyRevokeResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

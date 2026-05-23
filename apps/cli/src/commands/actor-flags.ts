@@ -37,14 +37,16 @@ export function actorCreateFlagsFrom(flags: ActorCliFlags): ActorCreateFlags {
     description: flags.description ?? "",
     dryRun: flags["dry-run"] === true,
     name: requiredFlag(flags, "name"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     type: actorType(requiredFlag(flags, "type"))
   };
 }
 
-export function actorPatchFrom(flags: ActorCliFlags): Record<string, string | string[]> {
+export function actorPatchFrom(
+  flags: ActorCliFlags
+): Record<string, string | string[]> {
   const patch: Record<string, string | string[]> = {};
   if (flags.aliases !== undefined) {
     patch.aliases = aliasesFrom(flags.aliases);
@@ -75,5 +77,8 @@ function aliasesFrom(rawAliases: string | undefined): string[] {
     return [];
   }
 
-  return rawAliases.split(",").map((alias) => alias.trim()).filter(Boolean);
+  return rawAliases
+    .split(",")
+    .map((alias) => alias.trim())
+    .filter(Boolean);
 }

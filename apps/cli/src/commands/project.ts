@@ -145,11 +145,14 @@ async function listProjects(
   flags: ProjectCliFlags,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const response = await fetchJson(`${resolveContextFlag(flags, "api-url")}/v1/projects`, {
-    headers: {
-      Cookie: resolveContextFlag(flags, "session-cookie")
+  const response = await fetchJson(
+    `${resolveContextFlag(flags, "api-url")}/v1/projects`,
+    {
+      headers: {
+        Cookie: resolveContextFlag(flags, "session-cookie")
+      }
     }
-  });
+  );
   const body = response.body as ProjectListResponse;
 
   if (flags.format === "agent") {
@@ -173,16 +176,22 @@ function switchProject(
   });
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: {
-        config: {
-          current_project_key: projectKey
-        },
-        project: {
-          key: projectKey
-        }
-      }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: {
+            config: {
+              current_project_key: projectKey
+            },
+            project: {
+              key: projectKey
+            }
+          }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

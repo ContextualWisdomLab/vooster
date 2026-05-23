@@ -2,11 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredLock } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
-import {
-  lockData,
-  lockUpdate,
-  storedLock
-} from "./prisma-signup-mappers.js";
+import { ensureLockSession } from "./prisma-lock-session.js";
+import { lockData, lockUpdate, storedLock } from "./prisma-signup-mappers.js";
 
 export function createPrismaLockStore(prisma: PrismaClient): LockStore {
   return new PrismaLockStore(prisma);
@@ -63,38 +60,15 @@ class PrismaLockStore implements LockStore {
   }
 
   async saveLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.create({ data: lockData(lock) });
   }
 
   async updateLock(lock: StoredLock): Promise<void> {
-    await this.ensureLockSession(lock);
+    await ensureLockSession(this.prisma, lock);
     await this.prisma.lock.update({
       data: lockUpdate(lock),
       where: { id: lock.id ?? lock.usecase_id }
-    });
-  }
-
-  private async ensureLockSession(lock: StoredLock): Promise<void> {
-    if (lock.held_by_session_id === null || lock.held_by_session_id === undefined) {
-      return;
-    }
-    const usecase = await this.prisma.useCase.findUnique({
-      select: { project_id: true },
-      where: { id: lock.target_id ?? lock.usecase_id }
-    });
-    if (usecase === null) {
-      return;
-    }
-    await this.prisma.workSession.upsert({
-      create: {
-        id: lock.held_by_session_id,
-        intent: "Hold use case lock",
-        project_id: usecase.project_id,
-        user_id: lock.held_by_user_id ?? lock.holder
-      },
-      update: {},
-      where: { id: lock.held_by_session_id }
     });
   }
 }

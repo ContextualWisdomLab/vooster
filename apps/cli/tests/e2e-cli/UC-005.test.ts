@@ -59,15 +59,18 @@ describe("UC-005 CLI - Define an actor", () => {
 
 async function createProject(apiUrl: string) {
   const signedUp = await signup(apiUrl);
-  const response = await fetch(`${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`, {
-    body: JSON.stringify({ key: "ACT", name: "Actors", visibility: "PRIVATE" }),
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: signedUp.cookie
-    },
-    method: "POST"
-  });
-  const body = await response.json() as ProjectResponse;
+  const response = await fetch(
+    `${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`,
+    {
+      body: JSON.stringify({ key: "ACT", name: "Actors", visibility: "PRIVATE" }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: signedUp.cookie
+      },
+      method: "POST"
+    }
+  );
+  const body = (await response.json()) as ProjectResponse;
 
   return {
     cookie: signedUp.cookie,
@@ -88,7 +91,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-actor-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -98,7 +101,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

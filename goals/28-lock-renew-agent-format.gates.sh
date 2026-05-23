@@ -199,7 +199,7 @@ else
   for token in \
     "agent lock renew" \
     "seedViaCli" \
-    "runCli([" \
+    "runCli(" \
     '"lock"' \
     '"renew"' \
     "--format=agent" \

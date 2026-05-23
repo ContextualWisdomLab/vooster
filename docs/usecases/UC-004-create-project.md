@@ -67,9 +67,9 @@ The user invokes `vspec project create --name "<name>" --key <KEY>` or submits t
 - 6a2. **System** returns 500 with a request id for support.
 - (Outcome: FAILURE — use case ends; database is unchanged.)
 
-### *a. Workspace has been archived between auth check and commit
+### \*a. Workspace has been archived between auth check and commit
 
-- *a1. **System** detects the archived state and aborts the transaction.
+- \*a1. **System** detects the archived state and aborts the transaction.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

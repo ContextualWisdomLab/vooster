@@ -8,17 +8,20 @@ afterEach(() => {
 
 describe("usecase command", () => {
   test("sets use case status through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        usecase: {
-          key: "PAY-001",
-          status: "APPROVED",
-          title: "Submit an order"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            usecase: {
+              key: "PAY-001",
+              status: "APPROVED",
+              title: "Submit an order"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
@@ -49,16 +52,19 @@ describe("usecase command", () => {
   });
 
   test("restores an archived use case through the API", async () => {
-    const fetchStub = vi.fn(() => Promise.resolve({
-      headers: new Headers(),
-      json: () => Promise.resolve({
-        usecase: {
-          archived_at: null,
-          key: "PAY-001"
-        }
-      }),
-      ok: true
-    } as Response));
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            usecase: {
+              archived_at: null,
+              key: "PAY-001"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
     vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 

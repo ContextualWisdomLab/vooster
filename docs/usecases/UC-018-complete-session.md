@@ -71,10 +71,10 @@ The agent runs `vspec session complete [--summary "<text>"] [--no-merge]`.
 - 2a2. **System** suggests `vspec session show <id>` as the next action.
 - (Outcome: FAILURE — use case ends; no state change.)
 
-### *a. Transactional failure mid-completion
+### \*a. Transactional failure mid-completion
 
-- *a1. **System** ensures the session status flip and lock releases happen in one transaction; if it aborts, the session stays ACTIVE and no locks are released.
-- *a2. **System** returns exit code 5 with a retry hint.
+- \*a1. **System** ensures the session status flip and lock releases happen in one transaction; if it aborts, the session stays ACTIVE and no locks are released.
+- \*a2. **System** returns exit code 5 with a retry hint.
 - (Outcome: FAILURE — use case ends; no partial state.)
 
 ## Success Guarantee

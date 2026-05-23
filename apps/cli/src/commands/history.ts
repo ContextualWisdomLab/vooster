@@ -66,7 +66,10 @@ export async function runHistory(
   writeLine: (message: string) => void
 ): Promise<void> {
   const historyFlags = historyFlagsFrom(flags, usecaseId);
-  const url = new URL(`/v1/usecases/${historyFlags.usecaseId}/revisions`, historyFlags.apiUrl);
+  const url = new URL(
+    `/v1/usecases/${historyFlags.usecaseId}/revisions`,
+    historyFlags.apiUrl
+  );
   setSearchParam(url, "limit", historyFlags.limit);
 
   const response = await fetchJson(url, {
@@ -77,13 +80,19 @@ export async function runHistory(
   const body = response.body as HistoryResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: body.revisions[0]?.revision ?? null
-      },
-      suggested_next_actions: body.suggested_next_actions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            revision: body.revisions[0]?.revision ?? null
+          },
+          suggested_next_actions: body.suggested_next_actions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

@@ -45,17 +45,17 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The merge-open agent-format debt is removed without clearing unrelated
-    debt.** The grouped `merge open` / `merge resolve` bullet is gone, a
-    narrowed `merge resolve` bullet remains, the `lock release` / `lock renew`
-    bullet remains, and the next unrelated history/impact/revert/who/comment
-    bullet remains. The findings doc records that `merge resolve` remains queued
-    because honest conflict setup currently depends on `__test` endpoints.
+debt.** The grouped `merge open` / `merge resolve` bullet is gone, a
+narrowed `merge resolve` bullet remains, the `lock release` / `lock renew`
+bullet remains, and the next unrelated history/impact/revert/who/comment
+bullet remains. The findings doc records that `merge resolve` remains queued
+because honest conflict setup currently depends on `__test` endpoints.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents merge open agent format.** A marked
-    `### Agent Format — Merges` section exists under Branches & Merges and
-    includes:
+`### Agent Format — Merges` section exists under Branches & Merges and
+includes:
 
     ```
     vspec merge open <branch-id> --format=agent
@@ -69,52 +69,52 @@ B1. **`docs/07-cli-spec.md` documents merge open agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/merge.ts` is discovered by the same source of
-    truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/merge.ts` to appear.
+truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/merge.ts` to appear.
 
 C2. **`merge open` builds an agent envelope when requested.** The gate extracts
-    `openMerge` from `apps/cli/src/commands/merge.ts` and requires both
-    `format === "agent"` and `buildAgentEnvelope` inside that function.
+`openMerge` from `apps/cli/src/commands/merge.ts` and requires both
+`format === "agent"` and `buildAgentEnvelope` inside that function.
 
 C3. **Scope stays on the two implemented merge verbs.** The sorted
-    `action === "..."` branches in `merge.ts` are exactly `open resolve`.
+`action === "..."` branches in `merge.ts` are exactly `open resolve`.
 
 C4. **`merge open` maps branch context and guidance.** `openMerge` passes
-    `body.suggested_next_actions` to `buildAgentEnvelope`, sets
-    `context.branch` from `body.source_branch.name`, and the CLI
-    `MergeOpenResponse.source_branch` type includes `name`.
+`body.suggested_next_actions` to `buildAgentEnvelope`, sets
+`context.branch` from `body.source_branch.name`, and the CLI
+`MergeOpenResponse.source_branch` type includes `name`.
 
 C5. **`merge resolve` remains out of scope.** The extracted `resolveMerge`
-    function does not contain `format === "agent"` or `buildAgentEnvelope`.
+function does not contain `format === "agent"` or `buildAgentEnvelope`.
 
 ### Tranche D — Unit Proof
 
 D1. **Merge open has focused unit proof for agent and human output.** The file
-    `apps/cli/tests/unit/merge-open-agent-format.test.ts` contains test titles
-    `agent merge open` and `human merge open`. The agent test invokes the
-    command with `--format=agent`, parses JSON, asserts `format_version`, asserts
-    `data.merge_request.id`, `data.source_branch.id`, `data.source_branch.name`,
-    `context.branch`, copied `suggested_next_actions`, default empty warnings,
-    and no human-renderer tokens mixed into stdout.
+`apps/cli/tests/unit/merge-open-agent-format.test.ts` contains test titles
+`agent merge open` and `human merge open`. The agent test invokes the
+command with `--format=agent`, parses JSON, asserts `format_version`, asserts
+`data.merge_request.id`, `data.source_branch.id`, `data.source_branch.name`,
+`context.branch`, copied `suggested_next_actions`, default empty warnings,
+and no human-renderer tokens mixed into stdout.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Merge open has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts` contains
-    test title `agent merge open`, invokes `runCli([ "merge", "open", ... ])`
-    with `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`,
-    parses JSON, and asserts the same data/context keys as D1 against a real
-    branch created through `branch create --format=agent`.
+`apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts` contains
+test title `agent merge open`, invokes `runCli([ "merge", "open", ... ])`
+with `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`,
+parses JSON, and asserts the same data/context keys as D1 against a real
+branch created through `branch create --format=agent`.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no merge-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no merge-agent entry.
 
 ### Tranche F — Rigor
 
 F1. **`scripts/check-gate-rigor.sh goals/17-merge-open-agent-format.md`
-    passes.**
+passes.**
 
 ## Scope Guards
 

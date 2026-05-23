@@ -2,7 +2,10 @@ import type { FastifyReply } from "fastify";
 import type { GoalPromotionResult } from "../application/goal-promotion.js";
 import { problem } from "./signup-support.js";
 
-export function sendGoalPromotionResult(reply: FastifyReply, result: GoalPromotionResult) {
+export function sendGoalPromotionResult(
+  reply: FastifyReply,
+  result: GoalPromotionResult
+) {
   switch (result.status) {
     case "ALREADY_PROMOTED":
       return reply.code(409).send(
@@ -11,7 +14,9 @@ export function sendGoalPromotionResult(reply: FastifyReply, result: GoalPromoti
         })
       );
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "GOAL_NOT_FOUND":
       return reply.code(404).send(problem(404, "Goal not found"));
     case "PROJECT_NOT_FOUND":
@@ -22,7 +27,9 @@ export function sendGoalPromotionResult(reply: FastifyReply, result: GoalPromoti
         revision: result.revision,
         suggested_next_actions: suggestedNextActions(result),
         usecase: result.usecase,
-        ...(result.titleWarning === undefined ? {} : { warnings: [result.titleWarning] })
+        ...(result.titleWarning === undefined
+          ? {}
+          : { warnings: [result.titleWarning] })
       });
     case "PROMOTION_FAILED":
       return reply.code(500).send(
@@ -45,7 +52,9 @@ export function sendGoalPromotionResult(reply: FastifyReply, result: GoalPromoti
   }
 }
 
-function suggestedNextActions(result: Extract<GoalPromotionResult, { status: "PROMOTED" }>) {
+function suggestedNextActions(
+  result: Extract<GoalPromotionResult, { status: "PROMOTED" }>
+) {
   return [
     {
       command: "vspec usecase add-stakeholder",

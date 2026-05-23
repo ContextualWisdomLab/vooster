@@ -63,9 +63,9 @@ The developer/PM runs `vspec usecase add-stakeholder <KEY-NNN> --stakeholder <na
 - 5a2. **System** blocks any subsequent `status` transition out of `DRAFT` until an interest is re-added.
 - (Outcome: PARTIAL — rejoins main at step 6.)
 
-### *a. Stakeholder name does not resolve
+### \*a. Stakeholder name does not resolve
 
-- *a1. **System** lists candidate names and points at `vspec stakeholder create` (UC-006).
+- \*a1. **System** lists candidate names and points at `vspec stakeholder create` (UC-006).
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

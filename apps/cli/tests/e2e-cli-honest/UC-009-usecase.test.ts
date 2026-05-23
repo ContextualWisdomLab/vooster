@@ -13,11 +13,9 @@ describe("UC-009 honest CLI - Author a use case", () => {
         usecaseTitle: "Places an order"
       });
 
-      const shown = await expectOk(runCli([
-        "usecase",
-        "show",
-        seed.usecaseKey
-      ], seed.env));
+      const shown = await expectOk(
+        runCli(["usecase", "show", seed.usecaseKey], seed.env)
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(seed.usecaseKey).toBe("USC-001");

@@ -191,7 +191,7 @@ else
   fi
   for token in \
     "agent change propose and commit" \
-    "runCli([" \
+    "runCli(" \
     '"change"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

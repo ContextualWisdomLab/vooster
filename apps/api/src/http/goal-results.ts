@@ -59,18 +59,13 @@ function archivedWorkspaceProblem() {
 }
 
 function actorUnavailableProblem(actorId: string) {
-  return problem(
-    422,
-    "Actor is not available",
-    { actor_id: actorId },
-    [
-      { command: "vspec actor list", reason: "Find a valid actor for this project." },
-      {
-        command: "vspec actor create",
-        reason: "Create the actor before assigning goals."
-      }
-    ]
-  );
+  return problem(422, "Actor is not available", { actor_id: actorId }, [
+    { command: "vspec actor list", reason: "Find a valid actor for this project." },
+    {
+      command: "vspec actor create",
+      reason: "Create the actor before assigning goals."
+    }
+  ]);
 }
 
 function goalCreateResponse(result: Extract<CreateGoalResult, { status: "CREATED" }>) {

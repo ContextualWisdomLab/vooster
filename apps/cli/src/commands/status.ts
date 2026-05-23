@@ -27,9 +27,15 @@ export function runStatus(
   const config = readConfig();
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: { config }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: { config }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

@@ -2,11 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredApiKey } from "../domain/entities/index.js";
 import type { ApiKeyStore } from "../ports/api-key-store.js";
-import {
-  apiKeyData,
-  apiKeyUpdate,
-  storedApiKey
-} from "./prisma-signup-mappers.js";
+import { apiKeyData, apiKeyUpdate, storedApiKey } from "./prisma-signup-mappers.js";
 
 export function createPrismaApiKeyStore(prisma: PrismaClient): ApiKeyStore {
   return new PrismaApiKeyStore(prisma);

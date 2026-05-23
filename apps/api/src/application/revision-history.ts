@@ -58,7 +58,7 @@ export async function listRevisionHistory(
   }
   if (
     input.userId === undefined ||
-    await deps.membershipStore.membershipForProject(found.projectId, input.userId) ===
+    (await deps.membershipStore.membershipForProject(found.projectId, input.userId)) ===
       undefined
   ) {
     return { status: "FORBIDDEN" };
@@ -128,14 +128,14 @@ function nextActions(
       command: "vspec diff",
       reason: "Compare two revisions before reverting."
     },
-    ...(
-      suppressedCount === 0
-        ? []
-        : [{
+    ...(suppressedCount === 0
+      ? []
+      : [
+          {
             command: `vspec history ${usecase.key} --limit ${String(revisions.length + suppressedCount)}`,
             reason: "Rerun with a larger limit to include suppressed rows."
-          }]
-    )
+          }
+        ])
   ];
 }
 

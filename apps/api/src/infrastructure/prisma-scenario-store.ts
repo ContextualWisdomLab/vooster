@@ -2,10 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { StoredScenario } from "../domain/entities/index.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
-import {
-  scenarioData,
-  storedScenario
-} from "./prisma-signup-mappers.js";
+import { scenarioData, storedScenario } from "./prisma-signup-mappers.js";
 
 export function createPrismaScenarioStore(prisma: PrismaClient): ScenarioStore {
   return new PrismaScenarioStore(prisma);

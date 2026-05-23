@@ -44,14 +44,14 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The scenario-add agent-format debt is removed without clearing unrelated
-    debt.** The `scenario add` bullet is gone, and later goals may continue
-    narrowing the queue without reviving scenario-add debt.
+debt.** The `scenario add` bullet is gone, and later goals may continue
+narrowing the queue without reviving scenario-add debt.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents scenario add agent format.** A marked
-    `### Agent Format — Scenarios` section exists under Scenarios & Steps and
-    includes:
+`### Agent Format — Scenarios` section exists under Scenarios & Steps and
+includes:
 
     ```
     vspec scenario add <usecase-id> --format=agent
@@ -63,41 +63,41 @@ B1. **`docs/07-cli-spec.md` documents scenario add agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/scenario.ts` is discovered by the same source of
-    truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/scenario.ts` to appear.
+truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/scenario.ts` to appear.
 
 C2. **`scenario add` builds an agent envelope when requested.** The gate
-    extracts `addScenario` from `apps/cli/src/commands/scenario.ts` and requires
-    both `format === "agent"` and `buildAgentEnvelope` inside that function.
+extracts `addScenario` from `apps/cli/src/commands/scenario.ts` and requires
+both `format === "agent"` and `buildAgentEnvelope` inside that function.
 
 C3. **Scope stays on the one implemented scenario verb.** The only
-    `action === "..."` branch in `scenario.ts` is `add`.
+`action === "..."` branch in `scenario.ts` is `add`.
 
 C4. **The CLI response type exposes the revision id used for context.** The
-    `ScenarioResponse` type includes `revision.id`.
+`ScenarioResponse` type includes `revision.id`.
 
 ### Tranche D — Unit Proof
 
 D1. **Scenario add has focused unit proof for agent and human output.** The file
-    `apps/cli/tests/unit/scenario-agent-format.test.ts` contains test titles
-    `agent scenario add` and `human scenario add`. The agent test invokes the
-    command with `--format=agent`, parses JSON, asserts `format_version`,
-    asserts `data.scenario.id`, `data.revision.id`, and `context.revision`, and
-    asserts the agent output does not contain human-renderer tokens.
+`apps/cli/tests/unit/scenario-agent-format.test.ts` contains test titles
+`agent scenario add` and `human scenario add`. The agent test invokes the
+command with `--format=agent`, parses JSON, asserts `format_version`,
+asserts `data.scenario.id`, `data.revision.id`, and `context.revision`, and
+asserts the agent output does not contain human-renderer tokens.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Scenario add has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/scenario-agent-format.test.ts` contains test
-    title `agent scenario add`, invokes `runCli([ "scenario", ... ])` with
-    `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
-    JSON, asserts `format_version`, and asserts the same data/context keys as
-    D1 against a real seeded use case.
+`apps/cli/tests/e2e-cli-honest/scenario-agent-format.test.ts` contains test
+title `agent scenario add`, invokes `runCli([ "scenario", ... ])` with
+`--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses
+JSON, asserts `format_version`, and asserts the same data/context keys as
+D1 against a real seeded use case.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no scenario-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no scenario-agent entry.
 
 ### Tranche F — Rigor
 

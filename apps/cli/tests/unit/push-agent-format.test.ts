@@ -60,7 +60,9 @@ describe("push --format=agent", () => {
     expect(envelope.data.results.at(0)?.current_revision).toBe("rev-2");
     expect(envelope.data.cache.entries.at(0)?.status).toBe("SYNCED");
     expect(envelope.data.suggested_next_actions).toEqual([{ command: "vspec pull" }]);
-    expect(envelope.suggested_next_actions).toEqual(envelope.data.suggested_next_actions);
+    expect(envelope.suggested_next_actions).toEqual(
+      envelope.data.suggested_next_actions
+    );
     expect(envelope.warnings).toEqual([]);
     await expect(readSpec(root)).resolves.toContain("revision: rev-2");
   });
@@ -87,7 +89,9 @@ describe("push --format=agent", () => {
     stubFetch(pushResponse({ dryRun: true, revision: "rev-dry" }));
     const lines: string[] = [];
 
-    await runPush(syncFlags(root, { "dry-run": "true", format: "agent" }), (line) => lines.push(line));
+    await runPush(syncFlags(root, { "dry-run": "true", format: "agent" }), (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<PushData>(stdout);
@@ -118,7 +122,10 @@ function tempRoot(): string {
   return root;
 }
 
-function syncFlags(root: string, overrides: Record<string, string> = {}): Record<string, string> {
+function syncFlags(
+  root: string,
+  overrides: Record<string, string> = {}
+): Record<string, string> {
   return {
     "api-url": "https://api.example.test",
     "project-id": "project-1",
@@ -142,14 +149,21 @@ function readSpec(root: string): Promise<string> {
 }
 
 function stubFetch(body: PushData): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
-function pushResponse(overrides: { dryRun?: boolean; revision?: string } = {}): PushData {
+function pushResponse(
+  overrides: { dryRun?: boolean; revision?: string } = {}
+): PushData {
   const revision = overrides.revision ?? "rev-2";
   return {
     cache: {

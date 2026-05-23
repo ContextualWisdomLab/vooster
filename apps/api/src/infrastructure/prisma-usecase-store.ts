@@ -1,15 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 
 import type { StoredUseCase } from "../domain/entities/index.js";
-import type {
-  UseCaseLookup,
-  UseCaseStore
-} from "../ports/usecase-store.js";
-import {
-  storedUseCase,
-  useCaseData,
-  useCaseUpdate
-} from "./prisma-signup-mappers.js";
+import type { UseCaseLookup, UseCaseStore } from "../ports/usecase-store.js";
+import { storedUseCase, useCaseData, useCaseUpdate } from "./prisma-signup-mappers.js";
 
 export function createPrismaUseCaseStore(prisma: PrismaClient): UseCaseStore {
   return new PrismaUseCaseStore(prisma);
@@ -34,10 +27,7 @@ class PrismaUseCaseStore implements UseCaseStore {
   ): Promise<UseCaseLookup | undefined> {
     const usecase = await this.prisma.useCase.findFirst({
       where: {
-        OR: [
-          { id: usecaseIdOrKey },
-          { key: usecaseIdOrKey }
-        ]
+        OR: [{ id: usecaseIdOrKey }, { key: usecaseIdOrKey }]
       }
     });
 

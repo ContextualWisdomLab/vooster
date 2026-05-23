@@ -1,7 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type LockCliFlags = {
@@ -94,7 +99,9 @@ export async function runLock(
     },
     {
       Cookie: lockFlags.sessionCookie,
-      ...(lockFlags.sessionId === undefined ? {} : { "X-Vspec-Session": lockFlags.sessionId })
+      ...(lockFlags.sessionId === undefined
+        ? {}
+        : { "X-Vspec-Session": lockFlags.sessionId })
     }
   );
   const body = response.body as LockResponse;
@@ -113,7 +120,9 @@ async function renewLock(
     { ttl_minutes: renewFlags.ttlMinutes },
     {
       Cookie: renewFlags.sessionCookie,
-      ...(renewFlags.sessionId === undefined ? {} : { "X-Vspec-Session": renewFlags.sessionId })
+      ...(renewFlags.sessionId === undefined
+        ? {}
+        : { "X-Vspec-Session": renewFlags.sessionId })
     }
   );
   const body = response.body as LockResponse;
@@ -129,11 +138,17 @@ function writeLockOutput(
 ): void {
   const suggestedNextActions = body.suggested_next_actions ?? [];
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: { session_id: sessionId ?? null },
-      suggested_next_actions: suggestedNextActions
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: { session_id: sessionId ?? null },
+          suggested_next_actions: suggestedNextActions
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  completeOAuth,
-  startGithubOAuth
-} from "../../../src/application/signup.js";
+import { completeOAuth, startGithubOAuth } from "../../../src/application/signup.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { SignupStore, WorkspaceSummary } from "../../../src/ports/signup-store.js";
 import type { UserStore } from "../../../src/ports/user-store.js";
@@ -46,7 +43,11 @@ describe("signup application", () => {
   });
 
   test("creates signup entities through the transactional signup store", async () => {
-    const saved: Array<{ membership: StoredMembership; user: StoredUser; workspace: StoredWorkspace }> = [];
+    const saved: Array<{
+      membership: StoredMembership;
+      user: StoredUser;
+      workspace: StoredWorkspace;
+    }> = [];
 
     const result = await completeOAuth(
       depsFor({
@@ -131,7 +132,9 @@ describe("signup application", () => {
   });
 
   test("uses signup store workspace summaries when available", async () => {
-    const summaries = [{ id: "workspace-2", role: "EDITOR", slug: "team" }] satisfies WorkspaceSummary[];
+    const summaries = [
+      { id: "workspace-2", role: "EDITOR", slug: "team" }
+    ] satisfies WorkspaceSummary[];
 
     const result = await completeOAuth(
       depsFor({
@@ -152,13 +155,10 @@ describe("signup application", () => {
   });
 
   test("guides known users with no workspaces to create one", async () => {
-    const result = await completeOAuth(
-      depsFor({ users: [user()] }),
-      {
-        pending: { flow: "login" },
-        profile: verifiedProfile()
-      }
-    );
+    const result = await completeOAuth(depsFor({ users: [user()] }), {
+      pending: { flow: "login" },
+      profile: verifiedProfile()
+    });
 
     expect(result.status).toBe("LOGGED_IN");
     if (result.status !== "LOGGED_IN") {
@@ -185,21 +185,30 @@ describe("signup application", () => {
   });
 });
 
-function depsFor(options: {
-  memberships?: StoredMembership[];
-  savedUsers?: StoredUser[];
-  signupStore?: SignupStore;
-  slugExists?: boolean;
-  updatedLogins?: string[];
-  users?: StoredUser[];
-  workspaces?: StoredWorkspace[];
-} = {}) {
+function depsFor(
+  options: {
+    memberships?: StoredMembership[];
+    savedUsers?: StoredUser[];
+    signupStore?: SignupStore;
+    slugExists?: boolean;
+    updatedLogins?: string[];
+    users?: StoredUser[];
+    workspaces?: StoredWorkspace[];
+  } = {}
+) {
   return {
     membershipStore: membershipStore(options.memberships ?? []),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     signupStore: options.signupStore,
-    userStore: userStore(options.users ?? [], options.savedUsers ?? [], options.updatedLogins ?? []),
-    workspaceStore: workspaceStore(options.slugExists ?? false, options.workspaces ?? [workspace()])
+    userStore: userStore(
+      options.users ?? [],
+      options.savedUsers ?? [],
+      options.updatedLogins ?? []
+    ),
+    workspaceStore: workspaceStore(
+      options.slugExists ?? false,
+      options.workspaces ?? [workspace()]
+    )
   };
 }
 
@@ -219,7 +228,8 @@ function userStore(
 ): UserStore {
   return {
     findUserByEmail: () => Promise.resolve(undefined),
-    findUserByGithubId: (githubId) => Promise.resolve(users.find((item) => item.github_id === githubId)),
+    findUserByGithubId: (githubId) =>
+      Promise.resolve(users.find((item) => item.github_id === githubId)),
     saveUser: (newUser) => {
       savedUsers.push(newUser);
       return Promise.resolve();
@@ -247,7 +257,11 @@ function workspaceStore(
 }
 
 function signupStore(options: {
-  saved?: Array<{ membership: StoredMembership; user: StoredUser; workspace: StoredWorkspace }>;
+  saved?: Array<{
+    membership: StoredMembership;
+    user: StoredUser;
+    workspace: StoredWorkspace;
+  }>;
   summaries?: WorkspaceSummary[];
 }): SignupStore {
   return {

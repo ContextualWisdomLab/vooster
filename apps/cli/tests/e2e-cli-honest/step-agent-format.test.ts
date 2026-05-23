@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
-import { addMainScenarioViaCli, addMainStepViaCli, expectOk, seedViaCli, type CliSeed } from "./cli-setup.js";
+import {
+  addMainScenarioViaCli,
+  addMainStepViaCli,
+  expectOk,
+  seedViaCli,
+  type CliSeed
+} from "./cli-setup.js";
 
 type StepAgentEnvelope = {
   affected_files?: unknown[];
@@ -47,16 +53,21 @@ describe("honest CLI step --format=agent", () => {
   test("agent step add", async () => {
     const seed = await testSeed("SAA");
     const scenarioId = await addMainScenarioViaCli(seed, runCli);
-    const result = await expectOk(runCli([
-      "step",
-      "add",
-      scenarioId,
-      "--actor",
-      "Customer",
-      "--action",
-      "Places an order.",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "step",
+          "add",
+          scenarioId,
+          "--actor",
+          "Customer",
+          "--action",
+          "Places an order.",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);
@@ -68,16 +79,21 @@ describe("honest CLI step --format=agent", () => {
   test("agent step edit", async () => {
     const seed = await testSeed("SAE");
     const step = await addMainStepViaCli(seed, runCli);
-    const result = await expectOk(runCli([
-      "step",
-      "edit",
-      step.stepId,
-      "--action",
-      "Reviews the order.",
-      "--base-revision",
-      step.baseRevision,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "step",
+          "edit",
+          step.stepId,
+          "--action",
+          "Reviews the order.",
+          "--base-revision",
+          step.baseRevision,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);

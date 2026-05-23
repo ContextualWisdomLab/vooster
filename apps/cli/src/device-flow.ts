@@ -21,10 +21,14 @@ type AccessTokenResponse = {
 
 const grantType = "urn:ietf:params:oauth:grant-type:device_code";
 
-export async function runDeviceFlow(options: DeviceFlowOptions): Promise<{ accessToken: string }> {
+export async function runDeviceFlow(
+  options: DeviceFlowOptions
+): Promise<{ accessToken: string }> {
   void options.apiUrl;
   if (options.authStub === true) {
-    return { accessToken: `stub-access-token-${process.env.VSPEC_AUTH_STUB_ID ?? "cli"}` };
+    return {
+      accessToken: `stub-access-token-${process.env.VSPEC_AUTH_STUB_ID ?? "cli"}`
+    };
   }
 
   const githubClientId = options.githubClientId ?? process.env.GITHUB_CLIENT_ID;
@@ -33,7 +37,9 @@ export async function runDeviceFlow(options: DeviceFlowOptions): Promise<{ acces
   }
 
   const device = await requestDeviceCode(githubClientId);
-  options.writeLine?.(`Visit ${device.verification_uri} and enter code: ${device.user_code}`);
+  options.writeLine?.(
+    `Visit ${device.verification_uri} and enter code: ${device.user_code}`
+  );
 
   return {
     accessToken: await pollForAccessToken(githubClientId, device)

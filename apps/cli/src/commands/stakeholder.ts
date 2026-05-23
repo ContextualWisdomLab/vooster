@@ -17,7 +17,7 @@ import {
   commonMutationContextFrom,
   runMutationCommand
 } from "../application/mutation-command.js";
-import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { deleteJson, fetchJson, patchJson } from "../http-client.js";
 
 export class StakeholderCommand extends Command {
@@ -92,7 +92,13 @@ async function archiveStakeholder(
   await deleteJson(stakeholderUrl(flags, id), authHeaders(flags));
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: { archived: true, stakeholder_id: id } }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({ data: { archived: true, stakeholder_id: id } }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -178,7 +184,7 @@ async function listStakeholders(
 }
 
 function stakeholdersUrl(flags: StakeholderCliFlags): string {
-  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${requiredFlag(flags, "project-id")}/stakeholders`;
+  return `${resolveContextFlag(flags, "api-url")}/v1/projects/${resolveContextFlag(flags, "project-id")}/stakeholders`;
 }
 
 function stakeholderUrl(flags: StakeholderCliFlags, stakeholderId: string): string {

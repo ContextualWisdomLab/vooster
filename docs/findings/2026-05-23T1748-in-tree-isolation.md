@@ -2,7 +2,8 @@
 title: "Survey in-tree shared resources for parallel gate isolation"
 created_at: 2026-05-23T17:48:00Z
 priority: P0
-resolved: false
+resolved: true
+resolved_by: bf8c5d0
 related:
   - scripts/completion-check.sh
   - docs/findings/2026-05-23T1745-build-dedup.md
@@ -24,8 +25,8 @@ the working tree** (`dist/`, log files, temp dirs, possibly
 Three patterns address such conflicts:
 
 1. **Deduplicate** — same expensive action invoked from multiple
-   places → consolidate to one owner. *Already applied to `pnpm
-   build`.*
+   places → consolidate to one owner. _Already applied to `pnpm
+build`._
 2. **Isolate per-worker** — mutable state cheaply namespaced per
    worker (DB schema, network port, log file, temp dir).
 3. **Lock** — single shared external resource that cannot be
@@ -83,7 +84,7 @@ Classify each hit:
 
 ## Why P0
 
-Bumped from P1 to P0 because the survey + fixes affect *every* future
+Bumped from P1 to P0 because the survey + fixes affect _every_ future
 parallel chain run. One observed race
 ([build-dedup](./2026-05-23T1745-build-dedup.md)) is already a
 demonstrated efficiency tax on every iteration; remaining unknown
@@ -116,3 +117,27 @@ Diagnosis is cheap; fixes are file-by-file. Doing the whole sweep in
 one session is scope creep. Filing here lets a future agent (or the
 same agent in a fresh session) pick up with the methodology and the
 known starting points already laid out.
+
+## Resolution
+
+Closed by `bf8c5d0` (`fix(harness): isolate parallel gate state`).
+
+Survey result:
+
+- `scripts/dogfood-test.sh` now writes a per-invocation `.state`
+  dogfood log instead of `.state/dogfood.log`.
+- `scripts/check-bootable.sh` and `scripts/check-persistence.sh` no
+  longer run `pnpm build`; they consume the existing `dist/` output
+  owned by `_meta` M.4.
+- `_meta`, goal 2, and goal 4 diagnostic logs now use `mktemp`
+  paths instead of fixed `/tmp/*` names.
+- `scripts/check-deployable.sh` and `scripts/check-managed-db.sh`
+  now use per-invocation cookie/body temp files.
+- New `goals/30-in-tree-isolation.*` enforces the negative universal
+  invariant across `goals/*.gates.sh`, `scripts/check-*.sh`, and
+  `scripts/dogfood-test.sh`.
+
+Verification:
+
+- `bash goals/30-in-tree-isolation.gates.sh`
+- `bash scripts/completion-check.sh`

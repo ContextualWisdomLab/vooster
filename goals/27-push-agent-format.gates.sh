@@ -204,7 +204,7 @@ else
   fi
   for token in \
     "agent push writes canonical file revisions" \
-    "runCli([" \
+    "runCli(" \
     '"push"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

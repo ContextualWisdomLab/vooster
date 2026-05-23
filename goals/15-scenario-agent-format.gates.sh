@@ -173,7 +173,7 @@ else
   fi
   for token in \
     "agent scenario add" \
-    "runCli([" \
+    "runCli(" \
     '"scenario"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

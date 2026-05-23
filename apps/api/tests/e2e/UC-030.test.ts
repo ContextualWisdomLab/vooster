@@ -9,13 +9,21 @@ import {
 import { startServer, type TestServer } from "../helpers/server.js";
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-030 - Export a use case to Gherkin", () => {
   test("MAIN: export main and extension scenarios as deterministic Gherkin", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Gherkin Main", "gherkin-main", "stub-gherkin-main");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Gherkin Main",
+      "gherkin-main",
+      "stub-gherkin-main"
+    );
     const extensionResponse = await createExtensionScenario(
       server,
       usecase.id,
@@ -28,10 +36,13 @@ describe("UC-030 - Export a use case to Gherkin", () => {
       actor: "Customer"
     });
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/plain");
@@ -51,13 +62,20 @@ Scenario: 1a Payment is declined.
   });
 
   test("3a: incomplete main success scenario returns doctor guidance", async () => {
-    const { setup, usecase } =
-      await createScenarioReadyUseCase(server, "Gherkin Empty", "gherkin-empty", "stub-gherkin-empty");
+    const { setup, usecase } = await createScenarioReadyUseCase(
+      server,
+      "Gherkin Empty",
+      "gherkin-empty",
+      "stub-gherkin-empty"
+    );
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(422);
     const problem = (await response.json()) as {
@@ -78,14 +96,21 @@ Scenario: 1a Payment is declined.
   });
 
   test("6a: missing output directory returns local config guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Gherkin Output", "gherkin-output", "stub-gherkin-output");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Gherkin Output",
+      "gherkin-output",
+      "stub-gherkin-output"
+    );
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ output_path: "missing/CHK-001.feature" })
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+        body: JSON.stringify({ output_path: "missing/CHK-001.feature" })
+      }
+    );
 
     expect(response.status).toBe(400);
     const problem = (await response.json()) as {
@@ -104,17 +129,24 @@ Scenario: 1a Payment is declined.
   });
 
   test("6b: existing output file requires force and returns diff summary", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Gherkin Exists", "gherkin-exists", "stub-gherkin-exists");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Gherkin Exists",
+      "gherkin-exists",
+      "stub-gherkin-exists"
+    );
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({
-        existing_file_content: "Feature: Old checkout behavior\n",
-        output_path: "tests/CHK-001.feature"
-      })
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+        body: JSON.stringify({
+          existing_file_content: "Feature: Old checkout behavior\n",
+          output_path: "tests/CHK-001.feature"
+        })
+      }
+    );
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as {
@@ -135,14 +167,21 @@ Scenario: 1a Payment is declined.
   });
 
   test("2a: stale requested revision returns history guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Gherkin Revision", "gherkin-revision", "stub-gherkin-revision");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Gherkin Revision",
+      "gherkin-revision",
+      "stub-gherkin-revision"
+    );
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ revision_id: "missing-revision" })
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+        body: JSON.stringify({ revision_id: "missing-revision" })
+      }
+    );
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as {
@@ -159,17 +198,24 @@ Scenario: 1a Payment is declined.
   });
 
   test("*a: archived use case returns restore guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Gherkin Archived", "gherkin-archived", "stub-gherkin-archived");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Gherkin Archived",
+      "gherkin-archived",
+      "stub-gherkin-archived"
+    );
     await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
       method: "POST",
       headers: { Cookie: setup.cookie }
     });
 
-    const response = await server.fetch(`/v1/usecases/${usecase.id}/export/gherkin?format=feature`, {
-      method: "POST",
-      headers: { Cookie: setup.cookie }
-    });
+    const response = await server.fetch(
+      `/v1/usecases/${usecase.id}/export/gherkin?format=feature`,
+      {
+        method: "POST",
+        headers: { Cookie: setup.cookie }
+      }
+    );
 
     expect(response.status).toBe(409);
     const problem = (await response.json()) as {

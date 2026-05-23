@@ -25,11 +25,11 @@
   --color-error: #f87171;
 
   --font-sans:
-    "Inter", "Pretendard Variable", "Pretendard", system-ui, -apple-system,
-    "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+    "Inter", "Pretendard Variable", "Pretendard", system-ui, -apple-system, "Segoe UI",
+    "Apple SD Gothic Neo", sans-serif;
   --font-mono:
-    "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
+    "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -158,14 +158,22 @@
     @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent border border-hairline hover:border-primary-soft cursor-pointer;
     color: var(--color-ink);
   }
-  .btn-outline:visited { color: var(--color-ink); }
-  .btn-outline:hover { color: var(--color-ink-strong); }
+  .btn-outline:visited {
+    color: var(--color-ink);
+  }
+  .btn-outline:hover {
+    color: var(--color-ink-strong);
+  }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-4 py-[14px] rounded-[6px] font-sans text-[15px] font-semibold leading-none transition-colors duration-150 ease-out bg-transparent cursor-pointer;
     color: var(--color-primary-soft);
   }
-  .btn-ghost:visited { color: var(--color-primary-soft); }
-  .btn-ghost:hover { color: var(--color-ink-strong); }
+  .btn-ghost:visited {
+    color: var(--color-primary-soft);
+  }
+  .btn-ghost:hover {
+    color: var(--color-ink-strong);
+  }
   .btn-primary:focus-visible,
   .btn-outline:focus-visible,
   .btn-ghost:focus-visible {

@@ -45,7 +45,10 @@ export async function handleListProjects(
   reply: FastifyReply,
   deps: Pick<ProjectRouteDeps, "membershipStore" | "projectStore" | "state">
 ) {
-  const userId = authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken);
+  const userId = authenticatedUserId(
+    request.headers.cookie,
+    deps.state.sessionsByToken
+  );
   if (userId === undefined) {
     return reply.code(401).send(problem(401, "Sign in to list projects"));
   }
@@ -100,7 +103,8 @@ export async function handleCreateProject(
         dryRun: dryRunFromQuery(request.query),
         key: parsed.data.key,
         name: parsed.data.name,
-        simulateBranchInsertFailure: parsed.data.simulate_branch_insert_failure === true,
+        simulateBranchInsertFailure:
+          parsed.data.simulate_branch_insert_failure === true,
         userId: authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken),
         visibility: parsed.data.visibility,
         workspaceId
@@ -114,7 +118,10 @@ export async function handleCreateProjectDefaultWorkspace(
   reply: FastifyReply,
   deps: ProjectRouteDeps
 ) {
-  const userId = authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken);
+  const userId = authenticatedUserId(
+    request.headers.cookie,
+    deps.state.sessionsByToken
+  );
   if (userId === undefined) {
     return reply.code(401).send(problem(401, "Sign in to create a project"));
   }
@@ -141,7 +148,8 @@ export async function handleCreateProjectDefaultWorkspace(
         dryRun: dryRunFromQuery(request.query),
         key: parsed.data.key,
         name: parsed.data.name,
-        simulateBranchInsertFailure: parsed.data.simulate_branch_insert_failure === true,
+        simulateBranchInsertFailure:
+          parsed.data.simulate_branch_insert_failure === true,
         userId,
         visibility: parsed.data.visibility
       }
@@ -152,9 +160,15 @@ export async function handleCreateProjectDefaultWorkspace(
 export async function handleRenameProject(
   request: FastifyRequest,
   reply: FastifyReply,
-  deps: Pick<ProjectRouteDeps, "membershipStore" | "projectStore" | "state" | "workspaceStore">
+  deps: Pick<
+    ProjectRouteDeps,
+    "membershipStore" | "projectStore" | "state" | "workspaceStore"
+  >
 ) {
-  const userId = authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken);
+  const userId = authenticatedUserId(
+    request.headers.cookie,
+    deps.state.sessionsByToken
+  );
   if (userId === undefined) {
     return reply.code(401).send(problem(401, "Sign in to rename a project"));
   }
@@ -181,9 +195,15 @@ export async function handleRenameProject(
 export async function handleDeleteProject(
   request: FastifyRequest,
   reply: FastifyReply,
-  deps: Pick<ProjectRouteDeps, "membershipStore" | "projectStore" | "state" | "workspaceStore">
+  deps: Pick<
+    ProjectRouteDeps,
+    "membershipStore" | "projectStore" | "state" | "workspaceStore"
+  >
 ) {
-  const userId = authenticatedUserId(request.headers.cookie, deps.state.sessionsByToken);
+  const userId = authenticatedUserId(
+    request.headers.cookie,
+    deps.state.sessionsByToken
+  );
   if (userId === undefined) {
     return reply.code(401).send(problem(401, "Sign in to delete a project"));
   }

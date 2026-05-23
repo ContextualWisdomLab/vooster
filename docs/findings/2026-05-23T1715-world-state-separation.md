@@ -2,7 +2,9 @@
 title: "Separate world-state checks from the code-contract chain"
 created_at: 2026-05-23T17:15:00Z
 priority: P1
-resolved: partial
+resolved: true
+resolved_by:
+  - edfdbe3
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
@@ -59,12 +61,12 @@ The four gates below already implement
 i.e. the harness already recognized them as a different category. The
 default just hadn't been flipped.
 
-| Gate | What it checks | External dependency |
-| ---- | -------------- | ------------------- |
-| `goals/2-shippable.gates.sh` B3 | `docker compose -f docker-compose.prod.yml build/up` succeeds | Docker daemon, network |
-| `goals/3-managed-db.gates.sh` B4 | Image persists signup data through external Postgres | Docker daemon, pg image, ephemeral network |
-| `goals/8-web-readonly-viewer.gates.sh` E3 | Latest Vercel production deployment is `● Ready` | Vercel API, deploy state at the moment of the check |
-| `goals/8-web-readonly-viewer.gates.sh` E4 | Vercel project is GitHub-linked | Vercel API |
+| Gate                                      | What it checks                                                | External dependency                                 |
+| ----------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| `goals/2-shippable.gates.sh` B3           | `docker compose -f docker-compose.prod.yml build/up` succeeds | Docker daemon, network                              |
+| `goals/3-managed-db.gates.sh` B4          | Image persists signup data through external Postgres          | Docker daemon, pg image, ephemeral network          |
+| `goals/8-web-readonly-viewer.gates.sh` E3 | Latest Vercel production deployment is `● Ready`              | Vercel API, deploy state at the moment of the check |
+| `goals/8-web-readonly-viewer.gates.sh` E4 | Vercel project is GitHub-linked                               | Vercel API                                          |
 
 CI already skips all four. The only context running them was
 local iteration / pre-push.
@@ -84,7 +86,7 @@ along. No invariant is lost — every world-state gate is preserved in
 its `.gates.sh` and re-enabled by flipping the env var.
 
 Per `docs/goal-design.md §5`, this is **case (b) Loosen invariant** at
-the *chain* level, but the underlying invariants are intact and
+the _chain_ level, but the underlying invariants are intact and
 re-runnable. Commit message should be
 `refactor(harness): default SKIP_DEEP=1; world-state checks move off
 the per-iteration chain`.
@@ -94,7 +96,7 @@ the per-iteration chain`.
 The follow-on work is a real scheduled mechanism for (II). Sketch:
 
 - New script `scripts/world-check.sh` — runs `VSPEC_GATES_SKIP_DEEP=0
-  bash scripts/completion-check.sh` plus any additional release-time
+bash scripts/completion-check.sh` plus any additional release-time
   checks. Honest failure semantics: exit non-zero only when a check
   fails reproducibly (e.g. two runs 30 s apart both fail), not on a
   single flake.
@@ -143,7 +145,7 @@ Concretely:
 
 If a check genuinely needs both (e.g. "the recorded vercel project
 name in `apps/web/vercel.ts` matches what Vercel actually has") — the
-*file* half lives in `*.gates.sh`, the *Vercel* half lives in
+_file_ half lives in `*.gates.sh`, the _Vercel_ half lives in
 `world-check.sh`.
 
 ## Open question
@@ -157,3 +159,23 @@ latter: catches a class of "you pushed but Vercel is mid-failure" at
 the moment most likely to be the developer's fault. Default to the
 former; revisit if the deploy job's failure semantics are slow enough
 that developers want a heads-up at push time.
+
+## Resolution
+
+Resolved on 2026-05-23.
+
+- Added `scripts/world-check.sh`, which runs the full suite with
+  `VSPEC_GATES_SKIP_DEEP=0` and reports failure only after two consecutive
+  failed runs.
+- Added `.github/workflows/world-health.yml` on daily cron plus
+  `workflow_dispatch`. The workflow installs dependencies, runs
+  `world-check.sh`, uploads the log, and opens or updates a rolling GitHub issue
+  named `World health check failed` when the retry also fails.
+- Updated `docs/goal-design.md` to make the default deterministic chain and the
+  scheduled world-state path explicit.
+
+Verification:
+
+- `bash -n scripts/world-check.sh`
+- `bash scripts/check-ci.sh`
+- `bash scripts/completion-check.sh`

@@ -15,7 +15,8 @@ export function blockingLock(
   if (requestedType === "HARD") {
     return lock;
   }
-  return requestedType === "SEMANTIC" && (lock.mode === "SEMANTIC" || lock.mode === "HARD")
+  return requestedType === "SEMANTIC" &&
+    (lock.mode === "SEMANTIC" || lock.mode === "HARD")
     ? lock
     : undefined;
 }

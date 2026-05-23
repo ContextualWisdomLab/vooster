@@ -1,17 +1,12 @@
 import { problem } from "./signup-support.js";
 
 export function editorOwnerInviteProblem() {
-  return problem(
-    403,
-    "Only workspace owners can invite owners",
-    {},
-    [
-      {
-        command: "vspec member invite --role editor",
-        reason: "Invite the teammate as an editor or ask a workspace owner."
-      }
-    ]
-  );
+  return problem(403, "Only workspace owners can invite owners", {}, [
+    {
+      command: "vspec member invite --role editor",
+      reason: "Invite the teammate as an editor or ask a workspace owner."
+    }
+  ]);
 }
 
 export function alreadyMemberProblem() {
@@ -29,17 +24,12 @@ export function alreadyMemberProblem() {
 }
 
 export function invitationExpiredProblem() {
-  return problem(
-    410,
-    "Invitation has expired",
-    { code: "invitation_expired" },
-    [
-      {
-        command: "vspec member invite",
-        reason: "Ask a workspace owner for a fresh invitation."
-      }
-    ]
-  );
+  return problem(410, "Invitation has expired", { code: "invitation_expired" }, [
+    {
+      command: "vspec member invite",
+      reason: "Ask a workspace owner for a fresh invitation."
+    }
+  ]);
 }
 
 export function emailMismatchProblem() {

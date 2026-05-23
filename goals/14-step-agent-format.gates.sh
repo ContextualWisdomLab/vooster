@@ -164,7 +164,7 @@ else
   for token in \
     "agent step add" \
     "agent step edit" \
-    "runCli([" \
+    "runCli(" \
     '"step"' \
     "--format=agent" \
     "VSPEC_CONFIG_PATH" \

@@ -30,7 +30,11 @@ afterAll(async () => {
 
 describe("UC-006 - Define a stakeholder", () => {
   test("MAIN: project member defines a stakeholder with an initial revision", async () => {
-    const setup = await createProject("Stakeholder Project", "stakeholder-project", "stub-stakeholder-owner");
+    const setup = await createProject(
+      "Stakeholder Project",
+      "stakeholder-project",
+      "stub-stakeholder-owner"
+    );
 
     const response = await createStakeholder(setup, {
       description: "Owns the checkout business outcome.",
@@ -56,7 +60,11 @@ describe("UC-006 - Define a stakeholder", () => {
   });
 
   test("3a: duplicate active stakeholder name returns existing guidance", async () => {
-    const setup = await createProject("Duplicate Stakeholder", "duplicate-stakeholder", "stub-stakeholder-dup");
+    const setup = await createProject(
+      "Duplicate Stakeholder",
+      "duplicate-stakeholder",
+      "stub-stakeholder-dup"
+    );
     const first = await createStakeholder(setup, {
       name: "Product Manager",
       type: "INTERNAL"
@@ -80,7 +88,11 @@ describe("UC-006 - Define a stakeholder", () => {
   });
 
   test("4a: invalid stakeholder type lists valid values", async () => {
-    const setup = await createProject("Invalid Stakeholder", "invalid-stakeholder", "stub-stakeholder-type");
+    const setup = await createProject(
+      "Invalid Stakeholder",
+      "invalid-stakeholder",
+      "stub-stakeholder-type"
+    );
     const response = await createStakeholder(setup, {
       name: "Compliance",
       type: "LEGAL"
@@ -93,7 +105,11 @@ describe("UC-006 - Define a stakeholder", () => {
   });
 
   test("1a: attaching stakeholder to a step explains actor distinction", async () => {
-    const setup = await createProject("Misuse Stakeholder", "misuse-stakeholder", "stub-stakeholder-misuse");
+    const setup = await createProject(
+      "Misuse Stakeholder",
+      "misuse-stakeholder",
+      "stub-stakeholder-misuse"
+    );
     const response = await createStakeholder(setup, {
       attach_to_step: true,
       name: "Customer",
@@ -110,7 +126,11 @@ describe("UC-006 - Define a stakeholder", () => {
   });
 
   test("*a: archived project workspace aborts stakeholder creation", async () => {
-    const setup = await createProject("Archived Stakeholder", "archived-stakeholder", "stub-stakeholder-archive");
+    const setup = await createProject(
+      "Archived Stakeholder",
+      "archived-stakeholder",
+      "stub-stakeholder-archive"
+    );
     await server.fetch(`/__test/workspaces/${setup.workspaceId}/archive`, {
       method: "POST"
     });
@@ -139,11 +159,14 @@ async function createStakeholder(
 
 async function createProject(name: string, slug: string, code: string) {
   const signedUp = await signup(name, slug, code);
-  const response = await server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
-    body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
-  });
+  const response = await server.fetch(
+    `/v1/workspaces/${signedUp.workspaceId}/projects`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
+      body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
+    }
+  );
   const body = (await response.json()) as ProjectResponse;
   return { ...signedUp, projectId: body.project.id };
 }
@@ -159,7 +182,10 @@ async function signup(name: string, slug: string, code: string) {
   const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
     headers: { Cookie: start.headers.get("set-cookie") ?? "" }
   });
-  const body = (await callback.json()) as { user: { id: string }; workspace: { id: string } };
+  const body = (await callback.json()) as {
+    user: { id: string };
+    workspace: { id: string };
+  };
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
     userId: body.user.id,

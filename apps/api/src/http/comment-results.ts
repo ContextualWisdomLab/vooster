@@ -2,7 +2,10 @@ import type { FastifyReply } from "fastify";
 import type { CommentCommandResult } from "../application/comments.js";
 import type { StoredComment } from "../domain/entities/index.js";
 import {
-  commentWriteFailedProblem, emptyBodyProblem, missingUseCaseProblem, notOwnerProblem
+  commentWriteFailedProblem,
+  emptyBodyProblem,
+  missingUseCaseProblem,
+  notOwnerProblem
 } from "./comment-problems.js";
 import { problem } from "./signup-support.js";
 import type { StoredUseCase } from "../domain/entities/index.js";
@@ -19,7 +22,9 @@ export function sendCommentResult(reply: FastifyReply, result: CommentCommandRes
     case "EMPTY_BODY":
       return reply.code(422).send(emptyBodyProblem());
     case "FORBIDDEN":
-      return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
+      return reply
+        .code(403)
+        .send(problem(403, "Contact the workspace owner for access"));
     case "LISTED":
       return reply.send({ comments: result.comments });
     case "NOT_OWNER":

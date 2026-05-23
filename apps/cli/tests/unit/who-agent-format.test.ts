@@ -77,7 +77,9 @@ describe("who --format=agent", () => {
     expect(envelope.data.locks).toEqual([]);
     expect(envelope.data.merge_requests).toEqual([]);
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toContain("vspec session start --intent");
+    expect(envelope.suggested_next_actions.at(0)?.command).toContain(
+      "vspec session start --intent"
+    );
   });
 
   test("human who", async () => {
@@ -106,11 +108,16 @@ describe("who --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function whoFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -164,7 +171,7 @@ function emptyWhoBody() {
     merge_requests: [],
     sessions: [],
     suggested_next_actions: [
-      { command: "vspec session start --intent \"...\" --pin WHO-001" }
+      { command: 'vspec session start --intent "..." --pin WHO-001' }
     ],
     usecase: {
       key: "WHO-001"

@@ -21,29 +21,19 @@ export function sendWhoResult(reply: FastifyReply, result: WhoIsWorkingResult) {
 }
 
 function missingUseCaseProblem(usecaseId: string) {
-  return problem(
-    404,
-    "Use case not found",
-    { key_format: "KEY-NNN" },
-    [
-      {
-        command: `vspec usecase search ${usecaseId}`,
-        reason: "Search for the intended use case key."
-      }
-    ]
-  );
+  return problem(404, "Use case not found", { key_format: "KEY-NNN" }, [
+    {
+      command: `vspec usecase search ${usecaseId}`,
+      reason: "Search for the intended use case key."
+    }
+  ]);
 }
 
 function workspaceMembershipProblem() {
-  return problem(
-    403,
-    "Workspace membership required",
-    {},
-    [
-      {
-        command: "vspec workspace list",
-        reason: "Choose a workspace you can access."
-      }
-    ]
-  );
+  return problem(403, "Workspace membership required", {}, [
+    {
+      command: "vspec workspace list",
+      reason: "Choose a workspace you can access."
+    }
+  ]);
 }

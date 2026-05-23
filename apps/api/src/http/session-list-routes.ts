@@ -2,7 +2,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { listSessionSnapshot } from "../application/session-list.js";
 import {
-  sendSessionListResult, sessionListEvent, workspaceMembershipProblem
+  sendSessionListResult,
+  sessionListEvent,
+  workspaceMembershipProblem
 } from "./session-list-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -99,16 +101,13 @@ async function sessionSnapshot(
     reply.code(400).send(problem(400, "Invalid session list request"));
     return undefined;
   }
-  return listSessionSnapshot(
-    deps,
-    {
-      projectId: parsed.data.project_id,
-      status: parsed.data.status,
-      targetUserId: parsed.data.user_id,
-      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken),
-      workspaceId: parsed.data.workspace_id
-    }
-  );
+  return listSessionSnapshot(deps, {
+    projectId: parsed.data.project_id,
+    status: parsed.data.status,
+    targetUserId: parsed.data.user_id,
+    userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken),
+    workspaceId: parsed.data.workspace_id
+  });
 }
 
 async function ageSessionHeartbeat(
@@ -116,7 +115,9 @@ async function ageSessionHeartbeat(
   reply: FastifyReply,
   workSessionStore: WorkSessionStore
 ) {
-  const session = await workSessionStore.findWorkSessionById(sessionIdFrom(request.params));
+  const session = await workSessionStore.findWorkSessionById(
+    sessionIdFrom(request.params)
+  );
   const parsed = heartbeatSchema.safeParse(request.body);
   if (session === undefined || !parsed.success) {
     return reply.code(404).send(problem(404, "Session not found"));

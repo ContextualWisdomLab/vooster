@@ -35,7 +35,9 @@ describe("merge resolve --format=agent", () => {
     stubFetch(mergeResolveBody());
     const lines: string[] = [];
 
-    await runMerge(mergeFlags({ format: "agent" }), "resolve", "merge-1", (line) => lines.push(line));
+    await runMerge(mergeFlags({ format: "agent" }), "resolve", "merge-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     expect(stdout).not.toContain("Merge request ");
@@ -47,7 +49,9 @@ describe("merge resolve --format=agent", () => {
     expect(envelope.data.source_branch.id).toBe("branch-1");
     expect(envelope.context.branch).toBe("feature/resolve-refund");
     expect(envelope.context.revision).toBe("revision-2");
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec usecase show RSV-001");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+      "vspec usecase show RSV-001"
+    );
     expect(envelope.warnings).toEqual([]);
   });
 
@@ -55,7 +59,9 @@ describe("merge resolve --format=agent", () => {
     stubFetch(mergeResolveBody({ newRevisions: [] }));
     const lines: string[] = [];
 
-    await runMerge(mergeFlags({ format: "agent" }), "resolve", "merge-1", (line) => lines.push(line));
+    await runMerge(mergeFlags({ format: "agent" }), "resolve", "merge-1", (line) =>
+      lines.push(line)
+    );
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope(stdout);
@@ -80,11 +86,16 @@ describe("merge resolve --format=agent", () => {
 });
 
 function stubFetch(body: unknown): void {
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({
-    headers: new Headers(),
-    json: () => Promise.resolve(body),
-    ok: true
-  } as Response)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response)
+    )
+  );
 }
 
 function mergeFlags(overrides: Record<string, string> = {}): Record<string, string> {
@@ -120,9 +131,7 @@ function mergeResolveBody(overrides: { newRevisions?: Array<{ id: string }> } = 
       name: "feature/resolve-refund",
       status: "MERGED"
     },
-    suggested_next_actions: [
-      { command: "vspec usecase show RSV-001" }
-    ]
+    suggested_next_actions: [{ command: "vspec usecase show RSV-001" }]
   };
 }
 

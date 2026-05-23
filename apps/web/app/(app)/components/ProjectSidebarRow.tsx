@@ -51,10 +51,7 @@ export function ProjectSidebarRow({
             <Pencil />
             Rename
           </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={() => onDelete(project)}
-          >
+          <DropdownMenuItem variant="destructive" onSelect={() => onDelete(project)}>
             <Trash2 />
             Delete
           </DropdownMenuItem>

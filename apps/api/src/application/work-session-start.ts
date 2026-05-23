@@ -75,7 +75,7 @@ export async function startWorkSession(
 ): Promise<StartWorkSessionResult> {
   if (
     input.userId === undefined ||
-    await deps.membershipStore.membershipForProject(input.projectId, input.userId) ===
+    (await deps.membershipStore.membershipForProject(input.projectId, input.userId)) ===
       undefined
   ) {
     return { status: "FORBIDDEN" };
@@ -131,9 +131,9 @@ async function resolvePins(
   projectId: string,
   keys: string[]
 ): Promise<
-  PinnedUseCases |
-  { holder: string; key: string; status: "HARD_LOCKED" } |
-  { key: string; status: "ARCHIVED_PIN" | "MISSING_PIN" }
+  | PinnedUseCases
+  | { holder: string; key: string; status: "HARD_LOCKED" }
+  | { key: string; status: "ARCHIVED_PIN" | "MISSING_PIN" }
 > {
   const usecases = await deps.useCaseStore.listUseCases(projectId);
   const resolved: StoredUseCase[] = [];
@@ -167,7 +167,8 @@ async function pinnedRevisions(
   const revisions: Record<string, string> = {};
   for (const usecase of usecases) {
     revisions[usecase.id] =
-      (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id;
+      (await revisionStore.latestRevision(usecase.id))?.id ??
+      usecase.current_revision_id;
   }
   return revisions;
 }
@@ -262,7 +263,9 @@ function unknownAgentWarning(rawAgentType: string) {
 }
 
 function agentTypeFor(value: string): StoredAgentType {
-  return knownAgentTypes.has(value as StoredAgentType) ? (value as StoredAgentType) : "OTHER";
+  return knownAgentTypes.has(value as StoredAgentType)
+    ? (value as StoredAgentType)
+    : "OTHER";
 }
 
 function idFrom(deps: Pick<StartWorkSessionDeps, "idFactory">): string {

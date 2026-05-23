@@ -92,7 +92,12 @@ describe("Goal 2 persistence matrix — authoring cluster", () => {
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "goal-owner");
     const project = await createProject(first.url, signup, "Goal Matrix", "GOAL");
-    const actor = await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const actor = await createActor(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Customer"
+    );
     const goal = await createGoal(
       first.url,
       signup.sessionCookie,
@@ -105,7 +110,12 @@ describe("Goal 2 persistence matrix — authoring cluster", () => {
 
     const second = await bootServer(databaseUrl);
     const loggedIn = await login(second.url, "goal-owner");
-    const listed = await listGoals(second.url, loggedIn.sessionCookie, project.id, actor.id);
+    const listed = await listGoals(
+      second.url,
+      loggedIn.sessionCookie,
+      project.id,
+      actor.id
+    );
 
     await second.stop();
 
@@ -183,7 +193,12 @@ describe("Goal 2 persistence matrix — authoring cluster", () => {
     const first = await bootServer(databaseUrl);
     const signup = await signupWorkspace(first.url, "project-owner");
     const project = await createProject(first.url, signup, "Project Matrix", "PROJ");
-    const actor = await createActor(first.url, signup.sessionCookie, project.id, "Customer");
+    const actor = await createActor(
+      first.url,
+      signup.sessionCookie,
+      project.id,
+      "Customer"
+    );
     const goal = await createGoal(
       first.url,
       signup.sessionCookie,

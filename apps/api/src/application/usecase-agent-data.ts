@@ -14,6 +14,8 @@ export async function agentData(
     },
     scenarios: await Promise.all(
       (await deps.scenarioStore.listScenarios(usecase.id)).map(async (scenario) => ({
+        condition: scenario.condition,
+        extension_point: scenario.extension_point,
         id: scenario.id,
         steps: await Promise.all(
           (await deps.stepStore.listSteps(scenario.id)).map(async (step) => ({

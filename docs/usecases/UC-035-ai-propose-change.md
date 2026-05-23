@@ -18,8 +18,8 @@ primary_actor: ai-coding-agent
 
 ## Stakeholders and Interests
 
-- **AI Coding Agent**: produces a fully-analyzed preview before any commit, learning the blast radius of its proposed change without mutating state. _(Protected by: steps 4–6 and extension *a.)_
-- **Developer / PM**: retains a human-in-the-loop checkpoint for every NON_COSMETIC change, with severity and impact pre-computed. _(Protected by: step 7 and extension 6a.)_
+- **AI Coding Agent**: produces a fully-analyzed preview before any commit, learning the blast radius of its proposed change without mutating state. _(Protected by: steps 4–6 and extension \*a.)_
+- **Developer / PM**: retains a human-in-the-loop checkpoint for every NON*COSMETIC change, with severity and impact pre-computed. *(Protected by: step 7 and extension 6a.)\_
 - **Other Active Sessions**: are explicitly listed in the `impact.affected_sessions` array when their pinned revisions are touched, so the human knows whom to coordinate with. _(Protected by: step 5 and Success Guarantee.)_
 - **Vooster**: enforces "no write without preview" — every commit must reference a still-valid `preview_id`, structurally preventing agents from skipping impact analysis. _(Protected by: extensions 7a and 7b.)_
 
@@ -52,10 +52,10 @@ The agent runs `vspec change propose --usecase <KEY-NNN> --base-revision <rev> -
 - 4a2. **System** suggests `vspec usecase show <KEY> --format=agent` to re-read and `vspec change propose` again against the fresh base.
 - (Outcome: FAILURE — use case ends; no preview is persisted.)
 
-### *a. The preview has expired (older than 15 minutes) when commit is attempted
+### \*a. The preview has expired (older than 15 minutes) when commit is attempted
 
-- *a1. **System** detects `expires_at < now()` on the referenced `ChangePreview`.
-- *a2. **System** returns 410 (Gone) with `vspec change propose` as a suggested next action to regenerate.
+- \*a1. **System** detects `expires_at < now()` on the referenced `ChangePreview`.
+- \*a2. **System** returns 410 (Gone) with `vspec change propose` as a suggested next action to regenerate.
 - (Outcome: FAILURE — use case ends; no commit.)
 
 ### 7a. `commit` is called with no matching `preview_id`

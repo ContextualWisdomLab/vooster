@@ -64,9 +64,9 @@ The user invokes `vspec login` (which redirects to the GitHub device-flow start 
 - 6a3. **Developer / PM** resubmits with a different slug.
 - (Outcome: PARTIAL — rejoins main at step 5; User has been authenticated but not yet committed.)
 
-### *a. Network failure to GitHub at any auth step
+### \*a. Network failure to GitHub at any auth step
 
-- *a1. **System** logs the upstream error and returns a 502 with `suggested_next_actions` pointing to retry.
+- \*a1. **System** logs the upstream error and returns a 502 with `suggested_next_actions` pointing to retry.
 - (Outcome: FAILURE — use case ends; no partial state persists.)
 
 ## Success Guarantee

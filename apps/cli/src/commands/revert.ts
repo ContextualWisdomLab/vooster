@@ -1,7 +1,12 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { optionalFlag, requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import {
+  optionalFlag,
+  requiredArgument,
+  requiredFlag,
+  resolveContextFlag
+} from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type RevertCliFlags = {
@@ -92,14 +97,20 @@ export async function runRevert(
   const body = response.body as RevertResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: {
-        revision: body.revision.id
-      },
-      suggested_next_actions: body.suggested_next_actions,
-      warnings: body.warnings ?? []
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: {
+            revision: body.revision.id
+          },
+          suggested_next_actions: body.suggested_next_actions,
+          warnings: body.warnings ?? []
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 

@@ -1,7 +1,7 @@
 import { Args, Command, Flags } from "@oclif/core";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
+import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
 
 type BranchCliFlags = {
@@ -57,7 +57,12 @@ export class BranchCommand extends Command {
   override async run(): Promise<void> {
     const parsed = await this.parse(BranchCommand);
 
-    await runBranch(parsed.flags, parsed.args.action, parsed.args.name, this.log.bind(this));
+    await runBranch(
+      parsed.flags,
+      parsed.args.action,
+      parsed.args.name,
+      this.log.bind(this)
+    );
   }
 }
 
@@ -94,10 +99,16 @@ async function createBranch(
   const body = response.body as BranchCreateResponse;
 
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({
-      data: body,
-      context: { branch: body.branch.name }
-    }), null, 2));
+    writeLine(
+      JSON.stringify(
+        buildAgentEnvelope({
+          data: body,
+          context: { branch: body.branch.name }
+        }),
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -105,8 +116,12 @@ async function createBranch(
   writeLine(`Name ${body.branch.name}`);
   writeLine(`Status ${body.branch.status}`);
   writeLine(`Owner ${body.branch.owner_type}`);
-  writeLine(`Base revisions ${String(Object.keys(body.branch.base_revision_ids).length)}`);
-  writeLine(`Head revisions ${String(Object.keys(body.branch.head_revision_ids).length)}`);
+  writeLine(
+    `Base revisions ${String(Object.keys(body.branch.base_revision_ids).length)}`
+  );
+  writeLine(
+    `Head revisions ${String(Object.keys(body.branch.head_revision_ids).length)}`
+  );
   for (const warning of body.warnings ?? []) {
     writeLine(`Warning ${warning.type} ${warning.merge_request_id}`);
   }
@@ -123,7 +138,7 @@ function branchCreateFlagsFrom(
     apiUrl: resolveContextFlag(flags, "api-url"),
     from: flags.from ?? "main",
     name: requiredArgument(name, "branch-name"),
-    projectId: requiredFlag(flags, "project-id"),
+    projectId: resolveContextFlag(flags, "project-id"),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }

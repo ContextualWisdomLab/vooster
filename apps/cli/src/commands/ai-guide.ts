@@ -73,7 +73,10 @@ function aiGuideFlagsFrom(flags: AiGuideFlags): ParsedAiGuideFlags {
   };
 }
 
-function optionalFlag(values: AiGuideFlags, name: keyof AiGuideFlags): string | undefined {
+function optionalFlag(
+  values: AiGuideFlags,
+  name: keyof AiGuideFlags
+): string | undefined {
   const value = values[name];
   if (typeof value !== "string" || value.trim() === "") {
     return undefined;

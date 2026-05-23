@@ -16,7 +16,12 @@ type UseCase = {
   title: string;
 };
 type UseCaseResponse = {
-  revision: { entity_id: string; entity_type: string; id: string; version_number: number };
+  revision: {
+    entity_id: string;
+    entity_type: string;
+    id: string;
+    version_number: number;
+  };
   suggested_next_actions: Array<{ command: string; reason: string }>;
   usecase: UseCase;
 };
@@ -39,7 +44,12 @@ afterAll(async () => {
 
 describe("UC-009 - Author a use case from scratch", () => {
   test("MAIN: create a draft use case with defaults and first revision", async () => {
-    const setup = await createProject(server, "Author UseCase", "author-usecase", "stub-author-usecase");
+    const setup = await createProject(
+      server,
+      "Author UseCase",
+      "author-usecase",
+      "stub-author-usecase"
+    );
     const actor = await createActor(server, setup, "Customer");
 
     const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
@@ -82,7 +92,12 @@ describe("UC-009 - Author a use case from scratch", () => {
   });
 
   test("2a: non-verb title requires force override", async () => {
-    const setup = await createProject(server, "Weak UseCase", "weak-usecase", "stub-weak-usecase");
+    const setup = await createProject(
+      server,
+      "Weak UseCase",
+      "weak-usecase",
+      "stub-weak-usecase"
+    );
     await createActor(server, setup, "Customer");
 
     const rejected = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
@@ -113,7 +128,12 @@ describe("UC-009 - Author a use case from scratch", () => {
   });
 
   test("3b: unknown primary actor returns actor guidance", async () => {
-    const setup = await createProject(server, "Unknown Actor", "unknown-actor", "stub-unknown-actor");
+    const setup = await createProject(
+      server,
+      "Unknown Actor",
+      "unknown-actor",
+      "stub-unknown-actor"
+    );
 
     const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
       method: "POST",
@@ -136,7 +156,12 @@ describe("UC-009 - Author a use case from scratch", () => {
   });
 
   test("5c: key collision retries with next available key", async () => {
-    const setup = await createProject(server, "Collision UseCase", "collision-usecase", "stub-collision-usecase");
+    const setup = await createProject(
+      server,
+      "Collision UseCase",
+      "collision-usecase",
+      "stub-collision-usecase"
+    );
     await createActor(server, setup, "Customer");
 
     const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
@@ -159,8 +184,18 @@ describe("UC-009 - Author a use case from scratch", () => {
   });
 
   test("*a: unauthorized requester gets access guidance without consuming key", async () => {
-    const owner = await createProject(server, "Owned UseCase", "owned-usecase", "stub-owned-usecase");
-    const outsider = await createProject(server, "Other UseCase", "other-usecase", "stub-other-usecase");
+    const owner = await createProject(
+      server,
+      "Owned UseCase",
+      "owned-usecase",
+      "stub-owned-usecase"
+    );
+    const outsider = await createProject(
+      server,
+      "Other UseCase",
+      "other-usecase",
+      "stub-other-usecase"
+    );
     await createActor(server, owner, "Customer");
 
     const forbidden = await server.fetch(`/v1/projects/${owner.projectId}/usecases`, {

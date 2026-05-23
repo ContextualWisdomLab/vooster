@@ -51,7 +51,11 @@ describe("Goal 2 persistence matrix — session cluster", () => {
 
     const second = await bootServer(databaseUrl);
     const loggedIn = await login(second.url, "work-session-owner");
-    const listed = await listSessions(second.url, loggedIn.sessionCookie, signup.workspaceId);
+    const listed = await listSessions(
+      second.url,
+      loggedIn.sessionCookie,
+      signup.workspaceId
+    );
 
     await second.stop();
 
@@ -109,12 +113,7 @@ describe("Goal 2 persistence matrix — session cluster", () => {
       "Reviews a scenario workflow",
       "Customer"
     );
-    await createStakeholder(
-      first.url,
-      signup.sessionCookie,
-      project.id,
-      "Operations"
-    );
+    await createStakeholder(first.url, signup.sessionCookie, project.id, "Operations");
     await addStakeholderInterest(
       first.url,
       signup.sessionCookie,
@@ -170,7 +169,11 @@ describe("Goal 2 persistence matrix — session cluster", () => {
       usecase.id,
       "Operations"
     );
-    const scenario = await createMainScenario(first.url, signup.sessionCookie, usecase.id);
+    const scenario = await createMainScenario(
+      first.url,
+      signup.sessionCookie,
+      usecase.id
+    );
     const step = await createStep(
       first.url,
       signup.sessionCookie,
@@ -196,8 +199,9 @@ describe("Goal 2 persistence matrix — session cluster", () => {
         }>;
       };
     };
-    const persistedScenario = (shownBody.data?.scenarios ?? [])
-      .find((entry) => entry.id === scenario.id);
+    const persistedScenario = (shownBody.data?.scenarios ?? []).find(
+      (entry) => entry.id === scenario.id
+    );
     expect(persistedScenario?.steps ?? []).toContainEqual({
       action: step.action,
       actor: "Customer",

@@ -4,7 +4,11 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 
 import type { SyncPushFile, SyncPushResponse } from "./sync.js";
 
-export async function writeSyncFile(root: string, path: string, content: string): Promise<void> {
+export async function writeSyncFile(
+  root: string,
+  path: string,
+  content: string
+): Promise<void> {
   const absolutePath = resolve(root, path);
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content);
@@ -50,7 +54,10 @@ async function markdownEntry(dir: string, entry: Dirent): Promise<string[]> {
   return entry.isFile() && entry.name.endsWith(".md") ? [path] : [];
 }
 
-async function localSyncFile(root: string, absolutePath: string): Promise<SyncPushFile> {
+async function localSyncFile(
+  root: string,
+  absolutePath: string
+): Promise<SyncPushFile> {
   const content = await readFile(absolutePath, "utf8");
   return {
     base_revision: baseRevisionFrom(content),
@@ -79,7 +86,11 @@ async function applySyncResult(
   }
   const file = files.find((candidate) => candidate.path === result.path);
   if (file !== undefined && result.status === "OK") {
-    await writeSyncFile(root, result.path, replaceRevision(file.content, result.current_revision));
+    await writeSyncFile(
+      root,
+      result.path,
+      replaceRevision(file.content, result.current_revision)
+    );
   }
 }
 

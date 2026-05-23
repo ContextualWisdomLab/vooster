@@ -103,11 +103,13 @@ describe("startWorkSession", () => {
   });
 });
 
-function depsFor(options: {
-  lockMode?: "HARD" | "SEMANTIC" | "SOFT";
-  savedBranches?: StoredSpecBranch[];
-  savedSessions?: StoredWorkSession[];
-} = {}) {
+function depsFor(
+  options: {
+    lockMode?: "HARD" | "SEMANTIC" | "SOFT";
+    savedBranches?: StoredSpecBranch[];
+    savedSessions?: StoredWorkSession[];
+  } = {}
+) {
   const savedBranches = options.savedBranches ?? [];
   const savedSessions = options.savedSessions ?? [];
   let id = 0;

@@ -9,11 +9,11 @@ design decision here favors discoverability over brevity.
 
 ## Output Formats
 
-| Flag                 | Audience               | Notes                                              |
-| -------------------- | ---------------------- | -------------------------------------------------- |
-| (default) `--format=human` | Humans            | Tables, colors, emoji, next-action hints.          |
-| `--format=json`      | Scripts                | Pure JSON. No prose.                               |
-| `--format=agent`     | AI coding agents       | JSON + `suggested_next_actions[]` + `context`.      |
+| Flag                       | Audience         | Notes                                          |
+| -------------------------- | ---------------- | ---------------------------------------------- |
+| (default) `--format=human` | Humans           | Tables, colors, emoji, next-action hints.      |
+| `--format=json`            | Scripts          | Pure JSON. No prose.                           |
+| `--format=agent`           | AI coding agents | JSON + `suggested_next_actions[]` + `context`. |
 
 Global flags:
 
@@ -584,15 +584,15 @@ Fix recommendations:
 
 ## Exit Codes
 
-| Code | Meaning                                       |
-| ---- | --------------------------------------------- |
-| 0    | Success                                       |
-| 1    | Generic error                                 |
-| 2    | Validation / misuse                           |
-| 3    | Authentication / authorization failure        |
-| 4    | Optimistic concurrency / lock conflict        |
-| 5    | Network / server error                        |
-| 6    | Local config / state error                    |
+| Code | Meaning                                |
+| ---- | -------------------------------------- |
+| 0    | Success                                |
+| 1    | Generic error                          |
+| 2    | Validation / misuse                    |
+| 3    | Authentication / authorization failure |
+| 4    | Optimistic concurrency / lock conflict |
+| 5    | Network / server error                 |
+| 6    | Local config / state error             |
 
 All exit codes are stable across CLI versions.
 

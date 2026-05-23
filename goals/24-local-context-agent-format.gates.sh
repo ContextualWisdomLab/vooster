@@ -229,7 +229,7 @@ else
   fi
   for token in \
     "agent local context lifecycle" \
-    "runCli([" \
+    "runCli(" \
     '"status"' \
     '"workspace"' \
     '"switch"' \

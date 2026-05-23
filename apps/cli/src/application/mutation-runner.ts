@@ -42,7 +42,9 @@ export async function runMutation<TData>(
       withDryRun(input.path, input.dryRun === true),
       input.body
     );
-    const data = input.selectData ? input.selectData(responseBody) : (responseBody as TData);
+    const data = input.selectData
+      ? input.selectData(responseBody)
+      : (responseBody as TData);
     const affectedFiles: AffectedFile[] =
       input.dryRun === true || input.autoExport === undefined
         ? []

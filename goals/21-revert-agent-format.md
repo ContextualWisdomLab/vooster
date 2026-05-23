@@ -47,20 +47,20 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The revert agent-format debt is removed without clearing unrelated
-    debt.** The grouped `revert` and comment bullet is gone. A narrowed
-    comment-only bullet remains, and the `member invite` /
-    `api-key create|list|revoke` bullet remains.
+debt.** The grouped `revert` and comment bullet is gone. A narrowed
+comment-only bullet remains, and the `member invite` /
+`api-key create|list|revoke` bullet remains.
 
 A2. **Prior findings sentinels are retargeted without weakening their
-    invariant.** Goal 18, Goal 19, and Goal 20 gate and next-task files no
-    longer require the grouped `revert` and comment bullet and instead require
-    the narrowed comment-only bullet.
+invariant.** Goal 18, Goal 19, and Goal 20 gate and next-task files no
+longer require the grouped `revert` and comment bullet and instead require
+the narrowed comment-only bullet.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents revert agent format.** A marked
-    `### Agent Format — Revert` section exists under Versioning & Impact and
-    includes:
+`### Agent Format — Revert` section exists under Versioning & Impact and
+includes:
 
     ```
     vspec revert <KEY-NNN> --to <revision-id> --format=agent
@@ -74,51 +74,51 @@ B1. **`docs/07-cli-spec.md` documents revert agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/revert.ts` is discovered by the same source of
-    truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/revert.ts` to appear.
+truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/revert.ts` to appear.
 
 C2. **`revert` builds an agent envelope when requested.** The gate extracts
-    `runRevert` from `apps/cli/src/commands/revert.ts` and requires both
-    `format === "agent"` and `buildAgentEnvelope` inside that function.
+`runRevert` from `apps/cli/src/commands/revert.ts` and requires both
+`format === "agent"` and `buildAgentEnvelope` inside that function.
 
 C3. **`revert` maps revision context, guidance, and warnings.** `runRevert`
-    passes `body.suggested_next_actions` to `buildAgentEnvelope`, passes
-    `body.warnings ?? []` as warnings, and sets `context.revision` from
-    `body.revision.id`.
+passes `body.suggested_next_actions` to `buildAgentEnvelope`, passes
+`body.warnings ?? []` as warnings, and sets `context.revision` from
+`body.revision.id`.
 
 C4. **`revert` exposes the format flag.** `RevertCommand.flags` includes
-    `format: Flags.string()`.
+`format: Flags.string()`.
 
 ### Tranche D — Unit Proof
 
 D1. **Revert has focused unit proof for agent and human output.** The file
-    `apps/cli/tests/unit/revert-agent-format.test.ts` contains test titles
-    `agent revert` and `human revert`. The agent test invokes the command with
-    `--format=agent`, parses stdout as one JSON object before negative
-    substring assertions, asserts `format_version`, asserts
-    `data.usecase.current_revision_id`, asserts `data.revision.id`, asserts
-    `context.revision`, asserts copied `warnings`, asserts copied
-    `suggested_next_actions` by `vspec history` command substring, and asserts
-    `context.revision`, `data.revision.id`, and
-    `data.usecase.current_revision_id` are equal.
+`apps/cli/tests/unit/revert-agent-format.test.ts` contains test titles
+`agent revert` and `human revert`. The agent test invokes the command with
+`--format=agent`, parses stdout as one JSON object before negative
+substring assertions, asserts `format_version`, asserts
+`data.usecase.current_revision_id`, asserts `data.revision.id`, asserts
+`context.revision`, asserts copied `warnings`, asserts copied
+`suggested_next_actions` by `vspec history` command substring, and asserts
+`context.revision`, `data.revision.id`, and
+`data.usecase.current_revision_id` are equal.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Revert has honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/revert-agent-format.test.ts` contains test
-    title `agent revert`, invokes `runCli([ "revert", ... ])` with
-    `--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, captures
-    the initial target revision before advancing the use case, advances the use
-    case through `addMainStepViaCli`, parses JSON, asserts `format_version`,
-    asserts `data.revision.id`, asserts `data.usecase.current_revision_id`,
-    asserts `context.revision`, asserts the returned revert revision differs
-    from the captured target revision, and asserts `suggested_next_actions`
-    includes a `vspec history` command.
+`apps/cli/tests/e2e-cli-honest/revert-agent-format.test.ts` contains test
+title `agent revert`, invokes `runCli([ "revert", ... ])` with
+`--format=agent`, uses `VSPEC_CONFIG_PATH`, does not call `fetch(`, captures
+the initial target revision before advancing the use case, advances the use
+case through `addMainStepViaCli`, parses JSON, asserts `format_version`,
+asserts `data.revision.id`, asserts `data.usecase.current_revision_id`,
+asserts `context.revision`, asserts the returned revert revision differs
+from the captured target revision, and asserts `suggested_next_actions`
+includes a `vspec history` command.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no revert-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no revert-agent entry.
 
 ### Tranche F — Rigor
 

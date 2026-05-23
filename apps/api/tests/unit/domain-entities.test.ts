@@ -13,7 +13,10 @@ const tsconfigPath = path.join(fixtureDir, "tsconfig.json");
 
 describe("domain entity vocabulary", () => {
   test("exports a Stored<Model> type for every Prisma model", async () => {
-    const schema = await readFile(path.join(root, "apps/api/prisma/schema.prisma"), "utf8");
+    const schema = await readFile(
+      path.join(root, "apps/api/prisma/schema.prisma"),
+      "utf8"
+    );
     const storedTypes = [...schema.matchAll(/^model\s+(\w+)/gm)].map(
       ([, model]) => `Stored${model ?? ""}`
     );
@@ -23,11 +26,15 @@ describe("domain entity vocabulary", () => {
     await writeFile(tsconfigPath, domainEntityTsconfig());
 
     try {
-      const result = await execFileAsync("npx", ["tsc", "-p", tsconfigPath, "--pretty", "false"], {
-        cwd: root,
-        env: process.env,
-        maxBuffer: 10 * 1024 * 1024
-      });
+      const result = await execFileAsync(
+        "npx",
+        ["tsc", "-p", tsconfigPath, "--pretty", "false"],
+        {
+          cwd: root,
+          env: process.env,
+          maxBuffer: 10 * 1024 * 1024
+        }
+      );
       expect(result.stderr).toBe("");
     } finally {
       await Promise.all([
@@ -42,7 +49,10 @@ function domainEntityTsconfig(): string {
   return `${JSON.stringify(
     {
       extends: "../../tsconfig.json",
-      include: ["domain-entity-imports.test-fixture.ts", "../../apps/api/src/domain/**/*.ts"]
+      include: [
+        "domain-entity-imports.test-fixture.ts",
+        "../../apps/api/src/domain/**/*.ts"
+      ]
     },
     null,
     2

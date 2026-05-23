@@ -23,9 +23,13 @@ try {
   }
 
   const sourceCli = resolve(binDir, "../src/index.ts");
-  const result = spawnSync(process.execPath, ["--import", require.resolve("tsx"), sourceCli, ...argv], {
-    stdio: "inherit"
-  });
+  const result = spawnSync(
+    process.execPath,
+    ["--import", require.resolve("tsx"), sourceCli, ...argv],
+    {
+      stdio: "inherit"
+    }
+  );
 
   if (result.error !== undefined) {
     logError(result.error.message);
@@ -36,5 +40,7 @@ try {
 }
 
 function isMissingBuiltCli(error) {
-  return error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND";
+  return (
+    error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND"
+  );
 }

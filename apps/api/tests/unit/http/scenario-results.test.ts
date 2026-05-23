@@ -1,15 +1,9 @@
-import type { FastifyReply } from "fastify";
 import { describe, expect, test } from "vitest";
 import {
   sendAddScenarioStepResult,
   sendCreateScenarioResult
 } from "../../../src/http/scenario-results.js";
-import type {
-  StoredRevision,
-  StoredScenario,
-  StoredStep,
-  StoredUseCase
-} from "../../../src/domain/entities/index.js";
+import { reply, revision, scenario, step } from "./scenario-results-fixtures.js";
 
 describe("scenario result responses", () => {
   test("serializes create scenario validation failures", () => {
@@ -28,6 +22,11 @@ describe("scenario result responses", () => {
         expectedStatus: 422,
         result: { status: "MISSING_STAKEHOLDER_INTEREST" as const },
         title: "Use case needs at least one stakeholder interest"
+      },
+      {
+        expectedStatus: 403,
+        result: { status: "FORBIDDEN" as const },
+        title: "Contact the workspace owner for access"
       },
       {
         expectedStatus: 404,
@@ -60,6 +59,26 @@ describe("scenario result responses", () => {
       suggested_extension_point: "1b"
     });
 
+    const duplicateMain = reply();
+    sendCreateScenarioResult(duplicateMain.fastifyReply, {
+      existingScenario: scenario(),
+      status: "DUPLICATE_MAIN_SUCCESS"
+    });
+    expect(duplicateMain.body).toMatchObject({
+      title: "MAIN_SUCCESS scenario already exists"
+    });
+
+    const outOfRange = reply();
+    sendCreateScenarioResult(outOfRange.fastifyReply, {
+      parentStepNumber: 10,
+      status: "EXTENSION_PARENT_OUT_OF_RANGE",
+      usecaseKey: "PAY-001"
+    });
+    expect(outOfRange.body).toMatchObject({
+      parent_step_number: 10,
+      title: "Extension parent step is out of range"
+    });
+
     const created = reply();
     sendCreateScenarioResult(created.fastifyReply, {
       defaultOutcome: true,
@@ -73,6 +92,15 @@ describe("scenario result responses", () => {
     expect(created.body).toMatchObject({
       warnings: [{ type: "DEFAULT_EXTENSION_OUTCOME" }]
     });
+
+    const createdWithoutWarning = reply();
+    sendCreateScenarioResult(createdWithoutWarning.fastifyReply, {
+      revision: revision(),
+      scenario: scenario(),
+      status: "CREATED",
+      steps: []
+    });
+    expect(createdWithoutWarning.body).not.toHaveProperty("warnings");
   });
 
   test("serializes add step failures and warnings", () => {
@@ -86,6 +114,19 @@ describe("scenario result responses", () => {
     expect(passive.body).toMatchObject({
       suggested_action: "Submits the order.",
       title: "Step action uses passive voice"
+    });
+
+    const passiveWithoutSuggestion = reply();
+    sendAddScenarioStepResult(passiveWithoutSuggestion.fastifyReply, {
+      status: "PASSIVE_ACTION"
+    });
+    expect(passiveWithoutSuggestion.body).toMatchObject({ suggested_action: "" });
+
+    const forbidden = reply();
+    sendAddScenarioStepResult(forbidden.fastifyReply, { status: "FORBIDDEN" });
+    expect(forbidden.statusCode).toBe(403);
+    expect(forbidden.body).toMatchObject({
+      title: "Contact the workspace owner for access"
     });
 
     const missing = reply();
@@ -107,83 +148,25 @@ describe("scenario result responses", () => {
     expect(added.body).toMatchObject({
       warnings: [{ type: "SCENARIO_OVER_NINE_STEPS" }]
     });
+
+    const addedWithoutWarning = reply();
+    sendAddScenarioStepResult(addedWithoutWarning.fastifyReply, {
+      overNineSteps: false,
+      revision: revision(),
+      scenarioSteps: [step()],
+      status: "STEP_ADDED",
+      step: step()
+    });
+    expect(addedWithoutWarning.body).not.toHaveProperty("warnings");
+
+    const unknownActor = reply();
+    sendAddScenarioStepResult(unknownActor.fastifyReply, {
+      knownActors: ["Customer"],
+      status: "UNKNOWN_STEP_ACTOR"
+    });
+    expect(unknownActor.body).toMatchObject({
+      known_actors: ["Customer"],
+      title: "Step actor is not registered"
+    });
   });
 });
-
-function reply() {
-  const captured: {
-    body?: unknown;
-    fastifyReply: FastifyReply;
-    send: (body: unknown) => unknown;
-    statusCode?: number;
-  } = {
-    fastifyReply: undefined as unknown as FastifyReply,
-    send: (body) => {
-      captured.body = body;
-      return body;
-    }
-  };
-  captured.fastifyReply = {
-    code: (statusCode: number) => {
-      captured.statusCode = statusCode;
-      return captured.fastifyReply;
-    },
-    send: captured.send
-  } as unknown as FastifyReply;
-  return captured;
-}
-
-function scenario(): StoredScenario {
-  return {
-    condition: null,
-    extension_point: null,
-    id: "scenario-1",
-    order_index: 0,
-    outcome: "SUCCESS",
-    parent_step_number: null,
-    type: "MAIN_SUCCESS",
-    usecase_id: "usecase-1"
-  };
-}
-
-function revision(): StoredRevision {
-  return {
-    change_summary: "Created scenario",
-    entity_id: "usecase-1",
-    entity_type: "USECASE",
-    id: "revision-1",
-    severity: "NON_BREAKING",
-    snapshot: usecase(),
-    version_number: 2
-  };
-}
-
-function usecase(): StoredUseCase {
-  return {
-    archived_at: null,
-    current_revision_id: "revision-1",
-    format: "BRIEF",
-    id: "usecase-1",
-    key: "PAY-001",
-    level: "USER_GOAL",
-    primary_actor_id: "actor-1",
-    priority: "P0",
-    project_id: "project-1",
-    scope: "Checkout",
-    status: "DRAFT",
-    title: "Places an order"
-  };
-}
-
-function step(): StoredStep {
-  return {
-    action: "Reviews the order.",
-    actor_id: "actor-1",
-    id: "step-1",
-    is_system_step: false,
-    notes: null,
-    order_index: 0,
-    scenario_id: "scenario-1",
-    step_number: 1
-  };
-}

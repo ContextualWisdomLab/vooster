@@ -70,7 +70,9 @@ function matchByStatus(status: number): ErrorCodeValue {
   return ErrorCode.INTERNAL;
 }
 
-function extractDetails(problem: ProblemBody | undefined): Record<string, unknown> | undefined {
+function extractDetails(
+  problem: ProblemBody | undefined
+): Record<string, unknown> | undefined {
   if (problem === undefined) {
     return undefined;
   }

@@ -46,15 +46,15 @@ cannot satisfy the goal.
 ### Tranche A — Findings Debt
 
 A1. **The change agent-format debt is removed without clearing unrelated
-    debt.** The `change propose` / `change commit` bullet is gone, while the
-    `lock release` / `lock renew` bullet remains and later goals may continue
-    narrowing the queue without reviving change debt.
+debt.** The `change propose` / `change commit` bullet is gone, while the
+`lock release` / `lock renew` bullet remains and later goals may continue
+narrowing the queue without reviving change debt.
 
 ### Tranche B — CLI Spec
 
 B1. **`docs/07-cli-spec.md` documents change agent format.** A marked
-    `### Agent Format — Changes` section exists under Versioning & Impact or an
-    additive Changes & Reviews section and includes examples for:
+`### Agent Format — Changes` section exists under Versioning & Impact or an
+additive Changes & Reviews section and includes examples for:
 
     ```
     vspec change propose --format=agent
@@ -69,50 +69,50 @@ B1. **`docs/07-cli-spec.md` documents change agent format.** A marked
 ### Tranche C — CLI Implementation
 
 C1. **`apps/cli/src/commands/change.ts` is discovered by the same source of
-    truth as Goal 7.** The gate runs
-    `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-    `apps/cli/src/commands/change.ts` to appear.
+truth as Goal 7.** The gate runs
+`grep -rl 'format === "agent"' apps/cli/src/commands` and requires
+`apps/cli/src/commands/change.ts` to appear.
 
 C2. **Both change handlers build an agent envelope.** The gate extracts
-    `proposeChange` and `commitChange` from
-    `apps/cli/src/commands/change.ts` and requires each body to contain both
-    `format === "agent"` and `buildAgentEnvelope`.
+`proposeChange` and `commitChange` from
+`apps/cli/src/commands/change.ts` and requires each body to contain both
+`format === "agent"` and `buildAgentEnvelope`.
 
 C3. **Scope stays on the two implemented change verbs.** The sorted
-    `action === "..."` branches in `change.ts` are exactly `commit propose`.
+`action === "..."` branches in `change.ts` are exactly `commit propose`.
 
 C4. **Agent envelopes preserve API guidance.** `proposeChange` passes
-    `body.suggested_next_actions` and `body.warnings` to `buildAgentEnvelope`;
-    `commitChange` passes `body.suggested_next_actions` and sets
-    `context.revision` from `body.revisions[0]?.revision_id ?? null`.
+`body.suggested_next_actions` and `body.warnings` to `buildAgentEnvelope`;
+`commitChange` passes `body.suggested_next_actions` and sets
+`context.revision` from `body.revisions[0]?.revision_id ?? null`.
 
 ### Tranche D — Unit Proof
 
 D1. **Change propose/commit have focused unit proof for agent and human
-    output.** The file `apps/cli/tests/unit/change-agent-format.test.ts`
-    contains test titles `agent change propose`, `agent change commit`,
-    `agent change commit without revisions`, `human change propose`, and
-    `human change commit`. Agent tests invoke commands with `--format=agent`,
-    parse JSON, assert `format_version`, assert `data.preview_id` or
-    `data.revisions[0].revision_id`, assert `data.revisions[0].entity_id`,
-    assert `context.revision`, assert copied `suggested_next_actions`, assert
-    copied warnings for propose, and assert no human-renderer tokens are mixed
-    into stdout.
+output.** The file `apps/cli/tests/unit/change-agent-format.test.ts`
+contains test titles `agent change propose`, `agent change commit`,
+`agent change commit without revisions`, `human change propose`, and
+`human change commit`. Agent tests invoke commands with `--format=agent`,
+parse JSON, assert `format_version`, assert `data.preview_id` or
+`data.revisions[0].revision_id`, assert `data.revisions[0].entity_id`,
+assert `context.revision`, assert copied `suggested_next_actions`, assert
+copied warnings for propose, and assert no human-renderer tokens are mixed
+into stdout.
 
 ### Tranche E — Honest E2E Proof
 
 E1. **Change propose/commit have honest E2E proof.** The file
-    `apps/cli/tests/e2e-cli-honest/change-agent-format.test.ts` contains test
-    title `agent change propose and commit`, invokes
-    `runCli([ "change", ... ])` with `--format=agent`, uses
-    `VSPEC_CONFIG_PATH`, does not call `fetch(`, parses JSON, and asserts the
-    same data/context keys as D1 against a real seeded use case. The test reads
-    the base revision from `usecase show --format=agent` via `context.revision`,
-    not `data.usecase.current_revision_id`.
+`apps/cli/tests/e2e-cli-honest/change-agent-format.test.ts` contains test
+title `agent change propose and commit`, invokes
+`runCli([ "change", ... ])` with `--format=agent`, uses
+`VSPEC_CONFIG_PATH`, does not call `fetch(`, parses JSON, and asserts the
+same data/context keys as D1 against a real seeded use case. The test reads
+the base revision from `usecase show --format=agent` via `context.revision`,
+not `data.usecase.current_revision_id`.
 
 E2. **The honest proof is verb-level and does not widen Goal 7's UC set.** The
-    new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
-    `goals/7-cli-spec-parity.gates.sh` contains no change-agent entry.
+new honest file is not named `UC-*.test.ts`, and `HONEST_UC_SET` in
+`goals/7-cli-spec-parity.gates.sh` contains no change-agent entry.
 
 ### Tranche F — Rigor
 

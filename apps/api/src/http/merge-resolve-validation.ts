@@ -21,8 +21,11 @@ export function uncoveredConflicts(
   conflicts: Array<Record<string, unknown>>,
   resolutions: MergeResolution[]
 ) {
-  return conflicts.filter((conflict) =>
-    !resolutions.some((resolution) => resolution.entity_id === String(conflict.entity_id))
+  return conflicts.filter(
+    (conflict) =>
+      !resolutions.some(
+        (resolution) => resolution.entity_id === String(conflict.entity_id)
+      )
   );
 }
 
@@ -40,7 +43,10 @@ export function staleBaseProblem(merge: StoredMergeRequest) {
   );
 }
 
-export function missingManualValueProblem(merge: StoredMergeRequest, resolution: MergeResolution) {
+export function missingManualValueProblem(
+  merge: StoredMergeRequest,
+  resolution: MergeResolution
+) {
   return problem(
     400,
     "Manual resolution requires a value",
@@ -90,7 +96,7 @@ export async function hardLockResolutionProblem(
       {
         command: `vspec who ${
           (await useCaseStore.findUseCaseWithProject(lock.usecase_id))?.usecase.key ??
-            lock.usecase_id
+          lock.usecase_id
         }`,
         reason: "Inspect the session holding the hard lock."
       }

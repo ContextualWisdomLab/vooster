@@ -33,6 +33,7 @@ export async function affectedSessionIds(
   workSessionStore: WorkSessionStore,
   usecaseId: string
 ): Promise<string[]> {
-  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
-    .map((session) => session.id);
+  return (await workSessionStore.listWorkSessionsForUseCase(usecaseId)).map(
+    (session) => session.id
+  );
 }

@@ -67,10 +67,12 @@ function staleGuide(cached: CachedAiGuide) {
       ...suggestedNextActions(),
       { command: "vspec ai-guide", reason: "Retry once connectivity returns." }
     ],
-    warnings: [{
-      type: "STALE_AI_GUIDE",
-      message: `Using cached guide ${cached.cli_version} because the current guide could not be fetched.`
-    }]
+    warnings: [
+      {
+        type: "STALE_AI_GUIDE",
+        message: `Using cached guide ${cached.cli_version} because the current guide could not be fetched.`
+      }
+    ]
   };
 }
 
@@ -131,8 +133,14 @@ Run vspec login, list projects, start a session with pinned use cases, fetch the
 
 function suggestedNextActions(): SuggestedNextAction[] {
   return [
-    { command: "vspec login", reason: "Authenticate before working with private specs." },
+    {
+      command: "vspec login",
+      reason: "Authenticate before working with private specs."
+    },
     { command: "vspec project list", reason: "Find the project to inspect." },
-    { command: "vspec session start", reason: "Pin the target use cases before editing." }
+    {
+      command: "vspec session start",
+      reason: "Pin the target use cases before editing."
+    }
   ];
 }

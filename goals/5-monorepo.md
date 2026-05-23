@@ -46,107 +46,107 @@ satisfy them.
 ### Tranche A — Workspace skeleton
 
 A1. **`pnpm-workspace.yaml` at the repo root declares `apps/*`.**
-    The gate parses the YAML and asserts the `packages:` list contains
-    `apps/*`. A `"workspaces"` field in `package.json` (npm-style) does
-    not satisfy this gate.
+The gate parses the YAML and asserts the `packages:` list contains
+`apps/*`. A `"workspaces"` field in `package.json` (npm-style) does
+not satisfy this gate.
 
 A2. **The root `package.json` is a workspace root, not a deployable
-    package.** It has `"private": true`, declares
-    `"packageManager": "pnpm@<version>"`, and lists no runtime
-    `dependencies`. The gate parses the JSON with `node -e`, not by
-    string-matching.
+package.** It has `"private": true`, declares
+`"packageManager": "pnpm@<version>"`, and lists no runtime
+`dependencies`. The gate parses the JSON with `node -e`, not by
+string-matching.
 
 A3. **`apps/` contains exactly four subdirectories: `api`, `cli`,
-    `web`, `www`.** The gate enumerates `find apps -maxdepth 1 -mindepth 1
+`web`, `www`.** The gate enumerates `find apps -maxdepth 1 -mindepth 1
     -type d` and compares the sorted basenames against the required
-    set. Extras fail just like omissions.
+set. Extras fail just like omissions.
 
 A4. **Every app has its own `package.json`** with `"name":
     "@vooster/<app>"` and `"private": true`. The gate iterates each
-    app's manifest.
+app's manifest.
 
 A5. **`pnpm-lock.yaml` is the only lockfile.** `package-lock.json`
-    and `yarn.lock` are gone. The gate fails if any two lockfiles
-    coexist.
+and `yarn.lock` are gone. The gate fails if any two lockfiles
+coexist.
 
 A6. **`pnpm install` has been run.** `node_modules/.pnpm` exists at the
-    repo root, proving pnpm — not npm — populated `node_modules`.
+repo root, proving pnpm — not npm — populated `node_modules`.
 
 ### Tranche B — API and CLI relocated
 
 B1. **The legacy root directories `src/`, `bin/`, `prisma/`, `tests/`
-    no longer exist at the repo root.** The gate iterates that list of
-    legacy paths and fails on any survivor. Contents have moved into
-    `apps/api/` and `apps/cli/`; nothing is duplicated.
+no longer exist at the repo root.** The gate iterates that list of
+legacy paths and fails on any survivor. Contents have moved into
+`apps/api/` and `apps/cli/`; nothing is duplicated.
 
 B2. **`apps/api/src/` owns every API layer.** For every entry in
-    `(domain, ports, application, infrastructure, http)`, the gate
-    asserts `apps/api/src/<layer>/` is a directory.
+`(domain, ports, application, infrastructure, http)`, the gate
+asserts `apps/api/src/<layer>/` is a directory.
 
 B3. **`apps/api/prisma/schema.prisma` exists.** The schema moved with
-    the API. The gate checks the file directly.
+the API. The gate checks the file directly.
 
 B4. **`apps/cli/` is a working CLI package**: `src/` plus
-    `bin/run.js` exist, and `apps/cli/package.json` declares
-    `"bin": { "vspec": "./bin/run.js" }`. The gate parses the
-    manifest's `bin` field.
+`bin/run.js` exist, and `apps/cli/package.json` declares
+`"bin": { "vspec": "./bin/run.js" }`. The gate parses the
+manifest's `bin` field.
 
 B5. **No file lives at both root `src/` and an `apps/<n>/src/`
-    location.** This is enforced even though B1 already kills root
-    `src/`; B5 catches the half-finished migration where one tree was
-    copied but not deleted.
+location.** This is enforced even though B1 already kills root
+`src/`; B5 catches the half-finished migration where one tree was
+copied but not deleted.
 
 B6. **Every app declares standard scripts** — `build`, `test`,
-    `typecheck`. The gate iterates the cartesian product of
-    `(api, cli, web, www) × (build, test, typecheck)` and reads each
-    `package.json` with `node -e`.
+`typecheck`. The gate iterates the cartesian product of
+`(api, cli, web, www) × (build, test, typecheck)` and reads each
+`package.json` with `node -e`.
 
-B7. **`pnpm --filter @vooster/api build` exits 0.** *(Enforced by
-    `goals/_meta.md` M.4 — the meta gate enumerates every app in
-    `apps/*` with a `build` script and runs it. This goal's gate does
-    not re-run the build.)*
+B7. **`pnpm --filter @vooster/api build` exits 0.** _(Enforced by
+`goals/_meta.md` M.4 — the meta gate enumerates every app in
+`apps/_`with a`build` script and runs it. This goal's gate does
+not re-run the build.)\*
 
-B8. **`pnpm --filter @vooster/cli build` exits 0.** *(Enforced by
-    `goals/_meta.md` M.4 — same enumeration as B7.)*
+B8. **`pnpm --filter @vooster/cli build` exits 0.** _(Enforced by
+`goals/_meta.md` M.4 — same enumeration as B7.)_
 
 ### Tranche C — Astro landing (`apps/www`)
 
 C1. **`apps/www/package.json` depends on `astro`.** The gate reads
-    `dependencies` + `devDependencies` and asserts the `astro` key
-    exists.
+`dependencies` + `devDependencies` and asserts the `astro` key
+exists.
 
 C2. **`apps/www/astro.config.mjs` (or `.ts`) exists.** Plain HTML
-    files do not count.
+files do not count.
 
 C3. **`apps/www/src/pages/index.astro` exists.** This is the landing
-    page entry.
+page entry.
 
 C4. **Every landing file is in Korean.** The gate iterates
-    `apps/www/src/pages/index.astro` plus every `*.astro` file under
-    `apps/www/src/components/` and requires at least one Hangul
-    character (U+AC00 – U+D7A3) per file. An English-only section file
-    fails the gate even if `index.astro` is Korean.
+`apps/www/src/pages/index.astro` plus every `*.astro` file under
+`apps/www/src/components/` and requires at least one Hangul
+character (U+AC00 – U+D7A3) per file. An English-only section file
+fails the gate even if `index.astro` is Korean.
 
-C5. **`pnpm --filter @vooster/www build` exits 0.** *(Enforced by
-    `goals/_meta.md` M.4 — the meta gate enumerates every app in
-    `apps/*` with a `build` script. Landing-page section composition is
-    intentionally left to the www app's own design iteration — the
-    monorepo goal only enforces that the app exists and has Korean copy
-    via C4; the build proof lives at the meta layer.)*
+C5. **`pnpm --filter @vooster/www build` exits 0.** _(Enforced by
+`goals/_meta.md` M.4 — the meta gate enumerates every app in
+`apps/_`with a`build` script. Landing-page section composition is
+intentionally left to the www app's own design iteration — the
+monorepo goal only enforces that the app exists and has Korean copy
+via C4; the build proof lives at the meta layer.)\*
 
 ### Tranche D — Meta: regression + rigor
 
 D1. **Every prior goal's gate suite still passes.** The gate iterates
-    `(0-init, 1-runnable, 2-shippable, 3-managed-db, 4-honest-boundaries)`
-    and runs each `goals/<n>-*.gates.sh`. Any failure fails Tranche D.
-    The expected work here is updating each prior gate script (and any
-    `scripts/check-*.sh` it calls) to point at the new
-    `apps/api/...`, `apps/api/prisma/...`, `apps/cli/...` paths. Do
-    *not* loosen prior assertions.
+`(0-init, 1-runnable, 2-shippable, 3-managed-db, 4-honest-boundaries)`
+and runs each `goals/<n>-*.gates.sh`. Any failure fails Tranche D.
+The expected work here is updating each prior gate script (and any
+`scripts/check-*.sh` it calls) to point at the new
+`apps/api/...`, `apps/api/prisma/...`, `apps/cli/...` paths. Do
+_not_ loosen prior assertions.
 
 D2. `scripts/check-gate-rigor.sh goals/5-monorepo.md` passes — the
-    universal claims in this file are matched by enumeration in the
-    gate script.
+universal claims in this file are matched by enumeration in the
+gate script.
 
 ## Scope Guards
 
@@ -166,11 +166,11 @@ Same as Goals 0–4 plus:
   and B5; do not introduce it.
 - **No English-only landing copy.** C4 iterates every section file;
   a single Korean string in `index.astro` does not satisfy it.
-- **No `eslint-disable boundaries/element-types` inside `apps/api`.**
+- **No `eslint-disable boundaries/dependencies` inside `apps/api`.**
   The goal-4 ESLint config still applies after the move; if a
   relocated import trips a boundary rule, fix the import.
 - **No skipping Tranche D regression.** If a prior `goals/<n>-*.gates.sh`
-  greps a path that no longer exists, *update the gate to the new path*.
+  greps a path that no longer exists, _update the gate to the new path_.
   Deleting the gate is forbidden.
 
 ## Mandatory First Step (every iteration)
@@ -188,7 +188,7 @@ linger.
 
 1. `AGENTS.md` — TDD protocol + commit shape.
 2. `docs/01-architecture.md` — the layered architecture continues to
-   apply *inside* `apps/api`; layer rules don't change because the
+   apply _inside_ `apps/api`; layer rules don't change because the
    files moved.
 3. `goals/5-monorepo.md` — this file.
 4. `docs/state/next-task.md`
@@ -236,7 +236,7 @@ linger.
 
 6. **Scaffold the Astro app (C1 + C2 + C3).**
    `pnpm create astro@latest apps/www -- --template minimal
-   --typescript strict --no-install --no-git`, then `pnpm install`.
+--typescript strict --no-install --no-git`, then `pnpm install`.
 
 7. **Author the Korean landing copy (C4).** Section composition is left
    to www's own iteration; just keep every `*.astro` file under

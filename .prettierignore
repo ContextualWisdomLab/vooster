@@ -1,0 +1,10 @@
+.astro
+.argos
+.claude
+.next
+.state
+.turbo
+coverage
+dist
+node_modules
+pnpm-lock.yaml

@@ -71,10 +71,10 @@ The developer/PM runs `vspec merge open <branch> [--into main] [--strategy fast-
 - 5a2. **System** rejects with 422 and suggests `vspec merge open <branch> --strategy squash`.
 - (Outcome: FAILURE — use case ends; MR is aborted before write.)
 
-### *a. Transactional failure during the write phase (step 6)
+### \*a. Transactional failure during the write phase (step 6)
 
-- *a1. **System** ensures the revision writes, `main.head_revision_ids` advance, MR status change, and branch status change happen in one transaction; on failure all four roll back together.
-- *a2. **System** returns exit code 5 with a retry hint; MR remains `OPEN`.
+- \*a1. **System** ensures the revision writes, `main.head_revision_ids` advance, MR status change, and branch status change happen in one transaction; on failure all four roll back together.
+- \*a2. **System** returns exit code 5 with a retry hint; MR remains `OPEN`.
 - (Outcome: FAILURE — use case ends; `main` is unchanged.)
 
 ## Success Guarantee

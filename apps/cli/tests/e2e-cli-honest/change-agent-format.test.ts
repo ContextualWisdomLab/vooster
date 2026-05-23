@@ -54,43 +54,49 @@ describe("honest CLI change --format=agent", () => {
 
   test("agent change propose and commit", async () => {
     const seed = await testSeed();
-    const shown = await expectOk(runCli([
-      "usecase",
-      "show",
-      seed.usecaseKey,
-      "--format=agent"
-    ], seed.env));
+    const shown = await expectOk(
+      runCli(["usecase", "show", seed.usecaseKey, "--format=agent"], seed.env)
+    );
     const usecase = expectAgentEnvelope<UsecaseAgentData>(shown.stdout);
     const baseRevision = usecase.context.revision;
     expect(baseRevision).toBeTypeOf("string");
     expect(usecase.data.title).toBeTypeOf("string");
 
-    const patchPath = patchFile(usecase.data.usecase.id, `${usecase.data.title} with audit trail`);
-    const previewResult = await expectOk(runCli([
-      "change",
-      "propose",
-      "--usecase",
-      seed.usecaseKey,
-      "--base-revision",
-      baseRevision ?? "",
-      "--patch",
-      patchPath,
-      "--format=agent"
-    ], seed.env));
+    const patchPath = patchFile(
+      usecase.data.usecase.id,
+      `${usecase.data.title} with audit trail`
+    );
+    const previewResult = await expectOk(
+      runCli(
+        [
+          "change",
+          "propose",
+          "--usecase",
+          seed.usecaseKey,
+          "--base-revision",
+          baseRevision ?? "",
+          "--patch",
+          patchPath,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const preview = expectAgentEnvelope<ChangePreviewData>(previewResult.stdout);
     expect(preview.data.preview_id).toBeTypeOf("string");
     expect(preview.context.revision).toBeNull();
-    expect(preview.suggested_next_actions.at(0)?.command).toContain("vspec change commit");
+    expect(preview.suggested_next_actions.at(0)?.command).toContain(
+      "vspec change commit"
+    );
 
-    const commitResult = await expectOk(runCli([
-      "change",
-      "commit",
-      "--preview-id",
-      preview.data.preview_id,
-      "--format=agent"
-    ], seed.env));
+    const commitResult = await expectOk(
+      runCli(
+        ["change", "commit", "--preview-id", preview.data.preview_id, "--format=agent"],
+        seed.env
+      )
+    );
     const committed = expectAgentEnvelope<ChangeCommitData>(commitResult.stdout);
     const firstRevision = firstCommittedRevision(committed);
     expect(firstRevision.entity_id).toBe(usecase.data.usecase.id);
@@ -111,11 +117,15 @@ function patchFile(usecaseId: string, title: string): string {
   const root = mkdtempSync(join(tmpdir(), "vspec-change-agent-"));
   tempRoots.push(root);
   const path = join(root, "patch.json");
-  writeFileSync(path, JSON.stringify({
-    entity_id: usecaseId,
-    entity_type: "USECASE",
-    fields: { title }
-  }), "utf8");
+  writeFileSync(
+    path,
+    JSON.stringify({
+      entity_id: usecaseId,
+      entity_type: "USECASE",
+      fields: { title }
+    }),
+    "utf8"
+  );
   return path;
 }
 

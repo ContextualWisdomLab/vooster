@@ -40,7 +40,10 @@ export async function deleteJson(
   return fetchJson(url, { headers, method: "DELETE" });
 }
 
-export async function fetchJson(url: URL | string, init: RequestInit): Promise<JsonResponse> {
+export async function fetchJson(
+  url: URL | string,
+  init: RequestInit
+): Promise<JsonResponse> {
   const response = await fetch(url, init);
   if (!response.ok) {
     throw new ApiError(response.status, await readErrorBody(response));

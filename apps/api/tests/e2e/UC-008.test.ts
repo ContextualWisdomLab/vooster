@@ -48,7 +48,12 @@ afterAll(async () => {
 
 describe("UC-008 - Promote a goal to a use case", () => {
   test("MAIN: promote an identified goal into a seeded use case", async () => {
-    const setup = await createProject(server, "Promote Goal", "promote-goal", "stub-promote-goal");
+    const setup = await createProject(
+      server,
+      "Promote Goal",
+      "promote-goal",
+      "stub-promote-goal"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Places an order");
 
@@ -90,7 +95,12 @@ describe("UC-008 - Promote a goal to a use case", () => {
   });
 
   test("2a: already promoted goal points to existing use case", async () => {
-    const setup = await createProject(server, "Promoted Twice", "promoted-twice", "stub-promoted-twice");
+    const setup = await createProject(
+      server,
+      "Promoted Twice",
+      "promoted-twice",
+      "stub-promoted-twice"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Requests a refund");
     const first = await server.fetch(`/v1/goals/${goal.id}/promote`, {
@@ -111,7 +121,12 @@ describe("UC-008 - Promote a goal to a use case", () => {
   });
 
   test("2b: rejected goal returns reopen guidance", async () => {
-    const setup = await createProject(server, "Rejected Goal", "rejected-goal", "stub-rejected-goal");
+    const setup = await createProject(
+      server,
+      "Rejected Goal",
+      "rejected-goal",
+      "stub-rejected-goal"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Cancels an order");
     await server.fetch(`/v1/goals/${goal.id}`, {
@@ -135,7 +150,12 @@ describe("UC-008 - Promote a goal to a use case", () => {
   });
 
   test("4a: weak title still promotes with edit warning", async () => {
-    const setup = await createProject(server, "Weak Title", "weak-title", "stub-weak-title");
+    const setup = await createProject(
+      server,
+      "Weak Title",
+      "weak-title",
+      "stub-weak-title"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Order status");
 
@@ -158,7 +178,12 @@ describe("UC-008 - Promote a goal to a use case", () => {
   });
 
   test("*a: creation failure leaves goal promotable", async () => {
-    const setup = await createProject(server, "Failed Promote", "failed-promote", "stub-failed-promote");
+    const setup = await createProject(
+      server,
+      "Failed Promote",
+      "failed-promote",
+      "stub-failed-promote"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Reviews a return");
     const failed = await server.fetch(`/v1/goals/${goal.id}/promote`, {

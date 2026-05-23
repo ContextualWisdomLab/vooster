@@ -11,7 +11,9 @@ export function createMemoryApiKeyStore(): ApiKeyStore {
 
     listApiKeysForWorkspace(workspaceId) {
       return Promise.resolve(
-        [...apiKeysById.values()].filter((apiKey) => apiKey.workspace_id === workspaceId)
+        [...apiKeysById.values()].filter(
+          (apiKey) => apiKey.workspace_id === workspaceId
+        )
       );
     },
 

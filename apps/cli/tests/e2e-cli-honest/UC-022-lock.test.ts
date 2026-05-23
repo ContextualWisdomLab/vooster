@@ -11,18 +11,23 @@ describe("UC-022 honest CLI - Lock a use case", () => {
         projectKey: "LCK",
         runCli
       });
-      const lock = await expectOk(runCli([
-        "lock",
-        seed.usecaseKey,
-        "--type",
-        "semantic",
-        "--reason",
-        "Agent is rewriting the success scenario.",
-        "--ttl",
-        "15",
-        "--session",
-        "session-main-lock"
-      ], seed.env));
+      const lock = await expectOk(
+        runCli(
+          [
+            "lock",
+            seed.usecaseKey,
+            "--type",
+            "semantic",
+            "--reason",
+            "Agent is rewriting the success scenario.",
+            "--ttl",
+            "15",
+            "--session",
+            "session-main-lock"
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(lock.stdout).toContain("Type SEMANTIC");

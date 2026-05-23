@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
-import { addStakeholderViaCli, expectOk, seedViaCli, type CliSeed } from "./cli-setup.js";
+import {
+  addStakeholderViaCli,
+  expectOk,
+  seedViaCli,
+  type CliSeed
+} from "./cli-setup.js";
 
 type ScenarioAgentEnvelope = {
   affected_files?: unknown[];
@@ -48,14 +53,19 @@ describe("honest CLI scenario add --format=agent", () => {
   });
 
   test("agent scenario add", async () => {
-    const result = await expectOk(runCli([
-      "scenario",
-      "add",
-      seed.usecaseKey,
-      "--type",
-      "main-success",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "scenario",
+          "add",
+          seed.usecaseKey,
+          "--type",
+          "main-success",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const envelope = expectAgentEnvelope(result.stdout);

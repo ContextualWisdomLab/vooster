@@ -67,7 +67,11 @@ async function createBranchReadyProject(apiUrl: string) {
   const projectResponse = await fetch(
     `${apiUrl}/v1/workspaces/${signedUp.workspaceId}/projects`,
     {
-      body: JSON.stringify({ key: "BRC", name: "Branch Create", visibility: "PRIVATE" }),
+      body: JSON.stringify({
+        key: "BRC",
+        name: "Branch Create",
+        visibility: "PRIVATE"
+      }),
       headers: {
         "Content-Type": "application/json",
         Cookie: signedUp.cookie
@@ -75,7 +79,7 @@ async function createBranchReadyProject(apiUrl: string) {
       method: "POST"
     }
   );
-  const projectBody = await projectResponse.json() as ProjectResponse;
+  const projectBody = (await projectResponse.json()) as ProjectResponse;
   await fetch(`${apiUrl}/v1/projects/${projectBody.project.id}/actors`, {
     body: JSON.stringify({
       aliases: ["Buyer"],
@@ -104,7 +108,7 @@ async function createBranchReadyProject(apiUrl: string) {
       method: "POST"
     }
   );
-  const useCaseBody = await useCaseResponse.json() as UseCaseResponse;
+  const useCaseBody = (await useCaseResponse.json()) as UseCaseResponse;
 
   return {
     cookie: signedUp.cookie,
@@ -126,7 +130,7 @@ async function signup(apiUrl: string) {
     },
     method: "POST"
   });
-  const startBody = await start.json() as OAuthStartResponse;
+  const startBody = (await start.json()) as OAuthStartResponse;
   const callbackUrl = new URL("/v1/auth/github/callback", apiUrl);
   callbackUrl.searchParams.set("code", "stub-cli-branch-owner");
   callbackUrl.searchParams.set("state", startBody.state);
@@ -136,7 +140,7 @@ async function signup(apiUrl: string) {
       Cookie: start.headers.get("set-cookie") ?? ""
     }
   });
-  const callbackBody = await callback.json() as SignupResponse;
+  const callbackBody = (await callback.json()) as SignupResponse;
 
   return {
     cookie: callback.headers.get("set-cookie") ?? "",

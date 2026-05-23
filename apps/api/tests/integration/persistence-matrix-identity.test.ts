@@ -127,7 +127,11 @@ describe("Goal 2 persistence matrix — identity cluster", () => {
     const databaseUrl = await registry.allocate();
     const first = await bootServer(databaseUrl);
     await signupWorkspaceWithSlug(first.url, "workspace-slug-owner", "persisted-slug");
-    await signupWorkspaceWithSlug(first.url, "workspace-slug-owner-2", "persisted-slug-2");
+    await signupWorkspaceWithSlug(
+      first.url,
+      "workspace-slug-owner-2",
+      "persisted-slug-2"
+    );
 
     await first.stop();
 
@@ -193,7 +197,9 @@ describe("Goal 2 persistence matrix — identity cluster", () => {
         workspace_id?: unknown;
       }>;
     };
-    const persisted = (listedBody.api_keys ?? []).find((entry) => entry.id === apiKey.id);
+    const persisted = (listedBody.api_keys ?? []).find(
+      (entry) => entry.id === apiKey.id
+    );
     expect(persisted).toMatchObject({
       id: apiKey.id,
       name: "restart key",

@@ -101,8 +101,16 @@ echo "[4.A2] ESLint passes with zero violations"
 # structural acknowledgement — meta is the single source of truth.
 echo "    ✓ pass (enforced by goals/_meta.gates.sh M.2)"
 
-echo "[4.A3] boundaries/element-types is deny-by-default"
-if grep -E 'default:\s*"disallow"' eslint.config.js >/dev/null 2>&1; then
+echo "[4.A3] boundaries/dependencies is deny-by-default"
+if node --input-type=module >/dev/null 2>&1 <<'NODE'
+const config = (await import(`file://${process.cwd()}/eslint.config.js`)).default;
+const boundaryConfig = config.find((entry) => entry.rules?.["boundaries/dependencies"]);
+const options = boundaryConfig?.rules?.["boundaries/dependencies"]?.[1];
+if (options?.default !== "disallow") {
+  process.exit(1);
+}
+NODE
+then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — eslint.config.js still has default: \"allow\" (or no default)"
@@ -123,33 +131,81 @@ REQUIRED_ALLOWS=(
   ""
 )
 
-MISSING_ARROWS=()
-EXTRA_ARROWS=()
-i=0
-for layer in "${REQUIRED_LAYERS[@]}"; do
-  required="${REQUIRED_ALLOWS[$i]}"
-  i=$((i + 1))
-  block=$(awk -v L="\"$layer\"" '
-    $0 ~ "from:[[:space:]]*"L { capture=1 }
-    capture { buf = buf $0 " " }
-    capture && /\]/ && /allow/ { print buf; exit }
-  ' eslint.config.js)
-  for r in $required; do
-    if ! echo "$block" | grep -qE "\"$r\""; then
-      MISSING_ARROWS+=("$layer → $r")
-    fi
-  done
-  if [ -z "$required" ] && echo "$block" | grep -qE 'allow:\s*\['; then
-    EXTRA_ARROWS+=("$layer → (any)")
-  fi
-done
+ALLOW_AUDIT_LOG=$(mktemp)
+if node --input-type=module >"$ALLOW_AUDIT_LOG" 2>&1 <<'NODE'
+const expected = new Map([
+  ["cli", ["http", "application", "ports", "domain"]],
+  ["http", ["application", "ports", "domain"]],
+  ["application", ["ports", "domain"]],
+  ["infrastructure", ["ports", "domain"]],
+  ["ports", ["domain"]],
+  ["domain", []]
+]);
 
-if [ "${#MISSING_ARROWS[@]}" -eq 0 ] && [ "${#EXTRA_ARROWS[@]}" -eq 0 ]; then
+const config = (await import(`file://${process.cwd()}/eslint.config.js`)).default;
+const boundaryConfig = config.find((entry) => entry.rules?.["boundaries/dependencies"]);
+const options = boundaryConfig?.rules?.["boundaries/dependencies"]?.[1];
+
+if (options?.default !== "disallow" || !Array.isArray(options.rules)) {
+  throw new Error("boundaries/dependencies must be deny-by-default with explicit rules");
+}
+
+const actual = new Map();
+for (const rule of options.rules) {
+  const from = rule.from?.type;
+  const allowedTypes = rule.allow?.to?.type;
+  if (typeof from !== "string") {
+    throw new Error("Every boundary rule must declare from.type");
+  }
+  const normalized =
+    typeof allowedTypes === "string" ? [allowedTypes] :
+    Array.isArray(allowedTypes) ? allowedTypes :
+    [];
+  actual.set(from, normalized);
+}
+
+const sort = (values) => [...values].sort();
+const missing = [];
+const extra = [];
+
+for (const [layer, required] of expected) {
+  const configured = actual.get(layer) ?? [];
+  for (const target of required) {
+    if (!configured.includes(target)) {
+      missing.push(`${layer} -> ${target}`);
+    }
+  }
+  for (const target of configured) {
+    if (!required.includes(target)) {
+      extra.push(`${layer} -> ${target}`);
+    }
+  }
+  if (sort(configured).join("\0") !== sort(required).join("\0")) {
+    actual.delete(layer);
+  }
+}
+
+for (const layer of actual.keys()) {
+  if (!expected.has(layer)) {
+    extra.push(`${layer} -> (any)`);
+  }
+}
+
+if (missing.length > 0 || extra.length > 0) {
+  if (missing.length > 0) {
+    console.error(`missing: ${missing.join(", ")}`);
+  }
+  if (extra.length > 0) {
+    console.error(`extra: ${extra.join(", ")}`);
+  }
+  process.exit(1);
+}
+NODE
+then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — allow-list drift from docs/01-architecture.md:"
-  [ "${#MISSING_ARROWS[@]}" -gt 0 ] && printf '        missing: %s\n' "${MISSING_ARROWS[@]}"
-  [ "${#EXTRA_ARROWS[@]}" -gt 0 ] && printf '        extra:   %s\n' "${EXTRA_ARROWS[@]}"
+  sed 's/^/        /' "$ALLOW_AUDIT_LOG"
   PASS=false
 fi
 
@@ -157,13 +213,14 @@ echo "[4.A5] ESLint actually rejects upward imports and accepts allowed arrows"
 # Honest check: drive ESLint through its Node API in a *separate*
 # process (so the TS Project build does not compete with vitest workers
 # the way the old apps/api/tests/unit/boundaries-config.test.ts did)
-# and lint two fixture files — one forbidden upward import and one
-# allowed architecture arrow. The configured boundaries/element-types
+# and lint two in-memory fixtures using existing file paths for layer
+# context. One fixture is a forbidden upward import and one is an
+# allowed architecture arrow. The configured boundaries/dependencies
 # rule must produce exactly one error for the forbidden case and zero
 # for the allowed case. This catches the failure mode where 4.A4's
 # allow-list text is correct but the rule itself is misconfigured.
-if node --input-type=module >/tmp/4-a5-eslint.log 2>&1 <<'NODE'
-import { unlink, writeFile } from "node:fs/promises";
+A5_LOG=$(mktemp)
+if node --input-type=module >"$A5_LOG" 2>&1 <<'NODE'
 import { ESLint } from "eslint";
 
 const cases = [
@@ -173,45 +230,36 @@ const cases = [
       "export type BoundaryFixture = StoredUser;"
     ].join("\n"),
     expectedBoundaryErrors: 1,
-    filePath: "apps/api/src/ports/__boundary_rejects_http.fixture.ts"
+    filePath: "apps/api/src/ports/user-store.ts"
   },
   {
     code: [
-      'import type { StartGithubOAuthResult } from "../application/signup.ts";',
+      'import type { StartGithubOAuthResult } from "../../../api/src/application/signup.ts";',
       "export type BoundaryFixture = StartGithubOAuthResult;"
     ].join("\n"),
     expectedBoundaryErrors: 0,
-    filePath: "apps/cli/src/__boundary_allows_application.fixture.ts"
+    filePath: "apps/cli/src/commands/login.ts"
   }
 ];
 
 let failures = 0;
-try {
-  await Promise.all(
-    cases.map((c) => writeFile(c.filePath, c.code))
-  );
+const eslint = new ESLint({ cwd: process.cwd() });
+const results = await Promise.all(
+  cases.map((c) => eslint.lintText(c.code, { filePath: c.filePath }))
+);
 
-  const eslint = new ESLint({ cwd: process.cwd() });
-  const results = await Promise.all(
-    cases.map((c) => eslint.lintFiles([c.filePath]))
+for (let i = 0; i < cases.length; i++) {
+  const c = cases[i];
+  const result = results[i];
+  const boundaryErrors = (result?.[0]?.messages ?? []).filter(
+    (m) => m.ruleId === "boundaries/dependencies"
   );
-
-  for (let i = 0; i < cases.length; i++) {
-    const c = cases[i];
-    const boundaryErrors = (results[i][0]?.messages ?? []).filter(
-      (m) => m.ruleId === "boundaries/element-types"
+  if (boundaryErrors.length !== c.expectedBoundaryErrors) {
+    failures += 1;
+    console.error(
+      `  ${c.filePath}: expected ${c.expectedBoundaryErrors} boundary error(s), got ${boundaryErrors.length}`
     );
-    if (boundaryErrors.length !== c.expectedBoundaryErrors) {
-      failures += 1;
-      console.error(
-        `  ${c.filePath}: expected ${c.expectedBoundaryErrors} boundary error(s), got ${boundaryErrors.length}`
-      );
-    }
   }
-} finally {
-  await Promise.all(
-    cases.map((c) => unlink(c.filePath).catch(() => undefined))
-  );
 }
 
 if (failures > 0) {
@@ -221,7 +269,7 @@ NODE
 then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — see /tmp/4-a5-eslint.log"
+  echo "    ✗ fail — see $A5_LOG"
   PASS=false
 fi
 

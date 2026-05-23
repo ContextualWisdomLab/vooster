@@ -22,8 +22,17 @@ afterAll(async () => {
 
 describe("UC-011 - Write the main success scenario", () => {
   test("MAIN: create main success scenario and append contiguous steps", async () => {
-    const { actor: customer, scenario: scenarioBody, setup, usecase } =
-      await createScenarioReadyUseCase(server, "Main Scenario", "main-scenario", "stub-main-scenario");
+    const {
+      actor: customer,
+      scenario: scenarioBody,
+      setup,
+      usecase
+    } = await createScenarioReadyUseCase(
+      server,
+      "Main Scenario",
+      "main-scenario",
+      "stub-main-scenario"
+    );
     const clerk = await createActor(server, setup, "Fulfillment Clerk");
     expectMainScenarioCreated(scenarioBody, usecase.id);
 
@@ -54,7 +63,9 @@ describe("UC-011 - Write the main success scenario", () => {
       step_number: 2
     });
     expect(secondStepBody.revision.version_number).toBe(5);
-    expect(secondStepBody.scenario_steps.map((step) => step.step_number)).toEqual([1, 2]);
+    expect(secondStepBody.scenario_steps.map((step) => step.step_number)).toEqual([
+      1, 2
+    ]);
     expect(secondStepBody.scenario_steps.map((step) => step.action)).toEqual([
       "Places an order.",
       "Reviews the order."
@@ -100,7 +111,9 @@ describe("UC-011 - Write the main success scenario", () => {
       actor: "Customer"
     });
     expect(empty.status).toBe(400);
-    expect(((await empty.json()) as ProblemResponse).title).toMatch(/step action is required/i);
+    expect(((await empty.json()) as ProblemResponse).title).toMatch(
+      /step action is required/i
+    );
 
     const passive = await addStep(server, scenario.scenario.id, setup.cookie, {
       action: "Order is submitted.",
@@ -188,7 +201,8 @@ describe("UC-011 - Write the main success scenario", () => {
     expect(body.scenario_steps).toHaveLength(10);
     expect(body.warnings).toContainEqual({
       type: "SCENARIO_OVER_NINE_STEPS",
-      message: "Scenarios over nine steps usually indicate the use case should be split."
+      message:
+        "Scenarios over nine steps usually indicate the use case should be split."
     });
   });
 });

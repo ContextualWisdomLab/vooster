@@ -169,6 +169,14 @@ classify_source() {
       test_if_present "$file" || mark_unknown "$file"
       return
       ;;
+    apps/api/tests/unit/*/*-fixtures.ts|apps/api/tests/unit/*/*-data.ts|apps/api/tests/unit/*/*-helpers.ts)
+      base="${file%.ts}"
+      base="${base%-fixtures}"
+      base="${base%-data}"
+      base="${base%-helpers}"
+      test_if_present "${base}.test.ts" || mark_unknown "$file"
+      return
+      ;;
     goals/*.md|goals/*.gates.sh|goals/*.next-task.sh)
       base="${file#goals/}"
       name="${base%.md}"
@@ -276,7 +284,7 @@ if [ "${#PRETTIER_FILES[@]}" -gt 0 ]; then
 fi
 
 if [ "${#ESLINT_FILES[@]}" -gt 0 ]; then
-  run_cmd pnpm exec eslint --max-warnings 0 "${ESLINT_FILES[@]}" || FAIL=1
+  run_cmd pnpm exec eslint --max-warnings 0 --no-warn-ignored "${ESLINT_FILES[@]}" || FAIL=1
 fi
 
 if [ "${#VITEST_TESTS[@]}" -gt 0 ]; then

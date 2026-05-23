@@ -56,15 +56,20 @@ describe("honest CLI project create --format=agent", () => {
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     const createdKey = "PCZ";
 
-    const created = await expectOk(runCli([
-      "project",
-      "create",
-      "--name",
-      "Created Project",
-      "--key",
-      createdKey,
-      "--format=agent"
-    ], seed.env));
+    const created = await expectOk(
+      runCli(
+        [
+          "project",
+          "create",
+          "--name",
+          "Created Project",
+          "--key",
+          createdKey,
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
     const createEnvelope = expectAgentEnvelope<ProjectCreateData>(created.stdout);
     expect(createEnvelope.context).toEqual(defaultContext());
     expect(createEnvelope.data.project.id.length).toBeGreaterThan(0);
@@ -72,10 +77,7 @@ describe("honest CLI project create --format=agent", () => {
     expect(createEnvelope.data.default_branch.name).toBe("main");
     expect(createEnvelope.data.recommended_next_command).toBe("vspec actor define");
 
-    const status = await expectOk(runCli([
-      "status",
-      "--format=agent"
-    ], seed.env));
+    const status = await expectOk(runCli(["status", "--format=agent"], seed.env));
     const statusEnvelope = expectAgentEnvelope<StatusData>(status.stdout);
     expect(statusEnvelope.data.config.current_project_key).toBe(createdKey);
   });

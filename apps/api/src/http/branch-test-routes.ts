@@ -1,7 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  advanceBranchExtensionRevision, advanceBranchUseCaseRevision, advanceMainExtensionRevision, advanceMainUseCaseRevision
+  advanceBranchExtensionRevision,
+  advanceBranchUseCaseRevision,
+  advanceMainExtensionRevision,
+  advanceMainUseCaseRevision
 } from "../application/branch-test-helpers.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
@@ -28,14 +31,16 @@ export function registerBranchTestRoutes(
   useCaseStore: UseCaseStore
 ) {
   const deps = { branchStore, projectStore, revisionStore, useCaseStore };
-  app.post("/__test/branches/:branchId/usecases/:usecaseId/revisions", (request, reply) =>
-    advanceBranchUseCase(request, reply, deps)
+  app.post(
+    "/__test/branches/:branchId/usecases/:usecaseId/revisions",
+    (request, reply) => advanceBranchUseCase(request, reply, deps)
   );
   app.post("/__test/usecases/:usecaseId/revisions", (request, reply) =>
     advanceMainUseCase(request, reply, deps)
   );
-  app.post("/__test/branches/:branchId/usecases/:usecaseId/extensions", (request, reply) =>
-    advanceBranchExtension(request, reply, deps)
+  app.post(
+    "/__test/branches/:branchId/usecases/:usecaseId/extensions",
+    (request, reply) => advanceBranchExtension(request, reply, deps)
   );
   app.post("/__test/usecases/:usecaseId/extensions", (request, reply) =>
     advanceMainExtension(request, reply, deps)
@@ -61,7 +66,10 @@ async function advanceBranchUseCase(
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch revision request"));
   }
-  const result = await advanceBranchUseCaseRevision(deps, { ...parsed.data, ...params });
+  const result = await advanceBranchUseCaseRevision(deps, {
+    ...parsed.data,
+    ...params
+  });
   return sendAdvanceResult(reply, result, "Branch use case not found");
 }
 

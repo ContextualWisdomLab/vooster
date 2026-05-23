@@ -1,10 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  addScenarioStep as addScenarioStepUseCase, createScenario as createScenarioUseCase, type ScenarioAuthoringDeps
+  addScenarioStep as addScenarioStepUseCase,
+  createScenario as createScenarioUseCase,
+  type ScenarioAuthoringDeps
 } from "../application/scenario-authoring.js";
 import {
-  sendAddScenarioStepResult, sendCreateScenarioResult
+  sendAddScenarioStepResult,
+  sendCreateScenarioResult
 } from "./scenario-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -107,17 +110,14 @@ async function addStep(
     return reply.code(400).send(problem(400, "Step action is required"));
   }
 
-  const result = await addScenarioStepUseCase(
-    deps,
-    {
-      action: parsed.data.action,
-      actorName: parsed.data.actor,
-      dryRun: dryRunFromQuery(request.query),
-      force: parsed.data.force,
-      scenarioId,
-      userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
-    }
-  );
+  const result = await addScenarioStepUseCase(deps, {
+    action: parsed.data.action,
+    actorName: parsed.data.actor,
+    dryRun: dryRunFromQuery(request.query),
+    force: parsed.data.force,
+    scenarioId,
+    userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+  });
 
   return sendAddScenarioStepResult(reply, result);
 }

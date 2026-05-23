@@ -23,55 +23,70 @@ describe("honest CLI --format=agent write paths", () => {
   });
 
   test("agent actor create", async () => {
-    const result = await expectOk(runCli([
-      "actor",
-      "create",
-      "--project-id",
-      seed.projectId,
-      "--name",
-      "Support Agent",
-      "--type",
-      "SUPPORTING",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "actor",
+          "create",
+          "--project-id",
+          seed.projectId,
+          "--name",
+          "Support Agent",
+          "--type",
+          "SUPPORTING",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "actor");
   });
 
   test("agent stakeholder create", async () => {
-    const result = await expectOk(runCli([
-      "stakeholder",
-      "create",
-      "--project-id",
-      seed.projectId,
-      "--name",
-      "Operations",
-      "--type",
-      "INTERNAL",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "stakeholder",
+          "create",
+          "--project-id",
+          seed.projectId,
+          "--name",
+          "Operations",
+          "--type",
+          "INTERNAL",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "stakeholder");
   });
 
   test("agent goal create", async () => {
-    const result = await expectOk(runCli([
-      "goal",
-      "create",
-      "--project-id",
-      seed.projectId,
-      "--actor-id",
-      seed.actorId,
-      "--description",
-      "Reviews checkout status",
-      "--level",
-      "USER_GOAL",
-      "--priority",
-      "P1",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "goal",
+          "create",
+          "--project-id",
+          seed.projectId,
+          "--actor-id",
+          seed.actorId,
+          "--description",
+          "Reviews checkout status",
+          "--level",
+          "USER_GOAL",
+          "--priority",
+          "P1",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "goal");
@@ -79,13 +94,12 @@ describe("honest CLI --format=agent write paths", () => {
 
   test("agent goal list", async () => {
     await createGoal("Reviews order history");
-    const result = await expectOk(runCli([
-      "goal",
-      "list",
-      "--project-id",
-      seed.projectId,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        ["goal", "list", "--project-id", seed.projectId, "--format=agent"],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "actors");
@@ -93,29 +107,31 @@ describe("honest CLI --format=agent write paths", () => {
 
   test("agent goal promote", async () => {
     const goalId = await createGoal("Tracks shipment status");
-    const result = await expectOk(runCli([
-      "goal",
-      "promote",
-      goalId,
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(["goal", "promote", goalId, "--format=agent"], seed.env)
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "usecase");
   });
 
   test("agent usecase create", async () => {
-    const result = await expectOk(runCli([
-      "usecase",
-      "create",
-      "--project-id",
-      seed.projectId,
-      "--title",
-      "Reviews delivery address",
-      "--primary-actor",
-      "Customer",
-      "--format=agent"
-    ], seed.env));
+    const result = await expectOk(
+      runCli(
+        [
+          "usecase",
+          "create",
+          "--project-id",
+          seed.projectId,
+          "--title",
+          "Reviews delivery address",
+          "--primary-actor",
+          "Customer",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
 
     expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
     expectAgentEnvelope(result.stdout, "usecase");
@@ -123,20 +139,25 @@ describe("honest CLI --format=agent write paths", () => {
 });
 
 async function createGoal(description: string): Promise<string> {
-  const result = await expectOk(runCli([
-    "goal",
-    "create",
-    "--project-id",
-    seed.projectId,
-    "--actor-id",
-    seed.actorId,
-    "--description",
-    description,
-    "--level",
-    "USER_GOAL",
-    "--priority",
-    "P1"
-  ], seed.env));
+  const result = await expectOk(
+    runCli(
+      [
+        "goal",
+        "create",
+        "--project-id",
+        seed.projectId,
+        "--actor-id",
+        seed.actorId,
+        "--description",
+        description,
+        "--level",
+        "USER_GOAL",
+        "--priority",
+        "P1"
+      ],
+      seed.env
+    )
+  );
   const goalId = result.stdout.match(/Goal id ([^\s]+)/u)?.[1];
   expect(goalId).toBeDefined();
   return goalId as string;

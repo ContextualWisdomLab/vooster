@@ -38,12 +38,12 @@ vspec is runnable end-to-end such that all six conditions below hold:
 4. **CLI E2E.** `tests/e2e-cli/UC-XXX.test.ts` exists for every UC. Each test
    spawns the CLI as a child process against a real server bound to a random
    port and asserts the main success scenario succeeds. Extension flows can
-   stay in `tests/e2e/`. *(The "test passes" half is enforced by `goals/_meta.md`
-   M.3; this goal's gate enumerates file presence only.)*
+   stay in `tests/e2e/`. _(The "test passes" half is enforced by `goals/_meta.md`
+   M.3; this goal's gate enumerates file presence only.)_
 5. **Layered.** `src/http/` contains only routing + validation. Business logic
    lives in `src/application/`, domain types in `src/domain/`, adapters in
    `src/infrastructure/`, port interfaces in `src/ports/`. `eslint-plugin-
-   boundaries` (already installed) is configured and clean.
+boundaries` (already installed) is configured and clean.
    `scripts/check-layers.sh` passes.
 6. **No goal-0 regression.** `goals/0-init.gates.sh` still passes. Existing
    E2E tests in `tests/e2e/` remain green with the same or stronger
@@ -118,7 +118,7 @@ order automatically, but you should understand the rationale:
 2. **Persistence next, route by route.** Add `prisma migrate dev` for SQLite
    (file URL — keep dev DB at `.state/dev.sqlite`, gitignored). Pick the
    lowest-numbered UC, write a failing persistence test (`tests/integration/
-   <route>-persists.test.ts` that creates an entity, restarts the server,
+<route>-persists.test.ts` that creates an entity, restarts the server,
    re-reads), migrate that route to Prisma, delete its in-memory store.
    Repeat per route. The existing 207 E2E tests must stay green after every
    route migration.

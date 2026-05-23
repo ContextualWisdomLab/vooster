@@ -69,20 +69,17 @@ export async function runLogin(
     authStub: process.env.VSPEC_AUTH_STUB === "1",
     writeLine
   });
-  const callback = await postJson(
-    `${oauthFlags.apiUrl}/v1/auth/github/token`,
-    {
-      access_token: device.accessToken,
-      ...(signupFlags === undefined
-        ? {}
-        : {
-            workspace: {
-              name: signupFlags.workspaceName,
-              slug: signupFlags.workspaceSlug
-            }
-          })
-    }
-  );
+  const callback = await postJson(`${oauthFlags.apiUrl}/v1/auth/github/token`, {
+    access_token: device.accessToken,
+    ...(signupFlags === undefined
+      ? {}
+      : {
+          workspace: {
+            name: signupFlags.workspaceName,
+            slug: signupFlags.workspaceSlug
+          }
+        })
+  });
   if (signupFlags === undefined) {
     const body = callback.body as LoginResponse;
     writeConfig(configPatch(oauthFlags.apiUrl, callback.cookie, firstWorkspace(body)));
@@ -91,20 +88,28 @@ export async function runLogin(
   }
 
   const body = callback.body as SignupResponse;
-  writeConfig(configPatch(oauthFlags.apiUrl, callback.cookie, {
-    id: body.workspace.id,
-    slug: body.workspace.slug
-  }));
+  writeConfig(
+    configPatch(oauthFlags.apiUrl, callback.cookie, {
+      id: body.workspace.id,
+      slug: body.workspace.slug
+    })
+  );
   printSignup(body, writeLine);
 }
 
-function printSignup(callbackBody: SignupResponse, writeLine: (message: string) => void): void {
+function printSignup(
+  callbackBody: SignupResponse,
+  writeLine: (message: string) => void
+): void {
   writeLine(`Signed up ${callbackBody.user.email}`);
   writeLine(`Workspace ${callbackBody.workspace.slug} ${callbackBody.workspace.id}`);
   writeLine(callbackBody.recommended_next_command);
 }
 
-function printLogin(callbackBody: LoginResponse, writeLine: (message: string) => void): void {
+function printLogin(
+  callbackBody: LoginResponse,
+  writeLine: (message: string) => void
+): void {
   writeLine(`Logged in ${callbackBody.user.github_id}`);
   for (const workspace of callbackBody.workspaces) {
     writeLine(`Workspace ${workspace.slug} ${workspace.id} ${workspace.role}`);

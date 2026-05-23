@@ -7,6 +7,7 @@ import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { sendStepEditingResult } from "./step-results.js";
 import type { SignupState } from "./signup-types.js";
+import type { ActorStore } from "../ports/actor-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -17,6 +18,7 @@ import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const stepPatchSchema = z.object({
   action: z.string().optional(),
+  actor: z.string().optional(),
   base_revision: z.string().min(1),
   force: z.boolean().default(false),
   notes: z.string().optional()
@@ -25,6 +27,7 @@ const stepPatchSchema = z.object({
 export function registerStepRoutes(
   app: FastifyInstance,
   state: SignupState,
+  actorStore: ActorStore,
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
@@ -38,6 +41,7 @@ export function registerStepRoutes(
       request,
       reply,
       state,
+      actorStore,
       lockStore,
       membershipStore,
       scenarioStore,
@@ -59,6 +63,7 @@ async function patchStep(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
+  actorStore: ActorStore,
   lockStore: LockStore,
   membershipStore: MembershipStore,
   scenarioStore: ScenarioStore,
@@ -75,6 +80,7 @@ async function patchStep(
     reply,
     await editStep(
       {
+        actorStore,
         lockStore,
         membershipStore,
         revisionStore,
@@ -85,6 +91,7 @@ async function patchStep(
       },
       {
         action: parsed.data.action,
+        actorName: parsed.data.actor,
         baseRevision: parsed.data.base_revision,
         force: parsed.data.force,
         notes: parsed.data.notes,

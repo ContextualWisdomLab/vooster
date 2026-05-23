@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { describe, expect, test } from "vitest";
 import { registerStepRoutes } from "../../../src/http/step-routes.js";
 import type { SignupState } from "../../../src/http/signup-types.js";
+import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
@@ -38,6 +39,7 @@ function registeredRoute(): Handler {
   registerStepRoutes(
     app,
     signupState(),
+    {} as ActorStore,
     {} as LockStore,
     {} as MembershipStore,
     {} as ScenarioStore,

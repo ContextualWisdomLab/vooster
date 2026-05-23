@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { editStep } from "../../../src/application/step-editing.js";
+import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
@@ -8,6 +9,7 @@ import type { StepStore } from "../../../src/ports/step-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
 import type {
+  StoredActor,
   StoredLock,
   StoredMembership,
   StoredRevision,
@@ -56,6 +58,34 @@ describe("step editing application", () => {
     expect(savedRevisions).toMatchObject([
       { id: "revision-new", severity: "BREAKING" }
     ]);
+  });
+
+  test("edits a step actor and rejects unknown actors", async () => {
+    const savedRevisions: StoredRevision[] = [];
+    const updatedSteps: StoredStep[] = [];
+
+    const result = await editStep(
+      depsFor({ savedRevisions, updatedSteps }),
+      input({ actorName: "Support Agent" })
+    );
+
+    expect(result).toMatchObject({
+      revision: { severity: "BREAKING" },
+      status: "UPDATED",
+      step: {
+        actor_id: "actor-2",
+        id: "step-1"
+      }
+    });
+    expect(updatedSteps).toMatchObject([{ actor_id: "actor-2", id: "step-1" }]);
+    expect(savedRevisions).toMatchObject([{ severity: "BREAKING" }]);
+
+    await expect(
+      editStep(depsFor(), input({ actorName: "Operations" }))
+    ).resolves.toEqual({
+      knownActors: ["Customer", "Support Agent"],
+      status: "UNKNOWN_ACTOR"
+    });
   });
 
   test("edits notes only as cosmetic under a semantic lock", async () => {
@@ -112,6 +142,15 @@ describe("step editing application", () => {
       lock: lock({ mode: "SEMANTIC" }),
       status: "SEMANTIC_LOCKED"
     });
+    await expect(
+      editStep(
+        depsFor({ lock: lock({ mode: "SEMANTIC" }) }),
+        input({ actorName: "Support Agent" })
+      )
+    ).resolves.toEqual({
+      lock: lock({ mode: "SEMANTIC" }),
+      status: "SEMANTIC_LOCKED"
+    });
   });
 });
 
@@ -131,6 +170,7 @@ function depsFor(
   const foundScenario = "scenario" in options ? options.scenario : scenario();
   const foundUsecase = "usecase" in options ? options.usecase : usecase();
   return {
+    actorStore: actorStore(),
     idFactory: () => "revision-new",
     lockStore: lockStore(options.lock),
     membershipStore: membershipStore(
@@ -154,11 +194,44 @@ function depsFor(
 function input(overrides: Partial<Parameters<typeof editStep>[1]> = {}) {
   return {
     action: undefined,
+    actorName: undefined,
     baseRevision: "revision-1",
     force: false,
     notes: undefined,
     stepId: "step-1",
     userId: "user-1",
+    ...overrides
+  };
+}
+
+function actorStore(): ActorStore {
+  return {
+    archiveActor: () => Promise.resolve(false),
+    findActorById: () => Promise.resolve(undefined),
+    findActorByName: (_projectId, name) =>
+      Promise.resolve(
+        name === "Support Agent" ? actor({ id: "actor-2", name }) : undefined
+      ),
+    listActors: () =>
+      Promise.resolve([
+        actor({ name: "Customer" }),
+        actor({ id: "actor-2", name: "Support Agent" })
+      ]),
+    saveActor: () => Promise.resolve(),
+    updateActor: () => Promise.resolve()
+  };
+}
+
+function actor(overrides: Partial<StoredActor> = {}): StoredActor {
+  return {
+    aliases: [],
+    archived_at: null,
+    description: "",
+    id: "actor-1",
+    is_human: true,
+    name: "Customer",
+    project_id: "project-1",
+    type: "PRIMARY",
     ...overrides
   };
 }

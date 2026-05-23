@@ -39,8 +39,9 @@ type StepCreateFlags = {
 };
 
 type StepEditFlags = {
-  action: string;
+  action?: string;
   apiUrl: string;
+  actor?: string;
   baseRevision: string;
   sessionCookie: string;
   stepId: string;
@@ -179,6 +180,7 @@ async function editStep(
     `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
     {
       action: stepFlags.action,
+      actor: stepFlags.actor,
       base_revision: stepFlags.baseRevision
     },
     {
@@ -222,8 +224,9 @@ function stepEditFlagsFrom(
   stepId: string | undefined
 ): StepEditFlags {
   return {
-    action: requiredFlag(flags, "action"),
+    action: optionalFlag(flags, "action"),
     apiUrl: resolveContextFlag(flags, "api-url"),
+    actor: optionalFlag(flags, "actor"),
     baseRevision: requiredFlag(flags, "base-revision"),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     stepId: requiredArgument(stepId, "step-id")

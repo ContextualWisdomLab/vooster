@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type {
+  StoredActor,
   StoredLock,
   StoredRevision,
   StoredStep,
   StoredUseCase
 } from "../domain/entities/index.js";
+import type { ActorStore } from "../ports/actor-store.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
@@ -14,6 +16,7 @@ import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export type StepEditingDeps = {
+  actorStore: ActorStore;
   idFactory?: () => string;
   lockStore: LockStore;
   membershipStore: MembershipStore;
@@ -26,6 +29,7 @@ export type StepEditingDeps = {
 
 export type StepEditingInput = {
   action: string | undefined;
+  actorName: string | undefined;
   baseRevision: string;
   force: boolean;
   notes: string | undefined;
@@ -43,6 +47,7 @@ export type StepEditingResult =
       usecase: StoredUseCase;
     }
   | { status: "EMPTY_ACTION" }
+  | { knownActors: string[]; status: "UNKNOWN_ACTOR" }
   | { action: string; status: "PASSIVE_ACTION" }
   | { lock: StoredLock; status: "HARD_LOCKED" }
   | { lock: StoredLock; status: "SEMANTIC_LOCKED" }
@@ -85,17 +90,26 @@ export async function editStep(
     return { action: input.action, status: "PASSIVE_ACTION" };
   }
 
+  const actor = await actorForEdit(deps.actorStore, found.projectId, input.actorName);
+  if (actor.status === "UNKNOWN_ACTOR") {
+    return actor;
+  }
+
   const lock = await deps.lockStore.findLockForUseCase(found.usecase.id);
   if (lock?.mode === "HARD") {
     return { lock, status: "HARD_LOCKED" };
   }
-  if (lock?.mode === "SEMANTIC" && input.action !== undefined) {
+  if (
+    lock?.mode === "SEMANTIC" &&
+    (input.action !== undefined || actor.actor !== undefined)
+  ) {
     return { lock, status: "SEMANTIC_LOCKED" };
   }
 
   const updated = {
     ...found.step,
     action: input.action ?? found.step.action,
+    actor_id: actor.actor?.id ?? found.step.actor_id,
     notes: input.notes ?? found.step.notes
   };
   await deps.stepStore.updateStep(updated);
@@ -103,7 +117,7 @@ export async function editStep(
     deps,
     found.usecase,
     `Edited step ${updated.id}`,
-    input.action === undefined && input.notes !== undefined ? "COSMETIC" : "BREAKING"
+    cosmeticEdit(input, actor.actor) ? "COSMETIC" : "BREAKING"
   );
   return {
     affectedSessions: await affectedSessionIds(deps.workSessionStore, found.usecase.id),
@@ -111,6 +125,33 @@ export async function editStep(
     status: "UPDATED",
     step: updated
   };
+}
+
+async function actorForEdit(
+  actorStore: ActorStore,
+  projectId: string,
+  actorName: string | undefined
+): Promise<
+  | { actor: StoredActor | undefined; status: "OK" }
+  | { knownActors: string[]; status: "UNKNOWN_ACTOR" }
+> {
+  if (actorName === undefined) {
+    return { actor: undefined, status: "OK" };
+  }
+  const actor = await actorStore.findActorByName(projectId, actorName);
+  if (actor !== undefined && actor.archived_at === null) {
+    return { actor, status: "OK" };
+  }
+  return {
+    knownActors: (await actorStore.listActors(projectId))
+      .filter((candidate) => candidate.archived_at === null)
+      .map((candidate) => candidate.name),
+    status: "UNKNOWN_ACTOR"
+  };
+}
+
+function cosmeticEdit(input: StepEditingInput, actor: StoredActor | undefined) {
+  return input.action === undefined && actor === undefined && input.notes !== undefined;
 }
 
 async function stepWithUseCase(

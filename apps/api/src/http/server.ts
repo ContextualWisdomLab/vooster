@@ -388,6 +388,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   registerStepRoutes(
     app,
     state,
+    actorStore,
     lockStore,
     membershipStore,
     scenarioStore,

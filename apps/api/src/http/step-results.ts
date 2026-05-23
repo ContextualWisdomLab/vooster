@@ -23,6 +23,8 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
         );
     case "EMPTY_ACTION":
       return reply.code(400).send(problem(400, "Step action is required"));
+    case "UNKNOWN_ACTOR":
+      return reply.code(422).send(unknownStepActorProblem(result.knownActors));
     case "PASSIVE_ACTION":
       return reply.code(422).send(passiveStepEditProblem(result.action));
     case "HARD_LOCKED":
@@ -36,6 +38,20 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
         step: result.step
       });
   }
+}
+
+function unknownStepActorProblem(knownActorNames: string[]) {
+  return problem(
+    422,
+    "Step actor is not registered",
+    { known_actors: knownActorNames },
+    [
+      {
+        command: "vspec actor create",
+        reason: "Create the actor before assigning this step."
+      }
+    ]
+  );
 }
 
 function staleBaseRevisionProblem(

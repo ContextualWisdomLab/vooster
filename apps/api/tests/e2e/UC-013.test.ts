@@ -81,7 +81,7 @@ describe("UC-013 - Edit a use case step", () => {
       entity_id: usecase.id,
       entity_type: "USECASE",
       severity: "BREAKING",
-      version_number: 6
+      version_number: 5
     });
 
     const unknown = await patchStep(server, mainStep.id, setup.cookie, {

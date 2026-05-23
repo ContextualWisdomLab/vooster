@@ -1,0 +1,189 @@
+import { describe, expect, test } from "vitest";
+import { acquireLock, renewLock } from "../../../src/application/locks.js";
+import type {
+  StoredLock,
+  StoredMembership,
+  StoredUseCase
+} from "../../../src/domain/entities/index.js";
+import type { LockStore } from "../../../src/ports/lock-store.js";
+import type { MembershipStore } from "../../../src/ports/membership-store.js";
+import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
+
+describe("lock application edge cases", () => {
+  test("rejects missing or unauthorized lock renewals", async () => {
+    const activeLock = lock();
+
+    await expect(renewLock(depsFor(), renewInput())).resolves.toEqual({
+      status: "LOCK_NOT_FOUND"
+    });
+    await expect(
+      renewLock(depsFor({ existingLock: activeLock, membership: null }), renewInput())
+    ).resolves.toEqual({ status: "FORBIDDEN" });
+  });
+
+  test("reports active foreign locks for hard lock requests", async () => {
+    const existing = lock({ held_by_session_id: "session-other", mode: "SOFT" });
+
+    await expect(
+      acquireLock(depsFor({ existingLock: existing }), lockInput({ lockType: "HARD" }))
+    ).resolves.toEqual({
+      lock: existing,
+      status: "COMPETING_LOCK",
+      usecase: usecase()
+    });
+  });
+
+  test("replaces expired locks without stored ids", async () => {
+    const deletedLockIds: string[] = [];
+
+    const result = await acquireLock(
+      depsFor({
+        deletedLockIds,
+        existingLock: lock({ expires_at: "2026-05-19T23:59:00.000Z", id: undefined })
+      }),
+      lockInput()
+    );
+
+    expect(result.status).toBe("CREATED");
+    expect(deletedLockIds).toEqual(["usecase-1"]);
+  });
+
+  test("replaces non-blocking active locks", async () => {
+    for (const item of [
+      { lockType: "SEMANTIC" as const, mode: "SOFT" as const },
+      { lockType: "SOFT" as const, mode: "SEMANTIC" as const }
+    ]) {
+      const deletedLockIds: string[] = [];
+
+      const result = await acquireLock(
+        depsFor({
+          deletedLockIds,
+          existingLock: lock({ held_by_session_id: "session-other", mode: item.mode })
+        }),
+        lockInput({ lockType: item.lockType })
+      );
+
+      expect(result.status).toBe("CREATED");
+      expect(deletedLockIds).toEqual(["lock-1"]);
+    }
+  });
+});
+
+function depsFor(
+  options: {
+    deletedLockIds?: string[];
+    existingLock?: StoredLock;
+    membership?: StoredMembership | null;
+  } = {}
+) {
+  return {
+    idFactory: () => "id-1",
+    lockStore: lockStore(options),
+    membershipStore: membershipStore(
+      options.membership === undefined ? membership() : options.membership
+    ),
+    now: () => new Date("2026-05-20T00:00:00.000Z"),
+    useCaseStore: useCaseStore()
+  };
+}
+
+function lockStore(options: {
+  deletedLockIds?: string[];
+  existingLock?: StoredLock;
+}): LockStore {
+  return {
+    deleteLock: (lockId) => {
+      options.deletedLockIds?.push(lockId);
+      return Promise.resolve();
+    },
+    deleteLockForUseCase: () => Promise.resolve(),
+    findLockById: () => Promise.resolve(options.existingLock),
+    findLockForUseCase: () => Promise.resolve(options.existingLock),
+    listLocksForUseCase: () => Promise.resolve([]),
+    listLocksHeldBySession: () => Promise.resolve([]),
+    saveLock: () => Promise.resolve(),
+    updateLock: () => Promise.resolve()
+  };
+}
+
+function membershipStore(foundMembership: StoredMembership | null): MembershipStore {
+  return {
+    membershipForProject: () => Promise.resolve(foundMembership ?? undefined),
+    membershipForWorkspace: () => Promise.resolve(undefined),
+    membershipsForUser: () => Promise.resolve([]),
+    saveMembership: () => Promise.resolve()
+  };
+}
+
+function useCaseStore(): UseCaseStore {
+  return {
+    findUseCaseById: () => Promise.resolve(undefined),
+    findUseCaseWithProject: () =>
+      Promise.resolve({ projectId: "project-1", usecase: usecase() }),
+    findUseCasesByKey: () => Promise.resolve([]),
+    listUseCases: () => Promise.resolve([]),
+    saveUseCase: () => Promise.resolve(),
+    updateUseCase: () => Promise.resolve()
+  };
+}
+
+function lockInput(overrides: { lockType?: StoredLock["mode"] } = {}) {
+  return {
+    lockType: overrides.lockType ?? "SEMANTIC",
+    reason: "Agent is rewriting the success scenario.",
+    sessionId: "session-1",
+    targetId: "usecase-1",
+    targetType: "USECASE" as const,
+    ttlMinutes: 30,
+    userId: "user-1"
+  };
+}
+
+function renewInput() {
+  return {
+    lockId: "lock-1",
+    sessionId: "session-1",
+    ttlMinutes: 30,
+    userId: "user-1"
+  };
+}
+
+function lock(overrides: Partial<StoredLock> = {}): StoredLock {
+  return {
+    expires_at: "2026-05-20T00:30:00.000Z",
+    held_by_session_id: "session-1",
+    held_by_user_id: "user-1",
+    holder: "session-1",
+    id: "lock-1",
+    mode: "SEMANTIC",
+    reason: "Agent is rewriting the success scenario.",
+    usecase_id: "usecase-1",
+    ...overrides
+  };
+}
+
+function membership(): StoredMembership {
+  return {
+    id: "membership-1",
+    role: "EDITOR",
+    user_id: "user-1",
+    workspace_id: "workspace-1"
+  };
+}
+
+function usecase(): StoredUseCase {
+  return {
+    archived_at: null,
+    current_revision_id: "revision-1",
+    format: "BRIEF",
+    id: "usecase-1",
+    key: "LCK-001",
+    level: "USER_GOAL",
+    primary_actor_id: "actor-1",
+    priority: "P0",
+    project_id: "project-1",
+    scope: "Checkout",
+    status: "DRAFT",
+    title: "Reviews locked refund"
+  };
+}

@@ -69,10 +69,10 @@ The developer/PM runs `vspec branch create <name> [--from main]`.
 - 4a3. **System** records the warning in the response `warnings` array.
 - (Outcome: PARTIAL — rejoins main at step 5.)
 
-### *a. Transactional failure while snapshotting `base_revision_ids`
+### \*a. Transactional failure while snapshotting `base_revision_ids`
 
-- *a1. **System** ensures the branch row and the `base_revision_ids` snapshot are written in one transaction; on failure neither persists.
-- *a2. **System** returns exit code 5 with a retry hint.
+- \*a1. **System** ensures the branch row and the `base_revision_ids` snapshot are written in one transaction; on failure neither persists.
+- \*a2. **System** returns exit code 5 with a retry hint.
 - (Outcome: FAILURE — use case ends; no partial state.)
 
 ## Success Guarantee

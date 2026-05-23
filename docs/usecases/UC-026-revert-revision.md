@@ -70,10 +70,10 @@ The developer/PM runs `vspec revert UC-XXX --to <rev>`.
 - 5a2. **System** still proceeds (this is informational, not blocking).
 - (Outcome: PARTIAL — rejoins main at step 6 with warning recorded in output.)
 
-### *a. Network or server error mid-write
+### \*a. Network or server error mid-write
 
-- *a1. **System** rolls back the transaction so no partial revision is persisted.
-- *a2. **System** exits with code 5 and a retry hint.
+- \*a1. **System** rolls back the transaction so no partial revision is persisted.
+- \*a2. **System** exits with code 5 and a retry hint.
 - (Outcome: FAILURE — use case ends; no state change.)
 
 ## Success Guarantee

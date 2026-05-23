@@ -33,6 +33,7 @@ refactor: <UC-ID> <refactoring description>
 ```
 
 Examples:
+
 - `red: UC-009 fail when title is empty`
 - `green: UC-009 reject empty title with 400`
 - `refactor: UC-009 extract title validator`
@@ -40,21 +41,21 @@ Examples:
 All commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 `<type>[(<scope>)]: <description>`. Recognized `<type>` values:
 
-| Prefix     | Meaning                                                         |
-| ---------- | --------------------------------------------------------------- |
-| `red:`     | New failing test added.                                         |
-| `green:`   | Minimum code that makes a failing test pass.                    |
-| `refactor:`| Behavior-preserving improvement; all tests stay green.          |
-| `setup:`   | Initial scaffolding (package.json, configs, no tests yet).      |
-| `docs:`    | Documentation-only changes (no code, no tests).                 |
-| `chore:`   | Maintenance, dep updates, config changes.                       |
-| `fix:`     | Regression fix; the regression test must be included.           |
-| `feat:`    | New feature (rare here — features arrive via red→green).        |
-| `test:`    | Test-only change (e.g. fixtures, helpers) outside a TDD cycle.  |
-| `perf:`    | Performance improvement with no behavior change.                |
-| `build:`   | Build system / dependency changes.                              |
-| `ci:`      | CI configuration.                                               |
-| `revert:`  | Explicit revert; reference the original SHA in the body.        |
+| Prefix      | Meaning                                                        |
+| ----------- | -------------------------------------------------------------- |
+| `red:`      | New failing test added.                                        |
+| `green:`    | Minimum code that makes a failing test pass.                   |
+| `refactor:` | Behavior-preserving improvement; all tests stay green.         |
+| `setup:`    | Initial scaffolding (package.json, configs, no tests yet).     |
+| `docs:`     | Documentation-only changes (no code, no tests).                |
+| `chore:`    | Maintenance, dep updates, config changes.                      |
+| `fix:`      | Regression fix; the regression test must be included.          |
+| `feat:`     | New feature (rare here — features arrive via red→green).       |
+| `test:`     | Test-only change (e.g. fixtures, helpers) outside a TDD cycle. |
+| `perf:`     | Performance improvement with no behavior change.               |
+| `build:`    | Build system / dependency changes.                             |
+| `ci:`       | CI configuration.                                              |
+| `revert:`   | Explicit revert; reference the original SHA in the body.       |
 
 Any other prefix is rejected by `scripts/verify-tdd.sh`.
 

@@ -308,11 +308,12 @@ rm    .state/gate-cache/0-init        # 한 goal만
 VSPEC_GATES_NO_CACHE=1 bash goals/0-init.gates.sh   # 일회성 우회
 ```
 
-### 2. Deep-gate skip flag
+### 2. Deep/world gate split
 
-`VSPEC_GATES_SKIP_DEEP=1`을 export 하면 무거운 외부-시스템 gate를
-스킵한다 (예: goal-2.B3의 `docker compose build / up`, goal-5의
-`pnpm --filter ... build`).
+`completion-check.sh` 는 기본으로 `VSPEC_GATES_SKIP_DEEP=1` 을 설정한다.
+반복 개발 체인은 working tree 내부의 deterministic code contract만 다룬다.
+Docker/Vercel 같은 외부 world-state gate는 `scripts/world-check.sh` 와
+`.github/workflows/world-health.yml` 이 별도 cadence로 실행한다.
 
 - 스킵된 run은 **캐시를 저장하지 않는다** — partial run은 authoritative
   가 아니므로 다음 full run을 강제한다.
@@ -322,13 +323,13 @@ VSPEC_GATES_NO_CACHE=1 bash goals/0-init.gates.sh   # 일회성 우회
 빠른 iteration:
 
 ```
-VSPEC_GATES_SKIP_DEEP=1 bash scripts/completion-check.sh
-```
-
-배포 직전 풀 검증:
-
-```
 bash scripts/completion-check.sh
+```
+
+world-state 수동 검증:
+
+```
+bash scripts/world-check.sh
 ```
 
 병렬도 조정:

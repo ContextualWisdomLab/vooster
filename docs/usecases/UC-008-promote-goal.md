@@ -62,10 +62,10 @@ The developer/PM runs `vspec goal promote <goal-id>`.
 - 4a2. **System** includes `vspec usecase set <key> --field title` in suggested next actions.
 - (Outcome: PARTIAL — rejoins main at step 5.)
 
-### *a. Network or server error during creation
+### \*a. Network or server error during creation
 
-- *a1. **System** aborts before mutating either the goal or the use case (transactional write).
-- *a2. **System** returns exit code 5 with a retry hint.
+- \*a1. **System** aborts before mutating either the goal or the use case (transactional write).
+- \*a2. **System** returns exit code 5 with a retry hint.
 - (Outcome: FAILURE — use case ends; no partial state.)
 
 ## Success Guarantee

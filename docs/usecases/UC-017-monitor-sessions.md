@@ -62,10 +62,10 @@ The developer/PM runs `vspec session list [--mine|--workspace] [--status=]` or `
 - 3a2. **System** includes `vspec session start --intent "..."` in `suggested_next_actions`.
 - (Outcome: SUCCESS — use case ends; empty result is a valid answer.)
 
-### *a. `vspec watch` invoked instead of `session list`
+### \*a. `vspec watch` invoked instead of `session list`
 
-- *a1. **System** streams the same snapshot every 2 seconds via Server-Sent Events on the same underlying query.
-- *a2. **System** terminates the stream on SIGINT and returns exit code 0.
+- \*a1. **System** streams the same snapshot every 2 seconds via Server-Sent Events on the same underlying query.
+- \*a2. **System** terminates the stream on SIGINT and returns exit code 0.
 - (Outcome: SUCCESS — use case ends after stream is closed.)
 
 ## Success Guarantee

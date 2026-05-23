@@ -72,9 +72,9 @@ The developer/PM runs `vspec usecase create --title "<verb phrase>" --primary-ac
 - 3a2. **System** carries over the goal's actor, level, and description.
 - (Outcome: SUCCESS — rejoins main at step 5.)
 
-### *a. Authorization fails
+### \*a. Authorization fails
 
-- *a1. **System** returns 403 with a pointer to `vspec login` or `vspec member set-role`.
+- \*a1. **System** returns 403 with a pointer to `vspec login` or `vspec member set-role`.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

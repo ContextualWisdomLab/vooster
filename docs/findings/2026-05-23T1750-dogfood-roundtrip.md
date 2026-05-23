@@ -2,7 +2,15 @@
 title: "Close the dogfood round-trip: A1 + A3 + A10 + A11"
 created_at: 2026-05-23T17:50:00Z
 priority: P0
-resolved: false
+resolved: true
+resolved_by:
+  - 80dfec9
+  - 17e07f0
+  - 2d2681c
+  - b31564b
+  - f9ebabe
+  - 6449271
+  - c6869cf
 was: goals/30-dogfood-roundtrip.md
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
@@ -132,7 +140,7 @@ Per `docs/goal-design.md §1.5`, a gate should enforce universal
 claims that no other tool catches. The behavioral invariants above
 are all verified by tests (vitest + typecheck). A `goals/30-*.gates.sh`
 that grep-matched specific symbols would be over-coupled. A
-`goals/30-*.gates.sh` that *only* enforced "followups doc exists +
+`goals/30-*.gates.sh` that _only_ enforced "followups doc exists +
 rigor" doesn't carry the actual work.
 
 So: track the work here, write the tests when execution starts, and
@@ -153,3 +161,23 @@ Half day to a full day of TDD work, given the tests above. Smaller
 than it looks because A10 + A11 are config-store work (small) and the
 A1 + A3 renderers reuse `renderMarkdown` (also small once
 `pullSyncFiles` takes the wider dependency set).
+
+## Resolution
+
+Resolved on 2026-05-23.
+
+- B1: `pullSyncFiles` now delegates to the canonical markdown renderer and
+  `sync-files.test.ts` asserts the exported stakeholder, scenario, extension,
+  guarantee, and notes sections.
+- B2: `usecase show` now returns and prints stakeholder interests, main-success
+  steps, and extensions; API and CLI unit tests cover the human-readable body.
+- B3: `resolveContextFlag` resolves `project-id` from `current_project_id`, and
+  CLI project-scoped callers no longer hard-require `--project-id`.
+- B4: `vspec init --project <KEY>` resolves the key through `/v1/projects` and
+  writes `current_project_id`, `current_project_key`, `api_url`, and
+  `current_workspace_id`; Goal 7 gates now seed authenticated project context.
+- B5: `dogfood-roundtrip.test.ts` proves `init -> pull -> usecase show` works
+  from an isolated repo without passing `--project-id`, and the pulled file plus
+  show output contain the same stakeholder and step text.
+
+Verification: `bash scripts/completion-check.sh` passed after the resolution.

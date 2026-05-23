@@ -21,12 +21,12 @@ primary_actor: ai-coding-agent
 - **AI Coding Agent**: gets the entire mental model in one command and learns the canonical safe workflow (pin → edit → propose → commit). _(Protected by: steps 3–5 and Success Guarantee.)_
 - **Developer / PM**: doesn't have to maintain bespoke onboarding prompts for every agent product — the spec system teaches the agent itself. _(Protected by: Success Guarantee.)_
 - **CI/CD System**: pipelines that bring up a sandbox agent can `vspec ai-guide --format=json | tee` it into the agent's context with zero hand-tuning. _(Protected by: extension 5a.)_
-- **Vooster**: keeps agent guidance versioned alongside the CLI; users never see stale guidance referring to retired commands. _(Protected by: step 6 and extension *a.)_
+- **Vooster**: keeps agent guidance versioned alongside the CLI; users never see stale guidance referring to retired commands. _(Protected by: step 6 and extension \*a.)_
 
 ## Preconditions
 
 - The `vspec` CLI is installed and on `PATH`.
-- The caller has network access *or* a cached guide from a prior invocation in `~/.vspec/cache/ai-guide-<cli-version>.md`.
+- The caller has network access _or_ a cached guide from a prior invocation in `~/.vspec/cache/ai-guide-<cli-version>.md`.
 - No authentication is required; the guide is public.
 
 ## Trigger
@@ -62,9 +62,9 @@ The agent (or its operator) runs `vspec ai-guide` or `vspec ai-guide --format=js
 - 2a2. **System** force-refreshes from the server before printing.
 - (Outcome: SUCCESS — rejoins main at step 4.)
 
-### *a. Neither network nor any cached guide is available (cold start, offline)
+### \*a. Neither network nor any cached guide is available (cold start, offline)
 
-- *a1. **System** returns exit code 5 and prints a one-line bootstrap pointing at the public guide URL.
+- \*a1. **System** returns exit code 5 and prints a one-line bootstrap pointing at the public guide URL.
 - (Outcome: FAILURE — use case ends; agent must regain network access.)
 
 ## Success Guarantee

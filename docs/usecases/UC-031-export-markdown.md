@@ -68,9 +68,9 @@ The developer/PM runs `vspec export markdown <KEY-NNN> [--output specs/usecases/
 - 5a2. **System** verifies via a self-check that `parse(rendered)` yields the same `Scenario` set in the same order.
 - (Outcome: SUCCESS — rejoins main at step 6.)
 
-### *a. The requested revision is not found
+### \*a. The requested revision is not found
 
-- *a1. **System** returns 404 with `vspec history <KEY-NNN>` as a suggested next action.
+- \*a1. **System** returns 404 with `vspec history <KEY-NNN>` as a suggested next action.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

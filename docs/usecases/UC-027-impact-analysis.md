@@ -68,9 +68,9 @@ The developer/PM runs `vspec impact UC-XXX [--proposed-change <file>]`.
 - 4a2. **System** guarantees the cached result is byte-identical to a fresh recomputation (idempotence on same input).
 - (Outcome: SUCCESS — rejoins main at step 7.)
 
-### *a. Caller lacks read access on the workspace
+### \*a. Caller lacks read access on the workspace
 
-- *a1. **System** returns 403 without disclosing the existence of the use case or any sessions.
+- \*a1. **System** returns 403 without disclosing the existence of the use case or any sessions.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

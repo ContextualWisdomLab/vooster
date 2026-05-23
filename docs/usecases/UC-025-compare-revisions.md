@@ -64,9 +64,9 @@ The developer/PM runs `vspec diff UC-XXX <rev1> <rev2>`.
 - 4a2. **System** notes in `--format=human` output that the revisions match byte-for-byte.
 - (Outcome: SUCCESS — use case ends with empty diff.)
 
-### *a. Caller lacks read access
+### \*a. Caller lacks read access
 
-- *a1. **System** returns 403 without revealing whether either revision exists.
+- \*a1. **System** returns 403 without revealing whether either revision exists.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

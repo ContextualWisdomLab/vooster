@@ -62,9 +62,9 @@ The developer/PM runs `vspec history UC-XXX [--limit N]`.
 - 5a2. **System** suggests rerunning with a larger `--limit` or paginating via `--cursor`.
 - (Outcome: PARTIAL — rejoins main at step 6 with truncated data.)
 
-### *a. Network or server error
+### \*a. Network or server error
 
-- *a1. **System** exits with code 5 and a retry hint; no local state is mutated.
+- \*a1. **System** exits with code 5 and a retry hint; no local state is mutated.
 - (Outcome: FAILURE — use case ends.)
 
 ## Success Guarantee

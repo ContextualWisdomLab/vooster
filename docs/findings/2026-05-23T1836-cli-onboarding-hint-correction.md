@@ -2,7 +2,10 @@
 title: "CLI onboarding hint points to `vspec login` for a `vspec init` problem"
 created_at: 2026-05-23T18:36:00Z
 priority: P1
-resolved: false
+resolved: true
+resolved_by:
+  - 731b09b
+  - 694abc4
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - apps/cli/src/flag-values.ts
@@ -10,6 +13,21 @@ related:
 ---
 
 # Findings — first-time onboarding error message is wrong
+
+## Resolution
+
+Closed in RED/GREEN commits `731b09b` and `694abc4`.
+
+`resolveContextFlag` now tells users missing project context to run
+`vspec init --project <KEY>` or pass the explicit flag. The
+`vspec init` auth prerequisite message remains unchanged.
+
+Verification:
+
+- `pnpm exec vitest run apps/cli/tests/unit/flag-values.test.ts`
+- `pnpm exec eslint --max-warnings 0 --no-warn-ignored apps/cli/src/flag-values.ts apps/cli/tests/unit/flag-values.test.ts`
+- `pnpm exec tsc --noEmit`
+- `rg "Run 'vspec login'.*pass --" apps/cli/src` returns no matches.
 
 ## TL;DR
 

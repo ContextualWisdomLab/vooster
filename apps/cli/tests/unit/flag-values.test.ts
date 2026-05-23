@@ -58,8 +58,9 @@ describe("resolveContextFlag", () => {
 
   it("throws an actionable error when project-id is missing", () => {
     expect(() => resolveContextFlag({}, "project-id")).toThrow(
-      "Missing project-id. Run 'vspec login' or pass --project-id."
+      "Missing project-id. Run 'vspec init --project <KEY>' or pass --project-id."
     );
+    expect(() => resolveContextFlag({}, "project-id")).not.toThrow(/vspec login/u);
   });
 
   function tempDir(): string {

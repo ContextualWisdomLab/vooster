@@ -2,7 +2,10 @@
 title: "Doctor route hardening: auth ordering, query contract, severity policy"
 created_at: 2026-05-23T18:36:00Z
 priority: P1
-resolved: false
+resolved: true
+resolved_by:
+  - 1fb143c
+  - ff68dac
 related:
   - docs/findings/2026-05-23T1825-doctor-route.md
   - apps/api/src/http/doctor-routes.ts
@@ -10,6 +13,27 @@ related:
 ---
 
 # Findings — `GET /v1/doctor` ships with three rough edges before beta
+
+## Resolution
+
+Closed in RED/GREEN commits `1fb143c` and `ff68dac`.
+
+- Tranche A: the route now authenticates first and returns 403 before
+  any project/usecase lookup for anonymous requests. Use-case doctor
+  requests resolve only the owning project before membership checks, then
+  run the full diagnosis after authorization.
+- Tranche B: the HTTP and CLI contract now uses `usecase` for id-or-key
+  lookup semantics, and the doctor result missing-status discriminators
+  are normalized to `project_not_found` / `usecase_not_found`.
+- Tranche C: a main-success scenario with zero steps is now a `fail`,
+  matching the severity of a missing main-success scenario.
+
+Verification:
+
+- `pnpm exec vitest run apps/api/tests/unit/application/doctor.test.ts apps/api/tests/unit/http/doctor-routes.test.ts apps/api/tests/e2e/doctor-route.test.ts apps/cli/tests/unit/doctor-command.test.ts apps/cli/tests/e2e-cli-honest/doctor.test.ts`
+- `pnpm exec eslint --max-warnings 0 --no-warn-ignored apps/api/src/application/doctor.ts apps/api/src/http/doctor-routes.ts apps/cli/src/commands/doctor.ts apps/api/tests/unit/application/doctor.test.ts apps/api/tests/unit/http/doctor-routes.test.ts apps/api/tests/e2e/doctor-route.test.ts apps/cli/tests/unit/doctor-command.test.ts`
+- `pnpm exec tsc --noEmit`
+- `rg '"USECASE_NOT_FOUND"|"PROJECT_NOT_FOUND"' apps/api/src/application/doctor.ts apps/api/src/http/doctor-routes.ts apps/cli/src/commands/doctor.ts apps/api/tests/unit/application/doctor.test.ts apps/api/tests/unit/http/doctor-routes.test.ts apps/api/tests/e2e/doctor-route.test.ts apps/cli/tests/unit/doctor-command.test.ts` returns no matches.
 
 ## TL;DR
 

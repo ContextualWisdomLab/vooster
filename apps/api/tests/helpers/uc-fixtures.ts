@@ -68,11 +68,14 @@ export async function createProject(
   code: string
 ): Promise<ProjectSetup> {
   const signedUp = await signup(server, name, slug, code);
-  const response = await server.fetch(`/v1/workspaces/${signedUp.workspaceId}/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
-    body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
-  });
+  const response = await server.fetch(
+    `/v1/workspaces/${signedUp.workspaceId}/projects`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: signedUp.cookie },
+      body: JSON.stringify({ name: "Checkout", key: "CHK", visibility: "PRIVATE" })
+    }
+  );
   const body = (await response.json()) as ProjectResponse;
   return { ...signedUp, projectId: body.project.id };
 }
@@ -176,7 +179,12 @@ export async function listGoals(
   });
 }
 
-export async function signup(server: TestServer, name: string, slug: string, code: string) {
+export async function signup(
+  server: TestServer,
+  name: string,
+  slug: string,
+  code: string
+) {
   const start = await server.fetch("/v1/auth/github/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -187,7 +195,10 @@ export async function signup(server: TestServer, name: string, slug: string, cod
   const callback = await server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
     headers: { Cookie: start.headers.get("set-cookie") ?? "" }
   });
-  const body = (await callback.json()) as { user: { id: string }; workspace: { id: string } };
+  const body = (await callback.json()) as {
+    user: { id: string };
+    workspace: { id: string };
+  };
   return {
     cookie: callback.headers.get("set-cookie") ?? "",
     userId: body.user.id,

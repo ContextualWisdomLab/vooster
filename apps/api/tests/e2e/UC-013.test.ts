@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import {
-  createUseCaseWithMainStep
-} from "../helpers/scenario-fixtures.js";
+import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import {
   createPinnedSession,
@@ -24,7 +22,12 @@ afterAll(async () => {
 describe("UC-013 - Edit a use case step", () => {
   test("MAIN: edit step action and append breaking revision", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Edit Step", "edit-step", "stub-edit-step");
+      await createUseCaseWithMainStep(
+        server,
+        "Edit Step",
+        "edit-step",
+        "stub-edit-step"
+      );
 
     const response = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Reviews the order.",
@@ -51,7 +54,12 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("2a: stale base revision returns current revision and leaves step unchanged", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Stale Step", "stale-step", "stub-stale-step");
+      await createUseCaseWithMainStep(
+        server,
+        "Stale Step",
+        "stale-step",
+        "stub-stale-step"
+      );
 
     const stale = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Reviews the order.",
@@ -93,7 +101,9 @@ describe("UC-013 - Edit a use case step", () => {
       base_revision: mainStepRevision.id
     });
     expect(empty.status).toBe(400);
-    expect(((await empty.json()) as StepProblemResponse).title).toMatch(/step action is required/i);
+    expect(((await empty.json()) as StepProblemResponse).title).toMatch(
+      /step action is required/i
+    );
 
     const passive = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Order is processed.",
@@ -123,7 +133,12 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("5a: semantic lock allows notes but blocks semantic edits", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Semantic Lock", "semantic-lock", "stub-semantic-lock");
+      await createUseCaseWithMainStep(
+        server,
+        "Semantic Lock",
+        "semantic-lock",
+        "stub-semantic-lock"
+      );
     const expiresAt = "2026-06-01T00:00:00.000Z";
     const locked = await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: expiresAt,
@@ -139,7 +154,10 @@ describe("UC-013 - Edit a use case step", () => {
     });
     const notesBody = (await notes.json()) as StepPatchResponse;
     expect(notesBody.step.notes).toBe("Clarifies the checkout wording.");
-    expect(notesBody.revision).toMatchObject({ severity: "COSMETIC", version_number: 5 });
+    expect(notesBody.revision).toMatchObject({
+      severity: "COSMETIC",
+      version_number: 5
+    });
 
     const semantic = await patchStep(server, mainStep.id, setup.cookie, {
       action: "Reviews the order.",
@@ -155,7 +173,12 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("6a: active sessions pinning the use case are affected", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Pinned Session", "pinned-session", "stub-pinned-session");
+      await createUseCaseWithMainStep(
+        server,
+        "Pinned Session",
+        "pinned-session",
+        "stub-pinned-session"
+      );
     const session = await createPinnedSession(server, usecase.id, setup.cookie, {
       id: "agent-session-2",
       pinned_revision_id: mainStepRevision.id
@@ -172,7 +195,12 @@ describe("UC-013 - Edit a use case step", () => {
 
   test("*a: hard lock blocks all step edits", async () => {
     const { mainStep, mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Hard Lock", "hard-lock", "stub-hard-lock");
+      await createUseCaseWithMainStep(
+        server,
+        "Hard Lock",
+        "hard-lock",
+        "stub-hard-lock"
+      );
     const expiresAt = "2026-06-01T00:00:00.000Z";
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: expiresAt,
@@ -192,6 +220,9 @@ describe("UC-013 - Edit a use case step", () => {
     expect(problem.lock_holder).toBe("release-manager");
     expect(problem.lock_reason).toBe("Release freeze.");
     expect(problem.expires_at).toBe(expiresAt);
-    expect(problem.suggested_next_actions).toContainEqual({ command: "vspec unlock", reason: "Unlock the use case or contact the lock holder before editing." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec unlock",
+      reason: "Unlock the use case or contact the lock holder before editing."
+    });
   });
 });

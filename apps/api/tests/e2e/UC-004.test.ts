@@ -210,7 +210,10 @@ describe("UC-004 - Create a project", () => {
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as { project: { id: string; name: string } };
-    expect(body.project).toMatchObject({ id: createdBody.project.id, name: "New Name" });
+    expect(body.project).toMatchObject({
+      id: createdBody.project.id,
+      name: "New Name"
+    });
   });
 
   test("MAIN: signed-in member deletes an empty project", async () => {
@@ -233,7 +236,9 @@ describe("UC-004 - Create a project", () => {
       headers: { Cookie: signedUp.cookie }
     });
     const list = (await after.json()) as ProjectListResponse;
-    expect(list.items.find((item) => item.id === createdBody.project.id)).toBeUndefined();
+    expect(
+      list.items.find((item) => item.id === createdBody.project.id)
+    ).toBeUndefined();
   });
 
   test("MAIN: signed-in member creates a project in their default workspace", async () => {

@@ -57,7 +57,11 @@ export function syncPush(
   });
 }
 
-export async function pulledSyncFile(server: TestServer, setup: SyncSetup, key: string) {
+export async function pulledSyncFile(
+  server: TestServer,
+  setup: SyncSetup,
+  key: string
+) {
   const pulled = await syncPull(server, setup);
   const body = (await pulled.json()) as PullResponse;
   return {
@@ -66,7 +70,11 @@ export async function pulledSyncFile(server: TestServer, setup: SyncSetup, key: 
   };
 }
 
-export async function historyRevisions(server: TestServer, cookie: string, usecaseId: string) {
+export async function historyRevisions(
+  server: TestServer,
+  cookie: string,
+  usecaseId: string
+) {
   const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
     headers: { Cookie: cookie }
   });
@@ -86,14 +94,23 @@ export async function expectHistoryRevisions(
 }
 
 export async function expectDryRunSyncPush(server: TestServer) {
-  const { setup, usecase } =
-    await projectUseCase(server, "Sync Dry Run", "sync-dry-run", "stub-sync-dry-run");
+  const { setup, usecase } = await projectUseCase(
+    server,
+    "Sync Dry Run",
+    "sync-dry-run",
+    "stub-sync-dry-run"
+  );
   const { content, path } = await pulledSyncFile(server, setup, usecase.key);
-  const dryRun = await syncPush(server, setup, {
-    base_revision: usecase.current_revision_id,
-    content: content.replace("# Reviews a refund", "# Reviews a refund later"),
-    path
-  }, { dry_run: true });
+  const dryRun = await syncPush(
+    server,
+    setup,
+    {
+      base_revision: usecase.current_revision_id,
+      content: content.replace("# Reviews a refund", "# Reviews a refund later"),
+      path
+    },
+    { dry_run: true }
+  );
   expect(dryRun.status).toBe(200);
   const push = (await dryRun.json()) as PushResponse;
   expect(push.results[0]).toMatchObject({
@@ -109,14 +126,23 @@ export async function expectDryRunSyncPush(server: TestServer) {
 }
 
 export async function expectNetworkFailureSyncPush(server: TestServer) {
-  const { setup, usecase } =
-    await projectUseCase(server, "Sync Network", "sync-network", "stub-sync-network");
+  const { setup, usecase } = await projectUseCase(
+    server,
+    "Sync Network",
+    "sync-network",
+    "stub-sync-network"
+  );
   const { content, path } = await pulledSyncFile(server, setup, usecase.key);
-  const failed = await syncPush(server, setup, {
-    base_revision: usecase.current_revision_id,
-    content: content.replace("# Reviews a refund", "# Reviews a refund offline"),
-    path
-  }, { simulate_network_failure: true });
+  const failed = await syncPush(
+    server,
+    setup,
+    {
+      base_revision: usecase.current_revision_id,
+      content: content.replace("# Reviews a refund", "# Reviews a refund offline"),
+      path
+    },
+    { simulate_network_failure: true }
+  );
   expect(failed.status).toBe(503);
   const problem = (await failed.json()) as NetworkFailureProblem;
   expect(problem.title).toMatch(/sync network unavailable/i);
@@ -134,19 +160,28 @@ export async function expectNetworkFailureSyncPush(server: TestServer) {
 }
 
 export async function expectUnauthorizedSyncPush(server: TestServer) {
-  const { setup, usecase } =
-    await projectUseCase(server, "Sync Auth", "sync-auth", "stub-sync-auth");
+  const { setup, usecase } = await projectUseCase(
+    server,
+    "Sync Auth",
+    "sync-auth",
+    "stub-sync-auth"
+  );
   const { content, path } = await pulledSyncFile(server, setup, usecase.key);
   const denied = await server.fetch(`/v1/projects/${setup.projectId}/sync/push`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       branch: "main",
-      files: [{
-        base_revision: usecase.current_revision_id,
-        content: content.replace("# Reviews a refund", "# Reviews a refund without auth"),
-        path
-      }]
+      files: [
+        {
+          base_revision: usecase.current_revision_id,
+          content: content.replace(
+            "# Reviews a refund",
+            "# Reviews a refund without auth"
+          ),
+          path
+        }
+      ]
     })
   });
   expect(denied.status).toBe(403);

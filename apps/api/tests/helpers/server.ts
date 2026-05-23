@@ -38,7 +38,9 @@ export async function startServer(): Promise<TestServer> {
   };
 }
 
-function responseHeaders(headers: Record<string, number | string | string[] | undefined>): Headers {
+function responseHeaders(
+  headers: Record<string, number | string | string[] | undefined>
+): Headers {
   const result = new Headers();
 
   for (const [key, value] of Object.entries(headers)) {

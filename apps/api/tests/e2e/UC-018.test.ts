@@ -23,8 +23,12 @@ afterAll(async () => {
 
 describe("UC-018 - Complete a work session", () => {
   test("MAIN: complete session releases locks and opens merge request", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Complete Session", "complete-session", "stub-complete-session");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Complete Session",
+      "complete-session",
+      "stub-complete-session"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       auto_branch: true,
@@ -60,24 +64,35 @@ describe("UC-018 - Complete a work session", () => {
       status: "OPEN",
       strategy: "FAST_FORWARD"
     });
-    expect(mergeRequest?.impact.severity_by_entity).toEqual({ [usecase.id]: "NON_BREAKING" });
+    expect(mergeRequest?.impact.severity_by_entity).toEqual({
+      [usecase.id]: "NON_BREAKING"
+    });
     expect(body.session_file).toEqual({ path: ".vspec/session.json", cleared: true });
     if (mergeRequest === undefined) {
       throw new Error("expected merge request");
     }
-    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge show ${mergeRequest.id}`, reason: "Review the merge request opened for this completed session." });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec merge show ${mergeRequest.id}`,
+      reason: "Review the merge request opened for this completed session."
+    });
   });
 
   test("2a: completing an already completed session returns current status", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Completed Twice", "completed-twice", "stub-completed-twice");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Completed Twice",
+      "completed-twice",
+      "stub-completed-twice"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Complete once",
       pins: [usecase.key]
     });
     const session = ((await started.json()) as SessionStartResponse).session;
-    await completeWorkSession(server, session.id, setup.cookie, { summary: "First completion." });
+    await completeWorkSession(server, session.id, setup.cookie, {
+      summary: "First completion."
+    });
 
     const second = await completeWorkSession(server, session.id, setup.cookie, {
       summary: "Second completion."
@@ -87,12 +102,19 @@ describe("UC-018 - Complete a work session", () => {
     const problem = (await second.json()) as SessionCompleteProblem;
     expect(problem.title).toMatch(/session is not active/i);
     expect(problem.current_status).toBe("COMPLETED");
-    expect(problem.suggested_next_actions).toContainEqual({ command: `vspec session show ${session.id}`, reason: "Inspect the current session state before retrying." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec session show ${session.id}`,
+      reason: "Inspect the current session state before retrying."
+    });
   });
 
   test("6b: no_merge completes session without opening merge request", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "No Merge Session", "no-merge-session", "stub-no-merge-session");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "No Merge Session",
+      "no-merge-session",
+      "stub-no-merge-session"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       auto_branch: true,
@@ -111,12 +133,19 @@ describe("UC-018 - Complete a work session", () => {
     const body = (await response.json()) as SessionCompleteResponse;
     expect(body.session.status).toBe("COMPLETED");
     expect(body.merge_request).toBeUndefined();
-    expect(body.suggested_next_actions).toContainEqual({ command: "vspec merge open agent/no-merge-session", reason: "Open a merge request for the completed branch later." });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec merge open agent/no-merge-session",
+      reason: "Open a merge request for the completed branch later."
+    });
   });
 
   test("*a: transactional failure leaves session active and locks held", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Failed Complete", "failed-complete", "stub-failed-complete");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Failed Complete",
+      "failed-complete",
+      "stub-failed-complete"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Fail completion",
@@ -144,7 +173,12 @@ describe("UC-018 - Complete a work session", () => {
   });
 
   test("6a: conflicted branch opens merge request with resolve guidance", async () => {
-    const { setup, usecase } = await createUseCaseWithMainStep(server, "Conflict Complete", "conflict-complete", "stub-conflict-complete");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Conflict Complete",
+      "conflict-complete",
+      "stub-conflict-complete"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       auto_branch: true,
@@ -161,16 +195,31 @@ describe("UC-018 - Complete a work session", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as SessionCompleteResponse;
     expect(body.merge_request?.status).toBe("OPEN");
-    expect(body.merge_request?.conflicts).toEqual([{ entity_id: usecase.id, type: "SEMANTIC" }]);
+    expect(body.merge_request?.conflicts).toEqual([
+      { entity_id: usecase.id, type: "SEMANTIC" }
+    ]);
     if (body.merge_request === undefined) {
       throw new Error("expected merge request");
     }
-    expect(body.suggested_next_actions).toContainEqual({ command: `vspec merge resolve ${body.merge_request.id}`, reason: "Resolve conflicts before the merge request can be approved." });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec merge resolve ${body.merge_request.id}`,
+      reason: "Resolve conflicts before the merge request can be approved."
+    });
   });
 
   test("4a: failed lock release warns while completing session", async () => {
-    const { setup, usecase } = await createUseCaseWithMainStep(server, "Partial Lock Release", "partial-lock-release", "stub-partial-lock-release");
-    const secondUseCase = await createUseCase(server, setup, "Customer", "Reviews a refund");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Partial Lock Release",
+      "partial-lock-release",
+      "stub-partial-lock-release"
+    );
+    const secondUseCase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews a refund"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Complete with partial release",
@@ -194,6 +243,10 @@ describe("UC-018 - Complete a work session", () => {
     const body = (await response.json()) as SessionCompleteResponse;
     expect(body.session.status).toBe("COMPLETED");
     expect(body.released_lock_ids).toEqual([usecase.id]);
-    expect(body.warnings).toContainEqual({ lock_id: secondUseCase.id, type: "LOCK_RELEASE_FAILED", message: "Lock was already released before completion." });
+    expect(body.warnings).toContainEqual({
+      lock_id: secondUseCase.id,
+      type: "LOCK_RELEASE_FAILED",
+      message: "Lock was already released before completion."
+    });
   });
 });

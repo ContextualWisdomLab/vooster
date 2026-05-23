@@ -5,15 +5,25 @@ import {
   type SyncFileInput
 } from "../../../src/application/sync-files.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";
+import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
+import type { ScenarioStore } from "../../../src/ports/scenario-store.js";
+import type { StakeholderInterestStore } from "../../../src/ports/stakeholder-interest-store.js";
+import type { StakeholderStore } from "../../../src/ports/stakeholder-store.js";
+import type { StepStore } from "../../../src/ports/step-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type {
+  StoredActor,
   StoredMembership,
   StoredProject,
   StoredRevision,
+  StoredScenario,
   StoredSpecBranch,
+  StoredStakeholder,
+  StoredStakeholderInterest,
+  StoredStep,
   StoredUseCase
 } from "../../../src/domain/entities/index.js";
 
@@ -39,6 +49,21 @@ describe("sync files application", () => {
     }
     expect(result.files[0]?.content).toContain("revision: revision-1");
     expect(result.files[0]?.content).toContain("# Reviews a refund");
+    expect(result.files[0]?.content).toContain("primary_actor: Customer");
+    expect(result.files[0]?.content).toContain(
+      "## Stakeholders and Interests\n\n- **Product Manager**: Refund risk is visible."
+    );
+    expect(result.files[0]?.content).toContain("## Preconditions\n\n- None recorded.");
+    expect(result.files[0]?.content).toContain("## Trigger\n\nNot recorded.");
+    expect(result.files[0]?.content).toContain(
+      "## Main Success Scenario\n\n1. **Customer** Reviews refund request."
+    );
+    expect(result.files[0]?.content).toContain(
+      "### 1a. Receipt is missing.\n\n- 1a1. **Customer** Uploads receipt."
+    );
+    expect(result.files[0]?.content).toContain("## Success Guarantee\n\nNot recorded.");
+    expect(result.files[0]?.content).toContain("## Minimal Guarantee\n\nNot recorded.");
+    expect(result.files[0]?.content).toMatch(/## Notes\n$/);
   });
 
   test("push writes revisions and advances the main branch for clean files", async () => {
@@ -190,6 +215,7 @@ function depsFor(
 ) {
   const branch = mainBranch();
   return {
+    actorStore: actorStore(),
     branchStore: branchStore(branch, options.updatedBranches ?? []),
     idFactory: () => "revision-new",
     membershipStore: membershipStore(
@@ -197,6 +223,10 @@ function depsFor(
     ),
     projectStore: projectStore(),
     revisionStore: revisionStore(options.savedRevisions ?? []),
+    scenarioStore: scenarioStore(),
+    stakeholderInterestStore: stakeholderInterestStore(),
+    stakeholderStore: stakeholderStore(),
+    stepStore: stepStore(),
     useCaseStore: useCaseStore(
       options.usecases ?? [
         usecase(),
@@ -204,6 +234,17 @@ function depsFor(
       ],
       options.updatedUseCases ?? []
     )
+  };
+}
+
+function actorStore(): ActorStore {
+  return {
+    archiveActor: () => Promise.resolve(false),
+    findActorById: () => Promise.resolve(actor()),
+    findActorByName: () => Promise.resolve(actor()),
+    listActors: () => Promise.resolve([actor()]),
+    saveActor: () => Promise.resolve(),
+    updateActor: () => Promise.resolve()
   };
 }
 
@@ -242,6 +283,53 @@ function membershipStore(membership: StoredMembership | undefined): MembershipSt
     membershipForWorkspace: () => Promise.resolve(undefined),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
+  };
+}
+
+function scenarioStore(): ScenarioStore {
+  return {
+    findMainScenario: () => Promise.resolve(mainScenario()),
+    findScenarioById: () => Promise.resolve(undefined),
+    listScenarios: () =>
+      Promise.resolve([
+        mainScenario(),
+        extensionScenario("scenario-1a", "1a", "Receipt is missing.")
+      ]),
+    saveScenario: () => Promise.resolve()
+  };
+}
+
+function stakeholderInterestStore(): StakeholderInterestStore {
+  return {
+    deleteStakeholderInterest: () => Promise.resolve(),
+    findStakeholderInterestById: () => Promise.resolve(undefined),
+    findStakeholderInterestForStakeholder: () => Promise.resolve(undefined),
+    listStakeholderInterests: () => Promise.resolve([stakeholderInterest()]),
+    saveStakeholderInterest: () => Promise.resolve()
+  };
+}
+
+function stakeholderStore(): StakeholderStore {
+  return {
+    findStakeholderById: () => Promise.resolve(stakeholder()),
+    findStakeholderByName: () => Promise.resolve(stakeholder()),
+    listStakeholders: () => Promise.resolve([stakeholder()]),
+    saveStakeholder: () => Promise.resolve(),
+    updateStakeholder: () => Promise.resolve()
+  };
+}
+
+function stepStore(): StepStore {
+  return {
+    findStepById: () => Promise.resolve(undefined),
+    listSteps: (scenarioId) =>
+      Promise.resolve(
+        scenarioId === "scenario-main"
+          ? [step("scenario-main", 1, "Reviews refund request.")]
+          : [step("scenario-1a", 1, "Uploads receipt.")]
+      ),
+    saveStep: () => Promise.resolve(),
+    updateStep: () => Promise.resolve()
   };
 }
 
@@ -334,5 +422,82 @@ function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
     status: "DRAFT",
     title: "Reviews a refund",
     ...overrides
+  };
+}
+
+function actor(): StoredActor {
+  return {
+    aliases: [],
+    archived_at: null,
+    description: "A customer.",
+    id: "actor-1",
+    is_human: true,
+    name: "Customer",
+    project_id: "project-1",
+    type: "PRIMARY"
+  };
+}
+
+function mainScenario(): StoredScenario {
+  return {
+    condition: null,
+    extension_point: null,
+    id: "scenario-main",
+    order_index: 0,
+    outcome: "SUCCESS",
+    parent_step_number: null,
+    type: "MAIN_SUCCESS",
+    usecase_id: "usecase-1"
+  };
+}
+
+function extensionScenario(
+  id: string,
+  extensionPoint: string,
+  condition: string
+): StoredScenario {
+  return {
+    condition,
+    extension_point: extensionPoint,
+    id,
+    order_index: 1,
+    outcome: "FAILURE",
+    parent_step_number: 1,
+    type: "EXTENSION",
+    usecase_id: "usecase-1"
+  };
+}
+
+function stakeholder(): StoredStakeholder {
+  return {
+    archived_at: null,
+    description: "Owns refund policy.",
+    id: "stakeholder-1",
+    name: "Product Manager",
+    project_id: "project-1",
+    type: "INTERNAL"
+  };
+}
+
+function stakeholderInterest(): StoredStakeholderInterest {
+  return {
+    id: "interest-1",
+    interest: "Refund risk is visible.",
+    protection_mechanism: "Review refund requests.",
+    stakeholder_id: "stakeholder-1",
+    usecase_id: "usecase-1"
+  };
+}
+
+function step(scenarioId: string, stepNumber: number, action: string): StoredStep {
+  return {
+    action,
+    actor_id: "actor-1",
+    id: `${scenarioId}-step-${String(stepNumber)}`,
+    is_system_step: false,
+    notes: null,
+    order_index: stepNumber,
+    scenario_id: scenarioId,
+    step_number: stepNumber
   };
 }

@@ -1,8 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import {
-  openStructuralConflict,
-  resolveMerge
-} from "../helpers/merge-fixtures.js";
+import { openStructuralConflict, resolveMerge } from "../helpers/merge-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
 type MergeResolveResponse = {
@@ -43,7 +40,13 @@ afterAll(async () => {
 
 describe("UC-021 - Resolve a merge conflict", () => {
   test("MAIN: resolve structural conflict with source value", async () => {
-    const { branch, merge, setup, usecase } = await openStructuralConflict(server, "Resolve Merge", "resolve-merge", "stub-resolve-merge", "feature/resolve-refund");
+    const { branch, merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Resolve Merge",
+      "resolve-merge",
+      "stub-resolve-merge",
+      "feature/resolve-refund"
+    );
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id ?? "missing-current-revision",
@@ -59,7 +62,9 @@ describe("UC-021 - Resolve a merge conflict", () => {
     });
     expect(Date.parse(body.merge_request.resolved_at)).not.toBeNaN();
     expect(body.source_branch).toMatchObject({ id: branch.id, status: "MERGED" });
-    const newRevision = body.new_revisions.find((revision) => revision.entity_id === usecase.id);
+    const newRevision = body.new_revisions.find(
+      (revision) => revision.entity_id === usecase.id
+    );
     expect(newRevision?.snapshot.title).toBe("Reviews a refund quickly");
     expect(body.main_head_revision_ids[usecase.id]).toBe(newRevision?.id);
     expect(body.suggested_next_actions).toContainEqual({
@@ -69,7 +74,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("2a: stale base revision returns current merge conflicts", async () => {
-    const { merge, setup, usecase } = await openStructuralConflict(server, "Stale Resolve", "stale-resolve", "stub-stale-resolve", "feature/stale-resolve");
+    const { merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Stale Resolve",
+      "stale-resolve",
+      "stub-stale-resolve",
+      "feature/stale-resolve"
+    );
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: "stale-merge-revision",
@@ -88,7 +99,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3a: manual resolution requires a value", async () => {
-    const { merge, setup, usecase } = await openStructuralConflict(server, "Manual Resolve", "manual-resolve", "stub-manual-resolve", "feature/manual-resolve");
+    const { merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Manual Resolve",
+      "manual-resolve",
+      "stub-manual-resolve",
+      "feature/manual-resolve"
+    );
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id,
@@ -107,7 +124,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("3b: every conflict must have a resolution", async () => {
-    const { merge, setup } = await openStructuralConflict(server, "Partial Resolve", "partial-resolve", "stub-partial-resolve", "feature/partial-resolve");
+    const { merge, setup } = await openStructuralConflict(
+      server,
+      "Partial Resolve",
+      "partial-resolve",
+      "stub-partial-resolve",
+      "feature/partial-resolve"
+    );
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id,
@@ -125,7 +148,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("5a: late hard lock blocks conflict resolution", async () => {
-    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(server, "Locked Resolve", "locked-resolve", "stub-locked-resolve", "feature/locked-resolve");
+    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Locked Resolve",
+      "locked-resolve",
+      "stub-locked-resolve",
+      "feature/locked-resolve"
+    );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
       holder: "late-lock-holder",
@@ -151,7 +180,13 @@ describe("UC-021 - Resolve a merge conflict", () => {
   });
 
   test("*a: write failure leaves merge request open and main unchanged", async () => {
-    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(server, "Failed Resolve", "failed-resolve", "stub-failed-resolve", "feature/failed-resolve");
+    const { mainRevision, merge, setup, usecase } = await openStructuralConflict(
+      server,
+      "Failed Resolve",
+      "failed-resolve",
+      "stub-failed-resolve",
+      "feature/failed-resolve"
+    );
 
     const response = await resolveMerge(server, setup, merge.id, {
       base_revision: merge.current_revision_id,

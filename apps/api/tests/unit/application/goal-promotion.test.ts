@@ -148,13 +148,10 @@ describe("goal promotion application", () => {
   });
 
   test("promotes an already loaded goal for use case creation flows", async () => {
-    const result = await promoteLoadedGoal(
-      depsFor(),
-      {
-        goal: goal(),
-        projectId: "project-1"
-      }
-    );
+    const result = await promoteLoadedGoal(depsFor(), {
+      goal: goal(),
+      projectId: "project-1"
+    });
 
     expect(result.status).toBe("PROMOTED");
     if (result.status !== "PROMOTED") {
@@ -164,19 +161,24 @@ describe("goal promotion application", () => {
   });
 });
 
-function depsFor(options: {
-  existingUseCases?: StoredUseCase[];
-  goal?: StoredGoal | null;
-  membership?: StoredMembership | null;
-  project?: StoredProject | null;
-  savedRevisions?: StoredRevision[];
-  savedUseCases?: StoredUseCase[];
-  updatedGoals?: StoredGoal[];
-} = {}) {
+function depsFor(
+  options: {
+    existingUseCases?: StoredUseCase[];
+    goal?: StoredGoal | null;
+    membership?: StoredMembership | null;
+    project?: StoredProject | null;
+    savedRevisions?: StoredRevision[];
+    savedUseCases?: StoredUseCase[];
+    updatedGoals?: StoredGoal[];
+  } = {}
+) {
   let nextId = 0;
   const useCases = options.existingUseCases ?? [];
   return {
-    goalStore: goalStore(options.goal === undefined ? goal() : options.goal, options.updatedGoals ?? []),
+    goalStore: goalStore(
+      options.goal === undefined ? goal() : options.goal,
+      options.updatedGoals ?? []
+    ),
     idFactory: () => {
       nextId += 1;
       return `id-${String(nextId)}`;
@@ -184,13 +186,18 @@ function depsFor(options: {
     membershipStore: membershipStore(
       options.membership === undefined ? membership() : options.membership
     ),
-    projectStore: projectStore(options.project === undefined ? project() : options.project),
+    projectStore: projectStore(
+      options.project === undefined ? project() : options.project
+    ),
     revisionStore: revisionStore(options.savedRevisions ?? []),
     useCaseStore: useCaseStore(useCases, options.savedUseCases ?? [])
   };
 }
 
-function goalStore(foundGoal: StoredGoal | null, updatedGoals: StoredGoal[]): GoalStore {
+function goalStore(
+  foundGoal: StoredGoal | null,
+  updatedGoals: StoredGoal[]
+): GoalStore {
   return {
     findGoalById: () => Promise.resolve(foundGoal ?? undefined),
     listGoals: () => Promise.resolve(foundGoal === null ? [] : [foundGoal]),

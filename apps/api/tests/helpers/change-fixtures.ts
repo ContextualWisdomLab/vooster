@@ -31,7 +31,11 @@ export type ChangeCommitResponse = {
 };
 type HistoryResponse = { revisions: Array<{ revision: string }> };
 
-export function proposeChange(server: TestServer, cookie: string, body: Record<string, unknown>) {
+export function proposeChange(
+  server: TestServer,
+  cookie: string,
+  body: Record<string, unknown>
+) {
   return server.fetch("/v1/changes/preview", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
@@ -39,7 +43,11 @@ export function proposeChange(server: TestServer, cookie: string, body: Record<s
   });
 }
 
-export function commitChange(server: TestServer, cookie: string, body: Record<string, unknown>) {
+export function commitChange(
+  server: TestServer,
+  cookie: string,
+  body: Record<string, unknown>
+) {
   return server.fetch("/v1/changes/commit", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
@@ -48,10 +56,16 @@ export function commitChange(server: TestServer, cookie: string, body: Record<st
 }
 
 export async function expirePreview(server: TestServer, previewId: string) {
-  await server.fetch(`/__test/changes/previews/${previewId}/expire`, { method: "POST" });
+  await server.fetch(`/__test/changes/previews/${previewId}/expire`, {
+    method: "POST"
+  });
 }
 
-export async function historyRevisionIds(server: TestServer, usecaseId: string, cookie: string) {
+export async function historyRevisionIds(
+  server: TestServer,
+  usecaseId: string,
+  cookie: string
+) {
   const history = await server.fetch(`/v1/usecases/${usecaseId}/revisions`, {
     headers: { Cookie: cookie }
   });
@@ -59,7 +73,11 @@ export async function historyRevisionIds(server: TestServer, usecaseId: string, 
   return body.revisions.map((revision) => revision.revision);
 }
 
-export function titlePatch(usecase: UseCase, title: string, extra: Record<string, unknown> = {}) {
+export function titlePatch(
+  usecase: UseCase,
+  title: string,
+  extra: Record<string, unknown> = {}
+) {
   return {
     ...extra,
     base_revision: usecase.current_revision_id,
@@ -68,13 +86,19 @@ export function titlePatch(usecase: UseCase, title: string, extra: Record<string
   };
 }
 
-export function expectTitleDiff(body: ChangePreviewResponse, usecase: UseCase, title: string) {
-  expect(body.diff).toEqual([{
-    after: title,
-    before: usecase.title,
-    entity_id: usecase.id,
-    entity_type: "USECASE",
-    path: "title",
-    severity: "NON_BREAKING"
-  }]);
+export function expectTitleDiff(
+  body: ChangePreviewResponse,
+  usecase: UseCase,
+  title: string
+) {
+  expect(body.diff).toEqual([
+    {
+      after: title,
+      before: usecase.title,
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      path: "title",
+      severity: "NON_BREAKING"
+    }
+  ]);
 }

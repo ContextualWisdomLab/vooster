@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { createActor, createGoalForActor, createProject } from "../helpers/uc-fixtures.js";
+import {
+  createActor,
+  createGoalForActor,
+  createProject
+} from "../helpers/uc-fixtures.js";
 
 type UseCaseResponse = {
   goal: { linked_usecase_id: string; status: string };
@@ -29,11 +33,20 @@ afterAll(async () => {
 
 describe("UC-009 - Author a use case from a goal", () => {
   test("3a: from goal delegates to promotion and carries goal fields", async () => {
-    const setup = await createProject(server, "Author From Goal", "author-from-goal", "stub-author-from-goal");
+    const setup = await createProject(
+      server,
+      "Author From Goal",
+      "author-from-goal",
+      "stub-author-from-goal"
+    );
     const actor = await createActor(server, setup, "Customer");
     const goal = await createGoalForActor(server, setup, actor, "Requests a refund");
 
-    const response = await postUseCase(setup.projectId, setup.cookie, JSON.stringify({ from_goal_id: goal.id }));
+    const response = await postUseCase(
+      setup.projectId,
+      setup.cookie,
+      JSON.stringify({ from_goal_id: goal.id })
+    );
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as UseCaseResponse;
@@ -54,9 +67,18 @@ describe("UC-009 - Author a use case from a goal", () => {
   });
 
   test("3a: unknown from-goal id returns goal guidance", async () => {
-    const setup = await createProject(server, "Missing From Goal", "missing-from-goal", "stub-missing-from-goal");
+    const setup = await createProject(
+      server,
+      "Missing From Goal",
+      "missing-from-goal",
+      "stub-missing-from-goal"
+    );
 
-    const response = await postUseCase(setup.projectId, setup.cookie, JSON.stringify({ from_goal_id: "missing-goal" }));
+    const response = await postUseCase(
+      setup.projectId,
+      setup.cookie,
+      JSON.stringify({ from_goal_id: "missing-goal" })
+    );
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as ProblemResponse;
@@ -64,12 +86,26 @@ describe("UC-009 - Author a use case from a goal", () => {
   });
 
   test("3a: from-goal id from another project is not visible", async () => {
-    const owner = await createProject(server, "Visible From Goal", "visible-from-goal", "stub-visible-from-goal");
+    const owner = await createProject(
+      server,
+      "Visible From Goal",
+      "visible-from-goal",
+      "stub-visible-from-goal"
+    );
     const actor = await createActor(server, owner, "Customer");
     const goal = await createGoalForActor(server, owner, actor, "Requests support");
-    const other = await createProject(server, "Hidden From Goal", "hidden-from-goal", "stub-hidden-from-goal");
+    const other = await createProject(
+      server,
+      "Hidden From Goal",
+      "hidden-from-goal",
+      "stub-hidden-from-goal"
+    );
 
-    const response = await postUseCase(other.projectId, other.cookie, JSON.stringify({ from_goal_id: goal.id }));
+    const response = await postUseCase(
+      other.projectId,
+      other.cookie,
+      JSON.stringify({ from_goal_id: goal.id })
+    );
 
     expect(response.status).toBe(404);
     const problem = (await response.json()) as ProblemResponse;
@@ -77,7 +113,12 @@ describe("UC-009 - Author a use case from a goal", () => {
   });
 
   test("3a: malformed from-goal payloads follow raw create validation", async () => {
-    const setup = await createProject(server, "Malformed From Goal", "malformed-from-goal", "stub-malformed-from-goal");
+    const setup = await createProject(
+      server,
+      "Malformed From Goal",
+      "malformed-from-goal",
+      "stub-malformed-from-goal"
+    );
     const payloads = [
       JSON.stringify({}),
       JSON.stringify({ from_goal_id: "" }),

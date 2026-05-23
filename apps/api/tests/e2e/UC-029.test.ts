@@ -15,13 +15,21 @@ import {
 } from "../helpers/sync-fixtures.js";
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-029 - Sync local files with the server", () => {
   test("MAIN: pull canonical markdown and push a changed use case file", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Sync Main", "sync-main", "stub-sync-main");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Sync Main",
+      "sync-main",
+      "stub-sync-main"
+    );
 
     const pulled = await syncPull(server, setup);
     expect(pulled.status).toBe(200);
@@ -32,7 +40,9 @@ describe("UC-029 - Sync local files with the server", () => {
       path: `specs/${usecase.key}.md`,
       revision: usecase.current_revision_id
     });
-    expect(pull.files[0]?.content).toContain(`revision: ${usecase.current_revision_id}`);
+    expect(pull.files[0]?.content).toContain(
+      `revision: ${usecase.current_revision_id}`
+    );
     expect(pull.files[0]?.content).toContain(`# ${usecase.title}`);
 
     const editedContent = pull.files[0]?.content.replace(
@@ -70,8 +80,12 @@ describe("UC-029 - Sync local files with the server", () => {
   });
 
   test("3a: malformed push file returns doctor guidance without a revision", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Sync Parse", "sync-parse", "stub-sync-parse");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Sync Parse",
+      "sync-parse",
+      "stub-sync-parse"
+    );
     const pushed = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
       content: "# Missing frontmatter",
@@ -97,22 +111,35 @@ describe("UC-029 - Sync local files with the server", () => {
   });
 
   test("4a: stale base revision returns conflict details without overwriting", async () => {
-    const { setup, usecase } =
-      await projectUseCase(server, "Sync Conflict", "sync-conflict", "stub-sync-conflict");
-    const { content: originalContent, path } =
-      await pulledSyncFile(server, setup, usecase.key);
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Sync Conflict",
+      "sync-conflict",
+      "stub-sync-conflict"
+    );
+    const { content: originalContent, path } = await pulledSyncFile(
+      server,
+      setup,
+      usecase.key
+    );
 
     const serverPush = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
-      content: originalContent.replace("# Reviews a refund", "# Reviews a refund on server"),
+      content: originalContent.replace(
+        "# Reviews a refund",
+        "# Reviews a refund on server"
+      ),
       path
     });
-    const serverRevision = ((await serverPush.json()) as PushResponse)
-      .results[0]?.current_revision ?? "";
+    const serverRevision =
+      ((await serverPush.json()) as PushResponse).results[0]?.current_revision ?? "";
 
     const stalePush = await syncPush(server, setup, {
       base_revision: usecase.current_revision_id,
-      content: originalContent.replace("# Reviews a refund", "# Reviews a refund locally"),
+      content: originalContent.replace(
+        "# Reviews a refund",
+        "# Reviews a refund locally"
+      ),
       path
     });
 
@@ -126,7 +153,9 @@ describe("UC-029 - Sync local files with the server", () => {
     });
     expect(conflict.results[0]?.conflict_content).toContain("<<<<<<< local");
     expect(conflict.results[0]?.conflict_content).toContain("=======");
-    expect(conflict.results[0]?.conflict_content).toContain(`>>>>>>> remote (${serverRevision}`);
+    expect(conflict.results[0]?.conflict_content).toContain(
+      `>>>>>>> remote (${serverRevision}`
+    );
     expect(conflict.cache.entries).toContainEqual({
       path,
       revision: serverRevision,

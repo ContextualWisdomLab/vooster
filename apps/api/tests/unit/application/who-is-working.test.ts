@@ -100,7 +100,7 @@ describe("who is working application", () => {
     expect(result.mergeRequests).toEqual([]);
     expect(result.suggestedNextActions).toEqual([
       {
-        command: "vspec session start --intent \"...\" --pin CHK-001",
+        command: 'vspec session start --intent "..." --pin CHK-001',
         reason: "Start a session on this use case."
       }
     ]);
@@ -152,14 +152,16 @@ describe("who is working application", () => {
   });
 });
 
-function depsFor(options: {
-  branches?: StoredSpecBranch[];
-  locks?: StoredLock[];
-  membership?: StoredMembership | null;
-  mergeRequests?: StoredMergeRequest[];
-  sessions?: StoredWorkSession[];
-  usecase?: StoredUseCase | null;
-} = {}) {
+function depsFor(
+  options: {
+    branches?: StoredSpecBranch[];
+    locks?: StoredLock[];
+    membership?: StoredMembership | null;
+    mergeRequests?: StoredMergeRequest[];
+    sessions?: StoredWorkSession[];
+    usecase?: StoredUseCase | null;
+  } = {}
+) {
   return {
     branchStore: branchStore(options.branches ?? []),
     lockStore: lockStore(options.locks ?? []),
@@ -168,14 +170,17 @@ function depsFor(options: {
     ),
     mergeRequestStore: mergeRequestStore(options.mergeRequests ?? []),
     now: () => new Date("2026-05-20T01:00:00.000Z"),
-    useCaseStore: useCaseStore(options.usecase === undefined ? usecase() : options.usecase),
+    useCaseStore: useCaseStore(
+      options.usecase === undefined ? usecase() : options.usecase
+    ),
     workSessionStore: workSessionStore(options.sessions ?? [])
   };
 }
 
 function branchStore(branches: StoredSpecBranch[]): BranchStore {
   return {
-    findBranchById: (branchId) => Promise.resolve(branches.find((item) => item.id === branchId)),
+    findBranchById: (branchId) =>
+      Promise.resolve(branches.find((item) => item.id === branchId)),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
     listBranches: () => Promise.resolve(branches),
     saveBranch: () => Promise.resolve(),
@@ -298,7 +303,10 @@ function lock(overrides: Partial<StoredLock> = {}): StoredLock {
   };
 }
 
-function branch(branchId: string, headRevisionIds: Record<string, string>): StoredSpecBranch {
+function branch(
+  branchId: string,
+  headRevisionIds: Record<string, string>
+): StoredSpecBranch {
   return {
     base_branch_id: null,
     head_revision_ids: headRevisionIds,

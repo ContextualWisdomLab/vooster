@@ -13,18 +13,15 @@ describe("locks application", () => {
   test("acquires a finite auto-release use case lock", async () => {
     const savedLocks: StoredLock[] = [];
 
-    const result = await acquireLock(
-      depsFor({ savedLocks }),
-      {
-        lockType: "SEMANTIC",
-        reason: "Agent is rewriting the success scenario.",
-        sessionId: "session-main-lock",
-        targetId: "usecase-1",
-        targetType: "USECASE",
-        ttlMinutes: 15,
-        userId: "user-1"
-      }
-    );
+    const result = await acquireLock(depsFor({ savedLocks }), {
+      lockType: "SEMANTIC",
+      reason: "Agent is rewriting the success scenario.",
+      sessionId: "session-main-lock",
+      targetId: "usecase-1",
+      targetType: "USECASE",
+      ttlMinutes: 15,
+      userId: "user-1"
+    });
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -103,15 +100,12 @@ describe("locks application", () => {
   test("renews an owned active lock", async () => {
     const updatedLocks: StoredLock[] = [];
 
-    const result = await renewLock(
-      depsFor({ existingLock: lock(), updatedLocks }),
-      {
-        lockId: "lock-1",
-        sessionId: "session-1",
-        ttlMinutes: 45,
-        userId: "user-1"
-      }
-    );
+    const result = await renewLock(depsFor({ existingLock: lock(), updatedLocks }), {
+      lockId: "lock-1",
+      sessionId: "session-1",
+      ttlMinutes: 45,
+      userId: "user-1"
+    });
 
     expect(result.status).toBe("RENEWED");
     if (result.status !== "RENEWED") {
@@ -156,14 +150,16 @@ describe("locks application", () => {
   });
 });
 
-function depsFor(options: {
-  deletedLockIds?: string[];
-  existingLock?: StoredLock;
-  membership?: StoredMembership | null;
-  savedLocks?: StoredLock[];
-  updatedLocks?: StoredLock[];
-  usecase?: StoredUseCase | null;
-} = {}) {
+function depsFor(
+  options: {
+    deletedLockIds?: string[];
+    existingLock?: StoredLock;
+    membership?: StoredMembership | null;
+    savedLocks?: StoredLock[];
+    updatedLocks?: StoredLock[];
+    usecase?: StoredUseCase | null;
+  } = {}
+) {
   return {
     idFactory: () => "id-1",
     lockStore: lockStore(options),
@@ -171,7 +167,9 @@ function depsFor(options: {
       options.membership === undefined ? membership() : options.membership
     ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
-    useCaseStore: useCaseStore(options.usecase === undefined ? usecase() : options.usecase)
+    useCaseStore: useCaseStore(
+      options.usecase === undefined ? usecase() : options.usecase
+    )
   };
 }
 
@@ -189,7 +187,8 @@ function lockStore(options: {
     deleteLockForUseCase: () => Promise.resolve(),
     findLockById: () => Promise.resolve(options.existingLock),
     findLockForUseCase: () => Promise.resolve(options.existingLock),
-    listLocksForUseCase: () => Promise.resolve(options.existingLock === undefined ? [] : [options.existingLock]),
+    listLocksForUseCase: () =>
+      Promise.resolve(options.existingLock === undefined ? [] : [options.existingLock]),
     listLocksHeldBySession: () => Promise.resolve([]),
     saveLock: (newLock) => {
       options.savedLocks?.push(newLock);
@@ -227,10 +226,12 @@ function useCaseStore(foundUseCase: StoredUseCase | null): UseCaseStore {
   };
 }
 
-function lockInput(overrides: {
-  lockType?: "HARD" | "SEMANTIC" | "SOFT";
-  sessionId?: null | string;
-} = {}) {
+function lockInput(
+  overrides: {
+    lockType?: "HARD" | "SEMANTIC" | "SOFT";
+    sessionId?: null | string;
+  } = {}
+) {
   return {
     lockType: overrides.lockType ?? "SEMANTIC",
     reason: "Agent is rewriting the success scenario.",

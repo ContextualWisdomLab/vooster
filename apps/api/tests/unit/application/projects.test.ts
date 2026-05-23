@@ -13,17 +13,14 @@ import type { WorkspaceStore } from "../../../src/ports/workspace-store.js";
 
 describe("projects application", () => {
   test("creates a project with a default main branch", async () => {
-    const result = await createProject(
-      depsFor(),
-      {
-        key: "PAY",
-        name: "Payments",
-        simulateBranchInsertFailure: false,
-        userId: "user-1",
-        visibility: "INTERNAL",
-        workspaceId: "workspace-1"
-      }
-    );
+    const result = await createProject(depsFor(), {
+      key: "PAY",
+      name: "Payments",
+      simulateBranchInsertFailure: false,
+      userId: "user-1",
+      visibility: "INTERNAL",
+      workspaceId: "workspace-1"
+    });
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -43,13 +40,16 @@ describe("projects application", () => {
       name: "main",
       owner_id: "user-1",
       owner_type: "HUMAN",
-        project_id: "id-1"
-      });
+      project_id: "id-1"
+    });
   });
 
   test("rejects unauthorized, archived, duplicate, and simulated failures without writes", async () => {
     const existing = project({ id: "project-existing" });
-    const savedTransactions: Array<{ project: StoredProject; branch: StoredSpecBranch }> = [];
+    const savedTransactions: Array<{
+      project: StoredProject;
+      branch: StoredSpecBranch;
+    }> = [];
 
     await expect(
       createProject(depsFor({ membership: null, savedTransactions }), projectInput())
@@ -58,7 +58,10 @@ describe("projects application", () => {
       createProject(depsFor({ archived: true, savedTransactions }), projectInput())
     ).resolves.toEqual({ status: "WORKSPACE_ARCHIVED" });
     await expect(
-      createProject(depsFor({ existingProject: existing, savedTransactions }), projectInput())
+      createProject(
+        depsFor({ existingProject: existing, savedTransactions }),
+        projectInput()
+      )
     ).resolves.toEqual({ existingProject: existing, status: "DUPLICATE_KEY" });
     await expect(
       createProject(
@@ -87,12 +90,14 @@ function depsFor(
     branchStore: branchStore(options.separateBranchSaves ?? []),
     idFactory: idFactory(),
     membershipStore: membershipStore(
-      "membership" in options ? options.membership ?? null : membership()
+      "membership" in options ? (options.membership ?? null) : membership()
     ),
-    projectStore: projectStore(options.existingProject, options.separateProjectSaves ?? []),
-    signupStore: "signupStore" in options
-      ? options.signupStore
-      : signupStore(savedTransactions),
+    projectStore: projectStore(
+      options.existingProject,
+      options.separateProjectSaves ?? []
+    ),
+    signupStore:
+      "signupStore" in options ? options.signupStore : signupStore(savedTransactions),
     workspaceStore: workspaceStore(options.archived ?? false)
   };
 }

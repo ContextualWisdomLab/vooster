@@ -6,7 +6,10 @@ import {
   patchComment
 } from "../../../src/application/comments.js";
 import type { StoredComment } from "../../../src/domain/entities/index.js";
-import type { StoredMembership, StoredUseCase } from "../../../src/domain/entities/index.js";
+import type {
+  StoredMembership,
+  StoredUseCase
+} from "../../../src/domain/entities/index.js";
 import type { CommentStore } from "../../../src/ports/comment-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
@@ -137,7 +140,10 @@ describe("comments application", () => {
 
   test("requires ownership before editing or deleting", async () => {
     const comments = [comment()];
-    const deps = depsFor({ comments, membership: { ...membership(), user_id: "user-2" } });
+    const deps = depsFor({
+      comments,
+      membership: { ...membership(), user_id: "user-2" }
+    });
 
     await expect(
       patchComment(deps, { body: "Changed", commentId: "comment-1", userId: "user-2" })
@@ -161,11 +167,13 @@ describe("comments application", () => {
   });
 });
 
-function depsFor(options: {
-  comments?: StoredComment[];
-  membership?: StoredMembership | null;
-  usecase?: StoredUseCase | null;
-} = {}) {
+function depsFor(
+  options: {
+    comments?: StoredComment[];
+    membership?: StoredMembership | null;
+    usecase?: StoredUseCase | null;
+  } = {}
+) {
   let nextId = 0;
   return {
     commentStore: commentStore(options.comments ?? []),
@@ -188,7 +196,8 @@ function commentStore(comments: StoredComment[]): CommentStore {
       }
       return Promise.resolve();
     },
-    findCommentById: (commentId) => Promise.resolve(comments.find((item) => item.id === commentId)),
+    findCommentById: (commentId) =>
+      Promise.resolve(comments.find((item) => item.id === commentId)),
     listCommentsForUseCase: (usecaseId) =>
       Promise.resolve(comments.filter((item) => item.target_id === usecaseId)),
     saveComment: (newComment) => {
@@ -203,8 +212,11 @@ function commentStore(comments: StoredComment[]): CommentStore {
   };
 }
 
-function membershipStore(foundMembership: StoredMembership | null | undefined): MembershipStore {
-  const resolvedMembership = foundMembership === undefined ? membership() : foundMembership;
+function membershipStore(
+  foundMembership: StoredMembership | null | undefined
+): MembershipStore {
+  const resolvedMembership =
+    foundMembership === undefined ? membership() : foundMembership;
   return {
     membershipForProject: () => Promise.resolve(resolvedMembership ?? undefined),
     membershipForWorkspace: () => Promise.resolve(undefined),
@@ -218,10 +230,14 @@ function useCaseStore(foundUseCase: StoredUseCase | null | undefined): UseCaseSt
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () =>
-      Promise.resolve(resolvedUseCase === null ? undefined : {
-        projectId: resolvedUseCase.project_id,
-        usecase: resolvedUseCase
-      }),
+      Promise.resolve(
+        resolvedUseCase === null
+          ? undefined
+          : {
+              projectId: resolvedUseCase.project_id,
+              usecase: resolvedUseCase
+            }
+      ),
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve([]),
     saveUseCase: () => Promise.resolve(),

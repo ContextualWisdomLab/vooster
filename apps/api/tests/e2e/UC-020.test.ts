@@ -24,9 +24,21 @@ afterAll(async () => {
 
 describe("UC-020 - Merge a branch", () => {
   test("MAIN: clean branch merge fast-forwards main", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Merge Branch", "merge-branch", "stub-merge-branch");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Merge Branch",
+      "merge-branch",
+      "stub-merge-branch"
+    );
     const branch = await createBranch(server, setup, "feature/merge-refund");
-    const branchRevision = await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly", "NON_BREAKING");
+    const branchRevision = await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund quickly",
+      "NON_BREAKING"
+    );
     const response = await openMerge(server, setup, branch.id);
 
     expect(response.status).toBe(201);
@@ -52,10 +64,26 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("4a: structural conflict leaves merge request open", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Structural Merge", "structural-merge", "stub-structural-merge");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Structural Merge",
+      "structural-merge",
+      "stub-structural-merge"
+    );
     const branch = await createBranch(server, setup, "feature/structural-conflict");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+    await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund quickly"
+    );
+    const mainRevision = await advanceMain(
+      server,
+      setup,
+      usecase.id,
+      "Reviews a refund manually"
+    );
     const response = await openMerge(server, setup, branch.id);
 
     expect(response.status).toBe(201);
@@ -82,9 +110,20 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("4b: hard lock blocks merge and keeps merge request open", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Locked Merge", "locked-merge", "stub-locked-merge");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Locked Merge",
+      "locked-merge",
+      "stub-locked-merge"
+    );
     const branch = await createBranch(server, setup, "feature/locked-merge");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund with audit");
+    await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund with audit"
+    );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
       holder: "session-lock-holder",
@@ -106,10 +145,28 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("4c: semantic conflict leaves merge request open", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Semantic Merge", "semantic-merge", "stub-semantic-merge");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Semantic Merge",
+      "semantic-merge",
+      "stub-semantic-merge"
+    );
     const branch = await createBranch(server, setup, "feature/semantic-conflict");
-    await advanceBranchExtension(server, setup, branch.id, usecase.id, "3a", "Card is declined online");
-    await advanceMainExtension(server, setup, usecase.id, "3a", "Card is declined in store");
+    await advanceBranchExtension(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "3a",
+      "Card is declined online"
+    );
+    await advanceMainExtension(
+      server,
+      setup,
+      usecase.id,
+      "3a",
+      "Card is declined in store"
+    );
 
     const response = await openMerge(server, setup, branch.id);
 
@@ -135,10 +192,26 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("5a: forced fast-forward is rejected after main advances", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Forced Fast Forward", "forced-fast-forward", "stub-forced-fast-forward");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Forced Fast Forward",
+      "forced-fast-forward",
+      "stub-forced-fast-forward"
+    );
     const branch = await createBranch(server, setup, "feature/force-fast-forward");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-    const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund quickly");
+    await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund quickly"
+    );
+    const mainRevision = await advanceMain(
+      server,
+      setup,
+      usecase.id,
+      "Reviews a refund quickly"
+    );
 
     const response = await openMerge(server, setup, branch.id, "FAST_FORWARD");
 
@@ -154,9 +227,20 @@ describe("UC-020 - Merge a branch", () => {
   });
 
   test("*a: write failure leaves merge request open and main unchanged", async () => {
-    const { setup, usecase } = await projectUseCase(server, "Failed Merge", "failed-merge", "stub-failed-merge");
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Failed Merge",
+      "failed-merge",
+      "stub-failed-merge"
+    );
     const branch = await createBranch(server, setup, "feature/failed-merge");
-    await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund safely");
+    await advanceBranch(
+      server,
+      setup,
+      branch.id,
+      usecase.id,
+      "Reviews a refund safely"
+    );
 
     const response = await openMerge(server, setup, branch.id, undefined, true);
 
@@ -165,7 +249,9 @@ describe("UC-020 - Merge a branch", () => {
     expect(problem.exit_code).toBe(5);
     expect(problem.merge_request).toMatchObject({ status: "OPEN" });
     expect(problem.source_branch).toMatchObject({ status: "ACTIVE" });
-    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(usecase.current_revision_id);
+    expect(problem.main_head_revision_ids?.[usecase.id]).toBe(
+      usecase.current_revision_id
+    );
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec merge open feature/failed-merge --retry",
       reason: "Retry after the failed merge write."

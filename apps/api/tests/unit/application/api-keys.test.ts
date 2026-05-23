@@ -13,16 +13,13 @@ describe("api keys application", () => {
   test("owner creates a scoped key with one-time plaintext token and stored hash", async () => {
     const savedKeys: StoredApiKey[] = [];
 
-    const result = await createApiKey(
-      depsFor({ savedKeys }),
-      {
-        name: "ci pipeline",
-        scopes: ["read", "write"],
-        simulateResponseDrop: false,
-        userId: "user-1",
-        workspaceId: "workspace-1"
-      }
-    );
+    const result = await createApiKey(depsFor({ savedKeys }), {
+      name: "ci pipeline",
+      scopes: ["read", "write"],
+      simulateResponseDrop: false,
+      userId: "user-1",
+      workspaceId: "workspace-1"
+    });
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -53,10 +50,7 @@ describe("api keys application", () => {
     ).resolves.toEqual({ status: "OWNER_REQUIRED" });
 
     await expect(
-      createApiKey(
-        depsFor({ savedKeys }),
-        createInput({ scopes: ["read", "admin"] })
-      )
+      createApiKey(depsFor({ savedKeys }), createInput({ scopes: ["read", "admin"] }))
     ).resolves.toEqual({
       allowedScopes: ["read", "write"],
       offendingScope: "admin",
@@ -85,10 +79,10 @@ describe("api keys application", () => {
   test("lists public metadata only for owners", async () => {
     const apiKey = storedApiKey();
 
-    const result = await listApiKeys(
-      depsFor({ apiKeys: [apiKey] }),
-      { userId: "user-1", workspaceId: "workspace-1" }
-    );
+    const result = await listApiKeys(depsFor({ apiKeys: [apiKey] }), {
+      userId: "user-1",
+      workspaceId: "workspace-1"
+    });
 
     expect(result).toEqual({
       apiKeys: [
@@ -120,10 +114,10 @@ describe("api keys application", () => {
       revoked_at: "2026-05-19T00:00:00.000Z"
     });
 
-    const first = await revokeApiKey(
-      depsFor({ apiKeys: [active], updatedKeys }),
-      { apiKeyId: active.id, userId: "user-1" }
-    );
+    const first = await revokeApiKey(depsFor({ apiKeys: [active], updatedKeys }), {
+      apiKeyId: active.id,
+      userId: "user-1"
+    });
     expect(first.status).toBe("REVOKED");
     if (first.status !== "REVOKED") {
       throw new Error("expected active key to be revoked");
@@ -158,10 +152,13 @@ describe("api keys application", () => {
       })
     ).resolves.toEqual({ status: "NOT_FOUND" });
     await expect(
-      revokeApiKey(depsFor({ apiKeys: [storedApiKey({ workspace_id: "workspace-2" })] }), {
-        apiKeyId: "api-key-1",
-        userId: "user-1"
-      })
+      revokeApiKey(
+        depsFor({ apiKeys: [storedApiKey({ workspace_id: "workspace-2" })] }),
+        {
+          apiKeyId: "api-key-1",
+          userId: "user-1"
+        }
+      )
     ).resolves.toEqual({ status: "NOT_FOUND" });
   });
 });
@@ -183,7 +180,7 @@ function depsFor(
     hashFactory: () => "$argon2id$hashvalue",
     idFactory: () => "id-1",
     membershipStore: membershipStore(
-      "membership" in options ? options.membership ?? null : membership()
+      "membership" in options ? (options.membership ?? null) : membership()
     ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     tokenFactory: () => "vsp_tokenvalue"
@@ -196,7 +193,8 @@ function apiKeyStore(
   updatedKeys: StoredApiKey[]
 ): ApiKeyStore {
   return {
-    findApiKeyById: (apiKeyId) => Promise.resolve(apiKeys.find((item) => item.id === apiKeyId)),
+    findApiKeyById: (apiKeyId) =>
+      Promise.resolve(apiKeys.find((item) => item.id === apiKeyId)),
     listApiKeysForWorkspace: (workspaceId) =>
       Promise.resolve(apiKeys.filter((item) => item.workspace_id === workspaceId)),
     saveApiKey: (apiKey) => {
@@ -214,9 +212,11 @@ function membershipStore(value: StoredMembership | null): MembershipStore {
   return {
     membershipForProject: () => Promise.resolve(undefined),
     membershipForWorkspace: (workspaceId, userId) =>
-      Promise.resolve(value?.user_id === userId && value.workspace_id === workspaceId
-        ? value
-        : undefined),
+      Promise.resolve(
+        value?.user_id === userId && value.workspace_id === workspaceId
+          ? value
+          : undefined
+      ),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
   };

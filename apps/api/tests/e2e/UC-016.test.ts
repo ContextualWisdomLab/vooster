@@ -21,8 +21,12 @@ afterAll(async () => {
 
 describe("UC-016 - Start a work session", () => {
   test("MAIN: start session with pinned current use case revision", async () => {
-    const { mainStepRevision, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Start Session", "start-session", "stub-start-session");
+    const { mainStepRevision, setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Start Session",
+      "start-session",
+      "stub-start-session"
+    );
     const response = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Implement checkout validation",
@@ -48,13 +52,22 @@ describe("UC-016 - Start a work session", () => {
       path: ".vspec/session.json",
       session_id: body.session.id
     });
-    expect(body.suggested_next_actions).toContainEqual({ command: `vspec usecase show ${usecase.key} --session ${body.session.id}`, reason: "Open the pinned use case revision." });
-    expect(body.suggested_next_actions).toContainEqual({ command: "vspec session complete", reason: "Close the session when the work is done." });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec usecase show ${usecase.key} --session ${body.session.id}`,
+      reason: "Open the pinned use case revision."
+    });
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec session complete",
+      reason: "Close the session when the work is done."
+    });
   });
 
   test("3a: archived pin is rejected without creating a session", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server, "Archived Session Pin", "archived-session-pin", "stub-archived-session-pin"
+      server,
+      "Archived Session Pin",
+      "archived-session-pin",
+      "stub-archived-session-pin"
     );
     const archived = await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
       method: "POST"
@@ -70,12 +83,18 @@ describe("UC-016 - Start a work session", () => {
     expect(problem.title).toMatch(/pinned use case is archived/i);
     expect(problem.offending_key).toBe(usecase.key);
     expect(problem.session_count).toBe(0);
-    expect(problem.suggested_next_actions).toContainEqual({ command: `vspec usecase restore ${usecase.key}`, reason: "Restore the archived use case before pinning it." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the archived use case before pinning it."
+    });
   });
 
   test("3b: hard-locked pin is rejected with holding session guidance", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server, "Hard Locked Session Pin", "hard-locked-session-pin", "stub-hard-locked-session-pin"
+      server,
+      "Hard Locked Session Pin",
+      "hard-locked-session-pin",
+      "stub-hard-locked-session-pin"
     );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
@@ -93,14 +112,32 @@ describe("UC-016 - Start a work session", () => {
     expect(problem.title).toMatch(/pinned use case is hard-locked/i);
     expect(problem.offending_key).toBe(usecase.key);
     expect(problem.holding_session).toBe("agent-session-locked");
-    expect(problem.suggested_next_actions).toContainEqual({ command: `vspec who ${usecase.key}`, reason: "Identify the session holding the hard lock." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the session holding the hard lock."
+    });
   });
 
   test("4a: auto-branch collision gets a suffixed branch name", async () => {
-    const setup = await createProject(server, "Session Branch", "session-branch", "stub-session-branch");
+    const setup = await createProject(
+      server,
+      "Session Branch",
+      "session-branch",
+      "stub-session-branch"
+    );
     await createActor(server, setup, "Customer");
-    const firstUseCase = await createUseCase(server, setup, "Customer", "Places an order");
-    const secondUseCase = await createUseCase(server, setup, "Customer", "Reviews an order");
+    const firstUseCase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Places an order"
+    );
+    const secondUseCase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews an order"
+    );
 
     const first = await startWorkSession(server, setup, {
       agent_type: "CODEX",
@@ -133,7 +170,10 @@ describe("UC-016 - Start a work session", () => {
 
   test("4b: auto-branch semantic lock conflict rolls back session creation", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
-      server, "Semantic Branch Conflict", "semantic-branch-conflict", "stub-semantic-branch-conflict"
+      server,
+      "Semantic Branch Conflict",
+      "semantic-branch-conflict",
+      "stub-semantic-branch-conflict"
     );
     await createStepLock(server, usecase.id, setup.cookie, {
       expires_at: "2026-06-01T00:00:00.000Z",
@@ -154,11 +194,19 @@ describe("UC-016 - Start a work session", () => {
     expect(problem.conflicting_session).toBe("agent-session-semantic");
     expect(problem.created_branch).toBe(false);
     expect(problem.created_session).toBe(false);
-    expect(problem.suggested_next_actions).toContainEqual({ command: `vspec who ${usecase.key}`, reason: "Identify the session holding the semantic lock." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the session holding the semantic lock."
+    });
   });
 
   test("2a: unrecognized agent type is stored as OTHER with a warning", async () => {
-    const { setup, usecase } = await createUseCaseWithMainStep(server, "Unknown Agent", "unknown-agent", "stub-unknown-agent");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Unknown Agent",
+      "unknown-agent",
+      "stub-unknown-agent"
+    );
     const response = await startWorkSession(server, setup, {
       agent_type: "NEURAL_WEAVER",
       intent: "Work from an unknown agent",
@@ -168,11 +216,19 @@ describe("UC-016 - Start a work session", () => {
     expect(response.status).toBe(201);
     expect(body.session.agent_type).toBe("OTHER");
     expect(body.session.agent_identifier).toBe("NEURAL_WEAVER");
-    expect(body.warnings).toContainEqual({ type: "UNKNOWN_AGENT_TYPE", message: "Stored unrecognized agent_type NEURAL_WEAVER as OTHER." });
+    expect(body.warnings).toContainEqual({
+      type: "UNKNOWN_AGENT_TYPE",
+      message: "Stored unrecognized agent_type NEURAL_WEAVER as OTHER."
+    });
   });
 
   test("*a: transactional write failure leaves no session or branch", async () => {
-    const { setup, usecase } = await createUseCaseWithMainStep(server, "Failed Session", "failed-session", "stub-failed-session");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Failed Session",
+      "failed-session",
+      "stub-failed-session"
+    );
     const response = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       auto_branch: true,
@@ -186,6 +242,9 @@ describe("UC-016 - Start a work session", () => {
     expect(problem.title).toMatch(/session creation failed/i);
     expect(problem.created_branch).toBe(false);
     expect(problem.created_session).toBe(false);
-    expect(problem.suggested_next_actions).toContainEqual({ command: "vspec session start --retry", reason: "Retry after the failed transaction." });
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec session start --retry",
+      reason: "Retry after the failed transaction."
+    });
   });
 });

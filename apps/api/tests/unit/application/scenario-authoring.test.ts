@@ -25,14 +25,11 @@ describe("scenario authoring application", () => {
     const savedScenarios: StoredScenario[] = [];
     const savedRevisions: StoredRevision[] = [];
 
-    const result = await createScenario(
-      depsFor({ savedRevisions, savedScenarios }),
-      {
-        type: "MAIN_SUCCESS",
-        usecaseId: "usecase-1",
-        userId: "user-1"
-      }
-    );
+    const result = await createScenario(depsFor({ savedRevisions, savedScenarios }), {
+      type: "MAIN_SUCCESS",
+      usecaseId: "usecase-1",
+      userId: "user-1"
+    });
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -89,14 +86,11 @@ describe("scenario authoring application", () => {
   test("reports missing use cases before writing scenarios", async () => {
     const savedScenarios: StoredScenario[] = [];
 
-    const result = await createScenario(
-      depsFor({ savedScenarios, usecase: null }),
-      {
-        type: "MAIN_SUCCESS",
-        usecaseId: "missing-usecase",
-        userId: "user-1"
-      }
-    );
+    const result = await createScenario(depsFor({ savedScenarios, usecase: null }), {
+      type: "MAIN_SUCCESS",
+      usecaseId: "missing-usecase",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "USECASE_NOT_FOUND" });
     expect(savedScenarios).toEqual([]);
@@ -264,7 +258,10 @@ describe("scenario authoring application", () => {
       depsFor({
         existingScenarios: [
           mainScenario(),
-          extensionScenario({ condition: "Payment is declined.", extension_point: "1a" })
+          extensionScenario({
+            condition: "Payment is declined.",
+            extension_point: "1a"
+          })
         ],
         existingSteps: [step()],
         savedScenarios
@@ -320,7 +317,9 @@ describe("scenario authoring application", () => {
       step_number: 2
     });
     expect(result.scenarioSteps.map((item) => item.step_number)).toEqual([1, 2]);
-    expect(result.revision.change_summary).toBe("Added step 2 to main success scenario");
+    expect(result.revision.change_summary).toBe(
+      "Added step 2 to main success scenario"
+    );
     expect(savedSteps).toEqual([result.step]);
     expect(savedRevisions).toEqual([result.revision]);
   });
@@ -355,16 +354,13 @@ describe("scenario authoring application", () => {
   test("reports missing scenarios before adding a step", async () => {
     const savedSteps: StoredStep[] = [];
 
-    const result = await addScenarioStep(
-      depsFor({ savedSteps }),
-      {
-        action: "Reviews the order.",
-        actorName: "Customer",
-        force: false,
-        scenarioId: "missing-scenario",
-        userId: "user-1"
-      }
-    );
+    const result = await addScenarioStep(depsFor({ savedSteps }), {
+      action: "Reviews the order.",
+      actorName: "Customer",
+      force: false,
+      scenarioId: "missing-scenario",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({ status: "SCENARIO_NOT_FOUND" });
     expect(savedSteps).toEqual([]);
@@ -448,16 +444,18 @@ describe("scenario authoring application", () => {
   });
 });
 
-function depsFor(options: {
-  existingScenarios?: StoredScenario[];
-  existingSteps?: StoredStep[];
-  hasMembership?: boolean;
-  savedRevisions?: StoredRevision[];
-  savedScenarios?: StoredScenario[];
-  savedSteps?: StoredStep[];
-  stakeholderInterests?: StoredStakeholderInterest[];
-  usecase?: StoredUseCase | null;
-} = {}) {
+function depsFor(
+  options: {
+    existingScenarios?: StoredScenario[];
+    existingSteps?: StoredStep[];
+    hasMembership?: boolean;
+    savedRevisions?: StoredRevision[];
+    savedScenarios?: StoredScenario[];
+    savedSteps?: StoredStep[];
+    stakeholderInterests?: StoredStakeholderInterest[];
+    usecase?: StoredUseCase | null;
+  } = {}
+) {
   let nextId = 0;
   return {
     actorStore: actorStore(),
@@ -467,12 +465,17 @@ function depsFor(options: {
     },
     membershipStore: membershipStore(options.hasMembership ?? true),
     revisionStore: revisionStore(options.savedRevisions ?? []),
-    scenarioStore: scenarioStore(options.existingScenarios ?? [], options.savedScenarios ?? []),
+    scenarioStore: scenarioStore(
+      options.existingScenarios ?? [],
+      options.savedScenarios ?? []
+    ),
     stakeholderInterestStore: stakeholderInterestStore(
       options.stakeholderInterests ?? [stakeholderInterest()]
     ),
     stepStore: stepStore(options.existingSteps ?? [], options.savedSteps ?? []),
-    useCaseStore: useCaseStore(options.usecase === undefined ? usecase() : options.usecase)
+    useCaseStore: useCaseStore(
+      options.usecase === undefined ? usecase() : options.usecase
+    )
   };
 }
 
@@ -489,7 +492,8 @@ function actorStore(): ActorStore {
 
 function membershipStore(hasMembership: boolean): MembershipStore {
   return {
-    membershipForProject: () => Promise.resolve(hasMembership ? membership() : undefined),
+    membershipForProject: () =>
+      Promise.resolve(hasMembership ? membership() : undefined),
     membershipForWorkspace: () => Promise.resolve(undefined),
     membershipsForUser: () => Promise.resolve([]),
     saveMembership: () => Promise.resolve()
@@ -515,9 +519,13 @@ function scenarioStore(
 ): ScenarioStore {
   return {
     findMainScenario: () =>
-      Promise.resolve(existingScenarios.find((scenario) => scenario.type === "MAIN_SUCCESS")),
+      Promise.resolve(
+        existingScenarios.find((scenario) => scenario.type === "MAIN_SUCCESS")
+      ),
     findScenarioById: (scenarioId) =>
-      Promise.resolve(existingScenarios.concat(savedScenarios).find((item) => item.id === scenarioId)),
+      Promise.resolve(
+        existingScenarios.concat(savedScenarios).find((item) => item.id === scenarioId)
+      ),
     listScenarios: () => Promise.resolve(existingScenarios.concat(savedScenarios)),
     saveScenario: (scenario) => {
       savedScenarios.push(scenario);
@@ -526,7 +534,9 @@ function scenarioStore(
   };
 }
 
-function stakeholderInterestStore(interests: StoredStakeholderInterest[]): StakeholderInterestStore {
+function stakeholderInterestStore(
+  interests: StoredStakeholderInterest[]
+): StakeholderInterestStore {
   return {
     deleteStakeholderInterest: () => Promise.resolve(),
     findStakeholderInterestById: () => Promise.resolve(undefined),

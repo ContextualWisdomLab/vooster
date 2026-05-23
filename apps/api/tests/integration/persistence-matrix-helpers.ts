@@ -551,11 +551,7 @@ export function whoIsWorking(
   });
 }
 
-export function showUseCase(
-  baseUrl: string,
-  sessionCookie: string,
-  usecaseId: string
-) {
+export function showUseCase(baseUrl: string, sessionCookie: string, usecaseId: string) {
   return fetch(`${baseUrl}/v1/usecases/${usecaseId}?format=agent`, {
     headers: { cookie: sessionCookie }
   });

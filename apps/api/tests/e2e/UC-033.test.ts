@@ -15,8 +15,12 @@ type JsonGuideResponse = {
 };
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-033 - Learn how to use vspec (AI agent)", () => {
   test("MAIN: public markdown guide bootstraps a fresh AI agent", async () => {
@@ -29,14 +33,22 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.cache).toEqual({ cli_version: "1.0.0", status: "REFRESHED" });
     expect(guide.content).toContain("# vspec AI Agent Guide");
     expect(guide.content).toContain("Why sessions exist");
-    expect(guide.content).toContain("pin -> fetch via --format=agent -> propose-change -> commit");
+    expect(guide.content).toContain(
+      "pin -> fetch via --format=agent -> propose-change -> commit"
+    );
     expect(guide.content).toContain("The --format=agent payload contract");
     expect(guide.content).toContain("Forbidden actions");
     expect(guide.content).toContain("Worked example");
     expect(guide.suggested_next_actions).toEqual([
-      { command: "vspec login", reason: "Authenticate before working with private specs." },
+      {
+        command: "vspec login",
+        reason: "Authenticate before working with private specs."
+      },
       { command: "vspec project list", reason: "Find the project to inspect." },
-      { command: "vspec session start", reason: "Pin the target use cases before editing." }
+      {
+        command: "vspec session start",
+        reason: "Pin the target use cases before editing."
+      }
     ]);
   });
 
@@ -69,7 +81,9 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cached_guides: [{ cli_version: "0.9.0", content: "# Old vspec AI Agent Guide\n" }],
+        cached_guides: [
+          { cli_version: "0.9.0", content: "# Old vspec AI Agent Guide\n" }
+        ],
         simulate_network_failure: true
       })
     });
@@ -81,7 +95,8 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.content).toContain("# Old vspec AI Agent Guide");
     expect(guide.warnings).toContainEqual({
       type: "STALE_AI_GUIDE",
-      message: "Using cached guide 0.9.0 because the current guide could not be fetched."
+      message:
+        "Using cached guide 0.9.0 because the current guide could not be fetched."
     });
     expect(guide.suggested_next_actions).toContainEqual({
       command: "vspec ai-guide",
@@ -124,6 +139,8 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     };
     expect(problem.title).toMatch(/ai guide unavailable/i);
     expect(problem.exit_code).toBe(5);
-    expect(problem.bootstrap).toBe("Read https://vspec.dev/ai-guide and retry vspec ai-guide once online.");
+    expect(problem.bootstrap).toBe(
+      "Read https://vspec.dev/ai-guide and retry vspec ai-guide once online."
+    );
   });
 });

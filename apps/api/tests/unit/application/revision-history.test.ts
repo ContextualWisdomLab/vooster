@@ -13,16 +13,13 @@ import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 
 describe("revision history application", () => {
   test("lists newest revisions with truncation metadata and guidance", async () => {
-    const result = await listRevisionHistory(
-      depsFor(),
-      {
-        limit: 2,
-        projectId: undefined,
-        simulateReadFailure: false,
-        usecaseId: "usecase-1",
-        userId: "user-1"
-      }
-    );
+    const result = await listRevisionHistory(depsFor(), {
+      limit: 2,
+      projectId: undefined,
+      simulateReadFailure: false,
+      usecaseId: "usecase-1",
+      userId: "user-1"
+    });
 
     expect(result.status).toBe("LISTED");
     if (result.status !== "LISTED") {
@@ -72,16 +69,13 @@ describe("revision history application", () => {
 
   test("returns project guidance when the use case is missing", async () => {
     await expect(
-      listRevisionHistory(
-        depsFor({ usecase: null }),
-        {
-          limit: 50,
-          projectId: "project-1",
-          simulateReadFailure: false,
-          usecaseId: "missing-usecase",
-          userId: "user-1"
-        }
-      )
+      listRevisionHistory(depsFor({ usecase: null }), {
+        limit: 50,
+        projectId: "project-1",
+        simulateReadFailure: false,
+        usecaseId: "missing-usecase",
+        userId: "user-1"
+      })
     ).resolves.toEqual({
       projectKey: "PAY",
       status: "USECASE_NOT_FOUND"
@@ -107,16 +101,13 @@ describe("revision history application", () => {
   });
 
   test("returns read failure guidance without mutating history", async () => {
-    const result = await listRevisionHistory(
-      depsFor(),
-      {
-        limit: 50,
-        projectId: undefined,
-        simulateReadFailure: true,
-        usecaseId: "usecase-1",
-        userId: "user-1"
-      }
-    );
+    const result = await listRevisionHistory(depsFor(), {
+      limit: 50,
+      projectId: undefined,
+      simulateReadFailure: true,
+      usecaseId: "usecase-1",
+      userId: "user-1"
+    });
 
     expect(result).toEqual({
       status: "READ_FAILED",
@@ -134,12 +125,14 @@ function depsFor(
 ) {
   return {
     membershipStore: membershipStore(
-      "membership" in options ? options.membership ?? null : membership()
+      "membership" in options ? (options.membership ?? null) : membership()
     ),
     now: () => new Date("2026-05-20T00:00:00.000Z"),
     projectStore: projectStore(),
     revisionStore: revisionStore(options.readEntityIds ?? []),
-    useCaseStore: useCaseStore("usecase" in options ? options.usecase ?? null : usecase())
+    useCaseStore: useCaseStore(
+      "usecase" in options ? (options.usecase ?? null) : usecase()
+    )
   };
 }
 
@@ -185,7 +178,9 @@ function useCaseStore(value: StoredUseCase | null): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () =>
-      Promise.resolve(value === null ? undefined : { projectId: value.project_id, usecase: value }),
+      Promise.resolve(
+        value === null ? undefined : { projectId: value.project_id, usecase: value }
+      ),
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve([]),
     saveUseCase: () => Promise.reject(new Error("history must be read-only")),
@@ -193,7 +188,11 @@ function useCaseStore(value: StoredUseCase | null): UseCaseStore {
   };
 }
 
-function revision(id: string, versionNumber: number, changeSummary: string): StoredRevision {
+function revision(
+  id: string,
+  versionNumber: number,
+  changeSummary: string
+): StoredRevision {
   return {
     change_summary: changeSummary,
     entity_id: "usecase-1",

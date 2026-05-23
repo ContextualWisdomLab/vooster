@@ -42,7 +42,12 @@ export type MergeProblemResponse = {
 };
 type Severity = "BREAKING" | "COSMETIC" | "NON_BREAKING";
 
-export async function projectUseCase(server: TestServer, name: string, slug: string, code: string) {
+export async function projectUseCase(
+  server: TestServer,
+  name: string,
+  slug: string,
+  code: string
+) {
   const setup = await createProject(server, name, slug, code);
   await createActor(server, setup, "Customer");
   const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
@@ -59,14 +64,23 @@ export async function openStructuralConflict(
   const { setup, usecase } = await projectUseCase(server, name, slug, code);
   const branch = await createBranch(server, setup, branchName);
   await advanceBranch(server, setup, branch.id, usecase.id, "Reviews a refund quickly");
-  const mainRevision = await advanceMain(server, setup, usecase.id, "Reviews a refund manually");
+  const mainRevision = await advanceMain(
+    server,
+    setup,
+    usecase.id,
+    "Reviews a refund manually"
+  );
   const opened = await openMerge(server, setup, branch.id);
   expect(opened.status).toBe(201);
   const merge = ((await opened.json()) as MergeOpenResponse).merge_request;
   return { branch, mainRevision, merge, setup, usecase };
 }
 
-export async function createBranch(server: TestServer, setup: ProjectSetup, name: string) {
+export async function createBranch(
+  server: TestServer,
+  setup: ProjectSetup,
+  name: string
+) {
   const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: setup.cookie },
@@ -83,11 +97,14 @@ export async function advanceBranch(
   title: string,
   severity: Severity = "BREAKING"
 ) {
-  const response = await server.fetch(`/__test/branches/${branchId}/usecases/${usecaseId}/revisions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ severity, title })
-  });
+  const response = await server.fetch(
+    `/__test/branches/${branchId}/usecases/${usecaseId}/revisions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ severity, title })
+    }
+  );
   expect(response.status).toBe(200);
   return (await response.json()) as BranchRevisionResponse;
 }
@@ -115,11 +132,14 @@ export async function advanceBranchExtension(
   extensionPoint: string,
   condition: string
 ) {
-  const response = await server.fetch(`/__test/branches/${branchId}/usecases/${usecaseId}/extensions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-    body: JSON.stringify({ condition, extension_point: extensionPoint })
-  });
+  const response = await server.fetch(
+    `/__test/branches/${branchId}/usecases/${usecaseId}/extensions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ condition, extension_point: extensionPoint })
+    }
+  );
   expect(response.status).toBe(200);
   return (await response.json()) as BranchRevisionResponse;
 }

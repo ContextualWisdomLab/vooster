@@ -16,12 +16,21 @@ import { startServer, type TestServer } from "../helpers/server.js";
 import { signup } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-032 - Issue and manage API keys", () => {
   test("MAIN: owner creates, lists, and revokes a scoped API key", async () => {
-    const owner = await signup(server, "API Key Main", "api-key-main", "stub-api-key-main");
+    const owner = await signup(
+      server,
+      "API Key Main",
+      "api-key-main",
+      "stub-api-key-main"
+    );
 
     const created = await createApiKey(server, owner.workspaceId, owner.cookie, {
       name: "ci pipeline",
@@ -57,7 +66,12 @@ describe("UC-032 - Issue and manage API keys", () => {
   });
 
   test("2a: unsupported scope is rejected with allowed scope guidance", async () => {
-    const owner = await signup(server, "API Key Scope", "api-key-scope", "stub-api-key-scope");
+    const owner = await signup(
+      server,
+      "API Key Scope",
+      "api-key-scope",
+      "stub-api-key-scope"
+    );
 
     const response = await createApiKey(server, owner.workspaceId, owner.cookie, {
       name: "admin job",
@@ -76,7 +90,12 @@ describe("UC-032 - Issue and manage API keys", () => {
   });
 
   test("5a: lost create response leaves metadata only and requires reissue", async () => {
-    const owner = await signup(server, "API Key Lost", "api-key-lost", "stub-api-key-lost");
+    const owner = await signup(
+      server,
+      "API Key Lost",
+      "api-key-lost",
+      "stub-api-key-lost"
+    );
 
     const dropped = await createApiKey(server, owner.workspaceId, owner.cookie, {
       name: "lost token",
@@ -88,7 +107,10 @@ describe("UC-032 - Issue and manage API keys", () => {
     const listed = await listApiKeys(server, owner.workspaceId, owner.cookie);
     const listBody = (await listed.json()) as ApiKeyListResponse;
     expect(listBody.api_keys).toHaveLength(1);
-    expect(listBody.api_keys[0]).toMatchObject({ name: "lost token", revoked_at: null });
+    expect(listBody.api_keys[0]).toMatchObject({
+      name: "lost token",
+      revoked_at: null
+    });
     expect(listBody.api_keys[0]).not.toHaveProperty("plaintext_token");
 
     await revokeApiKey(server, listBody.api_keys[0]?.id ?? "", owner.cookie);
@@ -97,17 +119,26 @@ describe("UC-032 - Issue and manage API keys", () => {
       scopes: ["read"]
     });
     expect(reissued.status).toBe(201);
-    expect(((await reissued.json()) as ApiKeyResponse).plaintext_token).toMatch(/^vsp_/);
+    expect(((await reissued.json()) as ApiKeyResponse).plaintext_token).toMatch(
+      /^vsp_/
+    );
   });
 
   test("5b: revoking an already-revoked key is idempotent", async () => {
-    const owner = await signup(server, "API Key Idempotent", "api-key-idempotent", "stub-api-key-idempotent");
+    const owner = await signup(
+      server,
+      "API Key Idempotent",
+      "api-key-idempotent",
+      "stub-api-key-idempotent"
+    );
     const created = await createApiKey(server, owner.workspaceId, owner.cookie, {
       name: "agent key",
       scopes: ["write"]
     });
     const key = ((await created.json()) as ApiKeyResponse).api_key;
-    const first = (await (await revokeApiKey(server, key.id, owner.cookie)).json()) as ApiKeyResponse;
+    const first = (await (
+      await revokeApiKey(server, key.id, owner.cookie)
+    ).json()) as ApiKeyResponse;
 
     const secondResponse = await revokeApiKey(server, key.id, owner.cookie);
 
@@ -118,7 +149,12 @@ describe("UC-032 - Issue and manage API keys", () => {
   });
 
   test("2b: editor cannot create API keys and gets owner-role guidance", async () => {
-    const owner = await signup(server, "API Key Editor", "api-key-editor", "stub-api-key-editor-owner");
+    const owner = await signup(
+      server,
+      "API Key Editor",
+      "api-key-editor",
+      "stub-api-key-editor-owner"
+    );
     const invited = await inviteMember(
       server,
       owner.workspaceId,
@@ -127,7 +163,11 @@ describe("UC-032 - Issue and manage API keys", () => {
       "EDITOR"
     );
     const inviteBody = (await invited.json()) as InvitationResponse;
-    const accepted = await acceptInvitation(server, inviteBody.invitation.token, "stub-api-key-editor");
+    const accepted = await acceptInvitation(
+      server,
+      inviteBody.invitation.token,
+      "stub-api-key-editor"
+    );
     const editorCookie = accepted.headers.get("set-cookie") ?? "";
 
     const response = await createApiKey(server, owner.workspaceId, editorCookie, {
@@ -144,8 +184,18 @@ describe("UC-032 - Issue and manage API keys", () => {
   });
 
   test("*a: revoking another workspace key returns non-leaky 404", async () => {
-    const ownerA = await signup(server, "API Key Workspace A", "api-key-workspace-a", "stub-api-key-workspace-a");
-    const ownerB = await signup(server, "API Key Workspace B", "api-key-workspace-b", "stub-api-key-workspace-b");
+    const ownerA = await signup(
+      server,
+      "API Key Workspace A",
+      "api-key-workspace-a",
+      "stub-api-key-workspace-a"
+    );
+    const ownerB = await signup(
+      server,
+      "API Key Workspace B",
+      "api-key-workspace-b",
+      "stub-api-key-workspace-b"
+    );
     const created = await createApiKey(server, ownerA.workspaceId, ownerA.cookie, {
       name: "foreign key",
       scopes: ["read"]

@@ -103,7 +103,11 @@ describe("session list application", () => {
         sessions: [
           session({ id: "session-a", user_id: "user-2" }),
           session({ id: "session-b", user_id: "user-2" }),
-          session({ id: "session-other-project", project_id: "project-2", user_id: "user-2" })
+          session({
+            id: "session-other-project",
+            project_id: "project-2",
+            user_id: "user-2"
+          })
         ]
       }),
       {
@@ -120,9 +124,16 @@ describe("session list application", () => {
       throw new Error("expected sessions to be listed");
     }
     expect(result.snapshot.total).toBe(2);
-    expect(result.snapshot.sessions.map((row) => row.id)).toEqual(["session-a", "session-b"]);
-    expect(result.snapshot.sessions[0]?.conflict_markers).toEqual(["PINNED_BY:session-b"]);
-    expect(result.snapshot.sessions[1]?.conflict_markers).toEqual(["PINNED_BY:session-a"]);
+    expect(result.snapshot.sessions.map((row) => row.id)).toEqual([
+      "session-a",
+      "session-b"
+    ]);
+    expect(result.snapshot.sessions[0]?.conflict_markers).toEqual([
+      "PINNED_BY:session-b"
+    ]);
+    expect(result.snapshot.sessions[1]?.conflict_markers).toEqual([
+      "PINNED_BY:session-a"
+    ]);
     expect(result.snapshot.summary).toEqual({ total_conflicts: 2 });
   });
 
@@ -142,7 +153,7 @@ describe("session list application", () => {
         sessions: [],
         suggested_next_actions: [
           {
-            command: "vspec session start --intent \"...\"",
+            command: 'vspec session start --intent "..."',
             reason: "Start a session when work begins."
           }
         ],
@@ -180,18 +191,24 @@ function depsFor(
     branchStore: branchStore(options.branches ?? []),
     lockStore: lockStore(options.locks ?? []),
     membershipStore: membershipStore(
-      "membership" in options ? options.membership ?? null : membership()
+      "membership" in options ? (options.membership ?? null) : membership()
     ),
     now: () => new Date("2026-05-20T01:00:00.000Z"),
-    projectStore: projectStore(options.projects ?? [project(), project({ id: "project-2" })]),
+    projectStore: projectStore(
+      options.projects ?? [project(), project({ id: "project-2" })]
+    ),
     useCaseStore: useCaseStore(options.usecases ?? [usecase()]),
-    workSessionStore: workSessionStore(options.sessions ?? [], options.readSessions ?? [])
+    workSessionStore: workSessionStore(
+      options.sessions ?? [],
+      options.readSessions ?? []
+    )
   };
 }
 
 function branchStore(branches: StoredSpecBranch[]): BranchStore {
   return {
-    findBranchById: (branchId) => Promise.resolve(branches.find((item) => item.id === branchId)),
+    findBranchById: (branchId) =>
+      Promise.resolve(branches.find((item) => item.id === branchId)),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
     listBranches: () => Promise.resolve(branches),
     saveBranch: () => Promise.resolve(),

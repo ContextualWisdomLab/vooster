@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { addStep, createUseCaseWithMainStep, type StepResponse } from "../helpers/scenario-fixtures.js";
+import {
+  addStep,
+  createUseCaseWithMainStep,
+  type StepResponse
+} from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
-import { startWorkSession, type SessionStartResponse } from "../helpers/session-fixtures.js";
+import {
+  startWorkSession,
+  type SessionStartResponse
+} from "../helpers/session-fixtures.js";
 import { createUseCase } from "../helpers/uc-fixtures.js";
 
 type AgentUseCaseResponse = {
@@ -14,7 +21,9 @@ type AgentUseCaseResponse = {
   };
   data: {
     primary_actor: { name: string };
-    scenarios: Array<{ steps: Array<{ action: string; actor: string; step_number: number }> }>;
+    scenarios: Array<{
+      steps: Array<{ action: string; actor: string; step_number: number }>;
+    }>;
     stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
     title: string;
     usecase: { id: string; key: string };
@@ -25,13 +34,21 @@ type AgentUseCaseResponse = {
 };
 
 let server: TestServer;
-beforeAll(async () => { server = await startServer(); });
-afterAll(async () => { await server.stop(); });
+beforeAll(async () => {
+  server = await startServer();
+});
+afterAll(async () => {
+  await server.stop();
+});
 
 describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   test("MAIN: fetch active use case as agent envelope", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Agent Fetch", "agent-fetch", "stub-agent-fetch");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Fetch",
+      "agent-fetch",
+      "stub-agent-fetch"
+    );
 
     const response = await server.fetch(`/v1/usecases/${usecase.id}?format=agent`, {
       headers: { Cookie: setup.cookie, "X-Vspec-Request-Id": "req-agent-fetch-main" }
@@ -68,8 +85,12 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   });
 
   test("3a: missing requested revision returns history guidance", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Agent Missing Revision", "agent-missing-revision", "stub-agent-missing-revision");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Missing Revision",
+      "agent-missing-revision",
+      "stub-agent-missing-revision"
+    );
 
     const response = await server.fetch(
       `/v1/usecases/${usecase.id}?format=agent&revision=missing-revision`,
@@ -91,8 +112,12 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   });
 
   test("3b: session pin overrides requested revision", async () => {
-    const { scenario, setup, usecase } =
-      await createUseCaseWithMainStep(server, "Agent Pinned", "agent-pinned", "stub-agent-pinned");
+    const { scenario, setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Pinned",
+      "agent-pinned",
+      "stub-agent-pinned"
+    );
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
       intent: "Read pinned spec",
@@ -117,13 +142,18 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     expect(body.context.session_id).toBe(session.id);
     expect(body.warnings).toContainEqual({
       type: "REVISION_OVERRIDDEN_BY_SESSION",
-      message: "Requested revision was ignored because the active session pins this use case."
+      message:
+        "Requested revision was ignored because the active session pins this use case."
     });
   });
 
   test("4a: session without pin warns and suggests pinning", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Agent Unpinned", "agent-unpinned", "stub-agent-unpinned");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Unpinned",
+      "agent-unpinned",
+      "stub-agent-unpinned"
+    );
     const other = await createUseCase(server, setup, "Customer", "Tracks an order");
     const started = await startWorkSession(server, setup, {
       agent_type: "CODEX",
@@ -142,7 +172,8 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     expect(body.context.session_id).toBe(session.id);
     expect(body.warnings).toContainEqual({
       type: "UNPINNED_SESSION_READ",
-      message: "Session does not pin this use case; concurrent edits may change future reads."
+      message:
+        "Session does not pin this use case; concurrent edits may change future reads."
     });
     expect(body.suggested_next_actions).toContainEqual({
       command: `vspec session pin ${usecase.key}`,
@@ -151,8 +182,12 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   });
 
   test("2a: unauthenticated caller gets login and API-key guidance", async () => {
-    const { usecase } =
-      await createUseCaseWithMainStep(server, "Agent Auth", "agent-auth", "stub-agent-auth");
+    const { usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Auth",
+      "agent-auth",
+      "stub-agent-auth"
+    );
 
     const response = await server.fetch(`/v1/usecases/${usecase.id}?format=agent`);
 
@@ -173,8 +208,12 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   });
 
   test("*a: archived use case is hidden from agent fetch", async () => {
-    const { setup, usecase } =
-      await createUseCaseWithMainStep(server, "Agent Archived", "agent-archived", "stub-agent-archived");
+    const { setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Agent Archived",
+      "agent-archived",
+      "stub-agent-archived"
+    );
     await server.fetch(`/__test/usecases/${usecase.id}/archive`, {
       method: "POST",
       headers: { Cookie: setup.cookie }

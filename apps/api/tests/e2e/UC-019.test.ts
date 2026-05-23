@@ -39,7 +39,12 @@ afterAll(async () => {
 
 describe("UC-019 - Create a branch", () => {
   test("MAIN: create human branch from main with base revision snapshot", async () => {
-    const setup = await createProject(server, "Branch Create", "branch-create", "stub-branch-create");
+    const setup = await createProject(
+      server,
+      "Branch Create",
+      "branch-create",
+      "stub-branch-create"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
 
@@ -72,7 +77,12 @@ describe("UC-019 - Create a branch", () => {
   });
 
   test("3a: non-main base branch is rejected", async () => {
-    const setup = await createProject(server, "Branch From Feature", "branch-from-feature", "stub-branch-from-feature");
+    const setup = await createProject(
+      server,
+      "Branch From Feature",
+      "branch-from-feature",
+      "stub-branch-from-feature"
+    );
 
     const response = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
       method: "POST",
@@ -90,7 +100,12 @@ describe("UC-019 - Create a branch", () => {
   });
 
   test("2a: read-only member cannot create a branch", async () => {
-    const setup = await createProject(server, "Branch Read Only", "branch-read-only", "stub-branch-readonly");
+    const setup = await createProject(
+      server,
+      "Branch Read Only",
+      "branch-read-only",
+      "stub-branch-readonly"
+    );
     await server.fetch(
       `/__test/workspaces/${setup.workspaceId}/members/${setup.userId}/read-only`,
       { method: "POST" }
@@ -112,7 +127,12 @@ describe("UC-019 - Create a branch", () => {
   });
 
   test("5a: branch name collision suggests an alternative", async () => {
-    const setup = await createProject(server, "Branch Collision", "branch-collision", "stub-branch-collision");
+    const setup = await createProject(
+      server,
+      "Branch Collision",
+      "branch-collision",
+      "stub-branch-collision"
+    );
     await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: setup.cookie },
@@ -136,7 +156,12 @@ describe("UC-019 - Create a branch", () => {
   });
 
   test("4a: branch creation warns about in-flight merge requests", async () => {
-    const setup = await createProject(server, "Branch Warning", "branch-warning", "stub-branch-warning");
+    const setup = await createProject(
+      server,
+      "Branch Warning",
+      "branch-warning",
+      "stub-branch-warning"
+    );
     await createActor(server, setup, "Customer");
     const usecase = await createUseCase(server, setup, "Customer", "Reviews a refund");
     const started = await startWorkSession(server, setup, {
@@ -150,7 +175,8 @@ describe("UC-019 - Create a branch", () => {
     const completed = await completeWorkSession(server, session.id, setup.cookie, {
       summary: "Open merge request."
     });
-    const mergeRequest = ((await completed.json()) as SessionCompleteResponse).merge_request;
+    const mergeRequest = ((await completed.json()) as SessionCompleteResponse)
+      .merge_request;
     if (mergeRequest === undefined) {
       throw new Error("expected merge request");
     }
@@ -171,14 +197,22 @@ describe("UC-019 - Create a branch", () => {
   });
 
   test("*a: snapshot failure leaves no branch behind", async () => {
-    const setup = await createProject(server, "Branch Snapshot Failure", "branch-snapshot-failure", "stub-branch-snapshot-failure");
+    const setup = await createProject(
+      server,
+      "Branch Snapshot Failure",
+      "branch-snapshot-failure",
+      "stub-branch-snapshot-failure"
+    );
     await createActor(server, setup, "Customer");
     await createUseCase(server, setup, "Customer", "Reviews a refund");
 
     const failed = await server.fetch(`/v1/projects/${setup.projectId}/branches`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: setup.cookie },
-      body: JSON.stringify({ name: "feature/retry-snapshot", simulate_snapshot_failure: true })
+      body: JSON.stringify({
+        name: "feature/retry-snapshot",
+        simulate_snapshot_failure: true
+      })
     });
 
     expect(failed.status).toBe(500);

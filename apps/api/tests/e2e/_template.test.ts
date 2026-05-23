@@ -36,25 +36,31 @@ describe("UC-XXX — <short title>", () => {
     const res = await server.fetch("/v1/<endpoint>", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${alice.token}`,
+        Authorization: `Bearer ${alice.token}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ /* request payload */ })
+      body: JSON.stringify({
+        /* request payload */
+      })
     });
 
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body).toMatchObject({ /* expected response shape */ });
+    expect(body).toMatchObject({
+      /* expected response shape */
+    });
   });
 
   test("Na: <describe the extension condition>", async () => {
     const res = await server.fetch("/v1/<endpoint>", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${alice.token}`,
+        Authorization: `Bearer ${alice.token}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ /* invalid payload */ })
+      body: JSON.stringify({
+        /* invalid payload */
+      })
     });
 
     expect(res.status).toBe(400);

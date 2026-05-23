@@ -8,6 +8,7 @@ import {
   type StepPatchResponse,
   type StepProblemResponse
 } from "../helpers/step-fixtures.js";
+import { createActor } from "../helpers/uc-fixtures.js";
 
 let server: TestServer;
 
@@ -50,6 +51,51 @@ describe("UC-013 - Edit a use case step", () => {
       version_number: 5
     });
     expect(body.affected_sessions).toEqual([]);
+  });
+
+  test("MAIN: edit step actor and reject unknown actors", async () => {
+    const { mainStep, mainStepRevision, setup, usecase } =
+      await createUseCaseWithMainStep(
+        server,
+        "Edit Step Actor",
+        "edit-step-actor",
+        "stub-edit-step-actor"
+      );
+    const supportAgent = await createActor(server, setup, "Support Agent");
+
+    const response = await patchStep(server, mainStep.id, setup.cookie, {
+      actor: "Support Agent",
+      base_revision: mainStepRevision.id
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as StepPatchResponse;
+    expect(body.step).toMatchObject({
+      actor_id: supportAgent.id,
+      id: mainStep.id,
+      scenario_id: mainStep.scenario_id,
+      step_number: 1
+    });
+    expect(body.revision).toMatchObject({
+      change_summary: `Edited step ${mainStep.id}`,
+      entity_id: usecase.id,
+      entity_type: "USECASE",
+      severity: "BREAKING",
+      version_number: 6
+    });
+
+    const unknown = await patchStep(server, mainStep.id, setup.cookie, {
+      actor: "Operations",
+      base_revision: body.revision.id
+    });
+    expect(unknown.status).toBe(422);
+    const problem = (await unknown.json()) as StepProblemResponse;
+    expect(problem.title).toMatch(/actor.*not registered/i);
+    expect(problem.known_actors).toEqual(["Customer", "Support Agent"]);
+    expect(problem.suggested_next_actions).toContainEqual({
+      command: "vspec actor create",
+      reason: "Create the actor before assigning this step."
+    });
   });
 
   test("2a: stale base revision returns current revision and leaves step unchanged", async () => {

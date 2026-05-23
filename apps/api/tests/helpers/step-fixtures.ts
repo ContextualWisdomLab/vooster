@@ -10,6 +10,7 @@ export type StepPatchResponse = {
 export type StepProblemResponse = {
   current_revision_id?: string;
   expires_at?: string;
+  known_actors?: string[];
   lock_holder?: string;
   lock_reason?: string;
   revision_diff?: { base_revision: string; current_revision: string };
@@ -22,7 +23,13 @@ export async function patchStep(
   server: TestServer,
   stepId: string,
   cookie: string,
-  body: { action?: string; base_revision: string; force?: boolean; notes?: string }
+  body: {
+    action?: string;
+    actor?: string;
+    base_revision: string;
+    force?: boolean;
+    notes?: string;
+  }
 ) {
   return server.fetch(`/v1/steps/${stepId}`, {
     method: "PATCH",

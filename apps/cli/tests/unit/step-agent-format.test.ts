@@ -71,6 +71,33 @@ describe("step --format=agent", () => {
     expect(envelope.context.revision).toBeNull();
   });
 
+  test("step edit sends actor changes", async () => {
+    const requests: Array<{ body: unknown; url: string }> = [];
+    stubFetch(editStepBody(), requests);
+    const lines: string[] = [];
+
+    await runStep(
+      stepFlags({
+        action: undefined,
+        actor: "Support Agent",
+        "base-revision": "revision-1"
+      }),
+      "edit",
+      "step-1",
+      (line) => lines.push(line)
+    );
+
+    expect(requests).toEqual([
+      {
+        body: {
+          actor: "Support Agent",
+          base_revision: "revision-1"
+        },
+        url: "https://api.example.test/v1/steps/step-1"
+      }
+    ]);
+  });
+
   test("human step add", async () => {
     stubFetch(addStepBody());
     const lines: string[] = [];
@@ -99,20 +126,32 @@ describe("step --format=agent", () => {
   });
 });
 
-function stubFetch(body: unknown): void {
+function stubFetch(
+  body: unknown,
+  requests: Array<{ body: unknown; url: string }> = []
+): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn(() =>
-      Promise.resolve({
+    vi.fn((url: string, init: RequestInit | undefined) => {
+      requests.push({
+        body:
+          typeof init?.body === "string"
+            ? (JSON.parse(init.body) as unknown)
+            : init?.body,
+        url
+      });
+      return Promise.resolve({
         headers: new Headers(),
         json: () => Promise.resolve(body),
         ok: true
-      } as Response)
-    )
+      } as Response);
+    })
   );
 }
 
-function stepFlags(overrides: Record<string, string> = {}): Record<string, string> {
+function stepFlags(
+  overrides: Record<string, string | undefined> = {}
+): Record<string, string | undefined> {
   return {
     action: "Places an order.",
     actor: "Customer",

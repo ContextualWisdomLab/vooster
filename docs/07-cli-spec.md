@@ -3,6 +3,8 @@
 The CLI is the **primary surface** for both humans and AI coding agents. Every
 design decision here favors discoverability over brevity.
 
+> **MVP implementation status.** Commands marked `# 🔵 Planned` are part of the target design but are **not yet implemented** in the 5/30 MVP. Other commands are implemented, though some flags/output may differ — verify against code. The package is `@vooster/cli` (not `@vooster/vspec-cli`), and the real context flags are `--api-url/--project-id/--session-cookie/--workspace-id`. Full audit: `docs/findings/2026-05-24T1100-spec-impl-audit.md`.
+
 ## Binary
 
 `vspec` (npm package `@vooster/vspec-cli`, single executable).
@@ -43,13 +45,13 @@ vspec doctor [<usecase>]         Diagnose quality issues.
 ## Workspaces & Projects
 
 ```
-vspec workspace create --name <n> --slug <s>
-vspec workspace list
+vspec workspace create --name <n> --slug <s>   # 🔵 Planned
+vspec workspace list   # 🔵 Planned
 vspec workspace switch <slug>
 
 vspec project create --name <n> --key <k>
 vspec project list
-vspec project show [<key>]
+vspec project show [<key>]   # 🔵 Planned
 vspec project switch <key>
 ```
 
@@ -132,14 +134,14 @@ vspec usecase restore <KEY-NNN>
 
 ```
 vspec scenario add <KEY-NNN> --type main-success|extension [--at <step>a] [--condition "<text>"] [--outcome success|failure|partial]
-vspec scenario list <KEY-NNN>
-vspec scenario edit <id>
-vspec scenario delete <id>
+vspec scenario list <KEY-NNN>   # 🔵 Planned
+vspec scenario edit <id>   # 🔵 Planned
+vspec scenario delete <id>   # 🔵 Planned
 
 vspec step add <scenario-id|extension-point> --actor <actor> --action "<verb phrase>"
 vspec step edit <id>
-vspec step move <id> --to <position>
-vspec step delete <id>
+vspec step move <id> --to <position>   # 🔵 Planned
+vspec step delete <id>   # 🔵 Planned
 ```
 
 ### Agent Format — Steps
@@ -171,11 +173,11 @@ vspec scenario add <usecase-id> --type extension --at <step>a --condition "<text
 ```
 vspec session start --intent "<text>" [--pin <KEY,KEY,...>] [--auto-branch] [--agent-type cursor|claude-code|windsurf|codex|other]
 vspec session list [--mine|--workspace] [--status=]
-vspec session show [<id>]                Defaults to current session.
-vspec session pin <KEY-NNN>              Add a pin to current session.
-vspec session unpin <KEY-NNN>
+vspec session show [<id>]                Defaults to current session.   # 🔵 Planned
+vspec session pin <KEY-NNN>              Add a pin to current session.   # 🔵 Planned
+vspec session unpin <KEY-NNN>   # 🔵 Planned
 vspec session complete [--summary "<text>"] [--no-merge]
-vspec session abandon
+vspec session abandon   # 🔵 Planned
 vspec who <KEY-NNN>                      Who is working on this use case?
 ```
 
@@ -211,18 +213,18 @@ vspec who <KEY-NNN> --format=agent
 
 ```
 vspec branch create <name> [--from main]
-vspec branch list [--status=]
-vspec branch checkout <name>
-vspec branch diff <name> [<other-name>]
-vspec branch delete <name>
+vspec branch list [--status=]   # 🔵 Planned
+vspec branch checkout <name>   # 🔵 Planned
+vspec branch diff <name> [<other-name>]   # 🔵 Planned
+vspec branch delete <name>   # 🔵 Planned
 
-vspec merge preview <branch> [--into main]
+vspec merge preview <branch> [--into main]   # 🔵 Planned
 vspec merge open <branch> [--into main] [--strategy fast-forward|squash]
-vspec merge list [--status=]
-vspec merge show <id>
+vspec merge list [--status=]   # 🔵 Planned
+vspec merge show <id>   # 🔵 Planned
 vspec merge resolve <id> [--strategy mine|theirs|manual]
-vspec merge approve <id>
-vspec merge abort <id>
+vspec merge approve <id>   # 🔵 Planned
+vspec merge abort <id>   # 🔵 Planned
 ```
 
 ### Agent Format for Branches
@@ -264,8 +266,8 @@ vspec merge resolve <id> --format=agent
 
 ```
 vspec lock <KEY-NNN> --type soft|semantic|hard [--reason "<text>"] [--ttl <minutes>]
-vspec lock list [--mine]
-vspec unlock <KEY-NNN>
+vspec lock list [--mine]   # 🔵 Planned
+vspec unlock <KEY-NNN>   # 🔵 Planned
 vspec lock renew <lock-id> [--ttl <minutes>]
 ```
 
@@ -310,7 +312,7 @@ vspec history <KEY-NNN> [--limit N]
 vspec diff <KEY-NNN> <rev1> <rev2>
 vspec revert <KEY-NNN> --to <rev>
 vspec impact <KEY-NNN> [--proposed-change <file>]
-vspec impact session [<session-id>]
+vspec impact session [<session-id>]   # 🔵 Planned
 ```
 
 ### Agent Format — History
@@ -431,7 +433,7 @@ vspec push --format=agent
 ```
 vspec export gherkin <KEY-NNN> [--output tests/<KEY-NNN>.feature]
 vspec export markdown <KEY-NNN> [--output specs/<KEY-NNN>.md]
-vspec export project --format markdown|gherkin --output <dir>
+vspec export project --format markdown|gherkin --output <dir>   # 🔵 Planned
 ```
 
 ## API Keys (admin)
@@ -463,9 +465,9 @@ vspec api-key revoke <id> --format=agent
 
 ```
 vspec member invite --email <email> [--role editor|owner]
-vspec member list
-vspec member set-role <user> --role editor|owner
-vspec member remove <user>
+vspec member list   # 🔵 Planned
+vspec member set-role <user> --role editor|owner   # 🔵 Planned
+vspec member remove <user>   # 🔵 Planned
 ```
 
 ### Agent Format — Membership
@@ -482,7 +484,7 @@ vspec member invite --email <email> --role editor --format=agent
 
 ---
 
-## Self-Teaching Behaviors
+## Self-Teaching Behaviors 🔵 Planned (largely unimplemented in MVP)
 
 These are **mandatory** for every command.
 
@@ -601,8 +603,8 @@ All exit codes are stable across CLI versions.
 ## Help System
 
 ```
-vspec help                Same as `vspec --help`.
-vspec help <command>      Command-specific help.
+vspec help                Same as `vspec --help`.   # 🔵 Planned
+vspec help <command>      Command-specific help.   # 🔵 Planned
 ```
 
 `--help` for any command includes:

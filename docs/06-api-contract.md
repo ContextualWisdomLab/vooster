@@ -2,6 +2,8 @@
 
 REST over HTTPS. JSON request/response. All routes prefixed with `/v1`.
 
+> **MVP implementation status.** Headings marked **🔵 Planned** are part of the target design but are **not yet implemented** in the 5/30 MVP. Unmarked endpoints are implemented (some request/response shapes may still differ from this contract — verify against code). Full audit: `docs/findings/2026-05-24T1100-spec-impl-audit.md`.
+
 ## Conventions
 
 - Auth via `Authorization: Bearer <api-key>` **or** session cookie.
@@ -64,18 +66,18 @@ Revokes.
 
 ## Workspaces, Projects, Memberships
 
-### `POST /v1/workspaces`
+### `POST /v1/workspaces` 🔵 Planned
 
 ```json
 Request:  { "name": "...", "slug": "..." }
 Response: Workspace
 ```
 
-### `GET /v1/workspaces`
+### `GET /v1/workspaces` 🔵 Planned
 
-### `GET /v1/workspaces/:id`
+### `GET /v1/workspaces/:id` 🔵 Planned
 
-### `PATCH /v1/workspaces/:id`
+### `PATCH /v1/workspaces/:id` 🔵 Planned
 
 ### `POST /v1/workspaces/:id/invitations`
 
@@ -88,7 +90,7 @@ Response: Invitation
 
 ### `GET /v1/workspaces/:id/projects`
 
-### `GET /v1/projects/:id`
+### `GET /v1/projects/:id` 🔵 Planned
 
 ### `PATCH /v1/projects/:id`
 
@@ -199,11 +201,11 @@ Request: { "stakeholder_id": "...", "interest": "...", "protection_mechanism": "
 Request: { "type": "EXTENSION", "extension_point": "3a", "parent_step_number": 3, "condition": "Card is declined", "outcome": "FAILURE" }
 ```
 
-### `GET /v1/usecases/:id/scenarios`
+### `GET /v1/usecases/:id/scenarios` 🔵 Planned
 
-### `PATCH /v1/scenarios/:id`
+### `PATCH /v1/scenarios/:id` 🔵 Planned
 
-### `DELETE /v1/scenarios/:id` // main success scenario cannot be deleted
+### `DELETE /v1/scenarios/:id` // main success scenario cannot be deleted 🔵 Planned
 
 ### `POST /v1/scenarios/:id/steps`
 
@@ -213,7 +215,7 @@ Request: { "step_number": 1, "actor_id": "...", "action": "submits the order", "
 
 ### `PATCH /v1/steps/:id`
 
-### `DELETE /v1/steps/:id`
+### `DELETE /v1/steps/:id` 🔵 Planned
 
 ---
 
@@ -221,7 +223,7 @@ Request: { "step_number": 1, "actor_id": "...", "action": "submits the order", "
 
 ### `GET /v1/usecases/:id/revisions?branch=&cursor=&limit=`
 
-### `GET /v1/revisions/:id`
+### `GET /v1/revisions/:id` 🔵 Planned
 
 ### `POST /v1/usecases/:id/revert`
 
@@ -256,7 +258,7 @@ Response: `WorkSession` with pinned revisions resolved.
 
 ### `GET /v1/sessions?status=&user_id=&project_id=`
 
-### `GET /v1/sessions/:id`
+### `GET /v1/sessions/:id` 🔵 Planned
 
 ### `POST /v1/sessions/:id/complete`
 
@@ -264,9 +266,9 @@ Response: `WorkSession` with pinned revisions resolved.
 Request: { "summary": "...", "merge": true }
 ```
 
-### `POST /v1/sessions/:id/abandon`
+### `POST /v1/sessions/:id/abandon` 🔵 Planned
 
-### `POST /v1/sessions/:id/pin`
+### `POST /v1/sessions/:id/pin` 🔵 Planned
 
 ```json
 Request: { "usecase_key": "AUTH-003" }
@@ -282,11 +284,11 @@ Request: { "usecase_key": "AUTH-003" }
 Request: { "name": "feature/3ds", "from": "main", "owner_type": "HUMAN" }
 ```
 
-### `GET /v1/projects/:projectId/branches?status=`
+### `GET /v1/projects/:projectId/branches?status=` 🔵 Planned
 
-### `GET /v1/branches/:id`
+### `GET /v1/branches/:id` 🔵 Planned
 
-### `POST /v1/branches/:id/preview-merge`
+### `POST /v1/branches/:id/preview-merge` 🔵 Planned
 
 ```json
 Request: { "target": "main" }
@@ -305,9 +307,9 @@ Request: { "source_branch_id": "...", "target_branch_id": "...", "strategy": "SQ
 Request: { "resolutions": [{ "entity_id": "...", "strategy": "MINE" | "THEIRS" | "MANUAL", "value"?: {...} }] }
 ```
 
-### `POST /v1/merges/:id/approve`
+### `POST /v1/merges/:id/approve` 🔵 Planned
 
-### `POST /v1/merges/:id/abort`
+### `POST /v1/merges/:id/abort` 🔵 Planned
 
 ---
 
@@ -319,9 +321,9 @@ Request: { "resolutions": [{ "entity_id": "...", "strategy": "MINE" | "THEIRS" |
 Request: { "target_type": "USECASE", "target_id": "...", "lock_type": "SEMANTIC", "reason": "...", "ttl_minutes": 30 }
 ```
 
-### `GET /v1/locks?target_type=&target_id=`
+### `GET /v1/locks?target_type=&target_id=` 🔵 Planned
 
-### `DELETE /v1/locks/:id`
+### `DELETE /v1/locks/:id` 🔵 Planned
 
 ### `GET /v1/usecases/:id/who`
 
@@ -430,7 +432,7 @@ Response includes:
 
 ---
 
-## OpenAPI
+## OpenAPI 🔵 Planned
 
 `/v1/openapi.json` returns the generated OpenAPI 3.1 document. The Fastify
 plugin `@fastify/swagger` produces it from Zod schemas via `zod-to-json-schema`.

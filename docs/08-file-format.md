@@ -1,5 +1,7 @@
 # 08 — File Format (Local Markdown)
 
+> **MVP implementation status.** Headings marked **🔵 Planned** are not yet implemented in the 5/30 MVP. As shipped, sync/export only handle **use cases** (not actors/stakeholders/goals), files are written flat as `specs/<KEY>.md` (not the subdirectory layout below), and `.vspec/` holds only `sync-state.json`. Frontmatter `id` currently carries the internal UUID, with the human ID in `key`. Full audit: `docs/findings/2026-05-24T1100-spec-impl-audit.md`.
+
 This is the **canonical on-disk format** for vspec entities. The same format is
 used by:
 
@@ -56,7 +58,7 @@ revision: rev_abc123 # set by sync; do not hand-edit
 ---
 ```
 
-### `Actor` frontmatter
+### `Actor` frontmatter 🔵 Planned
 
 ```yaml
 ---
@@ -71,7 +73,7 @@ aliases: [pm, dev]
 ---
 ```
 
-### `Stakeholder` frontmatter
+### `Stakeholder` frontmatter 🔵 Planned
 
 ```yaml
 ---
@@ -84,7 +86,7 @@ stakeholder_type: INTERNAL # INTERNAL | EXTERNAL | REGULATORY
 ---
 ```
 
-### `Goal` frontmatter
+### `Goal` frontmatter 🔵 Planned
 
 ```yaml
 ---
@@ -156,7 +158,7 @@ the parser sorts them on export.
 <Free-form. Not part of the contract.>
 ```
 
-## Parsing Rules
+## Parsing Rules 🔵 Planned
 
 - **Bold actor name** at the start of a step (`**Actor** ...`) is mandatory.
   The parser maps it to the project's `Actor` registry; unknown names are an
@@ -168,7 +170,7 @@ the parser sorts them on export.
 - `_(Protected by: ...)_` lines on stakeholders are parsed into
   `StakeholderInterest.protection_mechanism`.
 
-## Round-Trip Guarantee
+## Round-Trip Guarantee 🔵 Planned
 
 For any well-formed file `F`:
 
@@ -194,7 +196,7 @@ On `vspec pull` conflict, the local file gets Git-style markers:
 
 `vspec sync` refuses to push until all markers are resolved.
 
-## Validation
+## Validation 🔵 Planned
 
 `vspec doctor <path>` validates a file without network. It checks:
 

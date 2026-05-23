@@ -1,5 +1,7 @@
 # 09 — Bootstrap (First-Iteration Contract)
 
+> **🔵 Superseded / Planned-as-written.** This bootstrap contract describes the original **single-package** design (root `src/`, root `prisma/`, package `@vooster/vspec-cli` with a `bin`). The repository is now a **pnpm monorepo** (`apps/api`, `apps/cli`, `apps/www`); the repository layout, `package.json` contract, `tsconfig`, and `prisma/` paths below no longer match the build. Retained for historical context — do not treat the paths as binding. The runtime contracts that DO still hold (env-var names, `VSPEC_AUTH_STUB`, `GET /v1/health`, the "System" built-in actor) are noted where they appear. Full audit: `docs/findings/2026-05-24T1100-spec-impl-audit.md`.
+
 The very first iteration must produce a repository scaffold that **all later
 iterations and scripts depend on**. This document fixes the conventions so the
 agent does not re-invent them. Anything stated here is binding.

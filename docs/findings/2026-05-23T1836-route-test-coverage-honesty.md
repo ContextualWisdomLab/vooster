@@ -2,7 +2,12 @@
 title: "Route-level unit tests violate coverage-diagnosis prescription"
 created_at: 2026-05-23T18:36:00Z
 priority: P2
-resolved: false
+resolved: partial
+resolved_by:
+  - 629c842
+status_notes: |
+  Phase 1 is closed: the route integration pattern is documented below, and three app.inject exemplars now live under apps/api/tests/integration/http/.
+  Phase 2 remains open and explicitly out of scope for this cycle: migrate the existing apps/api/tests/unit/http/*-routes.test.ts back catalog per route.
 related:
   - docs/findings/2026-05-23T1730-coverage-diagnosis.md
   - apps/api/tests/unit/http
@@ -10,6 +15,32 @@ related:
 ---
 
 # Findings — `tests/unit/http/*-routes.test.ts` are the anti-pattern coverage-diagnosis warned against
+
+## Phase 1 resolution
+
+Closed as `resolved: partial` in commit `629c842`.
+
+Going forward, new HTTP routes should use the **route integration
+pattern**: add at least one test under `apps/api/tests/integration/http/`
+that starts the real test server through `apps/api/tests/helpers/server.ts`
+and drives the route with `app.inject` via `server.fetch`. Existing
+`apps/api/tests/unit/http/*-routes.test.ts` files are acknowledged
+technical debt and should not be copied as the default pattern for new
+routes.
+
+Three exemplars now exist:
+
+- `apps/api/tests/integration/http/doctor-route.test.ts`
+- `apps/api/tests/integration/http/lock-route.test.ts`
+- `apps/api/tests/integration/http/sync-route.test.ts`
+
+Verification:
+
+- `pnpm exec vitest run apps/api/tests/integration/http`
+
+Phase 2 remains open: migrate the existing mocked route-unit back
+catalog one route at a time. That migration is deliberately not part of
+this cycle.
 
 ## TL;DR
 

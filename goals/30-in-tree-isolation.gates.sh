@@ -7,8 +7,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 PASS=true
-BUILD_PATTERN='^[[:space:]]*(if[[:space:]]+!?[[:space:]]*)?(pnpm (run )?(--silent )?build|pnpm --filter .+ build|pnpm exec tsc( |$))'
-TEMP_PATTERN='/tmp/[A-Za-z0-9._-]+|\.state/[A-Za-z0-9._-]+\.log'
+BUILD_PATTERN='^[[:space:]]*(if[[:space:]]+!?[[:space:]]*)?pnpm[[:space:]]+((run[[:space:]]+)?(--silent[[:space:]]+)?build|(--filter|-F)[[:space:]]+[^[:space:]]+[[:space:]]+build|exec[[:space:]]+tsc([[:space:]]|$))'
+TEMP_PATTERN='^[[:space:]]*[^#]*['\''"][^'\''"]*(/tmp/[A-Za-z0-9._-]+|\.state/[A-Za-z0-9._-]+\.log)([[:space:]'\''"/]|$)'
 
 target_files() {
   if [ -n "${VSPEC_GOAL30_TARGET_FILES:-}" ]; then
@@ -66,11 +66,14 @@ else
   SELF_TEST_DIR=$(mktemp -d)
   tmp_prefix="/tmp"
   pass_fixture="$SELF_TEST_DIR/pass.sh"
-  fail_fixture="$SELF_TEST_DIR/fail.sh"
+  temp_fail_fixture="$SELF_TEST_DIR/temp-fail.sh"
+  build_fail_fixture="$SELF_TEST_DIR/build-fail.sh"
   printf '%s\n' "# was ${tmp_prefix}/foo" >"$pass_fixture"
-  printf '%s\n' "bash -c 'cp ${tmp_prefix}/literal /dest'" >"$fail_fixture"
+  printf '%s\n' "bash -c 'cp ${tmp_prefix}/literal /dest'" >"$temp_fail_fixture"
+  printf '%s\n' "pnpm -F @vooster/api build" >"$build_fail_fixture"
   if VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$pass_fixture" bash "$0" >/dev/null 2>&1 &&
-    ! VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$fail_fixture" bash "$0" >/dev/null 2>&1; then
+    ! VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$temp_fail_fixture" bash "$0" >/dev/null 2>&1 &&
+    ! VSPEC_GOAL30_SKIP_SELF_TEST=1 VSPEC_GOAL30_TARGET_FILES="$build_fail_fixture" bash "$0" >/dev/null 2>&1; then
     echo "    ✓ pass"
   else
     echo "    ✗ fail"

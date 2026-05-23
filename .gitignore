@@ -69,3 +69,5 @@ Thumbs.db
 # Prisma
 prisma/migrations/*/migration_lock.toml
 prisma/.state/
+
+.claude/skills/**/token.txt

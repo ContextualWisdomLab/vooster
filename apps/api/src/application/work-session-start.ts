@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   StoredAgentType,
+  StoredLock,
   StoredSpecBranch,
   StoredUseCase,
   StoredWorkSession
@@ -116,6 +117,9 @@ export async function startWorkSession(
 
   session.branch_id = branch?.id ?? null;
   await deps.workSessionStore.saveWorkSession(session);
+  if (branch !== undefined) {
+    await saveAutoBranchLocks(deps, session, pinned);
+  }
 
   return {
     branch,
@@ -230,6 +234,39 @@ async function createAutoBranch(
   };
   await deps.branchStore.saveBranch(branch);
   return branch;
+}
+
+async function saveAutoBranchLocks(
+  deps: Pick<StartWorkSessionDeps, "clock" | "idFactory" | "lockStore">,
+  session: StoredWorkSession,
+  pinned: PinnedUseCases
+) {
+  for (const usecase of pinned.usecases) {
+    await deps.lockStore.saveLock(autoBranchLock(deps, session, usecase));
+  }
+}
+
+function autoBranchLock(
+  deps: Pick<StartWorkSessionDeps, "clock" | "idFactory">,
+  session: StoredWorkSession,
+  usecase: StoredUseCase
+): StoredLock {
+  const acquiredAt = new Date((deps.clock ?? (() => new Date().toISOString()))());
+  return {
+    acquired_at: acquiredAt.toISOString(),
+    auto_release: true,
+    expires_at: new Date(acquiredAt.getTime() + 30 * 60_000).toISOString(),
+    held_by_session_id: session.id,
+    held_by_user_id: session.user_id ?? "",
+    holder: session.id,
+    id: idFrom(deps),
+    lock_type: "SEMANTIC",
+    mode: "SEMANTIC",
+    reason: "Auto-branch session owns semantic changes.",
+    target_id: usecase.id,
+    target_type: "USECASE",
+    usecase_id: usecase.id
+  };
 }
 
 async function uniqueBranchName(

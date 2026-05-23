@@ -8,6 +8,7 @@ import type { RevisionStore } from "../../../src/ports/revision-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
 import type {
+  StoredLock,
   StoredMembership,
   StoredProject,
   StoredSpecBranch,
@@ -101,16 +102,73 @@ describe("startWorkSession", () => {
     expect(savedBranches).toEqual([]);
     expect(savedSessions).toEqual([]);
   });
+
+  test("auto-branch sessions create semantic locks for pinned use cases", async () => {
+    const savedBranches: StoredSpecBranch[] = [];
+    const savedLocks: StoredLock[] = [];
+    const savedSessions: StoredWorkSession[] = [];
+    const result = await startWorkSession(
+      depsFor({
+        savedBranches,
+        savedLocks,
+        savedSessions,
+        usecases: [
+          usecase({ id: "usecase-1", key: "UC-001" }),
+          usecase({ id: "usecase-2", key: "UC-002" })
+        ]
+      }),
+      {
+        agentIdentifier: "codex-cli",
+        agentType: "CODEX",
+        autoBranch: true,
+        branchName: "agent/session-work",
+        intent: "Work behind semantic locks",
+        pins: ["UC-001", "UC-002"],
+        projectId: "project-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result.status).toBe("STARTED");
+    if (result.status !== "STARTED") {
+      throw new Error("expected session to start");
+    }
+    expect(savedBranches).toHaveLength(1);
+    expect(savedSessions).toEqual([result.session]);
+    expect(savedLocks).toMatchObject([
+      {
+        held_by_session_id: result.session.id,
+        held_by_user_id: "user-1",
+        id: "id-3",
+        lock_type: "SEMANTIC",
+        mode: "SEMANTIC",
+        target_id: "usecase-1",
+        usecase_id: "usecase-1"
+      },
+      {
+        held_by_session_id: result.session.id,
+        held_by_user_id: "user-1",
+        id: "id-4",
+        lock_type: "SEMANTIC",
+        mode: "SEMANTIC",
+        target_id: "usecase-2",
+        usecase_id: "usecase-2"
+      }
+    ]);
+  });
 });
 
 function depsFor(
   options: {
     lockMode?: "HARD" | "SEMANTIC" | "SOFT";
     savedBranches?: StoredSpecBranch[];
+    savedLocks?: StoredLock[];
     savedSessions?: StoredWorkSession[];
+    usecases?: StoredUseCase[];
   } = {}
 ) {
   const savedBranches = options.savedBranches ?? [];
+  const savedLocks = options.savedLocks ?? [];
   const savedSessions = options.savedSessions ?? [];
   let id = 0;
 
@@ -121,11 +179,11 @@ function depsFor(
       id += 1;
       return `id-${String(id)}`;
     },
-    lockStore: lockStore(options.lockMode),
+    lockStore: lockStore(options.lockMode, savedLocks),
     membershipStore: membershipStore(),
     projectStore: projectStore(),
     revisionStore: revisionStore(),
-    useCaseStore: useCaseStore(),
+    useCaseStore: useCaseStore(options.usecases ?? [usecase()]),
     workSessionStore: workSessionStore(savedSessions)
   };
 }
@@ -152,7 +210,10 @@ function branchStore(savedBranches: StoredSpecBranch[]): BranchStore {
   };
 }
 
-function lockStore(mode: "HARD" | "SEMANTIC" | "SOFT" | undefined): LockStore {
+function lockStore(
+  mode: "HARD" | "SEMANTIC" | "SOFT" | undefined,
+  savedLocks: StoredLock[]
+): LockStore {
   return {
     deleteLock: () => Promise.resolve(),
     deleteLockForUseCase: () => Promise.resolve(),
@@ -171,7 +232,10 @@ function lockStore(mode: "HARD" | "SEMANTIC" | "SOFT" | undefined): LockStore {
       ),
     listLocksForUseCase: () => Promise.resolve([]),
     listLocksHeldBySession: () => Promise.resolve([]),
-    saveLock: () => Promise.resolve(),
+    saveLock: (lock) => {
+      savedLocks.push(lock);
+      return Promise.resolve();
+    },
     updateLock: () => Promise.resolve()
   };
 }
@@ -204,12 +268,12 @@ function revisionStore(): RevisionStore {
   };
 }
 
-function useCaseStore(): UseCaseStore {
+function useCaseStore(usecases: StoredUseCase[]): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () => Promise.resolve(undefined),
     findUseCasesByKey: () => Promise.resolve([]),
-    listUseCases: () => Promise.resolve([usecase()]),
+    listUseCases: () => Promise.resolve(usecases),
     saveUseCase: () => Promise.resolve(),
     updateUseCase: () => Promise.resolve()
   };
@@ -248,7 +312,7 @@ function project(): StoredProject {
   };
 }
 
-function usecase(): StoredUseCase {
+function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
   return {
     archived_at: null,
     current_revision_id: "revision-current",
@@ -261,6 +325,7 @@ function usecase(): StoredUseCase {
     project_id: "project-1",
     scope: "vspec",
     status: "DRAFT",
-    title: "Reviews checkout validation"
+    title: "Reviews checkout validation",
+    ...overrides
   };
 }

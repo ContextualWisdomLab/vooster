@@ -86,7 +86,7 @@ describe("UC-017 - Monitor active sessions", () => {
       conflict_markers: [],
       id: session.id,
       intent: "Implement list monitoring",
-      lock_count: 1,
+      lock_count: 2,
       pinned_keys: [usecase.key],
       project_id: setup.projectId,
       status: "ACTIVE",

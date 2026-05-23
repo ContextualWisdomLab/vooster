@@ -56,7 +56,8 @@ describe("UC-018 - Complete a work session", () => {
       status: "COMPLETED"
     });
     expect(Date.parse(body.session.ended_at)).not.toBeNaN();
-    expect(body.released_lock_ids).toEqual([usecase.id]);
+    expect(body.released_lock_ids).toContain(usecase.id);
+    expect(body.released_lock_ids).toHaveLength(2);
     const mergeRequest = body.merge_request;
     expect(mergeRequest).toMatchObject({
       conflicts: [],

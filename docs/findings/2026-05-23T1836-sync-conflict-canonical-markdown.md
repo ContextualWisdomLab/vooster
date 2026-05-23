@@ -2,9 +2,14 @@
 title: "Sync conflict path emits stripped markdown — silent data-loss risk"
 created_at: 2026-05-23T18:36:00Z
 priority: P0
-resolved: false
+resolved: true
+resolved_by:
+  - a98671e
+  - 400ccc4
+  - 8313db3
 related:
   - docs/findings/2026-05-23T1750-dogfood-roundtrip.md
+  - goals/31-sync-conflict-canonical-markdown.md
   - apps/api/src/application/sync-files.ts
   - apps/api/src/http/sync-result-support.ts
   - apps/api/src/application/markdown-renderer.ts
@@ -134,3 +139,25 @@ support → cleanup). Suggested goal slot: next free goal number after 30.
 4. REFACTOR — delete the now-orphan `usecaseMarkdown` helper(s). Add
    the negative-grep gate to the new goal's `.gates.sh`.
 5. Verify chain: `bash scripts/completion-check.sh`.
+
+## Resolution
+
+Closed on 2026-05-24 by Goal 31.
+
+- `a98671e` added `goals/31-sync-conflict-canonical-markdown.*` and the
+  UC-029 stale sync conflict e2e assertion. The RED signal was
+  `pnpm exec vitest run apps/api/tests/e2e/UC-029.test.ts`, failing
+  because the remote half only contained frontmatter plus `# Title`.
+- `400ccc4` changed `apps/api/src/application/sync-files.ts` so stale
+  dry-run and push conflicts render the remote half with `renderMarkdown`.
+  It also removed the duplicate HTTP `usecaseMarkdown` path.
+- `8313db3` removed the stale e2e import that surfaced in the `_meta`
+  eslint gate.
+
+Acceptance signals:
+
+- `pnpm exec vitest run apps/api/tests` passed: 174 files / 704 tests.
+- `bash goals/31-sync-conflict-canonical-markdown.gates.sh` passed; its
+  negative grep found no `usecaseMarkdown(` references under
+  `apps/api/src`.
+- `bash scripts/completion-check.sh` passed with active goal `ALL_DONE`.

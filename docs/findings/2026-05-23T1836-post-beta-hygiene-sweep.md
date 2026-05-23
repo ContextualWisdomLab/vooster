@@ -5,6 +5,11 @@ priority: P2
 resolved: false
 status_notes: |
   Queue finding. Each H<n> is independent; close per-item with commit sha.
+  H1 — CLOSED 2026-05-24 as superseded: `pushSyncFiles` now needs MarkdownRenderDeps for stale-conflict canonical remote rendering.
+  H2 — open.
+  H3 — open.
+  H4 — open.
+  H5 — open.
 related:
   - docs/findings/2026-05-23T1700-dogfood-followups.md
   - apps/api/src/application/sync-files.ts

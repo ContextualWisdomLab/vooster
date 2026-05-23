@@ -8,6 +8,7 @@ import {
 } from "../helpers/session-fixtures.js";
 import { createStepLock } from "../helpers/step-fixtures.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
+import { whoUseCase, type WhoResponse } from "../helpers/who-fixtures.js";
 
 let server: TestServer;
 
@@ -166,6 +167,51 @@ describe("UC-016 - Start a work session", () => {
     expect(secondBody.branch?.name).toMatch(/^agent\/session-work-[0-9a-f]{6}$/u);
     expect(secondBody.branch?.name).not.toBe(firstBody.branch?.name);
     expect(secondBody.session.branch_id).toBe(secondBody.branch?.id);
+  });
+
+  test("4a: auto-branch creates semantic locks for every pinned use case", async () => {
+    const setup = await createProject(
+      server,
+      "Session Branch Locks",
+      "session-branch-locks",
+      "stub-session-branch-locks"
+    );
+    await createActor(server, setup, "Customer");
+    const firstUseCase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Places an order"
+    );
+    const secondUseCase = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews an order"
+    );
+
+    const response = await startWorkSession(server, setup, {
+      agent_type: "CODEX",
+      auto_branch: true,
+      branch_name: "agent/session-locks",
+      intent: "Work behind semantic locks",
+      pins: [firstUseCase.key, secondUseCase.key]
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as SessionStartResponse;
+    for (const usecase of [firstUseCase, secondUseCase]) {
+      const who = await whoUseCase(server, setup, usecase.id);
+      expect(who.status).toBe(200);
+      const whoBody = (await who.json()) as WhoResponse;
+      expect(whoBody.locks).toContainEqual(
+        expect.objectContaining({
+          held_by_session_id: body.session.id,
+          held_by_user_id: setup.userId,
+          lock_type: "SEMANTIC"
+        })
+      );
+    }
   });
 
   test("4b: auto-branch semantic lock conflict rolls back session creation", async () => {

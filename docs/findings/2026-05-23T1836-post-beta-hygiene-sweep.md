@@ -2,14 +2,20 @@
 title: "Post-beta hygiene sweep — dead deps, fragile regex, workflow polish"
 created_at: 2026-05-23T18:36:00Z
 priority: P2
-resolved: false
+resolved: true
+resolved_by:
+  - 1ad9ff5
+  - e12d9da
+  - 9e7b37d
+  - d4a77f1
+  - 28ff40e
 status_notes: |
   Queue finding. Each H<n> is independent; close per-item with commit sha.
-  H1 — CLOSED 2026-05-24 as superseded: `pushSyncFiles` now needs MarkdownRenderDeps for stale-conflict canonical remote rendering.
+  H1 — CLOSED 2026-05-24 (commit 1ad9ff5) as superseded: `pushSyncFiles` now needs MarkdownRenderDeps for stale-conflict canonical remote rendering.
   H2 — CLOSED 2026-05-24 (commit e12d9da).
   H3 — CLOSED 2026-05-24 (commit 9e7b37d).
   H4 — CLOSED 2026-05-24 (commit d4a77f1).
-  H5 — open.
+  H5 — CLOSED 2026-05-24 (commit 28ff40e).
 related:
   - docs/findings/2026-05-23T1700-dogfood-followups.md
   - apps/api/src/application/sync-files.ts

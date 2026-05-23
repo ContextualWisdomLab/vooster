@@ -2,13 +2,32 @@
 title: "`docs/findings/AGENTS.md` drifted from actual finding conventions"
 created_at: 2026-05-23T18:36:00Z
 priority: P2
-resolved: false
+resolved: true
+resolved_by:
+  - b1c42de
 related:
   - docs/findings/AGENTS.md
   - docs/findings/CLAUDE.md
 ---
 
 # Findings — `AGENTS.md` schema documentation lags reality
+
+## Resolution
+
+Closed in commit `b1c42de`.
+
+`docs/findings/AGENTS.md` and `docs/findings/CLAUDE.md` now document
+the actual finding schema: `P0 | P1 | P2` priorities,
+`boolean | "partial"` resolution, `resolved_by`, and `was`. The
+minimal templates now use P-style priority and partial-closure
+examples.
+
+Verification:
+
+- `grep -E '^\| `priority`' docs/findings/AGENTS.md`
+- `grep -E '^\| `resolved_by`' docs/findings/AGENTS.md`
+- `grep -E '^\| `was`' docs/findings/AGENTS.md`
+- `cmp -s docs/findings/AGENTS.md docs/findings/CLAUDE.md`
 
 ## TL;DR
 

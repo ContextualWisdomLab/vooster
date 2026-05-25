@@ -222,6 +222,7 @@ echo "[4.A5] ESLint actually rejects upward imports and accepts allowed arrows"
 A5_LOG=$(mktemp)
 if node --input-type=module >"$A5_LOG" 2>&1 <<'NODE'
 import { ESLint } from "eslint";
+import path from "node:path";
 
 const cases = [
   {
@@ -242,27 +243,38 @@ const cases = [
   }
 ];
 
-let failures = 0;
 const eslint = new ESLint({ cwd: process.cwd() });
-const results = await Promise.all(
-  cases.map((c) => eslint.lintText(c.code, { filePath: c.filePath }))
-);
-
-for (let i = 0; i < cases.length; i++) {
-  const c = cases[i];
-  const result = results[i];
-  const boundaryErrors = (result?.[0]?.messages ?? []).filter(
+const boundaryErrorCount = async (c) => {
+  const result = await eslint.lintText(c.code, { filePath: path.resolve(c.filePath) });
+  return (result?.[0]?.messages ?? []).filter(
     (m) => m.ruleId === "boundaries/dependencies"
-  );
-  if (boundaryErrors.length !== c.expectedBoundaryErrors) {
-    failures += 1;
-    console.error(
-      `  ${c.filePath}: expected ${c.expectedBoundaryErrors} boundary error(s), got ${boundaryErrors.length}`
-    );
-  }
-}
+  ).length;
+};
 
-if (failures > 0) {
+// eslint-plugin-boundaries classifies an import by resolving it to a file
+// (eslint-module-utils). On a cold Node process the first import
+// resolutions return null on some runners (observed on GitHub Actions,
+// never locally), and each fixture warms up at its own pace — so a
+// forbidden import looks accepted until resolution comes alive: the gate
+// passes locally yet fails in CI. Re-lint the whole set until every
+// fixture matches its expected boundary-error count (the forbidden
+// upward import rejected, the allowed arrow not), which both warms
+// resolution and asserts it. A genuinely misconfigured rule never
+// converges, so the gate still fails honestly.
+// See goals/2-shippable.gates.sh [2.C4].
+let counts = [];
+let allMatch = false;
+for (let attempt = 0; attempt < 30 && !allMatch; attempt++) {
+  counts = [];
+  for (const c of cases) {
+    counts.push(await boundaryErrorCount(c));
+  }
+  allMatch = cases.every((c, i) => counts[i] === c.expectedBoundaryErrors);
+}
+if (!allMatch) {
+  console.error(
+    `  boundary fixtures did not match expected counts (got ${JSON.stringify(counts)}, expected ${JSON.stringify(cases.map((c) => c.expectedBoundaryErrors))})`
+  );
   process.exit(1);
 }
 NODE

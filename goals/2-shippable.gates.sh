@@ -227,6 +227,7 @@ echo "[2.C4] Boundary rules reject direct adapter→infrastructure imports"
 C4_LOG=$(mktemp)
 if node --input-type=module <<'NODE' >"$C4_LOG" 2>&1
 import { ESLint } from "eslint";
+import path from "node:path";
 
 const cases = [
   {
@@ -246,21 +247,40 @@ const cases = [
 ];
 
 const eslint = new ESLint({ cwd: process.cwd() });
-const results = await Promise.all(
-  cases.map((lintCase) => eslint.lintText(lintCase.code, { filePath: lintCase.filePath }))
-);
-
-for (const [index, result] of results.entries()) {
-  const lintCase = cases[index];
-  if (lintCase === undefined) {
-    throw new Error(`Missing lint case for result ${String(index)}`);
-  }
-  const boundaryErrors = (result[0]?.messages ?? []).filter(
+const boundaryErrorCount = async (lintCase) => {
+  const result = await eslint.lintText(lintCase.code, {
+    filePath: path.resolve(lintCase.filePath)
+  });
+  return (result[0]?.messages ?? []).filter(
     (message) => message.ruleId === "boundaries/dependencies"
-  );
-  if (boundaryErrors.length !== 1) {
-    throw new Error(`${lintCase.filePath} was not rejected by boundaries/dependencies`);
+  ).length;
+};
+
+// eslint-plugin-boundaries classifies an import by resolving it to a file
+// (eslint-module-utils) and matching the resolved path against
+// boundaries/elements. On a cold Node process, the first import
+// resolutions return null on some runners (observed on GitHub Actions,
+// never locally), and each fixture's distinct source+import warms up at
+// its own pace — so it can take several lints before every fixture
+// resolves. While a target is unresolved boundaries sees an unknown type
+// and emits nothing, making a forbidden import look accepted: the gate
+// then passes locally yet fails in CI. Re-lint the whole forbidden set
+// until every fixture is actually rejected — this both warms resolution
+// and asserts it. A genuinely misconfigured rule never converges, so the
+// gate still fails honestly.
+let counts = [];
+let allRejected = false;
+for (let attempt = 0; attempt < 30 && !allRejected; attempt++) {
+  counts = [];
+  for (const lintCase of cases) {
+    counts.push(await boundaryErrorCount(lintCase));
   }
+  allRejected = counts.every((count) => count === 1);
+}
+if (!allRejected) {
+  throw new Error(
+    `boundaries/dependencies did not reject every adapter→infrastructure fixture (counts=${JSON.stringify(counts)})`
+  );
 }
 NODE
 then

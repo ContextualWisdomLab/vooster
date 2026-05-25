@@ -12,25 +12,20 @@ if grep -F -- "- $OLD_MERGE_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.
   cat <<'EOF'
 TASK: Split merge resolve findings debt.
 
-  Remove the exact agent-format bullet:
-    `merge resolve`
-
-  Keep:
-    `lock release`
-    `merge resolve public conflict setup`
+  See goals/29-merge-resolve-agent-format.md § "Tranche A — Findings Debt".
+  Keep the remaining sentinels: `lock release` and
+  `merge resolve public conflict setup`.
 EOF
   exit 0
 fi
 
-if ! grep -F 'format === "agent"' apps/cli/src/commands/merge.ts |
-   grep -F "resolve" >/dev/null 2>&1; then
+if ! grep -F "async function resolveMerge" apps/cli/src/commands/merge.ts >/dev/null 2>&1 ||
+   ! grep -F "suggested_next_actions: body.suggested_next_actions" apps/cli/src/commands/merge.ts >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Add RED tests, then implement merge resolve --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/merge-resolve-agent-format.test.ts
-    apps/cli/tests/e2e-cli/merge-resolve-agent-format.test.ts
-
+  See goals/29-merge-resolve-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — CLI E2E Proof".
   Keep __test setup out of production code and do not add an honest E2E file.
 EOF
   exit 0

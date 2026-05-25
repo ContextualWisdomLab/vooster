@@ -229,13 +229,14 @@ gate 같은 커밋 정책으로 막아야 한다.
 
 새 goal 이 기존 goal 의 invariant 를 깨뜨릴 수 있다 (기획 변경,
 아키텍처 교체, 기능 제거). 무작정 약화시키거나 삭제하는 건 금지. 다음
-세 케이스만 허용:
+네 케이스만 허용:
 
-| 케이스                                                     | 예                                                 | 허용된 조치                                                                                                                                                                               |
-| ---------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **(a) Retarget** — invariant 그대로, 경로/도구만 변경      | monorepo 이동 (`src/` → `apps/api/src/`)           | 같은 goal 작업 안에서 prior `*.gates.sh` 경로 수정. prior `.md` 는 손대지 않음. 커밋: `fix(<scope>): retarget <goal> gate`                                                                |
-| **(b) Loosen invariant** — 검사 로직 자체가 바뀌어야 함    | "한 파일에 모든 모델" → "여러 파일 중 하나에 등장" | 별도 scoped 커밋. prior `.md` 본문도 같은 커밋에서 수정해 universal claim 과 gate 를 다시 일치시킴. retarget 같은 다른 의도와 conflate 금지                                               |
-| **(c) Supersede** — invariant 가 새 아키텍처에서 의미 상실 | Fastify → Hono 교체 시 goal-1 Fastify 부팅 게이트  | 새 goal `.md` 에 **`## Supersedes`** 섹션을 만들어 "goal N 의 gate X.Y 를 대체한다" 를 명시. prior gate 는 새 invariant 로 교체하거나 삭제 — 단, 새 goal `.md` 의 명시적 선언 없이는 불가 |
+| 케이스                                                                                               | 예                                                                                | 허용된 조치                                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a) Retarget** — invariant 그대로, 경로/도구만 변경                                                | monorepo 이동 (`src/` → `apps/api/src/`)                                          | 같은 goal 작업 안에서 prior `*.gates.sh` 경로 수정. prior `.md` 는 손대지 않음. 커밋: `fix(<scope>): retarget <goal> gate`                                                                |
+| **(b) Loosen invariant** — 검사 로직 자체가 바뀌어야 함                                              | "한 파일에 모든 모델" → "여러 파일 중 하나에 등장"                                | 별도 scoped 커밋. prior `.md` 본문도 같은 커밋에서 수정해 universal claim 과 gate 를 다시 일치시킴. retarget 같은 다른 의도와 conflate 금지                                               |
+| **(c) Supersede** — invariant 가 새 아키텍처에서 의미 상실                                           | Fastify → Hono 교체 시 goal-1 Fastify 부팅 게이트                                 | 새 goal `.md` 에 **`## Supersedes`** 섹션을 만들어 "goal N 의 gate X.Y 를 대체한다" 를 명시. prior gate 는 새 invariant 로 교체하거나 삭제 — 단, 새 goal `.md` 의 명시적 선언 없이는 불가 |
+| **(d) Documentation lag** — invariant 는 유지되지만 prior goal 의 prose 가 superseded design 을 설명 | prior Tranche D prose 가 orchestrator-owned regression 을 직접 gate 실행처럼 설명 | gate 는 건드리지 않고 prior `.md` prose 만 scoped 문서 커밋으로 현재 enforcement 위치에 맞춘다. invariant 는 unchanged 로 기록                                                            |
 
 금지:
 

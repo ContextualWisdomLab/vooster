@@ -142,7 +142,7 @@ Output structure (terse, evidence-citing):
 ### Proposed changes (require user OK)
 1. <file>:<lines> — <what + why>
    - expected impact: <concrete number tied to a measurement>
-   - case classification (goal-design.md §5): (a) retarget / (b) loosen / (c) supersede / n/a
+   - case classification (goal-design.md §5): (a) retarget / (b) loosen / (c) supersede / (d) documentation lag / n/a
    - risk: <one sentence>
 
 ### Out-of-scope items queued to findings
@@ -157,6 +157,8 @@ Output structure (terse, evidence-citing):
 - `.state/harness/advisor/<AUDIT_TS>-q-*.md` — advisor consultations (if any), with reply
 - `docs/findings/2026-05-21T1635-perf-log.md` — appended <0 or 1> row (or "skipped — no meaningful change")
 ```
+
+Tiebreaker: if a fix is concrete but targets files outside harness-engineer edit scope, route it to **Out-of-scope items queued to findings**, not **Proposed changes**. Proposed changes are only for edits harness-engineer can apply after user approval.
 
 Append to `docs/findings/2026-05-21T1635-perf-log.md` **only if this audit produced a meaningful change** — see "Log hygiene" below. Save a snapshot of the audit's correctness findings to `.state/harness/last-audit.json` for next-time diffing (always — this is gitignored).
 

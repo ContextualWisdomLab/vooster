@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
 
@@ -45,17 +48,28 @@ describe("UC-018 CLI - Complete a work session", () => {
     const server = await startNetworkServer("vspec-cli-uc018-");
     try {
       const setup = await createCompletableSession(server.apiUrl);
-      const result = await runCli([
-        "session",
-        "complete",
-        setup.sessionId,
-        "--summary",
-        "Finished implementation.",
-        "--session-cookie",
-        setup.cookie,
-        "--api-url",
-        server.apiUrl
-      ]);
+      const cwd = mkdtempSync(join(tmpdir(), "vspec-session-complete-"));
+      const sessionPath = join(cwd, ".vspec", "session.json");
+      mkdirSync(join(cwd, ".vspec"), { recursive: true });
+      writeFileSync(
+        sessionPath,
+        `${JSON.stringify({ session_id: setup.sessionId })}\n`
+      );
+      const result = await runCli(
+        [
+          "session",
+          "complete",
+          setup.sessionId,
+          "--summary",
+          "Finished implementation.",
+          "--session-cookie",
+          setup.cookie,
+          "--api-url",
+          server.apiUrl
+        ],
+        {},
+        { cwd }
+      );
 
       expect(result.stderr).toBe("");
       expect(result.status).toBe(0);
@@ -68,6 +82,7 @@ describe("UC-018 CLI - Complete a work session", () => {
       expect(result.stdout).toContain("Strategy FAST_FORWARD");
       expect(result.stdout).toContain("Conflicts 0");
       expect(result.stdout).toContain("Session file .vspec/session.json cleared");
+      expect(existsSync(sessionPath)).toBe(false);
       expect(result.stdout).toContain("vspec merge show");
     } finally {
       await server.stop();

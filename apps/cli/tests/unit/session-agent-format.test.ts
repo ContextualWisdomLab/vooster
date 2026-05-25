@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { runSession } from "../../src/commands/session.js";
@@ -143,6 +146,7 @@ function sessionFlags(overrides: Record<string, string> = {}): Record<string, st
     intent: "Implement checkout",
     pin: "AGT-001",
     "project-id": "project-1",
+    root: mkdtempSync(join(tmpdir(), "vspec-session-unit-")),
     "session-cookie": "session-token",
     "workspace-id": "workspace-1",
     ...overrides

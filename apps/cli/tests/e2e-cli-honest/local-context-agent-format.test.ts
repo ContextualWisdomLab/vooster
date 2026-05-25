@@ -73,12 +73,12 @@ describe("honest CLI local context --format=agent", () => {
     expect(initialStatusEnvelope.data.config.current_project_key).toBe(seed.projectKey);
 
     const project = await expectOk(
-      runCli(["project", "switch", "ALT", "--format=agent"], seed.env)
+      runCli(["project", "switch", seed.projectKey, "--format=agent"], seed.env)
     );
     const projectEnvelope = expectAgentEnvelope<ProjectSwitchData>(project.stdout);
     expect(projectEnvelope.context).toEqual(defaultContext());
-    expect(projectEnvelope.data.project.key).toBe("ALT");
-    expect(projectEnvelope.data.config.current_project_key).toBe("ALT");
+    expect(projectEnvelope.data.project.key).toBe(seed.projectKey);
+    expect(projectEnvelope.data.config.current_project_key).toBe(seed.projectKey);
 
     const statusAfterProject = await expectOk(
       runCli(["status", "--format=agent"], seed.env)
@@ -86,7 +86,9 @@ describe("honest CLI local context --format=agent", () => {
     const statusAfterProjectEnvelope = expectAgentEnvelope<StatusData>(
       statusAfterProject.stdout
     );
-    expect(statusAfterProjectEnvelope.data.config.current_project_key).toBe("ALT");
+    expect(statusAfterProjectEnvelope.data.config.current_project_key).toBe(
+      seed.projectKey
+    );
 
     const workspace = await expectOk(
       runCli(["workspace", "switch", "workspace-two", "--format=agent"], seed.env)

@@ -16,6 +16,7 @@ import {
 } from "./session-flags.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { fetchJson, postJson } from "../http-client.js";
+import { clearSessionFile, writeSessionFile } from "../session-store.js";
 
 export class SessionCommand extends Command {
   static override description = "Manage work sessions.";
@@ -35,6 +36,7 @@ export class SessionCommand extends Command {
     "no-merge": Flags.boolean(),
     pin: Flags.string(),
     "project-id": Flags.string(),
+    root: Flags.string(),
     "session-cookie": Flags.string(),
     status: Flags.string(),
     summary: Flags.string(),
@@ -99,6 +101,11 @@ async function startSession(
   );
 
   const body = response.body as SessionStartResponse;
+  writeSessionFile(sessionFlags.root, body.session_file.path, {
+    pinned_revisions: body.session.pinned_revisions,
+    project_id: sessionFlags.projectId,
+    session_id: body.session.id
+  });
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
@@ -159,6 +166,7 @@ async function completeSession(
   );
 
   const body = response.body as SessionCompleteResponse;
+  clearSessionFile(sessionFlags.root, body.session_file.path);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(

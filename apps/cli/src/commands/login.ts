@@ -152,6 +152,8 @@ function configPatch(
 ) {
   return {
     api_url: apiUrl,
+    current_project_id: undefined,
+    current_project_key: undefined,
     current_workspace_id: workspace?.id,
     current_workspace_slug: workspace?.slug,
     profile: "default",

@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
 
@@ -32,22 +35,27 @@ describe("UC-016 CLI - Start a work session", () => {
     const server = await startNetworkServer("vspec-cli-uc016-");
     try {
       const setup = await createSessionReadyUseCase(server.apiUrl);
-      const result = await runCli([
-        "session",
-        "start",
-        "--intent",
-        "Implement checkout validation",
-        "--pin",
-        setup.usecaseKey,
-        "--agent-type",
-        "CODEX",
-        "--project-id",
-        setup.projectId,
-        "--session-cookie",
-        setup.cookie,
-        "--api-url",
-        server.apiUrl
-      ]);
+      const cwd = mkdtempSync(join(tmpdir(), "vspec-cli-session-"));
+      const result = await runCli(
+        [
+          "session",
+          "start",
+          "--intent",
+          "Implement checkout validation",
+          "--pin",
+          setup.usecaseKey,
+          "--agent-type",
+          "CODEX",
+          "--project-id",
+          setup.projectId,
+          "--session-cookie",
+          setup.cookie,
+          "--api-url",
+          server.apiUrl
+        ],
+        {},
+        { cwd }
+      );
 
       expect(result.stderr).toBe("");
       expect(result.status).toBe(0);
@@ -56,6 +64,14 @@ describe("UC-016 CLI - Start a work session", () => {
       expect(result.stdout).toContain("Agent CODEX codex-cli");
       expect(result.stdout).toContain("Pinned revisions 1");
       expect(result.stdout).toContain("Session file .vspec/session.json");
+      const sessionPath = join(cwd, ".vspec", "session.json");
+      expect(existsSync(sessionPath)).toBe(true);
+      const sessionFile = JSON.parse(readFileSync(sessionPath, "utf8")) as {
+        pinned_revisions: Record<string, string>;
+        session_id: string;
+      };
+      expect(sessionFile.session_id).toMatch(/[a-f0-9-]+/u);
+      expect(Object.keys(sessionFile.pinned_revisions)).toHaveLength(1);
       expect(result.stdout).toContain(
         `vspec usecase show ${setup.usecaseKey} --session`
       );

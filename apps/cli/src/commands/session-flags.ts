@@ -15,6 +15,7 @@ export type SessionCliFlags = {
   "no-merge"?: boolean;
   pin?: string;
   "project-id"?: string;
+  root?: string;
   "session-cookie"?: string;
   status?: string;
   summary?: string;
@@ -29,6 +30,7 @@ type SessionStartFlags = {
   intent: string;
   pins: string[];
   projectId: string;
+  root: string;
   sessionCookie: string;
 };
 
@@ -43,6 +45,7 @@ type SessionListFlags = {
 type SessionCompleteFlags = {
   apiUrl: string;
   noMerge: boolean;
+  root: string;
   sessionCookie: string;
   sessionId: string;
   summary: string | undefined;
@@ -57,6 +60,7 @@ export function sessionStartFlagsFrom(flags: SessionCliFlags): SessionStartFlags
     intent: requiredFlag(flags, "intent"),
     pins: pinsFrom(requiredFlag(flags, "pin")),
     projectId: resolveContextFlag(flags, "project-id"),
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie")
   };
 }
@@ -78,6 +82,7 @@ export function sessionCompleteFlagsFrom(
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
     noMerge: flags["no-merge"] ?? false,
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     sessionId: requiredArgument(sessionId, "session-id"),
     summary: optionalFlag(flags, "summary")

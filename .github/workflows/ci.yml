@@ -1,5 +1,11 @@
 name: CI
 
+# Fast, blocking gate for merges: lint + typecheck + the vitest suite sharded
+# across parallel runners. Coverage thresholds and the goal gate sweep
+# (scripts/completion-check.sh) are NOT here — they run in the non-blocking
+# Verify workflow (.github/workflows/verify.yml) so a slow/in-progress
+# correctness sweep never blocks a merge.
+
 on:
   push:
     branches: [main]
@@ -11,9 +17,35 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # _meta M.2 — strict lint. `pnpm run lint` is `eslint . --max-warnings 0`.
+      - name: Lint
+        run: pnpm run lint
+      # _meta M.1 — typecheck.
+      - name: Typecheck (tsc --noEmit)
+        run: pnpm run typecheck
+
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    strategy:
+      # Run every shard even if one fails, so a single flaky shard does not
+      # mask failures in the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:16-alpine
@@ -32,23 +64,9 @@ jobs:
       DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec_test
       TEST_DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec_test
       VSPEC_AUTH_STUB: "1"
-      # Skip the _meta gate suite in completion-check.sh — the cross-cutting
-      # claims (lint, typecheck, vitest + coverage, app builds) are enforced
-      # by the explicit workflow steps below, where each appears as its own
-      # Actions UI line for faster debugging.
-      VSPEC_GATES_SKIP_META: "1"
-      # Skip deep gates that require unavailable infrastructure on the
-      # default runner — Playwright browsers (goal 8.D5), Docker deploy
-      # (goals 2.B3 and 3.B4), Vercel CLI auth (goal 8.E3/E4).
-      VSPEC_GATES_SKIP_DEEP: "1"
-      # ubuntu-latest is a 2-vCPU runner; matching concurrency avoids
-      # CPU contention when goal workers spawn their own multi-threaded
-      # tools (tsc, vitest).
-      VSPEC_GATES_CONCURRENCY: "2"
-      # The persistence-matrix integration tests restart a real server twice
-      # per case. Since the build step runs before the test step, boot the
-      # compiled dist entry with `node` instead of re-transpiling via tsx on
-      # every boot. See apps/api/tests/integration/persistence-matrix-helpers.ts.
+      # Boot the compiled dist entry (built below) instead of re-transpiling via
+      # tsx on every server restart in the persistence-matrix integration tests.
+      # See apps/api/tests/integration/persistence-matrix-helpers.ts.
       VSPEC_TEST_USE_DIST: "1"
     steps:
       - uses: actions/checkout@v4
@@ -59,32 +77,15 @@ jobs:
         with:
           node-version: "22"
           cache: pnpm
-      - name: Restore goal gate cache
-        uses: actions/cache@v4
-        with:
-          path: .state/gate-cache
-          key: ${{ runner.os }}-gate-cache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-gate-cache-
       - run: pnpm install --frozen-lockfile
-      # _meta M.2 — strict lint. `pnpm run lint` calls the root script
-      # which is `eslint . --max-warnings 0`, matching _meta.gates.sh.
-      - name: Lint
-        run: pnpm run lint
-      # _meta M.1 — typecheck.
-      - name: Typecheck (tsc --noEmit)
-        run: pnpm run typecheck
-      # _meta M.4 — every workspace app with a `build` script builds.
-      # `pnpm -r build` enumerates apps via pnpm-workspace.yaml and skips
-      # packages without a build script. Must run BEFORE the test step:
-      # apps/api/tests/integration/dogfood-test.test.ts consumes the build
-      # output (dist/scripts/dogfood-smoke.js) and asserts the script does
-      # not rebuild it, so the artifact must already exist when vitest runs.
+      # Build before the test step: dist/scripts/dogfood-smoke.js is consumed by
+      # apps/api/tests/integration/dogfood-test.test.ts (which asserts the script
+      # does not rebuild), and VSPEC_TEST_USE_DIST boots dist directly. Each shard
+      # builds its own dist — cheap (~37s) and keeps shards self-contained.
       - name: Build all workspace apps
         run: pnpm -r build
-      # _meta M.3 — vitest with coverage thresholds (subsumes plain test).
-      - name: Test + coverage
-        run: pnpm run test:coverage
-      # Goal-local gates only (meta skipped via env above).
-      - name: Run goal gate sweep
-        run: bash scripts/completion-check.sh
+      # _meta M.3 — vitest. Coverage thresholds are enforced in verify.yml, not
+      # here, to keep the blocking path fast. `--shard=i/N` splits test files
+      # deterministically across the matrix.
+      - name: Test (shard ${{ matrix.shard }}/4)
+        run: pnpm exec vitest run --shard=${{ matrix.shard }}/4

@@ -1,0 +1,202 @@
+name: Verify
+
+# Non-blocking full correctness sweep: coverage thresholds + the goal gate
+# suite (scripts/completion-check.sh, non-deep gates). Kept off the fast push
+# CI so it never blocks a merge. Failures surface three ways:
+#   - a red (non-required) check on the PR / commit,
+#   - an auto-managed GitHub issue labeled `verify-failure` (opened on failure,
+#     closed on the next green run) for push(main)/scheduled runs,
+#   - GitHub's built-in failure email.
+#
+# IMPORTANT: do NOT add this workflow to branch protection's required checks —
+# that would make it blocking and defeat the split.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 04:00 UTC — offset from World Health (06:00) to avoid runner contention.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vspec
+          POSTGRES_PASSWORD: vspec
+          POSTGRES_DB: vspec_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vspec -d vspec_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec_test
+      TEST_DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec_test
+      VSPEC_AUTH_STUB: "1"
+      # Skip the _meta gate suite — lint/typecheck/build/test are covered by the
+      # CI workflow and the explicit steps below.
+      VSPEC_GATES_SKIP_META: "1"
+      # Skip deep gates needing infra absent on the default runner (Playwright,
+      # Docker deploy, Vercel auth). The World Health workflow owns those.
+      VSPEC_GATES_SKIP_DEEP: "1"
+      VSPEC_GATES_CONCURRENCY: "2"
+      VSPEC_TEST_USE_DIST: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Restore goal gate cache
+        uses: actions/cache@v4
+        with:
+          path: .state/gate-cache
+          key: ${{ runner.os }}-gate-cache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-gate-cache-
+      - run: pnpm install --frozen-lockfile
+      - name: Build all workspace apps
+        run: pnpm -r build
+      # Run both checks even if the first fails, so the issue captures the full
+      # picture. A final step re-fails the job if either did not pass.
+      - name: Test + coverage
+        id: coverage
+        continue-on-error: true
+        run: pnpm run test:coverage 2>&1 | tee verify.log
+      - name: Run goal gate sweep
+        id: gates
+        continue-on-error: true
+        run: bash scripts/completion-check.sh 2>&1 | tee -a verify.log
+      - name: Upload verify log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-log
+          path: verify.log
+      - name: Open or update verify issue
+        if: >-
+          github.event_name != 'pull_request' &&
+          (steps.coverage.outcome == 'failure' || steps.gates.outcome == 'failure')
+        uses: actions/github-script@v7
+        env:
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+          GATES_OUTCOME: ${{ steps.gates.outcome }}
+        with:
+          script: |
+            const fs = require("node:fs");
+            const title = "Verify (coverage + gate sweep) is failing";
+            const label = "verify-failure";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const log = fs.existsSync("verify.log")
+              ? fs.readFileSync("verify.log", "utf8").slice(-12000)
+              : "(no log captured)";
+            const body = [
+              "The non-blocking Verify sweep failed.",
+              "",
+              `- coverage: ${process.env.COVERAGE_OUTCOME}`,
+              `- gate sweep: ${process.env.GATES_OUTCOME}`,
+              "",
+              `Run: ${runUrl}`,
+              `Commit: ${context.sha}`,
+              "",
+              "```text",
+              log,
+              "```"
+            ].join("\n");
+            async function ensureLabel() {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label,
+                  color: "B60205",
+                  description: "Automated Verify (coverage + gate sweep) failures"
+                });
+              }
+            }
+            await ensureLabel();
+            const { data: issues } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue label:${label}`
+            });
+            const existing = issues.items.find((issue) => issue.title === title);
+            if (existing === undefined) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: [label],
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+              if (existing.state !== "open") {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  state: "open"
+                });
+              }
+            }
+      - name: Close verify issue on green
+        if: >-
+          github.event_name != 'pull_request' &&
+          steps.coverage.outcome == 'success' && steps.gates.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = "verify-failure";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data: issues } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:${label}`
+            });
+            for (const issue of issues.items) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Resolved by ${context.sha} — Verify is green. ${runUrl}`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed"
+              });
+            }
+      - name: Fail workflow if any check failed
+        if: steps.coverage.outcome == 'failure' || steps.gates.outcome == 'failure'
+        run: exit 1

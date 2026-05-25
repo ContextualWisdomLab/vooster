@@ -615,11 +615,13 @@ All exit codes are stable across CLI versions.
 ## Help System
 
 ```
-vspec help                Same as `vspec --help`.   # 🔵 Planned
-vspec help <command>      Command-specific help.   # 🔵 Planned
+vspec help                Same as `vspec --help`.
+vspec help <command>      Command-specific help.
 ```
 
-`--help` for any command includes:
+`vspec --help` shows grouped command families instead of every command flag.
+`--help` for a command and `vspec help <command>` use the same command-specific
+renderer. Command help includes:
 
 - One-line summary.
 - Synopsis (positional + flags).

@@ -1,0 +1,37 @@
+import { describe, expect, test } from "vitest";
+
+import { runCli } from "./helpers.js";
+
+describe("CLI help system", () => {
+  test("root help groups commands instead of dumping every flag", async () => {
+    const result = await runCli(["--help"]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("COMMAND GROUPS");
+    expect(result.stdout).toContain("Project");
+    expect(result.stdout).toContain("Locks");
+    expect(result.stdout).toContain("vspec help <command>");
+    expect(result.stdout).not.toContain("--actor-id");
+  });
+
+  test("help command routes to command-specific help", async () => {
+    const result = await runCli(["help", "lock", "release"]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("USAGE");
+    expect(result.stdout).toContain("$ vspec lock release <lock-id>");
+    expect(result.stdout).toContain("--format=<human|agent>");
+  });
+
+  test("command --help routes to the same command-specific help", async () => {
+    const result = await runCli(["usecase", "create", "--help"]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("USAGE");
+    expect(result.stdout).toContain("$ vspec usecase create --title <text>");
+    expect(result.stdout).toContain("--primary-actor=<name>");
+  });
+});

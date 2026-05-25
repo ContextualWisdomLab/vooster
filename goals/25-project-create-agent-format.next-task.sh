@@ -13,11 +13,9 @@ if grep -F "$PROJECT_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/de
   cat <<'EOF'
 TASK: Retarget Goal 24's sentinel, then remove project-create debt.
 
-  Goal 24 gate + next-task files should now use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
+  See goals/25-project-create-agent-format.md § "Tranche A — Findings Debt".
+  Goal 24 gate + next-task files should keep the next sentinel: `lock release`.
+  RED first if project-create behavior is not already covered.
 EOF
   exit 0
 fi
@@ -34,11 +32,8 @@ if [ ! -f apps/cli/tests/unit/project-create-agent-format.test.ts ] ||
   cat <<'EOF'
 TASK: Add RED tests, then fix project create --format=agent config behavior.
 
-  Start with:
-    apps/cli/tests/unit/project-create-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/project-create-agent-format.test.ts
-
-  The tests should prove the agent branch updates current_project_id/key.
+  See goals/25-project-create-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

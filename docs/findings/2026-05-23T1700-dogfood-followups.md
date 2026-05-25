@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -44,20 +44,9 @@ as long as it closes each declared item with an enumerated gate.
 
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: B4.
-- **Spec heuristics & duplication**: A13, H3.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A13 — Verb-phrase heuristic is extremely narrow
-
-`apps/api/src/application/usecases.ts:207` accepts ~14 verbs. Common
-vspec verbs (`Pin`, `Pull`, `Push`, `Start`, `Lock`, `Unlock`,
-`Branch`, `Merge`, `Sync`, `Run`, `Author`, `Diagnose`, `Diff`,
-`Revert`, `Comment`, `Export`, `Import`, `Inspect`) all fail. Spec
-§"Soft warnings, not hard rejections" calls for a warning with
-`--force`, not a hard reject. The CLI also drops `--force` on the way
-through.
 
 ### A14 — Many spec-promised verbs are not routed at all
 
@@ -114,16 +103,13 @@ dispatcher entry is missing, not because the command file is missing.
 A declarative table (`commands: Record<string, handler>`) would close
 the gap and unlock a real `COMMANDS` block for A6.
 
-### H3 — Verb-phrase regex is duplicated
-
-Two near-identical regexes:
-`apps/api/src/application/usecases.ts:207` and
-`apps/api/src/application/goal-promotion.ts:161`. Same 14-verb
-limitation. Centralize, or move the check out of the API into a
-CLI-side warning per the soft-warning spec.
-
 ## Already closed
 
+- **A13 / H3** — Closed by 4183c2a: use case authoring and goal promotion now
+  share one broadened verb-phrase heuristic that accepts vspec's own common
+  verbs, including `Pin`, `Pull`, `Push`, `Start`, `Lock`, `Unlock`,
+  `Branch`, `Merge`, `Sync`, `Run`, `Author`, `Diagnose`, `Diff`, `Revert`,
+  `Comment`, `Export`, `Import`, and `Inspect`.
 - **B1** — Closed by 781b758: the honest login-to-usecase flow now exercises
   the documented UC-009 trigger, creating a use case from persisted project
   context without `--project-id`.

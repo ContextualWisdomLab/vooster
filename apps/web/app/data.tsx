@@ -18,6 +18,12 @@ export type UsecaseSummary = {
   extension_count: number;
 };
 
+export type ActorSummary = {
+  id: string;
+  name: string;
+  type: string;
+};
+
 export type UsecaseDetail = {
   title: string;
   primary_actor: { name: string };
@@ -62,6 +68,10 @@ const demoUsecases: UsecaseSummary[] = [
   }
 ];
 
+const demoActors: ActorSummary[] = [
+  { id: "DEMO-ACTOR-1", name: "Customer", type: "PRIMARY" }
+];
+
 const demoDetail: UsecaseDetail = {
   title: "Places an order",
   primary_actor: { name: "Customer" },
@@ -93,6 +103,19 @@ export async function fetchProjectUsecases(
   }
 
   return readApi<UsecaseSummary[]>(`/v1/projects/${projectKey}/usecases`);
+}
+
+export async function fetchProjectActors(
+  projectKey: string
+): Promise<ActorSummary[]> {
+  if (isAuthStub()) {
+    return [...demoActors];
+  }
+
+  const response = await readApi<{ items: ActorSummary[] }>(
+    `/v1/projects/${projectKey}/actors`
+  );
+  return response.items;
 }
 
 export async function fetchUsecaseDetail(

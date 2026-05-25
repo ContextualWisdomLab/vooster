@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   createProjectRequest,
   deleteProjectRequest,
+  fetchProjectActors,
   fetchProjectUsecases,
   fetchProjects,
   fetchUsecaseDetail,
@@ -31,6 +32,9 @@ describe("web data auth stub", () => {
       title: "OPS-001 spec",
       primary_actor: { name: "Customer" }
     });
+    await expect(fetchProjectActors("OPS")).resolves.toMatchObject([
+      { name: "Customer", type: "PRIMARY" }
+    ]);
   });
 
   test("creates, rejects duplicates, renames, and deletes stub projects", async () => {

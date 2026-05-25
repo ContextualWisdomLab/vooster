@@ -98,6 +98,7 @@ export function writeConfig(
   partial: Partial<VspecConfig>,
   options: WriteConfigOptions = {}
 ): void {
+  assertWriteTargetIsExplicitInTests(options);
   const path = configPath(options);
   const next =
     options.merge === false
@@ -108,6 +109,19 @@ export function writeConfig(
         };
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
+}
+
+function assertWriteTargetIsExplicitInTests(options: WriteConfigOptions): void {
+  if (
+    process.env.NODE_ENV === "test" &&
+    options.path === undefined &&
+    process.env.VSPEC_CONFIG_PATH === undefined &&
+    process.env.VSPEC_GLOBAL_CONFIG_PATH === undefined
+  ) {
+    throw new Error(
+      "Refusing to write ~/.vspec/config.json during tests. Set VSPEC_CONFIG_PATH or VSPEC_GLOBAL_CONFIG_PATH."
+    );
+  }
 }
 
 function configFrom(raw: Record<string, unknown>): VspecConfig {

@@ -107,11 +107,11 @@ describe("config-store", () => {
       delete process.env.VSPEC_CONFIG_PATH;
       delete process.env.VSPEC_GLOBAL_CONFIG_PATH;
       process.env.HOME = home;
-      process.env.NODE_ENV = "test";
+      setEnv("NODE_ENV", "test");
 
-      expect(() => writeConfig({ session_token: "token" })).toThrow(
-        /VSPEC_CONFIG_PATH/
-      );
+      expect(() => {
+        writeConfig({ session_token: "token" });
+      }).toThrow(/VSPEC_CONFIG_PATH/);
       expect(existsSync(join(home, ".vspec", "config.json"))).toBe(false);
     });
 
@@ -164,9 +164,17 @@ describe("config-store", () => {
 
   function restoreEnv(name: "HOME" | "NODE_ENV", value: string | undefined): void {
     if (value === undefined) {
-      delete process.env[name];
+      if (name === "HOME") {
+        Reflect.deleteProperty(process.env, "HOME");
+      } else {
+        Reflect.deleteProperty(process.env, "NODE_ENV");
+      }
       return;
     }
-    process.env[name] = value;
+    setEnv(name, value);
+  }
+
+  function setEnv(name: "HOME" | "NODE_ENV", value: string): void {
+    (process.env as Record<string, string | undefined>)[name] = value;
   }
 });

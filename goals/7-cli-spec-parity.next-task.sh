@@ -12,6 +12,7 @@ cd "$ROOT"
 
 COMMANDS_DIR=apps/cli/src/commands
 ENVELOPE_MODULE=apps/cli/src/agent-envelope.ts
+MUTATION_ENVELOPE_MODULE=apps/cli/src/domain/envelope.ts
 INIT_CMD=apps/cli/src/commands/init.ts
 CONFIG_STORE=apps/cli/src/config-store.ts
 HONEST_DIR=apps/cli/tests/e2e-cli-honest
@@ -80,6 +81,7 @@ A2_OFFENDERS=()
 while IFS= read -r f; do
   case "$f" in
     "$ENVELOPE_MODULE") continue ;;
+    "$MUTATION_ENVELOPE_MODULE") continue ;;
     apps/cli/tests/*) continue ;;
   esac
   if grep -qE '\bformat_version\b' "$f"; then
@@ -90,13 +92,19 @@ A2_LITERAL_OK=true
 if ! grep -qE 'format_version[[:space:]]*:[[:space:]]*1\b' "$ENVELOPE_MODULE"; then
   A2_LITERAL_OK=false
 fi
-if [ "${#A2_OFFENDERS[@]}" -gt 0 ] || [ "$A2_LITERAL_OK" = false ]; then
+V2_LITERAL_OK=true
+if ! grep -qE 'ENVELOPE_VERSION_V2[[:space:]]*=[[:space:]]*2[[:space:]]+as[[:space:]]+const' "$MUTATION_ENVELOPE_MODULE" \
+    || ! grep -qE '\bformat_version\b' "$MUTATION_ENVELOPE_MODULE"; then
+  V2_LITERAL_OK=false
+fi
+if [ "${#A2_OFFENDERS[@]}" -gt 0 ] || [ "$A2_LITERAL_OK" = false ] || [ "$V2_LITERAL_OK" = false ]; then
   cat <<'EOF'
-TASK: Confine format_version to agent-envelope.ts (gate 7.A2).
+TASK: Confine format_version to the two envelope modules. See
+goals/7-cli-spec-parity.md § "Tranche A — `--format=agent` envelope
+standardization".
 
-  Move every literal "format_version" reference into the envelope
-  module. Commands should NEVER write the key directly — they call
-  buildAgentEnvelope and pass through its return value.
+Legacy agent format_version belongs in apps/cli/src/agent-envelope.ts.
+Mutation agent format_version belongs in apps/cli/src/domain/envelope.ts.
 
 EOF
   if [ "${#A2_OFFENDERS[@]}" -gt 0 ]; then
@@ -106,11 +114,9 @@ EOF
   if [ "$A2_LITERAL_OK" = false ]; then
     echo "  Envelope module is missing 'format_version: 1' as a literal."
   fi
-  cat <<'EOF'
-
-  Commit:
-    refactor(cli): single source for format_version
-EOF
+  if [ "$V2_LITERAL_OK" = false ]; then
+    echo "  Mutation envelope module is missing the format_version: 2 source."
+  fi
   exit 0
 fi
 
@@ -251,6 +257,17 @@ TASK: vspec init --help must exit 0 (gate 7.B1).
 
   Commit:
     fix(cli): register init command in CLI entrypoint
+EOF
+  exit 0
+fi
+
+if VSPEC_GATES_SKIP_DEEP=1 bash "$ROOT/goals/7-cli-spec-parity.gates.sh" >/dev/null 2>&1; then
+  cat <<'EOF'
+TASK: All sub-gates of goal 7 appear to pass locally. Run:
+
+    bash scripts/completion-check.sh
+
+  to confirm globally. If green, either start goals/8-*.md or stop.
 EOF
   exit 0
 fi

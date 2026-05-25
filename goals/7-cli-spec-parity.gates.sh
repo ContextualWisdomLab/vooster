@@ -35,6 +35,7 @@ GATE_INPUTS=(
   scripts/check-gate-rigor.sh
   scripts/check-honest-cli-e2e.sh
   goals/7-cli-spec-parity.gates.sh
+  goals/7-cli-spec-parity.next-task.sh
   goals/7-cli-spec-parity.md
   scripts/_gate-cache.sh
 )

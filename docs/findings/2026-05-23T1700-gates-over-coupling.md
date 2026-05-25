@@ -2,8 +2,8 @@
 title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc form"
 created_at: 2026-05-23T17:00:00Z
 priority: P1
-resolved: partial
-status_notes: "2026-05-26: Goal 8-29 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goal 7 is still queued."
+resolved: true
+status_notes: "2026-05-26: Goal 7-29 gates/next-task trims and reviews landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; no queued goals remain for this finding."
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
@@ -190,6 +190,10 @@ Progress:
   stayed, while stale next-task probes were aligned with the current `(app)`
   route group, removed B4 write-ban state, and shallow/deep verification
   boundary.
+- 2026-05-26: `7-cli-spec-parity` was reviewed as the foundational
+  CLI/honest-test source-of-truth gate; its repo-wide envelope, init, and honest
+  directory checks stayed gate-owned, while stale next-task probes were aligned
+  with the v2 mutation envelope and current init fixture behavior.
 
 The trim is straightforward but needs to be done per-goal so prior
 invariants aren't accidentally weakened.

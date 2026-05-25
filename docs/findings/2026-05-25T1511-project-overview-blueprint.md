@@ -1,8 +1,15 @@
 ---
 title: "F2 — 프로젝트 개요 = 구조화 청사진 (substance 카운트 + 예외 강조)"
 created_at: 2026-05-25T15:11:52Z
-resolved: false
+resolved: true
 priority: P1
+resolved_by:
+  - 462164e
+  - 7aecacf
+  - 258c315
+  - ee99b77
+  - de9b5ac
+  - 4b5d701
 related:
   - docs/findings/2026-05-25T1447-activation-wow-project-overview.md
   - docs/findings/2026-05-25T1503-web-viewer-de-jargon.md
@@ -96,3 +103,29 @@ presentation이다. whole-goal 위임만 구현된 현재는 **슬라이스-레�
 (`docs/claude/delegation.md`의 Open decision) 케이스라: 백엔드 sub-goal(codex)과
 프론트 claude-owned sub-goal로 **분할**하거나, 분할 전까진 codex-led로 둔다
 (F1 claude-owned 선행 의존은 그대로 유지).
+
+## Resolution
+
+Closed in two slices:
+
+- Backend contract: `462164e` added `scenario_count` and `extension_count` to
+  every `GET /v1/projects/:projectId/usecases` item, with UC-014 e2e coverage.
+- Backend aggregation: `7aecacf` moved the Prisma scenario count aggregation
+  behind a shared helper, preserving one project-level grouped query while
+  restoring existing size gates.
+- Frontend data: `258c315` modeled overview counts in `UsecaseSummary`;
+  `ee99b77` added project actor fetching through the existing actors endpoint.
+- Frontend presentation: `de9b5ac` rendered the substance count line, per-row
+  `예외 N`, and the `대비된 예외 상황 N건` block.
+- `4b5d701` added delegated goal 33 as the frontend machine gate.
+
+Acceptance evidence:
+
+- `pnpm exec vitest run apps/api/tests/e2e/UC-014.test.ts` passed with the count
+  accuracy test.
+- `pnpm --filter @vooster/api typecheck` passed after the port/store update.
+- `VSPEC_GATES_NO_CACHE=1 bash goals/33-project-overview-blueprint.gates.sh`
+  passed, including web unit tests, typecheck, and project overview rendering
+  checks.
+- `bash scripts/completion-check.sh` passed with goal 33 included and
+  `.state/active-goal` returning to `ALL_DONE`.

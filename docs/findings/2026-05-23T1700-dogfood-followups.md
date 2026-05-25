@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A15 closed by f7a3cb1; A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "H1 closed by fe5e79c; A15 closed by f7a3cb1; A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -44,7 +44,6 @@ as long as it closes each declared item with an enumerated gate.
 
 - **CLI dispatcher & verb coverage**: A14, H2.
 - **API contract honesty**: B4.
-- **Test isolation hazards**: H1.
 
 ## Open findings
 
@@ -80,14 +79,6 @@ Beta-blockers from the snapshot: `session pin / unpin`, `unlock`,
 the dogfood that read verbs have the envelope but several write verbs
 (notably `lock release` and the missing verbs from A14) do not.
 
-### H1 — `~/.vspec/config.json` is the only "current" store; tests trample it
-
-`globalConfigPath()` defaults to `~/.vspec/config.json`. Tests that
-forget `VSPEC_CONFIG_PATH` overwrite the developer's live config (and
-each other). Fixes: refuse global writes from `NODE_ENV === "test"`,
-default to `${XDG_STATE_HOME}/vspec/config.json`, or hard-error when
-overwriting a live token from a different `api_url`.
-
 ### H2 — The CLI is a 400-line if/else chain in `index.ts`
 
 Every new verb requires editing `apps/cli/src/index.ts` in two
@@ -98,6 +89,10 @@ the gap and unlock a real `COMMANDS` block for A6.
 
 ## Already closed
 
+- **H1** — Closed by fe5e79c: `writeConfig` now refuses implicit
+  `~/.vspec/config.json` writes under `NODE_ENV=test` unless the caller provides
+  an explicit config path through `VSPEC_CONFIG_PATH`, `VSPEC_GLOBAL_CONFIG_PATH`,
+  or the `path` option.
 - **A15** — Closed by f7a3cb1: `vspec usecase set` now accepts the audited
   metadata fields `title`, `level`, `priority`, `format`, `status`, and
   `scope`; the API PATCH path persists those fields and the honest CLI flow

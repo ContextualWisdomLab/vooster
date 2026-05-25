@@ -45,6 +45,11 @@ jobs:
       # CPU contention when goal workers spawn their own multi-threaded
       # tools (tsc, vitest).
       VSPEC_GATES_CONCURRENCY: "2"
+      # The persistence-matrix integration tests restart a real server twice
+      # per case. Since the build step runs before the test step, boot the
+      # compiled dist entry with `node` instead of re-transpiling via tsx on
+      # every boot. See apps/api/tests/integration/persistence-matrix-helpers.ts.
+      VSPEC_TEST_USE_DIST: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

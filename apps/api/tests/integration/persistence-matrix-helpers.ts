@@ -7,6 +7,7 @@
 // the split files in parallel without cross-talk.
 
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 
@@ -16,6 +17,24 @@ import { withTestDatabase, type TestDatabase } from "../helpers/postgres-db.js";
 
 const root = path.resolve(import.meta.dirname, "../../../..");
 const apiEntry = path.resolve(import.meta.dirname, "../../src/index.ts");
+const distEntry = path.resolve(root, "dist/apps/api/src/index.js");
+
+// A persistence test restarts the server twice per case. Booting via tsx
+// re-transpiles the whole API tree on every boot — the dominant cost. When
+// VSPEC_TEST_USE_DIST=1 (CI builds before the test step, so dist is fresh)
+// boot the compiled entry with `node` instead and skip transpilation. Local
+// runs default to tsx so a stale dist can never silently change results.
+function serverCommand(): { command: string; args: string[] } {
+  if (process.env.VSPEC_TEST_USE_DIST === "1") {
+    if (!existsSync(distEntry)) {
+      throw new Error(
+        `VSPEC_TEST_USE_DIST=1 but compiled entry missing: ${distEntry}. Run \`pnpm -r build\` first.`
+      );
+    }
+    return { command: process.execPath, args: [distEntry] };
+  }
+  return { command: "pnpm", args: ["exec", "tsx", apiEntry] };
+}
 
 export interface TestDatabaseRegistry {
   allocate: () => Promise<string>;
@@ -43,9 +62,9 @@ export function createTestDatabaseRegistry(): TestDatabaseRegistry {
 
 export async function bootServer(databaseUrl: string) {
   const port = await freeTcpPort();
-  // Use tsx so the test file does not depend on a prior `pnpm run build`.
   // The Postgres helper has already pushed the schema for this URL.
-  const child = spawn("pnpm", ["exec", "tsx", apiEntry], {
+  const { command, args } = serverCommand();
+  const child = spawn(command, args, {
     cwd: root,
     env: {
       ...process.env,

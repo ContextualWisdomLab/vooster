@@ -13,6 +13,13 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
+type SearchDeps = {
+  actorStore: ActorStore;
+  membershipStore: MembershipStore;
+  scenarioStore: ScenarioStore;
+  useCaseStore: UseCaseStore;
+};
+
 const searchQuerySchema = z.object({
   actor_id: z.string().optional(),
   cursor: z.string().optional(),
@@ -30,16 +37,9 @@ export function registerUseCaseSearchRoutes(
   scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore
 ) {
+  const deps = { actorStore, membershipStore, scenarioStore, useCaseStore };
   app.get("/v1/projects/:projectId/usecases", (request, reply) =>
-    searchUseCases(
-      request,
-      reply,
-      state,
-      actorStore,
-      membershipStore,
-      scenarioStore,
-      useCaseStore
-    )
+    searchUseCases(request, reply, state, deps)
   );
 }
 
@@ -47,16 +47,13 @@ async function searchUseCases(
   request: FastifyRequest,
   reply: FastifyReply,
   state: SignupState,
-  actorStore: ActorStore,
-  membershipStore: MembershipStore,
-  scenarioStore: ScenarioStore,
-  useCaseStore: UseCaseStore
+  deps: SearchDeps
 ) {
   const projectId = z
     .object({ projectId: z.string().min(1) })
     .parse(request.params).projectId;
   if (
-    (await membershipForProject(request, state, membershipStore, projectId)) ===
+    (await membershipForProject(request, state, deps.membershipStore, projectId)) ===
     undefined
   ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
@@ -81,7 +78,7 @@ async function searchUseCases(
         )
       );
   }
-  const actors = await actorStore.listActors(projectId);
+  const actors = await deps.actorStore.listActors(projectId);
   if (
     parsed.data.actor_id !== undefined &&
     !actors.some((actor) => actor.id === parsed.data.actor_id)
@@ -98,10 +95,10 @@ async function searchUseCases(
     });
   }
   const sorted = (
-    await filteredUseCases(useCaseStore, projectId, parsed.data, cursor)
+    await filteredUseCases(deps.useCaseStore, projectId, parsed.data, cursor)
   ).sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);
-  const scenarioCounts = await scenarioStore.countScenariosByUseCase(projectId);
+  const scenarioCounts = await deps.scenarioStore.countScenariosByUseCase(projectId);
   const emptyActions =
     items.length === 0 && cursor === null
       ? {

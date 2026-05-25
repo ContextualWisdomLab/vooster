@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A15 closed by f7a3cb1; A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -42,7 +42,7 @@ They are now listed under "Already closed" below.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **CLI dispatcher & verb coverage**: A14, A15, H2.
+- **CLI dispatcher & verb coverage**: A14, H2.
 - **API contract honesty**: B4.
 - **Test isolation hazards**: H1.
 
@@ -74,13 +74,6 @@ diff (local-vs-server, no args)
 Beta-blockers from the snapshot: `session pin / unpin`, `unlock`,
 `merge preview`, `scenario edit / delete`, `step delete`, `help <cmd>`.
 
-### A15 — `vspec usecase set` field coverage unaudited
-
-CLI spec promises a generic edit verb. It is routed but the accepted
-field set vs the spec-implied field set
-(`title`, `level`, `priority`, `format`, `status`, `scope`, …) has
-not been audited.
-
 ### B4 — `--format=agent` coverage on write verbs is partial
 
 `docs/findings/2026-05-21T1856-cli-spec-gaps.md` already enumerates this. Confirmed by
@@ -105,6 +98,10 @@ the gap and unlock a real `COMMANDS` block for A6.
 
 ## Already closed
 
+- **A15** — Closed by f7a3cb1: `vspec usecase set` now accepts the audited
+  metadata fields `title`, `level`, `priority`, `format`, `status`, and
+  `scope`; the API PATCH path persists those fields and the honest CLI flow
+  proves title edits through the public command.
 - **A13 / H3** — Closed by 4183c2a: use case authoring and goal promotion now
   share one broadened verb-phrase heuristic that accepts vspec's own common
   verbs, including `Pin`, `Pull`, `Push`, `Start`, `Lock`, `Unlock`,

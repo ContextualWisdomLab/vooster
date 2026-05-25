@@ -65,9 +65,7 @@ describe("honest CLI flow", () => {
           "--title",
           "Places an order",
           "--primary-actor",
-          "Customer",
-          "--project-id",
-          projectId as string
+          "Customer"
         ],
         env
       );

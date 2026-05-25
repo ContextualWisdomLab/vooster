@@ -19,7 +19,7 @@ export type MutationInput<TData> = {
   method: MutationMethod;
   path: string;
   body?: unknown;
-  context?: Partial<EnvelopeContext>;
+  context?: Partial<EnvelopeContext> | ((data: TData) => Partial<EnvelopeContext>);
   selectData?: (responseBody: unknown) => TData;
   successHints?: (data: TData) => SuggestedNextAction[];
   autoExport?: AutoExportConfig;
@@ -49,10 +49,12 @@ export async function runMutation<TData>(
       input.dryRun === true || input.autoExport === undefined
         ? []
         : await autoExport(input.autoExport);
+    const context =
+      typeof input.context === "function" ? input.context(data) : input.context;
     return {
       envelope: buildOkEnvelope({
         data,
-        context: input.context,
+        context,
         affectedFiles,
         dryRun: input.dryRun,
         suggestedNextActions: input.successHints?.(data) ?? []
@@ -66,7 +68,7 @@ export async function runMutation<TData>(
     return {
       envelope: buildErrorEnvelope({
         error: extractError(error.status, error.body),
-        context: input.context,
+        context: typeof input.context === "function" ? undefined : input.context,
         suggestedNextActions: extractSuggestedNextActions(error.body)
       }),
       failed: true

@@ -48,6 +48,7 @@ describe("scenario add --format=agent", () => {
     const envelope = expectAgentEnvelope(stdout);
     expect(envelope.data.scenario.id).toBe("scenario-1");
     expect(envelope.data.revision.id).toBe("revision-1");
+    expect(envelope.context.revision).toBe("revision-1");
   });
 
   test("human scenario add", async () => {

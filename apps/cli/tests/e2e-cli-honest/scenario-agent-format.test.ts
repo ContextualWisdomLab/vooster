@@ -72,6 +72,7 @@ describe("honest CLI scenario add --format=agent", () => {
     expect(envelope.data.scenario.id).toBeTypeOf("string");
     expect(envelope.data.scenario.type).toBe("MAIN_SUCCESS");
     expect(envelope.data.revision.id).toBeTypeOf("string");
+    expect(envelope.context.revision).toBe(envelope.data.revision.id);
   });
 });
 

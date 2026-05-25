@@ -1,4 +1,5 @@
 import type { SuggestedNextAction } from "../domain/envelope.js";
+import type { EnvelopeContext } from "../domain/envelope.js";
 import type { AgentEnvelopeV2 } from "../domain/envelope.js";
 import type { MutationInput, MutationMethod } from "./mutation-runner.js";
 import { runMutation } from "./mutation-runner.js";
@@ -23,6 +24,7 @@ export type CommonContextFlags = {
 
 export type VerbMutation<TData> = {
   body?: unknown;
+  context?: (data: TData) => Partial<EnvelopeContext>;
   method: MutationMethod;
   path: string;
   selectData?: (responseBody: unknown) => TData;
@@ -53,6 +55,7 @@ export async function runMutationCommand<TData>(
             root: ctx.root
           },
     body: verb.body,
+    context: verb.context,
     cookie: ctx.cookie,
     dryRun: ctx.dryRun,
     method: verb.method,

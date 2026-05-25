@@ -6,16 +6,13 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if ! grep -F 'format === "agent"' apps/cli/src/commands/scenario.ts >/dev/null 2>&1; then
+if ! grep -F "runMutationCommand<ScenarioResponse>" apps/cli/src/commands/scenario.ts >/dev/null 2>&1 ||
+   ! grep -F "context: (data) => ({ revision: data.revision.id })" apps/cli/src/commands/scenario.ts >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Add RED tests, then implement scenario add --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/scenario-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/scenario-agent-format.test.ts
-
-  Then update apps/cli/src/commands/scenario.ts to use buildAgentEnvelope.
-  scenario add should set context.revision from data.revision.id.
+  See goals/15-scenario-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
@@ -24,7 +21,8 @@ if grep -F '`scenario add`' docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev
   cat <<'EOF'
 TASK: Remove scenario add from the agent-format debt list.
 
-  Keep the change propose / change commit debt as the next unrelated sentinel.
+  See goals/15-scenario-agent-format.md § "Tranche A — Findings Debt".
+  Keep unrelated remaining debt queued.
 EOF
   exit 0
 fi

@@ -117,6 +117,7 @@ async function addScenario(
         outcome: s.outcome,
         type: s.type
       },
+      context: (data) => ({ revision: data.revision.id }),
       method: "POST",
       path: `/v1/usecases/${s.usecaseId}/scenarios`
     },

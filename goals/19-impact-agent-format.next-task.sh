@@ -10,11 +10,9 @@ if grep -F '`revert`, `wh''o`, `comment add|list|edit|resolve|''delete`' docs/fi
   cat <<'EOF'
 TASK: Retarget Goal 18's sentinel, then narrow impact debt.
 
-  Goal 18 should use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
+  See goals/19-impact-agent-format.md § "Tranche A — Findings Debt".
+  The post-impact sentinel remains: `lock release`.
+  RED first if the sentinel behavior is not already covered.
 EOF
   exit 0
 fi
@@ -23,12 +21,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/impact.ts >/dev/null 2>&
   cat <<'EOF'
 TASK: Add RED tests, then implement impact --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/impact-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/impact-agent-format.test.ts
-
-  Then update apps/cli/src/commands/impact.ts to use buildAgentEnvelope.
-  context.revision should come from the latest revision used as base_revision.
+  See goals/19-impact-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

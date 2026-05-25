@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -42,8 +42,6 @@ They are now listed under "Already closed" below.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **Self-teaching CLI** (`core differentiator #3` in
-  `docs/00-overview.md`): A5, B2, B3.
 - **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: A12, B1, B4.
@@ -51,12 +49,6 @@ as long as it closes each declared item with an enumerated gate.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A5 — Self-teaching errors are not self-teaching
-
-API responses carry `suggested_next_actions` and (for
-`usecase create`) `suggested_titles[]`; the CLI drops both. `actor
-create --human` emits a raw oclif stack trace.
 
 ### A7 — Phantom `.vspec/session.json`
 
@@ -136,21 +128,6 @@ via `.vspec/config.json` is sufficient. The CLI rejects this with
 documentation direction (and the same audit for the other 34 UC
 trigger lines) is still open.
 
-### B2 — Self-Teaching CLI differentiator is not yet earned
-
-`docs/00-overview.md` lists "Self-teaching CLI" as a core
-differentiator with three behaviors. Behaviour #1 (next-action hints
-on every error) is partially implemented — see A5. Behaviour #3 is
-the `ai-guide` document — see B3.
-
-### B3 — `vspec ai-guide` is a 12-line stub
-
-CLI spec §"`vspec ai-guide`" promises sections on sessions, workflow,
-agent payload contract, forbidden actions, and a worked example.
-Today the command emits a one-liner per section. Success criterion #3
-in `docs/00-overview.md` (a new AI agent reads ai-guide and completes
-a representative task) is not met.
-
 ### B4 — `--format=agent` coverage on write verbs is partial
 
 `docs/findings/2026-05-21T1856-cli-spec-gaps.md` already enumerates this. Confirmed by
@@ -188,6 +165,11 @@ CLI-side warning per the soft-warning spec.
 
 ## Already closed
 
+- **A5 / B2 / B3** — Closed by 48390e2: human mutation failures now render
+  API `suggested_next_actions` plus validation details such as suggested
+  titles; `usecase create --force` and documented `actor create --human` are
+  accepted; `vspec ai-guide` now contains concrete session workflow, agent
+  envelope, forbidden-action, and worked-example guidance.
 - **A4** — Closed by 3b13715: human `vspec status` now shows the bound
   project/workspace/branch/session panel, live active session and lock context
   from `/v1/sessions` when authenticated, and the next session-start action.

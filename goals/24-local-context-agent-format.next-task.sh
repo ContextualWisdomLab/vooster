@@ -17,18 +17,9 @@ if grep -F "$OLD_PROJECT_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md 
   cat <<'EOF'
 TASK: Narrow local-context findings debt.
 
-  Replace:
-    old project-create/project-switch combined bullet
-
-  With:
-    `lock release`
-
-  Remove:
-    `workspace switch`
-    `status`
-
-  Keep:
-    `lock release`
+  See goals/24-local-context-agent-format.md § "Tranche A — Findings Debt".
+  The next remaining-debt sentinel is: `lock release`.
+  RED first if the sentinel behavior is not already covered.
 EOF
   exit 0
 fi
@@ -38,12 +29,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/status.ts >/dev/null 2>&
   cat <<'EOF'
 TASK: Add RED tests, then implement local-context --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/local-context-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/local-context-agent-format.test.ts
-
-  Then update status.ts, workspace.ts, and project switch handling to use
-  buildAgentEnvelope.
+  See goals/24-local-context-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

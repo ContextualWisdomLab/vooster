@@ -22,10 +22,25 @@ describe("honest CLI - usecase write", () => {
           seed.env
         )
       );
+      const retitled = await expectOk(
+        runCli(
+          [
+            "usecase",
+            "set",
+            seed.usecaseKey,
+            "--field",
+            "title",
+            "--value",
+            "Reviews checkout status"
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(restored.stdout).toContain("Restored");
       expect(updated.stdout).toContain("DRAFT");
+      expect(retitled.stdout).toContain("Reviews checkout status");
     } finally {
       await server.stop();
     }

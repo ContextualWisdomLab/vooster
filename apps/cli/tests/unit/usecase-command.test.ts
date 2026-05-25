@@ -51,6 +51,50 @@ describe("usecase command", () => {
     expect(lines).toEqual(["UseCase PAY-001", "Status APPROVED"]);
   });
 
+  test("sets use case title through the API", async () => {
+    const fetchStub = vi.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        json: () =>
+          Promise.resolve({
+            usecase: {
+              key: "PAY-001",
+              status: "DRAFT",
+              title: "Reviews checkout status"
+            }
+          }),
+        ok: true
+      } as Response)
+    );
+    vi.stubGlobal("fetch", fetchStub);
+    const lines: string[] = [];
+
+    await runUsecase(
+      {
+        "api-url": "https://api.example.test",
+        field: "title",
+        "session-cookie": "session-token",
+        value: "Reviews checkout status"
+      },
+      "set",
+      "usecase-1",
+      (message) => lines.push(message)
+    );
+
+    expect(fetchStub).toHaveBeenCalledWith(
+      "https://api.example.test/v1/usecases/usecase-1",
+      {
+        body: JSON.stringify({ title: "Reviews checkout status" }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: "vspec_session=session-token"
+        },
+        method: "PATCH"
+      }
+    );
+    expect(lines).toContain("Title Reviews checkout status");
+  });
+
   test("restores an archived use case through the API", async () => {
     const fetchStub = vi.fn(() =>
       Promise.resolve({

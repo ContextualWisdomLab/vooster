@@ -158,8 +158,11 @@ describe("use case update application", () => {
       }
     );
 
-    expect(result).toEqual({ status: "UPDATED", usecase: usecase() });
-    expect(updates).toEqual([usecase()]);
+    expect(result).toEqual({
+      status: "UPDATED",
+      usecase: usecase({ status: "IN_REVIEW" })
+    });
+    expect(updates).toEqual([usecase({ status: "IN_REVIEW" })]);
   });
 
   test("returns update failure statuses", async () => {
@@ -365,7 +368,7 @@ function project(): StoredProject {
   };
 }
 
-function usecase(): StoredUseCase {
+function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
   return {
     archived_at: null,
     current_revision_id: "revision-1",
@@ -378,7 +381,8 @@ function usecase(): StoredUseCase {
     project_id: "project-1",
     scope: "chk",
     status: "DRAFT",
-    title: "Places an order"
+    title: "Places an order",
+    ...overrides
   };
 }
 

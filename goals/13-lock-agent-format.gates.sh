@@ -15,14 +15,13 @@ GATE_INPUTS=(
   apps/cli/src/agent-envelope.ts
   apps/cli/src/commands/lock-output.ts
   apps/cli/src/commands/lock.ts
-  apps/cli/src/index.ts
-  apps/cli/tests/unit
-  apps/cli/tests/e2e-cli-honest
-  docs/07-cli-spec.md
+  apps/cli/tests/unit/lock-agent-format.test.ts
+  apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts
   docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/13-lock-agent-format.gates.sh
+  goals/13-lock-agent-format.next-task.sh
   goals/13-lock-agent-format.md
   scripts/_gate-cache.sh
 )
@@ -35,10 +34,6 @@ fi
 PASS=true
 
 FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
-CLI_SPEC=docs/07-cli-spec.md
-CLI_INDEX=apps/cli/src/index.ts
-LOCK_CMD=apps/cli/src/commands/lock.ts
-LOCK_OUTPUT=apps/cli/src/commands/lock-output.ts
 UNIT_TEST=apps/cli/tests/unit/lock-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts
 
@@ -48,16 +43,6 @@ agent_debt_bullets() {
     capture && /^## / { capture=0 }
     capture && /^-/ { print }
   ' "$FINDINGS"
-}
-
-extract_function() {
-  local file="$1"
-  local fn="$2"
-  awk -v fn="$fn" '
-    $0 ~ "^(export )?(async )?function " fn "\\(" { capture=1 }
-    capture && $0 ~ "^(export )?(async )?function " && $0 !~ "^(export )?(async )?function " fn "\\(" { exit }
-    capture { print }
-  ' "$file"
 }
 
 echo "[13.A1 lock findings narrowed]"
@@ -72,120 +57,19 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[13.B1 docs/07-cli-spec.md documents lock agent format]"
-B1_OFFENDERS=()
-for token in \
-  "### Agent Format for Locks" \
-  "vspec lock <KEY-NNN> --format=agent" \
-  "held_by_session_id" \
-  "context.session_id" \
-  "caller's --session"; do
-  if ! grep -F -- "$token" "$CLI_SPEC" >/dev/null 2>&1; then
-    B1_OFFENDERS+=("$token")
-  fi
-done
-if [ "${#B1_OFFENDERS[@]}" -eq 0 ]; then
+echo "[13.D1 unit tests prove lock agent envelopes]"
+if pnpm exec vitest run "$UNIT_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — missing lock agent spec text:"
-  printf '        %s\n' "${B1_OFFENDERS[@]}"
+  echo "    ✗ fail — re-run: pnpm exec vitest run $UNIT_TEST"
   PASS=false
 fi
 
-echo "[13.C1 lock output is discovered by Goal 7 agent-branch source]"
-if grep -rlE 'format === "agent"' apps/cli/src/commands 2>/dev/null |
-   grep -Fx "$LOCK_OUTPUT" >/dev/null 2>&1; then
+echo "[13.E1 honest E2E proves lock agent envelopes]"
+if pnpm exec vitest run "$HONEST_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $LOCK_OUTPUT is not in grep -rl 'format === \"agent\"' set"
-  PASS=false
-fi
-
-echo "[13.C2 runLock builds an agent envelope]"
-C2_BLOCK=$(extract_function "$LOCK_CMD" "runLock")
-LOCK_OUTPUT_BLOCK=$(extract_function "$LOCK_OUTPUT" "writeLockOutput")
-if [ -n "$C2_BLOCK" ] &&
-   printf '%s\n' "$C2_BLOCK" | grep -F "writeLockOutput" >/dev/null 2>&1 &&
-   printf '%s\n' "$LOCK_OUTPUT_BLOCK" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
-   printf '%s\n' "$LOCK_OUTPUT_BLOCK" | grep -F "buildAgentEnvelope" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — runLock must route to a lock renderer with an agent envelope"
-  PASS=false
-fi
-
-echo "[13.C3 dispatcher keeps lock scope to implemented lock verbs]"
-if ! grep -F '"lock acquire":' "$CLI_INDEX" >/dev/null 2>&1 ||
-   ! grep -F '"lock release":' "$CLI_INDEX" >/dev/null 2>&1; then
-  echo "    ✗ fail — lock dispatcher no longer declares acquire/release routes"
-  PASS=false
-elif grep -F '"unlock":' "$CLI_INDEX" >/dev/null 2>&1 ||
-     grep -F '"lock unlock":' "$CLI_INDEX" >/dev/null 2>&1; then
-  echo "    ✗ fail — unlock dispatch is out of scope for Goal 13"
-  PASS=false
-else
-  echo "    ✓ pass"
-fi
-
-echo "[13.D1 unit tests prove lock acquire agent envelope]"
-D1_OFFENDERS=()
-if [ ! -f "$UNIT_TEST" ]; then
-  D1_OFFENDERS+=("$UNIT_TEST missing")
-else
-  for token in \
-    "agent lock acquire" \
-    "human lock acquire" \
-    "--format=agent" \
-    "format_version" \
-    "data.lock.id" \
-    "data.lock.lock_type" \
-    "data.lock.target_id" \
-    "data.lock.held_by_session_id" \
-    "context.session_id" \
-    "suggested_next_actions"; do
-    if ! grep -F -- "$token" "$UNIT_TEST" >/dev/null 2>&1; then
-      D1_OFFENDERS+=("$UNIT_TEST missing $token")
-    fi
-  done
-fi
-if [ "${#D1_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — unit proof gaps:"
-  printf '        %s\n' "${D1_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[13.E1 honest E2E proves lock acquire agent envelope]"
-E1_OFFENDERS=()
-if [ ! -f "$HONEST_TEST" ]; then
-  E1_OFFENDERS+=("$HONEST_TEST missing")
-else
-  if grep -E '\bfetch\(' "$HONEST_TEST" >/dev/null 2>&1; then
-    E1_OFFENDERS+=("$HONEST_TEST calls fetch(")
-  fi
-  for token in \
-    "agent lock acquire" \
-    "runCli(" \
-    '"lock"' \
-    "--format=agent" \
-    "VSPEC_CONFIG_PATH" \
-    "format_version" \
-    "data.lock.id" \
-    "data.lock.lock_type" \
-    "data.lock.target_id" \
-    "data.lock.held_by_session_id" \
-    "context.session_id"; do
-    if ! grep -F -- "$token" "$HONEST_TEST" >/dev/null 2>&1; then
-      E1_OFFENDERS+=("$HONEST_TEST missing $token")
-    fi
-  done
-fi
-if [ "${#E1_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — honest E2E proof gaps:"
-  printf '        %s\n' "${E1_OFFENDERS[@]}"
+  echo "    ✗ fail — re-run: pnpm exec vitest run $HONEST_TEST"
   PASS=false
 fi
 

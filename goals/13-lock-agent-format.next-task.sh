@@ -6,39 +6,27 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if ! grep -F 'format === "agent"' apps/cli/src/commands/lock.ts >/dev/null 2>&1; then
+if ! grep -F 'format === "agent"' apps/cli/src/commands/lock-output.ts >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Add RED tests, then implement lock acquire --format=agent.
-
-  Start with:
-    apps/cli/tests/unit/lock-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts
-
-  Then update apps/cli/src/commands/lock.ts to use buildAgentEnvelope.
-  context.session_id should come from --session, not from the holder field.
+TASK: Add RED tests, then implement lock acquire --format=agent. See
+goals/13-lock-agent-format.md § "Tranche C — CLI Implementation",
+§ "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
 
 if grep -F "lock (acquire/release/renew)" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Split the broad lock findings bullet.
-
-  Replace:
-    lock (acquire/release/renew)
-  with remaining debt:
-    lock release / lock renew
+TASK: Split the broad lock findings bullet. See goals/13-lock-agent-format.md
+§ "Tranche A — Findings Debt". Keep unrelated remaining lock debt queued.
 EOF
   exit 0
 fi
 
 if ! grep -F "### Agent Format for Locks" docs/07-cli-spec.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Document lock acquire --format=agent in docs/07-cli-spec.md.
-
-  Add "### Agent Format for Locks" under Locks with a JSON example containing
-  held_by_session_id and a sentence about context.session_id coming from
-  --session.
+TASK: Document lock acquire --format=agent in docs/07-cli-spec.md. See
+goals/13-lock-agent-format.md § "Tranche B — CLI Spec".
 EOF
   exit 0
 fi

@@ -36,11 +36,32 @@ describe("honest CLI - usecase write", () => {
           seed.env
         )
       );
+      const agentRetitled = await expectOk(
+        runCli(
+          [
+            "usecase",
+            "set",
+            seed.usecaseKey,
+            "--field",
+            "title",
+            "--value",
+            "Reviews checkout status again",
+            "--format=agent"
+          ],
+          seed.env
+        )
+      );
 
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(restored.stdout).toContain("Restored");
       expect(updated.stdout).toContain("DRAFT");
       expect(retitled.stdout).toContain("Reviews checkout status");
+      const envelope = JSON.parse(agentRetitled.stdout) as {
+        data: { usecase: { title: string } };
+        format_version: number;
+      };
+      expect(envelope.format_version).toBe(1);
+      expect(envelope.data.usecase.title).toBe("Reviews checkout status again");
     } finally {
       await server.stop();
     }

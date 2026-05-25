@@ -1,40 +1,147 @@
 #!/usr/bin/env bash
-# check-ci.sh — workflow files parse and exercise the Postgres-backed suite.
+# check-ci.sh — verify the CI *system* exercises the Postgres-backed suite and
+# the goal gate sweep, by PARSING workflow YAML (not grepping comments).
+#
+# Per-file (universal):  every workflow file is valid YAML.
+# System-level (exists): some workflow runs the test suite in a job that
+#                        declares a Postgres service; some workflow runs
+#                        completion-check.sh. These are existential because
+#                        workflows specialise (a lint-only / deploy / fast-test
+#                        workflow need not do either) — goal 3 (managed-db)
+#                        cares about CI as a whole, not about each file.
+#
+# The checks read jobs[].services and jobs[].steps[].run from the parsed
+# document, so a comment can never satisfy them. The built-in self-test proves
+# exactly that: a workflow that mentions postgres/completion-check only in a
+# comment, or that declares a Postgres service it never uses, is rejected.
 
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-FAIL=0
-FOUND=false
+# Workflow files to inspect: an explicit override (used by the self-test) or
+# every file under .github/workflows.
+if [ -n "${VSPEC_CHECK_CI_FILES:-}" ]; then
+  # shellcheck disable=SC2206
+  FILES=(${VSPEC_CHECK_CI_FILES})
+else
+  FILES=()
+  while IFS= read -r f; do
+    FILES+=("$f")
+  done < <(find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
+fi
 
-while IFS= read -r workflow; do
-  FOUND=true
-
-  if ! ruby -e 'require "yaml"; YAML.load_file(ARGV.fetch(0))' "$workflow" >/dev/null 2>&1; then
-    echo "✗ check-ci: $workflow is not parseable YAML"
-    FAIL=1
-  fi
-
-  if ! grep -q 'postgres' "$workflow"; then
-    echo "✗ check-ci: $workflow does not reference postgres"
-    FAIL=1
-  fi
-
-  if ! grep -q 'completion-check.sh' "$workflow"; then
-    echo "✗ check-ci: $workflow does not run completion-check.sh"
-    FAIL=1
-  fi
-done < <(find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
-
-if [ "$FOUND" != true ]; then
+if [ "${#FILES[@]}" -eq 0 ]; then
   echo "✗ check-ci: no workflow files found"
   exit 1
 fi
 
-if [ "$FAIL" -ne 0 ]; then
+ruby - "${FILES[@]}" <<'RUBY'
+require "yaml"
+
+test_re  = /vitest\s+run|pnpm\s+exec\s+vitest|pnpm(\s+\S+)*\s+test\b|pnpm\s+run\s+test|npm\s+(run\s+)?test/
+sweep_re = /completion-check\.sh|world-check\.sh/
+pg_re    = %r{(\A|/)postgres(\z|[:/])}
+
+parse_ok = true
+has_pg_suite = false
+has_sweep = false
+
+ARGV.each do |path|
+  begin
+    doc = YAML.load_file(path)
+  rescue => e
+    warn "✗ check-ci: #{path} is not parseable YAML (#{e.message})"
+    parse_ok = false
+    next
+  end
+  next unless doc.is_a?(Hash)
+  jobs = doc["jobs"]
+  next unless jobs.is_a?(Hash)
+
+  jobs.each_value do |job|
+    next unless job.is_a?(Hash)
+    services = job["services"].is_a?(Hash) ? job["services"] : {}
+    steps    = job["steps"].is_a?(Array) ? job["steps"] : []
+    runs     = steps.map { |s| s.is_a?(Hash) ? s["run"].to_s : "" }
+
+    job_has_pg    = services.values.any? { |s| s.is_a?(Hash) && s["image"].to_s =~ pg_re }
+    job_runs_test = runs.any? { |r| r =~ test_re }
+
+    has_pg_suite ||= (job_has_pg && job_runs_test)
+    has_sweep    ||= runs.any? { |r| r =~ sweep_re }
+  end
+end
+
+ok = parse_ok
+unless has_pg_suite
+  warn "✗ check-ci: no workflow runs the test suite in a job with a Postgres service"
+  ok = false
+end
+unless has_sweep
+  warn "✗ check-ci: no workflow runs completion-check.sh (the goal gate sweep)"
+  ok = false
+end
+exit(ok ? 0 : 1)
+RUBY
+if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "✓ check-ci: workflow YAML parses and references Postgres plus completion-check"
+# ── Self-test: the structural checks must be un-gameable by comments or by a
+#    declared-but-unused Postgres service. Re-invokes this script against
+#    throwaway fixtures (recursion guarded by VSPEC_CHECK_CI_SKIP_SELF_TEST).
+if [ -z "${VSPEC_CHECK_CI_SKIP_SELF_TEST:-}" ]; then
+  d="$(mktemp -d)"
+  trap 'rm -rf "$d"' EXIT
+
+  cat >"$d/pass.yml" <<'YML'
+name: pass
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+    steps:
+      - run: pnpm exec vitest run
+      - run: bash scripts/completion-check.sh
+YML
+
+  cat >"$d/comment-only.yml" <<'YML'
+# postgres + completion-check.sh appear only in this comment, never executed
+name: comment-only
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo build
+YML
+
+  cat >"$d/pg-unused.yml" <<'YML'
+name: pg-unused
+on: [push]
+jobs:
+  idle:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+    steps:
+      - run: echo no tests here
+YML
+
+  if VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pass.yml $d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pg-unused.yml" bash "$0" >/dev/null 2>&1; then
+    :
+  else
+    echo "✗ check-ci self-test: structural checks are gameable (comment-only or unused-service workflow not rejected)"
+    exit 1
+  fi
+fi
+
+echo "✓ check-ci: every workflow parses; a job runs the suite against Postgres; some workflow runs completion-check.sh (self-test passed)"

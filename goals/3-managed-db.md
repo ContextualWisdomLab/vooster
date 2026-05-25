@@ -112,16 +112,19 @@ block (or runtime equivalent) named `postgres` using
 `postgres:16-alpine`, with a healthcheck. `DATABASE_URL` is wired
 into the test job's env.
 
-C3. **The workflow runs the full suite.** At minimum:
-`npm ci` (or equivalent), `npm run lint`, `npm run typecheck`,
-`npm test`, and `bash scripts/completion-check.sh`. Any of these
-failing must fail the workflow.
+C3. **CI runs the full suite across its workflows.** Somewhere under
+`.github/workflows/`: install, `lint`, `typecheck`, the test suite, and
+`bash scripts/completion-check.sh`. Each must fail the workflow it runs
+in. These may be split across workflows (e.g. fast blocking checks vs. a
+non-blocking sweep) — the guarantee is about CI as a whole.
 
-C4. **The workflow file is parseable YAML.** `scripts/check-ci.sh`
-(new) runs `yq` or `python -c "import yaml; yaml.safe_load(...)"`
-against every workflow file in `.github/workflows/` and refuses to
-pass on a parse error or on a workflow that doesn't reference both
-`postgres` and `completion-check.sh`.
+C4. **Workflow files are valid and CI genuinely exercises the suite.**
+`scripts/check-ci.sh` parses every workflow file in `.github/workflows/`
+(failing on a parse error) and verifies — by inspecting the parsed
+`services:` and `run:` steps, not file text — that some job runs the test
+suite in a Postgres-backed job and some workflow runs
+`completion-check.sh`. It self-tests that a workflow mentioning these only
+in comments, or declaring a Postgres service it never uses, is rejected.
 
 ### Tranche D — Meta: no regression and gate rigor
 

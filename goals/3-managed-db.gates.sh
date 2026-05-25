@@ -299,7 +299,7 @@ else
   PASS=false
 fi
 
-run_gate "3.C4 CI workflow YAML parses" "$ROOT/scripts/check-ci.sh"
+run_gate "3.C4 CI workflow structure + self-test" "$ROOT/scripts/check-ci.sh"
 
 # ─── Tranche D — Meta: gate rigor ────────────────────────────────────────
 # Prior-goal regression is enforced by scripts/completion-check.sh.

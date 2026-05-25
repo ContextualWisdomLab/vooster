@@ -1,10 +1,10 @@
 name: CI
 
 # Fast, blocking gate for merges: lint + typecheck + the vitest suite sharded
-# across parallel runners. Coverage thresholds and the goal gate sweep
-# (scripts/completion-check.sh) are NOT here — they run in the non-blocking
-# Verify workflow (.github/workflows/verify.yml) so a slow/in-progress
-# correctness sweep never blocks a merge.
+# across parallel runners. Coverage thresholds and the goal gate sweep are NOT
+# here — they run in the non-blocking Verify workflow
+# (.github/workflows/verify.yml) so a slow/in-progress correctness sweep never
+# blocks a merge.
 
 on:
   push:

@@ -83,11 +83,18 @@ jobs:
       - name: Test + coverage
         id: coverage
         continue-on-error: true
-        run: pnpm run test:coverage 2>&1 | tee verify.log
+        # `exit ${PIPESTATUS[0]}` so the step reports the command's real exit
+        # code, not tee's 0 — otherwise a failure is masked and Verify is
+        # falsely green.
+        run: |
+          pnpm run test:coverage 2>&1 | tee verify.log
+          exit "${PIPESTATUS[0]}"
       - name: Run goal gate sweep
         id: gates
         continue-on-error: true
-        run: bash scripts/completion-check.sh 2>&1 | tee -a verify.log
+        run: |
+          bash scripts/completion-check.sh 2>&1 | tee -a verify.log
+          exit "${PIPESTATUS[0]}"
       - name: Upload verify log
         if: always()
         uses: actions/upload-artifact@v4

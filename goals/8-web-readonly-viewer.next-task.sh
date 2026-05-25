@@ -22,18 +22,19 @@ GOAL5_GATES=goals/5-monorepo.gates.sh
 VERCEL_PROJECT_NAME=vooster-new-web
 
 TIER1_PAGES=(
-  app/page.tsx
+  'app/(app)/page.tsx'
   app/login/page.tsx
-  app/projects/page.tsx
-  app/projects/[key]/page.tsx
-  app/projects/[key]/usecases/[ucKey]/page.tsx
+  'app/(app)/projects/[key]/page.tsx'
+  'app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
 )
 
 AUTH_PAGES=(
-  app/projects/page.tsx
-  app/projects/[key]/page.tsx
-  app/projects/[key]/usecases/[ucKey]/page.tsx
+  'app/(app)/page.tsx'
+  'app/(app)/projects/[key]/page.tsx'
+  'app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
 )
+
+APP_LAYOUT='app/(app)/layout.tsx'
 
 CONFIG_FILES=(
   tsconfig.json
@@ -228,7 +229,7 @@ EOF
 fi
 
 # ─── A6: build succeeds (deep) ───────────────────────────────────────────
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
   if ! pnpm --filter @vooster/web build >/dev/null 2>&1 \
       || [ ! -d "$WEB_DIR/.next" ]; then
     cat <<'EOF'
@@ -342,7 +343,7 @@ EOF
 fi
 
 # ─── B3: UC detail field coverage ────────────────────────────────────────
-UC_DETAIL_DIR="$WEB_DIR/app/projects/[key]/usecases/[ucKey]"
+UC_DETAIL_DIR="$WEB_DIR/app/(app)/projects/[key]/usecases/[ucKey]"
 B3_MISSING=()
 if [ -d "$UC_DETAIL_DIR" ]; then
   for field in "${UC_FIELDS[@]}"; do
@@ -374,33 +375,6 @@ TASK: UC detail page must render every Cockburn field (gate 8.B3).
 
   Commit:
     feat(web): render every Cockburn field on UC detail
-EOF
-  exit 0
-fi
-
-# ─── B4: no write API in apps/web/app/ ───────────────────────────────────
-B4_OFFENDERS=()
-if [ -d "$WEB_APP_DIR" ]; then
-  while IFS= read -r f; do
-    if grep -qE 'method:[[:space:]]*"(POST|PUT|PATCH|DELETE)"' "$f"; then
-      B4_OFFENDERS+=("$f")
-    fi
-  done < <(find "$WEB_APP_DIR" \( -name '*.ts' -o -name '*.tsx' \) -type f 2>/dev/null)
-fi
-if [ "${#B4_OFFENDERS[@]}" -gt 0 ]; then
-  cat <<'EOF'
-TASK: Drop write API calls from apps/web/app/ (gate 8.B4).
-
-  Read-only viewer means no POST/PUT/PATCH/DELETE in this goal.
-  Move write affordances to Goal 9.
-
-  Offenders:
-EOF
-  printf '    %s\n' "${B4_OFFENDERS[@]}"
-  cat <<'EOF'
-
-  Commit:
-    refactor(web): remove write calls from read-only surface
 EOF
   exit 0
 fi
@@ -477,38 +451,37 @@ EOF
   exit 0
 fi
 
-# ─── C3: auth pages redirect to /login ───────────────────────────────────
+# ─── C3: auth pages share the redirect-enforcing (app) layout ────────────
 C3_OFFENDERS=()
+APP_LAYOUT_FILE="$WEB_DIR/$APP_LAYOUT"
+LAYOUT_REDIRECT_OK=false
+if [ -f "$APP_LAYOUT_FILE" ] \
+    && grep -qE 'redirect\(' "$APP_LAYOUT_FILE" \
+    && grep -qE '/login' "$APP_LAYOUT_FILE"; then
+  LAYOUT_REDIRECT_OK=true
+fi
 for page in "${AUTH_PAGES[@]}"; do
   f="$WEB_DIR/$page"
-  if [ -f "$f" ]; then
-    if ! grep -qE 'redirect\(' "$f" || ! grep -qE '/login' "$f"; then
-      C3_OFFENDERS+=("$page")
-    fi
-  else
+  if [ ! -f "$f" ]; then
     C3_OFFENDERS+=("$page (missing)")
+    continue
   fi
+  case "$page" in
+    'app/(app)/'*) : ;;
+    *) C3_OFFENDERS+=("$page (outside the (app) route group)") ;;
+  esac
 done
+if [ "$LAYOUT_REDIRECT_OK" = false ]; then
+  C3_OFFENDERS+=("$APP_LAYOUT (no redirect( + /login)")
+fi
 if [ "${#C3_OFFENDERS[@]}" -gt 0 ]; then
   cat <<'EOF'
-TASK: Every authenticated page must redirect unauthed requests (gate 8.C3).
+TASK: Authenticated routes must share the redirect-enforcing (app) layout. See
+goals/8-web-readonly-viewer.md § "Tranche C — Auth (session-cookie reuse)".
 
-  Files missing the redirect("/login") guard:
+Offenders:
 EOF
   printf '    %s\n' "${C3_OFFENDERS[@]}"
-  cat <<'EOF'
-
-  Pattern at the top of each authenticated page:
-
-    import { cookies } from "next/headers";
-    import { redirect } from "next/navigation";
-
-    const session = (await cookies()).get("vspec_session")?.value;
-    if (!session) redirect("/login");
-
-  Commit:
-    feat(web): redirect unauthed visitors to /login
-EOF
   exit 0
 fi
 
@@ -562,6 +535,7 @@ D2_MISSING=()
 for page in "${TIER1_PAGES[@]}"; do
   route="${page#app}"
   route="${route%/page.tsx}"
+  route=$(echo "$route" | sed -E 's#/\([^)]+\)##g')
   route="${route:-/}"
   route_pattern=$(echo "$route" | sed -E 's#\[[^]]+\]#[^"'\'']+#g')
   if [ -d "$WEB_TESTS_DIR" ]; then
@@ -667,7 +641,7 @@ EOF
 fi
 
 # ─── D5: playwright run passes (deep) ────────────────────────────────────
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
   if ! pnpm --filter @vooster/web test:e2e >/dev/null 2>&1; then
     cat <<'EOF'
 TASK: pnpm --filter @vooster/web test:e2e must pass (gate 8.D5).
@@ -739,7 +713,7 @@ EOF
 fi
 
 # ─── E3 / E4: deployment status + github link (deep) ─────────────────────
-if [ "${VSPEC_GATES_SKIP_DEEP:-}" != "1" ]; then
+if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
   if ! command -v vercel >/dev/null 2>&1; then
     cat <<'EOF'
 TASK: Install the Vercel CLI (gate 8.E3/E4 preconditions).

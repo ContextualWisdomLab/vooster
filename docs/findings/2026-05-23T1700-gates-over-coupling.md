@@ -3,7 +3,7 @@ title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc f
 created_at: 2026-05-23T17:00:00Z
 priority: P1
 resolved: partial
-status_notes: "2026-05-26: Goal 9-29 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goals 7-8 are still queued."
+status_notes: "2026-05-26: Goal 8-29 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goal 7 is still queued."
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
@@ -185,6 +185,11 @@ Progress:
   while spec/finding, dispatcher, doctor-thinness, honest-test presence, and
   declared agent-file scope checks stayed as gate-owned source-of-truth
   assertions.
+- 2026-05-26: `8-web-readonly-viewer` was reviewed as an
+  enumeration-heavy web/deployment gate; its gate-owned source-of-truth checks
+  stayed, while stale next-task probes were aligned with the current `(app)`
+  route group, removed B4 write-ban state, and shallow/deep verification
+  boundary.
 
 The trim is straightforward but needs to be done per-goal so prior
 invariants aren't accidentally weakened.

@@ -35,6 +35,7 @@ GATE_INPUTS=(
   goals/5-monorepo.md
   goals/5-monorepo.gates.sh
   goals/8-web-readonly-viewer.gates.sh
+  goals/8-web-readonly-viewer.next-task.sh
   goals/8-web-readonly-viewer.md
   scripts/check-gate-rigor.sh
   scripts/_gate-cache.sh

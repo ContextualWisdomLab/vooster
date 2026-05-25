@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -43,18 +43,11 @@ These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
-- **API contract honesty**: A12, B1, B4.
+- **API contract honesty**: B1, B4.
 - **Spec heuristics & duplication**: A13, H3.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A12 — Signup re-collision exposed as Prisma 500
-
-POSTing to `/v1/auth/github/token` with a workspace block for a user
-that already exists returns HTTP 500 with the Prisma `P2002` payload
-and an internal file path. Should be a structured 409 Conflict with a
-hint to re-run without `--workspace-*` flags.
 
 ### A13 — Verb-phrase heuristic is extremely narrow
 
@@ -139,6 +132,9 @@ CLI-side warning per the soft-warning spec.
 
 ## Already closed
 
+- **A12** — Closed by 0587abf: repeated device-token signup with a workspace
+  block now returns structured 409 guidance instead of allowing duplicate user
+  persistence to expose a storage-layer conflict.
 - **A7 / A8 / A9 / B6** — Closed by 79351d6: `session start` writes
   `.vspec/session.json`, `session complete` clears it, authenticated project
   switch resolves the selected key back to its project id, and returning login

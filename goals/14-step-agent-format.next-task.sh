@@ -6,16 +6,13 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if ! grep -F 'format === "agent"' apps/cli/src/commands/step.ts >/dev/null 2>&1; then
+if ! grep -F "runMutationCommand<StepResponse>" apps/cli/src/commands/step.ts >/dev/null 2>&1 ||
+   ! grep -F "context: (data) => ({ revision: data.revision.id })" apps/cli/src/commands/step.ts >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Add RED tests, then implement step add/edit --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/step-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/step-agent-format.test.ts
-
-  Then update apps/cli/src/commands/step.ts to use buildAgentEnvelope.
-  step add should set context.revision; step edit should leave it null.
+  See goals/14-step-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
@@ -24,7 +21,9 @@ if grep -F '`step add` / `step edit`' docs/findings/2026-05-21T1856-cli-spec-gap
   cat <<'EOF'
 TASK: Remove step add/edit from the agent-format debt list.
 
-  Keep scenario add. Add the context.revision asymmetry note for step edit.
+  See goals/14-step-agent-format.md § "Tranche A — Findings Debt".
+  Keep unrelated remaining debt queued and preserve the step-edit
+  context.revision asymmetry note.
 EOF
   exit 0
 fi

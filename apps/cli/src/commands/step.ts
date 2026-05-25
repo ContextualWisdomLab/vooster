@@ -140,6 +140,7 @@ async function addStep(
         action: s.action,
         actor: s.actor
       },
+      context: (data) => ({ revision: data.revision.id }),
       method: "POST",
       path: `/v1/scenarios/${s.scenarioId}/steps`
     },

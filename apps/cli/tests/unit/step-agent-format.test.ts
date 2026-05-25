@@ -48,6 +48,7 @@ describe("step --format=agent", () => {
     expect(envelope.data.step.id).toBe("step-1");
     expect(envelope.data.step.action).toBe("Places an order.");
     expect(envelope.data.scenario_steps?.at(0)?.step_number).toBe(1);
+    expect(envelope.context.revision).toBe("revision-1");
   });
 
   test("agent step edit", async () => {

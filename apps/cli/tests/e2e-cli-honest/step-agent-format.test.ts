@@ -74,6 +74,7 @@ describe("honest CLI step --format=agent", () => {
     expect(envelope.data.step.id).toBeTypeOf("string");
     expect(envelope.data.step.action).toBe("Places an order.");
     expect(envelope.data.scenario_steps?.at(0)?.step_number).toBe(1);
+    expect(envelope.context.revision).toBe(envelope.data.revision.id);
   });
 
   test("agent step edit", async () => {

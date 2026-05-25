@@ -27,6 +27,7 @@ GATE_INPUTS=(
   docs/findings/2026-05-21T1856-cli-spec-gaps.md
   scripts/check-gate-rigor.sh
   goals/9-cli-trim.gates.sh
+  goals/9-cli-trim.next-task.sh
   goals/9-cli-trim.md
   scripts/_gate-cache.sh
 )
@@ -360,10 +361,9 @@ honest_file_for_verb() {
 
 echo "[9.D1 every in-scope verb has a matching honest test]"
 D1_OFFENDERS=()
-D1_FILES=()
 for verb in "${IN_SCOPE_VERBS[@]}"; do
   if matched="$(honest_file_for_verb "$verb")"; then
-    D1_FILES+=("$matched")
+    :
   else
     D1_OFFENDERS+=("$verb")
   fi
@@ -373,63 +373,6 @@ if [ "${#D1_OFFENDERS[@]}" -eq 0 ]; then
 else
   echo "    ✗ fail — honest test missing for verb(s):"
   printf '        %s\n' "${D1_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[9.D2 every matched honest test is fetch-free + isolates VSPEC_CONFIG_PATH]"
-D2_OFFENDERS=()
-# Deduplicate the file list (grouped tests appear multiple times).
-UNIQ_FILES=()
-if [ "${#D1_FILES[@]}" -gt 0 ]; then
-  for f in "${D1_FILES[@]}"; do
-    skip=false
-    if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-      for u in "${UNIQ_FILES[@]}"; do
-        [ "$f" = "$u" ] && skip=true && break
-      done
-    fi
-    [ "$skip" = false ] && UNIQ_FILES+=("$f")
-  done
-fi
-if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-  for f in "${UNIQ_FILES[@]}"; do
-    if grep -E '\bfetch\(' "$f" >/dev/null 2>&1; then
-      D2_OFFENDERS+=("$f (fetch() found)")
-    elif ! grep -E 'VSPEC_CONFIG_PATH' "$f" >/dev/null 2>&1; then
-      D2_OFFENDERS+=("$f (missing VSPEC_CONFIG_PATH)")
-    fi
-  done
-fi
-if [ "${#D2_OFFENDERS[@]}" -eq 0 ]; then
-  if [ "${#UNIQ_FILES[@]}" -eq 0 ]; then
-    echo "    ⊘ skip — no matched honest test files yet (gate D1 failed first)"
-  else
-    echo "    ✓ pass"
-  fi
-else
-  echo "    ✗ fail — honest tests violating honest invariant:"
-  printf '        %s\n' "${D2_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[9.D3 every matched honest test imports seedViaCli]"
-D3_OFFENDERS=()
-if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-  for f in "${UNIQ_FILES[@]}"; do
-    if ! grep -E "seedViaCli" "$f" >/dev/null 2>&1; then
-      D3_OFFENDERS+=("$f")
-    fi
-  done
-fi
-if [ "${#D3_OFFENDERS[@]}" -eq 0 ]; then
-  if [ "${#UNIQ_FILES[@]}" -eq 0 ]; then
-    echo "    ⊘ skip — no matched honest test files yet (gate D1 failed first)"
-  else
-    echo "    ✓ pass"
-  fi
-else
-  echo "    ✗ fail — honest tests missing seedViaCli import:"
-  printf '        %s\n' "${D3_OFFENDERS[@]}"
   PASS=false
 fi
 

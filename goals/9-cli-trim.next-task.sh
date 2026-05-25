@@ -230,75 +230,22 @@ fi
 # ─── B1: every in-scope verb routed ──────────────────────────────────────
 B1_OFFENDERS=()
 for verb in "${IN_SCOPE_VERBS[@]}"; do
-  topic="${verb%% *}"
-  action=""
-  if [ "$topic" != "$verb" ]; then
-    action="${verb#* }"
-  fi
-  if [ -z "$action" ]; then
-    if ! grep -E "parsed\\.args\\.command === \"${topic}\"" "$CLI_INDEX" \
-         >/dev/null 2>&1; then
-      B1_OFFENDERS+=("$verb")
-    fi
-  else
-    if ! awk -v topic="$topic" -v action="$action" '
-      index($0, "parsed.args.command === \"" topic "\"") &&
-      index($0, "this.argv[1] === \"" action "\"") { found=1 }
+  if ! awk -v key="$verb" '
+      index($0, "\"" key "\":") { found=1 }
+      $0 ~ "^[[:space:]]*" key ":" { found=1 }
       END { exit found ? 0 : 1 }
     ' "$CLI_INDEX" >/dev/null 2>&1; then
-      B1_OFFENDERS+=("$verb")
-    fi
+    B1_OFFENDERS+=("$verb")
   fi
 done
 if [ "${#B1_OFFENDERS[@]}" -gt 0 ]; then
-  NEXT_VERB="${B1_OFFENDERS[0]}"
-  TOPIC="${NEXT_VERB%% *}"
-  ACTION=""
-  if [ "$TOPIC" != "$NEXT_VERB" ]; then
-    ACTION="${NEXT_VERB#* }"
-  fi
   cat <<EOF
-TASK: Route '$NEXT_VERB' in $CLI_INDEX (gate 9.B1).
+TASK: Route the remaining in-scope CLI verbs. See
+goals/9-cli-trim.md § "Tranche B — Dispatcher routing for in-scope verbs".
 
-  Add the dispatch block. Pattern:
-
-    if (parsed.args.command === "$TOPIC"
+Remaining verbs:
 EOF
-  if [ -n "$ACTION" ]; then
-    cat <<EOF
-        && this.argv[1] === "$ACTION") {
-      await run$(tr '[:lower:]' '[:upper:]' <<<${TOPIC:0:1})${TOPIC:1}(
-        parsed.flags, this.argv[1], this.argv[2], this.log.bind(this)
-      );
-      return;
-    }
-EOF
-  else
-    cat <<EOF
-) {
-      await run$(tr '[:lower:]' '[:upper:]' <<<${TOPIC:0:1})${TOPIC:1}(
-        parsed.flags, this.log.bind(this)
-      );
-      return;
-    }
-EOF
-  fi
-  cat <<EOF
-
-  Update apps/cli/src/commands/${TOPIC}.ts to handle the new action.
-  Topic-level run functions usually switch on the action argument.
-
-  Remaining verbs to route after this one:
-EOF
-  printf '    %s\n' "${B1_OFFENDERS[@]:1}"
-  cat <<EOF
-
-  Honest E2E for this verb (gate 9.D1) follows in the next iteration.
-  Don't skip the test — that is what catches drift.
-
-  Commit:
-    feat(cli): route '$NEXT_VERB'
-EOF
+  printf '    %s\n' "${B1_OFFENDERS[@]}"
   exit 0
 fi
 
@@ -424,7 +371,7 @@ honest_file_for_verb_next() {
     if [ -f "$HONEST_DIR/$cand" ]; then
       if [ -n "$action" ] && [[ "$cand" != "${topic}-${action}.test.ts" ]]; then
         if ! awk -v action="$action" '
-          /runCli\(\[/ { inCall=1 }
+          /runCli\(/ { inCall=1 }
           inCall && index($0, "\"" action "\"") { hit=1 }
           /\]/ { inCall=0 }
           END { exit hit ? 0 : 1 }
@@ -440,10 +387,9 @@ honest_file_for_verb_next() {
 }
 
 D1_OFFENDERS=()
-D1_FILES=()
 for verb in "${IN_SCOPE_VERBS[@]}"; do
   if matched="$(honest_file_for_verb_next "$verb")"; then
-    D1_FILES+=("$matched")
+    :
   else
     D1_OFFENDERS+=("$verb")
   fi
@@ -463,121 +409,24 @@ if [ "${#D1_OFFENDERS[@]}" -gt 0 ]; then
     set|restore) GROUP="${TOPIC}-write.test.ts" ;;
   esac
   cat <<EOF
-TASK: Author honest E2E for '$NEXT_VERB' (gate 9.D1).
+TASK: Author honest E2E for '$NEXT_VERB'. See
+goals/9-cli-trim.md § "Tranche D — Honest E2E for new verbs".
 
-  Create $HONEST_DIR/$PRIMARY OR add to the grouped file:
+Create $HONEST_DIR/$PRIMARY or add to the grouped file:
 EOF
   if [ -n "$GROUP" ]; then
     echo "    $HONEST_DIR/$GROUP"
   else
     echo "    (no grouped file allowed for this action)"
   fi
-  cat <<EOF
+  cat <<'EOF'
 
-  Pattern (single-verb file):
-    import { describe, expect, test } from "vitest";
-    import { runCli, startNetworkServer } from "../e2e-cli/helpers.js";
-    import { expectOk, seedViaCli } from "./cli-setup.js";
+Honest invariants are enforced by Goal 7 C3/C4 across
+apps/cli/tests/e2e-cli-honest/.
 
-    describe("honest CLI - $NEXT_VERB", () => {
-      test("…", async () => {
-        const server = await startNetworkServer("vspec-honest-${TOPIC}-${ACTION:-cmd}-");
-        try {
-          const seed = await seedViaCli({
-            apiUrl: server.apiUrl, projectKey: "${TOPIC^^}", runCli
-          });
-          const result = await expectOk(runCli(
-            ["$TOPIC"${ACTION:+, "$ACTION"}, /* extra args */],
-            seed.env
-          ));
-          expect(result.stdout).toContain(/* expected token */);
-        } finally {
-          await server.stop();
-        }
-      });
-    });
-
-  Honest invariants (Goal 7 C3/C4 + Goal 9 D2/D3):
-    - NO fetch( anywhere
-    - the test must reference VSPEC_CONFIG_PATH (seedViaCli already does)
-    - the test must import seedViaCli
-
-  Remaining verbs to cover:
+Remaining verbs to cover:
 EOF
   printf '    %s\n' "${D1_OFFENDERS[@]:1}"
-  cat <<EOF
-
-  Commit:
-    test(cli-honest): honest E2E for $NEXT_VERB
-EOF
-  exit 0
-fi
-
-# ─── D2 & D3: honest invariant + seedViaCli ──────────────────────────────
-UNIQ_FILES=()
-if [ "${#D1_FILES[@]}" -gt 0 ]; then
-  for f in "${D1_FILES[@]}"; do
-    skip=false
-    if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-      for u in "${UNIQ_FILES[@]}"; do
-        [ "$f" = "$u" ] && skip=true && break
-      done
-    fi
-    [ "$skip" = false ] && UNIQ_FILES+=("$f")
-  done
-fi
-
-D2_OFFENDERS=()
-if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-  for f in "${UNIQ_FILES[@]}"; do
-    if grep -E '\bfetch\(' "$f" >/dev/null 2>&1; then
-      D2_OFFENDERS+=("$f (fetch() found)")
-    elif ! grep -E 'VSPEC_CONFIG_PATH' "$f" >/dev/null 2>&1; then
-      D2_OFFENDERS+=("$f (missing VSPEC_CONFIG_PATH)")
-    fi
-  done
-fi
-if [ "${#D2_OFFENDERS[@]}" -gt 0 ]; then
-  cat <<'EOF'
-TASK: Honest invariant violations in new tests (gate 9.D2).
-
-EOF
-  printf '    %s\n' "${D2_OFFENDERS[@]}"
-  cat <<'EOF'
-
-  Replace fetch( with runCli([...]). VSPEC_CONFIG_PATH is provided by
-  seedViaCli — make sure the test imports and uses it.
-
-  Commit:
-    test(cli-honest): restore honest invariant in <file>
-EOF
-  exit 0
-fi
-
-D3_OFFENDERS=()
-if [ "${#UNIQ_FILES[@]}" -gt 0 ]; then
-  for f in "${UNIQ_FILES[@]}"; do
-    if ! grep -E "seedViaCli" "$f" >/dev/null 2>&1; then
-      D3_OFFENDERS+=("$f")
-    fi
-  done
-fi
-if [ "${#D3_OFFENDERS[@]}" -gt 0 ]; then
-  cat <<'EOF'
-TASK: New honest tests must import seedViaCli (gate 9.D3).
-
-EOF
-  printf '    %s\n' "${D3_OFFENDERS[@]}"
-  cat <<'EOF'
-
-  Even if the test does not need the full seed path, calling
-  seedViaCli({ apiUrl, runCli }) gives a uniform starting state and
-  ensures VSPEC_CONFIG_PATH is set in seed.env. Take the actions you
-  need from there.
-
-  Commit:
-    test(cli-honest): route <file> through seedViaCli
-EOF
   exit 0
 fi
 

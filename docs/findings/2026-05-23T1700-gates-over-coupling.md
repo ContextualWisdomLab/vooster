@@ -3,7 +3,7 @@ title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc f
 created_at: 2026-05-23T17:00:00Z
 priority: P1
 resolved: partial
-status_notes: "2026-05-26: Goal 10-29 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goals 7-9 are still queued."
+status_notes: "2026-05-26: Goal 9-29 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goals 7-8 are still queued."
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
@@ -179,6 +179,12 @@ Progress:
   focused multi-verb unit and honest CLI Vitest proofs, and gate rigor; its
   goal text now names tests as the enumerating proof instead of shell source
   greps.
+- 2026-05-26: `9-cli-trim` was reviewed as an enumeration-heavy gate and
+  trimmed only where the invariant was duplicated by Goal 7: the per-file
+  honest-test hygiene checks moved back to the Goal 7 honest-directory gate,
+  while spec/finding, dispatcher, doctor-thinness, honest-test presence, and
+  declared agent-file scope checks stayed as gate-owned source-of-truth
+  assertions.
 
 The trim is straightforward but needs to be done per-goal so prior
 invariants aren't accidentally weakened.

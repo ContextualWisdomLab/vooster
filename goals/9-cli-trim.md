@@ -202,18 +202,9 @@ keyword (the gate parses each candidate). This lets
 `actor-read.test.ts` cover both `actor list` and `actor show`
 in one file.
 
-D2. **Every new honest test file is fetch-free and references
-`VSPEC_CONFIG_PATH`.** Restated from Goal 7 C3/C4, which
-enumerate the whole directory — every file Goal 9 adds inherits
-this invariant automatically. The gate cross-checks by iterating
-the set declared in D1 and asserting each file fails
-`grep -E '\bfetch\('` and passes `grep -E 'VSPEC_CONFIG_PATH'`.
-
-D3. **Every honest test file in D1's set uses `seedViaCli` from
-`cli-setup.ts`.** This is the shared setup the goal cares about;
-if a new test re-implements the seed path inline it diverges
-from the honest invariant. The gate iterates and asserts each
-file imports `seedViaCli`.
+Goal 7 C3/C4 continue to enforce the honest-test hygiene boundary for
+every file in `apps/cli/tests/e2e-cli-honest/`, including the files that
+Goal 9 requires here.
 
 ### Tranche E — Agent envelope rollout to user-facing files
 

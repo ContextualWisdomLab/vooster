@@ -39,6 +39,28 @@ to describe it, the step was too big — split it.
 
 Never commit failing tests on a `green:` or `refactor:` commit.
 
+## Always stage and commit in one bash call
+
+Run `git add` and `git commit` together as a single bash invocation,
+joined with `&&`, naming the exact paths you wrote:
+
+```
+git add <path> [<path> ...] && git commit -m "<type>: <description>"
+```
+
+Never run a bare `git add` as its own step, and never stage with
+`git add -A` / `git add .`.
+
+Why: parallel agent sessions share one working tree and one staging
+area. If one agent stages files and another commits before the first
+commits, the second agent's commit captures the first agent's staged
+changes. Combining add and commit into one atomic call — and staging
+only the explicit paths you touched — keeps each agent's commit scoped
+to its own work.
+
+This applies to every commit below: each `git commit` step means
+`git add <your paths> && git commit`.
+
 ## Commit boundary: the pre-commit hook
 
 `git commit` is the staged-impact regression boundary for the goal

@@ -119,9 +119,10 @@ else
 fi
 
 echo "[28.C2 lock renew is routed while acquire guard remains]"
-if grep -F 'parsed.args.command === "lock" && this.argv[1] === "renew"' "$CLI_INDEX" >/dev/null 2>&1 &&
-   grep -F 'this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1 &&
-   grep -F 'this.argv[1] !== "release"' "$CLI_INDEX" >/dev/null 2>&1; then
+if grep -F '"lock renew":' "$CLI_INDEX" >/dev/null 2>&1 &&
+   grep -F '"lock acquire":' "$CLI_INDEX" >/dev/null 2>&1 &&
+   grep -F 'argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1 &&
+   grep -F 'argv[1] !== "release"' "$CLI_INDEX" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — lock renew route or acquire guard missing"

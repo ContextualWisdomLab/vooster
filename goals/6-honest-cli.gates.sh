@@ -256,28 +256,18 @@ fi
 # ─── Tranche D — Context commands ────────────────────────────────────────
 
 echo "[6.D1] CLI dispatches every context command in index.ts"
-# Static check: every entry in CONTEXT_COMMANDS must appear as an argv
-# branch in apps/cli/src/index.ts. Using --help would false-pass because
-# oclif's global help intercepts unknown subcommands and exits 0.
+# Static check: every entry in CONTEXT_COMMANDS must appear in the dispatcher
+# route table. Using --help would false-pass because oclif's global help
+# intercepts unknown subcommands and exits 0.
 D1_MISSING=()
 if [ -f "$CLI_INDEX" ]; then
   for entry in "${CONTEXT_COMMANDS[@]}"; do
-    # shellcheck disable=SC2206
-    parts=($entry)
-    topic="${parts[0]}"
-    sub="${parts[1]:-}"
-    if [ -z "$sub" ]; then
-      # Single-word command (logout, status) — require argv[0] check.
-      if ! grep -qE "parsed\\.args\\.command === \"${topic}\"" "$CLI_INDEX"; then
-        D1_MISSING+=("vspec $entry")
-      fi
-    else
-      # Two-word command (workspace switch, project switch) — require
-      # argv[0] === topic && argv[1] === sub branch.
-      if ! grep -qE "command === \"${topic}\".*argv\\[1\\] === \"${sub}\"" "$CLI_INDEX" \
-          && ! grep -qE "argv\\[1\\] === \"${sub}\".*command === \"${topic}\"" "$CLI_INDEX"; then
-        D1_MISSING+=("vspec $entry")
-      fi
+    if ! awk -v key="$entry" '
+      index($0, "\"" key "\":") { found=1 }
+      $0 ~ "^[[:space:]]*" key ":" { found=1 }
+      END { exit found ? 0 : 1 }
+    ' "$CLI_INDEX" >/dev/null 2>&1; then
+      D1_MISSING+=("vspec $entry")
     fi
   done
 else

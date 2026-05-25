@@ -115,11 +115,12 @@ else
 fi
 
 echo "[13.C3 dispatcher keeps lock scope to implemented lock verbs]"
-if ! grep -F 'this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1 ||
-   ! grep -F 'this.argv[1] !== "release"' "$CLI_INDEX" >/dev/null 2>&1; then
-  echo "    ✗ fail — acquire dispatch no longer excludes lock subcommands"
+if ! grep -F '"lock acquire":' "$CLI_INDEX" >/dev/null 2>&1 ||
+   ! grep -F '"lock release":' "$CLI_INDEX" >/dev/null 2>&1; then
+  echo "    ✗ fail — lock dispatcher no longer declares acquire/release routes"
   PASS=false
-elif grep -F 'parsed.args.command === "unlock"' "$CLI_INDEX" >/dev/null 2>&1; then
+elif grep -F '"unlock":' "$CLI_INDEX" >/dev/null 2>&1 ||
+     grep -F '"lock unlock":' "$CLI_INDEX" >/dev/null 2>&1; then
   echo "    ✗ fail — unlock dispatch is out of scope for Goal 13"
   PASS=false
 else

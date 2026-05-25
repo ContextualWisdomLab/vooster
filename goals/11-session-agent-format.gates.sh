@@ -132,8 +132,14 @@ else
 fi
 
 echo "[11.C3 dispatcher routes exactly implemented session verbs]"
-DISPATCHED_SESSION_ACTIONS=$(grep -oE 'parsed\.args\.command === "session" && this\.argv\[1\] === "[^"]+"' "$CLI_INDEX" |
-  sed -E 's/.*=== "([^"]+)"/\1/' |
+DISPATCHED_SESSION_ACTIONS=$(awk '
+  /^[[:space:]]*"session [^"]+":/ {
+    line=$0
+    sub(/^[[:space:]]*"session /, "", line)
+    sub(/":.*/, "", line)
+    print line
+  }
+' "$CLI_INDEX" |
   sort |
   tr '\n' ' ' |
   sed 's/ $//')

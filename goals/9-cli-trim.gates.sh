@@ -181,25 +181,12 @@ echo "[9.B1 every in-scope verb is routed in $CLI_INDEX]"
 B1_OFFENDERS=()
 if [ -f "$CLI_INDEX" ]; then
   for verb in "${IN_SCOPE_VERBS[@]}"; do
-    topic="${verb%% *}"
-    action=""
-    if [ "$topic" != "$verb" ]; then
-      action="${verb#* }"
-    fi
-    if [ -z "$action" ]; then
-      # Top-level verb (e.g., "doctor")
-      if ! grep -E "parsed\\.args\\.command === \"${topic}\"" "$CLI_INDEX" \
-           >/dev/null 2>&1; then
-        B1_OFFENDERS+=("$verb")
-      fi
-    else
-      if ! awk -v topic="$topic" -v action="$action" '
-        index($0, "parsed.args.command === \"" topic "\"") &&
-        index($0, "this.argv[1] === \"" action "\"") { found=1 }
+    if ! awk -v key="$verb" '
+        index($0, "\"" key "\":") { found=1 }
+        $0 ~ "^[[:space:]]*" key ":" { found=1 }
         END { exit found ? 0 : 1 }
       ' "$CLI_INDEX" >/dev/null 2>&1; then
-        B1_OFFENDERS+=("$verb")
-      fi
+      B1_OFFENDERS+=("$verb")
     fi
   done
 else

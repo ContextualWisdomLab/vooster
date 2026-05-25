@@ -35,6 +35,223 @@ import { runUsecase } from "./commands/usecase.js";
 import { runWho } from "./commands/who.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
+
+type VspecFlags = {
+  "actor-id"?: string;
+  "agent-type"?: string;
+  "api-url"?: string;
+  "auto-branch"?: boolean;
+  "auto-commit"?: boolean;
+  "base-revision"?: string;
+  "branch-name"?: string;
+  "dry-run"?: boolean;
+  "entity-id"?: string;
+  "preview-id"?: string;
+  "project-id"?: string;
+  "proposed-change"?: string;
+  "session-cookie"?: string;
+  "workspace-id"?: string;
+  action?: string;
+  actor?: string;
+  aliases?: string;
+  at?: string;
+  body?: string;
+  branch?: string;
+  condition?: string;
+  cursor?: string;
+  description?: string;
+  email?: string;
+  field?: string;
+  force?: boolean;
+  format?: string;
+  from?: string;
+  human?: boolean;
+  intent?: string;
+  interest?: string;
+  into?: string;
+  key?: string;
+  level?: string;
+  limit?: string;
+  name?: string;
+  output?: string;
+  outcome?: string;
+  patch?: string;
+  pin?: string;
+  priority?: string;
+  project?: string;
+  q?: string;
+  reason?: string;
+  revision?: string;
+  role?: string;
+  root?: string;
+  scopes?: string;
+  session?: string;
+  stakeholder?: string;
+  status?: string;
+  strategy?: string;
+  summary?: string;
+  title?: string;
+  to?: string;
+  ttl?: string;
+  type?: string;
+  usecase?: string;
+  value?: string;
+  visibility?: string;
+};
+
+type CommandRouteContext = {
+  argv: string[];
+  cwd: string;
+  flags: VspecFlags;
+  writeLine: (message: string) => void;
+};
+
+type CommandRouteRunner = (context: CommandRouteContext) => Promise<void> | void;
+
+const commandRoutes: Record<string, CommandRouteRunner> = {
+  "actor archive": ({ argv, flags, writeLine }) =>
+    runActor(flags, "archive", argv[2], writeLine),
+  "actor create": ({ argv, flags, writeLine }) =>
+    runActor(flags, "create", argv[2], writeLine),
+  "actor edit": ({ argv, flags, writeLine }) =>
+    runActor(flags, "edit", argv[2], writeLine),
+  "actor list": ({ argv, flags, writeLine }) =>
+    runActor(flags, "list", argv[2], writeLine),
+  "actor show": ({ argv, flags, writeLine }) =>
+    runActor(flags, "show", argv[2], writeLine),
+  "ai-guide": ({ flags, writeLine }) => runAiGuide(flags, writeLine),
+  "api-key create": ({ argv, flags, writeLine }) =>
+    runApiKey(flags, "create", argv[2], writeLine),
+  "api-key list": ({ argv, flags, writeLine }) =>
+    runApiKey(flags, "list", argv[2], writeLine),
+  "api-key revoke": ({ argv, flags, writeLine }) =>
+    runApiKey(flags, "revoke", argv[2], writeLine),
+  "branch create": ({ argv, flags, writeLine }) =>
+    runBranch(flags, "create", argv[2], writeLine),
+  "change commit": ({ flags, writeLine }) => runChange(flags, "commit", writeLine),
+  "change propose": ({ flags, writeLine }) => runChange(flags, "propose", writeLine),
+  "comment add": ({ argv, flags, writeLine }) =>
+    runComment(flags, "add", argv[2], writeLine),
+  "comment delete": ({ argv, flags, writeLine }) =>
+    runComment(flags, "delete", argv[2], writeLine),
+  "comment edit": ({ argv, flags, writeLine }) =>
+    runComment(flags, "edit", argv[2], writeLine),
+  "comment list": ({ argv, flags, writeLine }) =>
+    runComment(flags, "list", argv[2], writeLine),
+  "comment resolve": ({ argv, flags, writeLine }) =>
+    runComment(flags, "resolve", argv[2], writeLine),
+  diff: ({ argv, flags, writeLine }) =>
+    runDiff(flags, argv[1], argv[2], argv[3], writeLine),
+  doctor: ({ flags, writeLine }) => runDoctor(flags, writeLine),
+  "export gherkin": ({ argv, flags, writeLine }) =>
+    runExport(flags, "gherkin", argv[2], writeLine),
+  "export markdown": ({ argv, flags, writeLine }) =>
+    runExport(flags, "markdown", argv[2], writeLine),
+  "goal create": ({ argv, flags, writeLine }) =>
+    runGoal(flags, "create", argv[2], writeLine),
+  "goal list": ({ argv, flags, writeLine }) =>
+    runGoal(flags, "list", argv[2], writeLine),
+  "goal promote": ({ argv, flags, writeLine }) =>
+    runGoal(flags, "promote", argv[2], writeLine),
+  "goal reject": ({ argv, flags, writeLine }) =>
+    runGoal(flags, "reject", argv[2], writeLine),
+  "goal show": ({ argv, flags, writeLine }) =>
+    runGoal(flags, "show", argv[2], writeLine),
+  history: ({ argv, flags, writeLine }) => runHistory(flags, argv[1], writeLine),
+  impact: ({ argv, flags, writeLine }) => runImpact(flags, argv[1], writeLine),
+  init: ({ cwd, flags, writeLine }) => runInit(flags, cwd, writeLine),
+  "lock acquire": ({ argv, flags, writeLine }) =>
+    runLock(flags, "acquire", argv[1], writeLine),
+  "lock release": ({ argv, flags, writeLine }) =>
+    runLock(flags, "release", argv[2], writeLine),
+  "lock renew": ({ argv, flags, writeLine }) =>
+    runLock(flags, "renew", argv[2], writeLine),
+  login: ({ flags, writeLine }) => runLogin(flags, writeLine),
+  logout: ({ flags, writeLine }) => runLogout(flags, writeLine),
+  "member invite": ({ flags, writeLine }) => runMember(flags, "invite", writeLine),
+  "merge open": ({ argv, flags, writeLine }) =>
+    runMerge(flags, "open", argv[2], writeLine),
+  "merge resolve": ({ argv, flags, writeLine }) =>
+    runMerge(flags, "resolve", argv[2], writeLine),
+  "project create": ({ flags, writeLine }) => runProject(flags, "create", writeLine),
+  "project list": ({ flags, writeLine }) => runProject(flags, "list", writeLine),
+  "project switch": ({ argv, flags, writeLine }) =>
+    runProject(flags, "switch", writeLine, argv[2]),
+  pull: ({ flags, writeLine }) => runPull(flags, writeLine),
+  push: ({ flags, writeLine }) => runPush(flags, writeLine),
+  revert: ({ argv, flags, writeLine }) => runRevert(flags, argv[1], writeLine),
+  "scenario add": ({ argv, flags, writeLine }) =>
+    runScenario(flags, "add", argv[2], writeLine),
+  "session complete": ({ argv, flags, writeLine }) =>
+    runSession(flags, "complete", argv[2], writeLine),
+  "session list": ({ argv, flags, writeLine }) =>
+    runSession(flags, "list", argv[2], writeLine),
+  "session start": ({ argv, flags, writeLine }) =>
+    runSession(flags, "start", argv[2], writeLine),
+  "stakeholder archive": ({ argv, flags, writeLine }) =>
+    runStakeholder(flags, "archive", argv[2], writeLine),
+  "stakeholder create": ({ argv, flags, writeLine }) =>
+    runStakeholder(flags, "create", argv[2], writeLine),
+  "stakeholder edit": ({ argv, flags, writeLine }) =>
+    runStakeholder(flags, "edit", argv[2], writeLine),
+  "stakeholder list": ({ argv, flags, writeLine }) =>
+    runStakeholder(flags, "list", argv[2], writeLine),
+  "stakeholder show": ({ argv, flags, writeLine }) =>
+    runStakeholder(flags, "show", argv[2], writeLine),
+  status: ({ flags, writeLine }) => runStatus(flags, writeLine),
+  "step add": ({ argv, flags, writeLine }) => runStep(flags, "add", argv[2], writeLine),
+  "step edit": ({ argv, flags, writeLine }) =>
+    runStep(flags, "edit", argv[2], writeLine),
+  sync: ({ flags, writeLine }) => runSync(flags, "sync", writeLine),
+  "usecase add-stakeholder": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "add-stakeholder", argv[2], writeLine),
+  "usecase archive": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "archive", argv[2], writeLine),
+  "usecase create": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "create", argv[2], writeLine),
+  "usecase list": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "list", argv[2], writeLine),
+  "usecase restore": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "restore", argv[2], writeLine),
+  "usecase set": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "set", argv[2], writeLine),
+  "usecase show": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "show", argv[2], writeLine),
+  who: ({ argv, flags, writeLine }) => runWho(flags, argv[1], writeLine),
+  "workspace switch": ({ argv, flags, writeLine }) => {
+    runWorkspace(flags, "switch", argv[2], writeLine);
+  }
+};
+
+export function commandRouteKeys(): string[] {
+  return Object.keys(commandRoutes).sort();
+}
+
+function commandRouteKey(
+  command: string | undefined,
+  argv: string[]
+): string | undefined {
+  if (command === undefined) {
+    return undefined;
+  }
+
+  if (
+    command === "lock" &&
+    argv[1] !== undefined &&
+    argv[1] !== "release" &&
+    argv[1] !== "renew"
+  ) {
+    return "lock acquire";
+  }
+
+  const actionKey = `${command} ${argv[1] ?? ""}`.trim();
+  if (commandRoutes[actionKey] !== undefined) {
+    return actionKey;
+  }
+
+  return commandRoutes[command] !== undefined ? command : undefined;
+}
+
 export class VspecCommand extends Command {
   static override description =
     "Cockburn-style use case management for concurrent agents.";
@@ -116,300 +333,15 @@ export class VspecCommand extends Command {
 
   override async run(): Promise<void> {
     const parsed = await this.parse(VspecCommand);
-
-    if (parsed.args.command === "login") {
-      await runLogin(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "logout") {
-      await runLogout(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "status") {
-      await runStatus(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "ai-guide") {
-      await runAiGuide(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "doctor") {
-      await runDoctor(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "init") {
-      await runInit(parsed.flags, process.cwd(), this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "member" && this.argv[1] === "invite") {
-      await runMember(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "api-key" && this.argv[1] === "create") {
-      await runApiKey(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "api-key" && this.argv[1] === "list") {
-      await runApiKey(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "api-key" && this.argv[1] === "revoke") {
-      await runApiKey(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "project" && this.argv[1] === "create") {
-      await runProject(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "project" && this.argv[1] === "list") {
-      await runProject(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "project" && this.argv[1] === "switch") {
-      await runProject(parsed.flags, this.argv[1], this.log.bind(this), this.argv[2]);
-      return;
-    }
-    if (parsed.args.command === "workspace" && this.argv[1] === "switch") {
-      runWorkspace(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "branch" && this.argv[1] === "create") {
-      await runBranch(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "merge" && this.argv[1] === "open") {
-      await runMerge(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "merge" && this.argv[1] === "resolve") {
-      await runMerge(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "lock" && this.argv[1] === "renew") {
-      await runLock(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "lock" && this.argv[1] === "release") {
-      await runLock(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (
-      parsed.args.command === "lock" &&
-      this.argv[1] !== "renew" &&
-      this.argv[1] !== "release"
-    ) {
-      await runLock(parsed.flags, "acquire", this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "who") {
-      await runWho(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "history") {
-      await runHistory(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "diff") {
-      await runDiff(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.argv[3],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "revert") {
-      await runRevert(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "impact") {
-      await runImpact(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "change" && this.argv[1] === "propose") {
-      await runChange(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "change" && this.argv[1] === "commit") {
-      await runChange(parsed.flags, this.argv[1], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "pull") {
-      await runPull(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "push") {
-      await runPush(parsed.flags, this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "sync") {
-      await runSync(parsed.flags, "sync", this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "export" && this.argv[1] === "gherkin") {
-      await runExport(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "export" && this.argv[1] === "markdown") {
-      await runExport(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "comment" && this.argv[1] === "add") {
-      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "comment" && this.argv[1] === "list") {
-      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "comment" && this.argv[1] === "edit") {
-      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "comment" && this.argv[1] === "resolve") {
-      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "comment" && this.argv[1] === "delete") {
-      await runComment(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "actor" && this.argv[1] === "create") {
-      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "actor" && this.argv[1] === "list") {
-      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "actor" && this.argv[1] === "show") {
-      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "actor" && this.argv[1] === "edit") {
-      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "actor" && this.argv[1] === "archive") {
-      await runActor(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "stakeholder" && this.argv[1] === "create") {
-      await runStakeholder(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "stakeholder" && this.argv[1] === "list") {
-      await runStakeholder(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "stakeholder" && this.argv[1] === "show") {
-      await runStakeholder(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "stakeholder" && this.argv[1] === "edit") {
-      await runStakeholder(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "stakeholder" && this.argv[1] === "archive") {
-      await runStakeholder(
-        parsed.flags,
-        this.argv[1],
-        this.argv[2],
-        this.log.bind(this)
-      );
-      return;
-    }
-    if (parsed.args.command === "goal" && this.argv[1] === "create") {
-      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "goal" && this.argv[1] === "list") {
-      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "goal" && this.argv[1] === "promote") {
-      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "goal" && this.argv[1] === "show") {
-      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "goal" && this.argv[1] === "reject") {
-      await runGoal(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "create") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "add-stakeholder") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "list") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "show") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "archive") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "set") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "usecase" && this.argv[1] === "restore") {
-      await runUsecase(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "scenario" && this.argv[1] === "add") {
-      await runScenario(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "step" && this.argv[1] === "add") {
-      await runStep(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "step" && this.argv[1] === "edit") {
-      await runStep(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "session" && this.argv[1] === "complete") {
-      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "session" && this.argv[1] === "list") {
-      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
-      return;
-    }
-    if (parsed.args.command === "session" && this.argv[1] === "start") {
-      await runSession(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+    const routeKey = commandRouteKey(parsed.args.command, this.argv);
+    const route = routeKey === undefined ? undefined : commandRoutes[routeKey];
+    if (route !== undefined) {
+      await route({
+        argv: this.argv,
+        cwd: process.cwd(),
+        flags: parsed.flags,
+        writeLine: this.log.bind(this)
+      });
       return;
     }
 

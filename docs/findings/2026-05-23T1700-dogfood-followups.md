@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -42,33 +42,12 @@ They are now listed under "Already closed" below.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: A12, B1, B4.
 - **Spec heuristics & duplication**: A13, H3.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A7 — Phantom `.vspec/session.json`
-
-`session start` prints `Session file .vspec/session.json` and the API
-returns `session_file: { path: ".vspec/session.json" }`. The CLI never
-writes the file. Either persist the session token + pinned keys, or
-stop advertising the file.
-
-### A8 — `vspec project switch` desyncs `current_project_id`
-
-`project switch <KEY>` writes `current_project_key` but leaves the
-prior `current_project_id` intact (often a stale UUID). On switch, look
-up the project by key under the current workspace and write both id
-and key — or fail loudly when the key is unknown.
-
-### A9 — `vspec login` as a returning user does not refresh project context
-
-Returning-user login writes `api_url`, `current_workspace_*`, and
-`session_token` but leaves any stale `current_project_*` fields in
-place. Compounds A8.
 
 ### A12 — Signup re-collision exposed as Prisma 500
 
@@ -134,11 +113,6 @@ trigger lines) is still open.
 the dogfood that read verbs have the envelope but several write verbs
 (notably `lock release` and the missing verbs from A14) do not.
 
-### B6 — `session_file` API contract is not honored by the CLI
-
-Direct consequence of A7. Either the API drops the field or the CLI
-starts writing the file.
-
 ### H1 — `~/.vspec/config.json` is the only "current" store; tests trample it
 
 `globalConfigPath()` defaults to `~/.vspec/config.json`. Tests that
@@ -165,6 +139,10 @@ CLI-side warning per the soft-warning spec.
 
 ## Already closed
 
+- **A7 / A8 / A9 / B6** — Closed by 79351d6: `session start` writes
+  `.vspec/session.json`, `session complete` clears it, authenticated project
+  switch resolves the selected key back to its project id, and returning login
+  clears stale project context.
 - **A5 / B2 / B3** — Closed by 48390e2: human mutation failures now render
   API `suggested_next_actions` plus validation details such as suggested
   titles; `usecase create --force` and documented `actor create --human` are

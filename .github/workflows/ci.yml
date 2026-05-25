@@ -6,11 +6,66 @@ name: CI
 # (.github/workflows/verify.yml) so a slow/in-progress correctness sweep never
 # blocks a merge.
 
+# Skip CI when a push/PR touches ONLY non-code paths that cannot change
+# lint/typecheck/vitest outcomes. Measured against 213 real pushes to main
+# (2026-05-20..25): 39.4% touched no code at all; this list captures 93% of
+# them (78/84) with ZERO false-skips of a code change. The dominant churn is
+# docs/state/** (the autonomous harness's next-task.md / progress.md).
+#
+# Deliberately NOT ignored (a test reads them — see
+# apps/api/tests/integration/readme.test.ts): docs/ root files such as
+# docs/build-harness.md and docs/09-bootstrap.md. Only docs/ SUBTREES with no
+# test dependency are listed. Keep this list a denylist of proven-safe paths;
+# anything new defaults to running CI.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/state/**"
+      - "docs/findings/**"
+      - "docs/claude/**"
+      - "docs/decisions/**"
+      - "goals/**"
+      - "cycles/**"
+      - "prompts/**"
+      - "guidelines/**"
+      - "assets/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".agents/**"
+      - ".argos/**"
+      - "README.md"
+      - "README.ko.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".prettierignore"
+      - "*-goal.md"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/state/**"
+      - "docs/findings/**"
+      - "docs/claude/**"
+      - "docs/decisions/**"
+      - "goals/**"
+      - "cycles/**"
+      - "prompts/**"
+      - "guidelines/**"
+      - "assets/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".agents/**"
+      - ".argos/**"
+      - "README.md"
+      - "README.ko.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".prettierignore"
+      - "*-goal.md"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

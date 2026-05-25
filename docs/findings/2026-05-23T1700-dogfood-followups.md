@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -43,7 +43,7 @@ These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
 - **Self-teaching CLI** (`core differentiator #3` in
-  `docs/00-overview.md`): A5, A6, B2, B3.
+  `docs/00-overview.md`): A5, B2, B3.
 - **Doctor & status surface**: A4.
 - **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
@@ -65,13 +65,6 @@ has no visible surface.
 API responses carry `suggested_next_actions` and (for
 `usecase create`) `suggested_titles[]`; the CLI drops both. `actor
 create --human` emits a raw oclif stack trace.
-
-### A6 — `vspec --help` and `vspec help <command>` are broken
-
-`vspec --help` lists ~80 global flags in one block with no `COMMANDS`
-section. `vspec help <command>` is unrouted and falls through to the
-default arm. CLI spec §"Help System" mandates per-command summary,
-synopsis, worked example, concept pointer.
 
 ### A7 — Phantom `.vspec/session.json`
 
@@ -203,6 +196,9 @@ CLI-side warning per the soft-warning spec.
 
 ## Already closed
 
+- **A6** — Closed by 7c8b6ec: root help now shows grouped command families,
+  and both `vspec help <command>` and `<command> --help` route through the
+  command-specific renderer.
 - **A2 / B5** — Closed by
   [2026-05-23T1825-doctor-route.md](./2026-05-23T1825-doctor-route.md):
   `GET /v1/doctor` now returns structured diagnostics, and the honest CLI

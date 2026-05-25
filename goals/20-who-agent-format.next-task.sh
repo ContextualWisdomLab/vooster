@@ -10,11 +10,9 @@ if grep -F '`revert`, `who`, `comment add|list|edit|resolve|''delete`' docs/find
   cat <<'EOF'
 TASK: Retarget Goal 18/19 sentinels, then narrow who debt.
 
-  Goal 18 and Goal 19 gate + next-task files should use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
+  See goals/20-who-agent-format.md § "Tranche A — Findings Debt".
+  The post-who sentinel remains: `lock release`.
+  RED first if the sentinel behavior is not already covered.
 EOF
   exit 0
 fi
@@ -23,13 +21,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/who.ts >/dev/null 2>&1; 
   cat <<'EOF'
 TASK: Add RED tests, then implement who --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/who-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/who-agent-format.test.ts
-
-  Then update apps/cli/src/commands/who.ts to use buildAgentEnvelope.
-  Context should stay at the default null values; suggested_next_actions should
-  be copied from the API response.
+  See goals/20-who-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

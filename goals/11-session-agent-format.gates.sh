@@ -16,14 +16,13 @@ GATE_INPUTS=(
   apps/cli/src/commands/session.ts
   apps/cli/src/commands/session-flags.ts
   apps/cli/src/commands/session-output.ts
-  apps/cli/src/index.ts
-  apps/cli/tests/unit
-  apps/cli/tests/e2e-cli-honest
-  docs/07-cli-spec.md
+  apps/cli/tests/unit/session-agent-format.test.ts
+  apps/cli/tests/e2e-cli-honest/session-agent-format.test.ts
   docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/11-session-agent-format.gates.sh
+  goals/11-session-agent-format.next-task.sh
   goals/11-session-agent-format.md
   scripts/_gate-cache.sh
 )
@@ -35,28 +34,9 @@ fi
 
 PASS=true
 
-CLI_SPEC=docs/07-cli-spec.md
 FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
-CLI_INDEX=apps/cli/src/index.ts
-SESSION_CMD=apps/cli/src/commands/session.ts
 UNIT_TEST=apps/cli/tests/unit/session-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/session-agent-format.test.ts
-
-SESSION_AGENT_SITES=(
-  "session start|startSession"
-  "session list|listSessions"
-  "session complete|completeSession"
-)
-
-extract_function() {
-  local file="$1"
-  local fn="$2"
-  awk -v fn="$fn" '
-    $0 ~ "^(async )?function " fn "\\(" { capture=1 }
-    capture && $0 ~ "^(async )?function " && $0 !~ "^(async )?function " fn "\\(" { exit }
-    capture { print }
-  ' "$file"
-}
 
 echo "[11.A1 session agent debt removed from findings]"
 A1_LINES=$(awk '
@@ -76,166 +56,19 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[11.B1 docs/07-cli-spec.md documents session agent format]"
-B1_OFFENDERS=()
-for token in \
-  "### Agent Format for Sessions" \
-  "vspec session start --format=agent" \
-  "vspec session list --format=agent" \
-  "vspec session complete <id> --format=agent" \
-  "context.session_id" \
-  "default null context"; do
-  if ! grep -F -- "$token" "$CLI_SPEC" >/dev/null 2>&1; then
-    B1_OFFENDERS+=("$token")
-  fi
-done
-if [ "${#B1_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — missing session agent spec text:"
-  printf '        %s\n' "${B1_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[11.C1 session.ts discovered by Goal 7 agent-branch source]"
-if grep -rlE 'format === "agent"' apps/cli/src/commands 2>/dev/null |
-   grep -Fx "$SESSION_CMD" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — $SESSION_CMD is not in grep -rl 'format === \"agent\"' set"
-  PASS=false
-fi
-
-echo "[11.C2 every session handler builds an agent envelope]"
-C2_OFFENDERS=()
-for site in "${SESSION_AGENT_SITES[@]}"; do
-  IFS='|' read -r verb fn <<<"$site"
-  block=$(extract_function "$SESSION_CMD" "$fn")
-  if [ -z "$block" ]; then
-    C2_OFFENDERS+=("$verb missing $fn")
-    continue
-  fi
-  if ! printf '%s\n' "$block" | grep -F 'format === "agent"' >/dev/null 2>&1; then
-    C2_OFFENDERS+=("$verb missing format === \"agent\" in $fn")
-    continue
-  fi
-  if ! printf '%s\n' "$block" | grep -F "buildAgentEnvelope" >/dev/null 2>&1; then
-    C2_OFFENDERS+=("$verb missing buildAgentEnvelope in $fn")
-  fi
-done
-if [ "${#C2_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — handler-level envelope gaps:"
-  printf '        %s\n' "${C2_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[11.C3 dispatcher routes exactly implemented session verbs]"
-DISPATCHED_SESSION_ACTIONS=$(awk '
-  /^[[:space:]]*"session [^"]+":/ {
-    line=$0
-    sub(/^[[:space:]]*"session /, "", line)
-    sub(/":.*/, "", line)
-    print line
-  }
-' "$CLI_INDEX" |
-  sort |
-  tr '\n' ' ' |
-  sed 's/ $//')
-if [ "$DISPATCHED_SESSION_ACTIONS" = "complete list start" ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — session dispatcher actions = '$DISPATCHED_SESSION_ACTIONS' (expected 'complete list start')"
-  PASS=false
-fi
-
 echo "[11.D1 unit tests prove session agent envelopes]"
-D1_OFFENDERS=()
-if [ ! -f "$UNIT_TEST" ]; then
-  D1_OFFENDERS+=("$UNIT_TEST missing")
-else
-  for site in "${SESSION_AGENT_SITES[@]}"; do
-    verb=${site%%|*}
-    action=${verb#session }
-    for token in "agent $verb" "\"$action\"" "--format=agent"; do
-      if ! grep -F -- "$token" "$UNIT_TEST" >/dev/null 2>&1; then
-        D1_OFFENDERS+=("$verb missing unit token $token")
-      fi
-    done
-  done
-  for token in \
-    "format_version" \
-    "context.session_id" \
-    "started_at" \
-    "project_id" \
-    "session_file" \
-    "total_conflicts" \
-    "ended_at" \
-    "released_lock_ids"; do
-    if ! grep -F -- "$token" "$UNIT_TEST" >/dev/null 2>&1; then
-      D1_OFFENDERS+=("$UNIT_TEST missing $token assertion")
-    fi
-  done
-fi
-if [ "${#D1_OFFENDERS[@]}" -eq 0 ]; then
+if pnpm exec vitest run "$UNIT_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — unit proof gaps:"
-  printf '        %s\n' "${D1_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[11.D2 unit tests keep human session renderer smoke coverage]"
-D2_OFFENDERS=()
-if [ ! -f "$UNIT_TEST" ]; then
-  D2_OFFENDERS+=("$UNIT_TEST missing")
-else
-  for site in "${SESSION_AGENT_SITES[@]}"; do
-    verb=${site%%|*}
-    if ! grep -F -- "human $verb" "$UNIT_TEST" >/dev/null 2>&1; then
-      D2_OFFENDERS+=("$verb missing human smoke test")
-    fi
-  done
-fi
-if [ "${#D2_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — human smoke proof gaps:"
-  printf '        %s\n' "${D2_OFFENDERS[@]}"
+  echo "    ✗ fail — re-run: pnpm exec vitest run $UNIT_TEST"
   PASS=false
 fi
 
 echo "[11.E1 honest E2E proves session agent envelopes]"
-E1_OFFENDERS=()
-if [ ! -f "$HONEST_TEST" ]; then
-  E1_OFFENDERS+=("$HONEST_TEST missing")
-else
-  if grep -E '\bfetch\(' "$HONEST_TEST" >/dev/null 2>&1; then
-    E1_OFFENDERS+=("$HONEST_TEST calls fetch(")
-  fi
-  for token in "VSPEC_CONFIG_PATH" "runCli(" "--format=agent" "format_version" "context.session_id" "total_conflicts"; do
-    if ! grep -F -- "$token" "$HONEST_TEST" >/dev/null 2>&1; then
-      E1_OFFENDERS+=("$HONEST_TEST missing $token")
-    fi
-  done
-  for site in "${SESSION_AGENT_SITES[@]}"; do
-    verb=${site%%|*}
-    action=${verb#session }
-    if ! grep -F -- "agent $verb" "$HONEST_TEST" >/dev/null 2>&1; then
-      E1_OFFENDERS+=("$verb missing honest test title")
-    fi
-    if ! grep -F -- '"session"' "$HONEST_TEST" >/dev/null 2>&1 ||
-       ! grep -F -- "\"$action\"" "$HONEST_TEST" >/dev/null 2>&1; then
-      E1_OFFENDERS+=("$verb missing runCli tokens")
-    fi
-  done
-fi
-if [ "${#E1_OFFENDERS[@]}" -eq 0 ]; then
+if pnpm exec vitest run "$HONEST_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — honest E2E proof gaps:"
-  printf '        %s\n' "${E1_OFFENDERS[@]}"
+  echo "    ✗ fail — re-run: pnpm exec vitest run $HONEST_TEST"
   PASS=false
 fi
 

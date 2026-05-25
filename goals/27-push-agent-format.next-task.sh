@@ -13,13 +13,9 @@ if grep -F "$OLD_PUSH_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/d
   cat <<'EOF'
 TASK: Retarget prior push sentinels, then remove push from findings.
 
-  Prior gate + next-task files that used push as the remaining-debt sentinel
-  should now use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
-    `merge resolve public conflict setup`
+  See goals/27-push-agent-format.md § "Tranche A — Findings Debt".
+  Prior gate + next-task files should keep the next sentinel: `lock release`.
+  Findings should also keep: `merge resolve public conflict setup`.
 EOF
   exit 0
 fi
@@ -29,11 +25,8 @@ if grep -lF "$OLD_PUSH_BULLET" goals/*.gates.sh goals/*.next-task.sh 2>/dev/null
   cat <<'EOF'
 TASK: Finish retargeting prior push sentinels.
 
-  Replace remaining goal gate/next-task sentinel literals:
-    `push`
-
-  With:
-    `lock release`
+  See goals/27-push-agent-format.md § "Tranche A — Findings Debt".
+  The next remaining-debt sentinel is: `lock release`.
 EOF
   exit 0
 fi
@@ -43,11 +36,8 @@ if ! grep -F 'format: Flags.string()' apps/cli/src/commands/push.ts >/dev/null 2
   cat <<'EOF'
 TASK: Add RED tests, then implement push --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/push-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts
-
-  Then update push.ts and sync.ts to support agent formatting for push only.
+  See goals/27-push-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

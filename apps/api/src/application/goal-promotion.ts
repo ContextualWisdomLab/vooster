@@ -10,6 +10,7 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import { titleLooksLikeVerbPhrase } from "./verb-phrases.js";
 
 export type GoalPromotionDeps = {
   goalStore: GoalStore;
@@ -159,12 +160,6 @@ function useCaseRevision(
     snapshot: { ...usecase },
     version_number: 1
   };
-}
-
-function titleLooksLikeVerbPhrase(title: string): boolean {
-  return /^(adds?|approves?|cancels?|creates?|places?|promotes?|renews?|requests?|reviews?|submits?|tracks?|writes?)\b/i.test(
-    title
-  );
 }
 
 function titleWarning() {

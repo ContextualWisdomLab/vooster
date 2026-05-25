@@ -10,6 +10,7 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import { titleLooksLikeVerbPhrase } from "./verb-phrases.js";
 
 export type UseCaseAuthoringDeps = {
   actorStore: ActorStore;
@@ -202,12 +203,6 @@ function useCaseNextActions(key: string) {
     },
     { command: "vspec scenario add", reason: "Write the main success scenario." }
   ];
-}
-
-function titleLooksLikeVerbPhrase(title: string): boolean {
-  return /^(adds?|approves?|cancels?|creates?|places?|promotes?|renews?|requests?|reviews?|submits?|tracks?|writes?)\b/i.test(
-    title
-  );
 }
 
 function suggestedTitles(title: string): string[] {

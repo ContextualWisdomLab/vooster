@@ -8,33 +8,27 @@ cd "$ROOT"
 
 if ! grep -F 'format === "agent"' apps/cli/src/commands/branch.ts >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Add RED tests then implement branch create --format=agent.
-
-  Start with:
-    apps/cli/tests/unit/branch-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/branch-agent-format.test.ts
-
-  Then update apps/cli/src/commands/branch.ts to use buildAgentEnvelope
-  and set context.branch from data.branch.name.
+TASK: Add RED tests, then implement branch create --format=agent. See
+goals/12-branch-agent-format.md § "Tranche C — CLI Implementation",
+§ "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
 
 if grep -F "branch create" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Remove the branch create bullet from docs/findings/2026-05-21T1856-cli-spec-gaps.md.
-
-  Keep unrelated debts such as lock.
+TASK: Remove the branch create bullet from
+docs/findings/2026-05-21T1856-cli-spec-gaps.md. See
+goals/12-branch-agent-format.md § "Tranche A — Findings Debt". Keep unrelated
+debt queued.
 EOF
   exit 0
 fi
 
 if ! grep -F "### Agent Format for Branches" docs/07-cli-spec.md >/dev/null 2>&1; then
   cat <<'EOF'
-TASK: Document branch create --format=agent in docs/07-cli-spec.md.
-
-  Add "### Agent Format for Branches" under Branches & Merges with the
-  branch create example and context.branch behavior.
+TASK: Document branch create --format=agent in docs/07-cli-spec.md. See
+goals/12-branch-agent-format.md § "Tranche B — CLI Spec".
 EOF
   exit 0
 fi

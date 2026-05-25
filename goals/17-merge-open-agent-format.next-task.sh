@@ -10,12 +10,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/merge.ts >/dev/null 2>&1
   cat <<'EOF'
 TASK: Add RED tests, then implement merge open --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/merge-open-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts
-
-  Then update apps/cli/src/commands/merge.ts to use buildAgentEnvelope in
-  openMerge only. context.branch should come from data.source_branch.name.
+  See goals/17-merge-open-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
@@ -24,9 +20,9 @@ if grep -F '`merge open` / `merge resolve`' docs/findings/2026-05-21T1856-cli-sp
   cat <<'EOF'
 TASK: Narrow merge open/resolve debt to merge resolve only.
 
-  Keep lock release/renew and the history/impact/comment debt.
-  Record that merge resolve public conflict setup remains queued because honest
-  setup currently depends on __test endpoints.
+  See goals/17-merge-open-agent-format.md § "Tranche A — Findings Debt".
+  Keep merge resolve public conflict setup queued because honest setup still
+  depends on __test endpoints.
 EOF
   exit 0
 fi

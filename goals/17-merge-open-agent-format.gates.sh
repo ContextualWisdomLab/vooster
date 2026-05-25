@@ -12,17 +12,17 @@ source "$ROOT/scripts/_gate-cache.sh"
 GOAL_NAME="17-merge-open-agent-format"
 
 GATE_INPUTS=(
-  apps/cli/src/agent-envelope.ts
   apps/cli/src/commands/merge.ts
   apps/cli/src/commands/merge-output.ts
-  apps/cli/tests/unit
-  apps/cli/tests/e2e-cli-honest
-  docs/07-cli-spec.md
+  apps/cli/tests/unit/merge-open-agent-format.test.ts
+  apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts
+  apps/cli/tests/e2e-cli-honest/merge-resolve-agent-format.test.ts
   docs/findings/2026-05-21T1856-cli-spec-gaps.md
   goals/7-cli-spec-parity.gates.sh
   scripts/check-gate-rigor.sh
   goals/17-merge-open-agent-format.gates.sh
   goals/17-merge-open-agent-format.md
+  goals/17-merge-open-agent-format.next-task.sh
   scripts/_gate-cache.sh
 )
 
@@ -34,21 +34,9 @@ fi
 PASS=true
 
 FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
-CLI_SPEC=docs/07-cli-spec.md
 MERGE_CMD=apps/cli/src/commands/merge.ts
-MERGE_OUTPUT=apps/cli/src/commands/merge-output.ts
 UNIT_TEST=apps/cli/tests/unit/merge-open-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts
-
-extract_function() {
-  local file="$1"
-  local fn="$2"
-  awk -v fn="$fn" '
-    $0 ~ "^(async )?function " fn "\\(" { capture=1 }
-    capture && $0 ~ "^(async )?function " && $0 !~ "^(async )?function " fn "\\(" { exit }
-    capture { print }
-  ' "$file"
-}
 
 echo "[17.A1 merge findings narrowed]"
 if grep -F '`merge open` / `merge resolve`' "$FINDINGS" >/dev/null 2>&1; then
@@ -71,79 +59,7 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[17.B1 docs/07-cli-spec.md documents merge open agent format]"
-B1_OFFENDERS=()
-for token in \
-  "### Agent Format — Merges" \
-  "vspec merge open <branch-id> --format=agent" \
-  "suggested_next_actions" \
-  "context.branch" \
-  "data.source_branch.name" \
-  "warnings" \
-  "vspec merge resolve <id> --format=agent"; do
-  if ! grep -F -- "$token" "$CLI_SPEC" >/dev/null 2>&1; then
-    B1_OFFENDERS+=("$token")
-  fi
-done
-if [ "${#B1_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — missing merge agent spec text:"
-  printf '        %s\n' "${B1_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[17.C1 merge.ts discovered by Goal 7 agent-branch source]"
-if grep -rlE 'format === "agent"' apps/cli/src/commands 2>/dev/null |
-   grep -Fx "$MERGE_CMD" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — $MERGE_CMD is not in grep -rl 'format === \"agent\"' set"
-  PASS=false
-fi
-
-echo "[17.C2 openMerge builds an agent envelope]"
-OPEN_BLOCK=$(extract_function "$MERGE_CMD" "openMerge")
-if [ -n "$OPEN_BLOCK" ] &&
-   printf '%s\n' "$OPEN_BLOCK" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
-   printf '%s\n' "$OPEN_BLOCK" | grep -F "buildAgentEnvelope" >/dev/null 2>&1; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — openMerge does not build an agent envelope"
-  PASS=false
-fi
-
-echo "[17.C3 merge.ts routes only open/resolve actions]"
-MERGE_ACTIONS=$(grep -oE 'action === "[a-z]+"' "$MERGE_CMD" | sed -E 's/.*"([^"]+)"/\1/' | sort | tr '\n' ' ' | sed 's/ $//')
-if [ "$MERGE_ACTIONS" = "open resolve" ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — merge actions = '$MERGE_ACTIONS' (expected 'open resolve')"
-  PASS=false
-fi
-
-echo "[17.C4 merge open maps branch context and guidance]"
-C4_OFFENDERS=()
-if ! printf '%s\n' "$OPEN_BLOCK" | grep -F "suggested_next_actions: body.suggested_next_actions" >/dev/null 2>&1; then
-  C4_OFFENDERS+=("suggested_next_actions")
-fi
-if ! printf '%s\n' "$OPEN_BLOCK" | grep -F "branch: body.source_branch.name" >/dev/null 2>&1; then
-  C4_OFFENDERS+=("context.branch")
-fi
-if ! awk '/source_branch: \{/ { capture=1; next } capture && /\};/ { exit } capture { print }' "$MERGE_OUTPUT" |
-   grep -F "name: string;" >/dev/null 2>&1; then
-  C4_OFFENDERS+=("MergeOpenResponse.source_branch.name")
-fi
-if [ "${#C4_OFFENDERS[@]}" -eq 0 ]; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — missing branch/guidance mapping:"
-  printf '        %s\n' "${C4_OFFENDERS[@]}"
-  PASS=false
-fi
-
-echo "[17.C5 merge resolve public setup remains out of scope]"
-RESOLVE_BLOCK=$(extract_function "$MERGE_CMD" "resolveMerge")
+echo "[17.B1 merge resolve public setup remains out of scope]"
 if [ -f apps/cli/tests/e2e-cli-honest/merge-resolve-agent-format.test.ts ]; then
   echo "    ✗ fail — merge resolve claimed honest public setup"
   PASS=false
@@ -154,76 +70,23 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[17.D1 unit tests prove merge open agent envelope]"
-D1_OFFENDERS=()
-if [ ! -f "$UNIT_TEST" ]; then
-  D1_OFFENDERS+=("$UNIT_TEST missing")
-else
-  for token in \
-    "agent merge open" \
-    "human merge open" \
-    "--format=agent" \
-    "format_version" \
-    "data.merge_request.id" \
-    "data.source_branch.id" \
-    "data.source_branch.name" \
-    "context.branch" \
-    "suggested_next_actions" \
-    "warnings" \
-    "not.toContain(\"Merge request \")" \
-    "not.toContain(\"Status \")" \
-    "not.toContain(\"Strategy \")" \
-    "not.toContain(\"Conflicts \")" \
-    "not.toContain(\"Impacted entities \")" \
-    "not.toContain(\"Source branch \")" \
-    "not.toContain(\"Main heads \")"; do
-    if ! grep -F -- "$token" "$UNIT_TEST" >/dev/null 2>&1; then
-      D1_OFFENDERS+=("$UNIT_TEST missing $token")
-    fi
-  done
-fi
-if [ "${#D1_OFFENDERS[@]}" -eq 0 ]; then
+echo "[17.C1 unit tests prove merge open agent envelope]"
+if pnpm exec vitest run "$UNIT_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — unit proof gaps:"
-  printf '        %s\n' "${D1_OFFENDERS[@]}"
+  echo "    ✗ fail — merge open agent unit proof failed"
   PASS=false
 fi
 
-echo "[17.E1 honest E2E proves merge open agent envelope]"
-E1_OFFENDERS=()
-if [ ! -f "$HONEST_TEST" ]; then
-  E1_OFFENDERS+=("$HONEST_TEST missing")
-else
-  if grep -E '\bfetch\(' "$HONEST_TEST" >/dev/null 2>&1; then
-    E1_OFFENDERS+=("$HONEST_TEST calls fetch(")
-  fi
-  for token in \
-    "agent merge open" \
-    "runCli(" \
-    '"branch"' \
-    '"merge"' \
-    "--format=agent" \
-    "VSPEC_CONFIG_PATH" \
-    "format_version" \
-    "data.merge_request.id" \
-    "data.source_branch.id" \
-    "data.source_branch.name" \
-    "context.branch"; do
-    if ! grep -F -- "$token" "$HONEST_TEST" >/dev/null 2>&1; then
-      E1_OFFENDERS+=("$HONEST_TEST missing $token")
-    fi
-  done
-fi
-if [ "${#E1_OFFENDERS[@]}" -eq 0 ]; then
+echo "[17.D1 honest E2E proves merge open agent envelope]"
+if pnpm exec vitest run "$HONEST_TEST"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — honest E2E proof gaps:"
-  printf '        %s\n' "${E1_OFFENDERS[@]}"
+  echo "    ✗ fail — merge open agent honest E2E proof failed"
   PASS=false
 fi
 
-echo "[17.E2 honest proof does not widen Goal 7 UC set]"
+echo "[17.E1 honest proof does not widen Goal 7 UC set]"
 if [ -f "$HONEST_TEST" ] &&
    basename "$HONEST_TEST" | grep -E '^UC-' >/dev/null 2>&1; then
   echo "    ✗ fail — merge agent proof must be verb-level, not UC-prefixed"

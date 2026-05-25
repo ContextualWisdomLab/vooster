@@ -7,6 +7,7 @@ export type ActorCliFlags = {
   description?: string;
   "dry-run"?: boolean;
   format?: string;
+  human?: boolean;
   name?: string;
   "project-id"?: string;
   root?: string;

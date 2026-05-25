@@ -35,6 +35,7 @@ export class ActorCommand extends Command {
     description: Flags.string(),
     "dry-run": Flags.boolean(),
     format: Flags.string(),
+    human: Flags.boolean(),
     name: Flags.string(),
     "project-id": Flags.string(),
     root: Flags.string(),

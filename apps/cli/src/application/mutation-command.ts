@@ -1,4 +1,5 @@
 import type { SuggestedNextAction } from "../domain/envelope.js";
+import type { AgentEnvelopeV2 } from "../domain/envelope.js";
 import type { MutationInput, MutationMethod } from "./mutation-runner.js";
 import { runMutation } from "./mutation-runner.js";
 
@@ -70,7 +71,9 @@ export async function runMutationCommand<TData>(
   }
 
   if (result.envelope.status === "error") {
-    throw new Error(result.envelope.error?.message ?? "Mutation failed.");
+    printHumanError(result.envelope, render.writeLine);
+    process.exitCode = 1;
+    return;
   }
 
   const data = result.envelope.data;
@@ -78,6 +81,36 @@ export async function runMutationCommand<TData>(
     throw new Error("Mutation succeeded but returned no data.");
   }
   render.human(data, render.writeLine);
+}
+
+function printHumanError(
+  envelope: AgentEnvelopeV2<unknown>,
+  writeLine: (message: string) => void
+): void {
+  writeLine(`Error: ${envelope.error?.message ?? "Mutation failed."}`);
+  printSuggestedTitles(envelope.error?.details?.suggested_titles, writeLine);
+  if (envelope.suggested_next_actions.length === 0) {
+    return;
+  }
+  writeLine("Next actions");
+  for (const action of envelope.suggested_next_actions) {
+    writeLine(`  ${action.command}${action.reason ? ` - ${action.reason}` : ""}`);
+  }
+}
+
+function printSuggestedTitles(
+  value: unknown,
+  writeLine: (message: string) => void
+): void {
+  if (!Array.isArray(value) || value.length === 0) {
+    return;
+  }
+  writeLine("Suggested titles");
+  for (const title of value) {
+    if (typeof title === "string") {
+      writeLine(`  ${title}`);
+    }
+  }
 }
 
 export function commonMutationContextFrom(

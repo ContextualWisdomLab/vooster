@@ -34,11 +34,16 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.content).toContain("# vspec AI Agent Guide");
     expect(guide.content).toContain("Why sessions exist");
     expect(guide.content).toContain(
-      "pin -> fetch via --format=agent -> propose-change -> commit"
+      "Before any write, start a session with `--pin` for every use case"
     );
-    expect(guide.content).toContain("The --format=agent payload contract");
+    expect(guide.content).toContain(
+      "Inspect `context`, `suggested_next_actions`, `warnings`, and `format_version`"
+    );
     expect(guide.content).toContain("Forbidden actions");
-    expect(guide.content).toContain("Worked example");
+    expect(guide.content).toContain("Never force a merge or ignore a conflict");
+    expect(guide.content).toContain(
+      'vspec session start --intent "Update checkout copy" --pin PAY-001'
+    );
     expect(guide.suggested_next_actions).toEqual([
       {
         command: "vspec login",
@@ -64,11 +69,20 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
       "Why sessions exist",
       "Mandatory workflow",
       "The --format=agent payload contract",
-      "Forbidden actions"
+      "Forbidden actions",
+      "Worked example"
     ]);
+    expect(guide.sections.at(1)?.body).toContain("start a session with --pin");
+    expect(guide.sections.at(2)?.body).toContain("suggested_next_actions");
     expect(guide.examples).toContainEqual({
-      title: "First safe task",
-      commands: ["vspec login", "vspec project list", "vspec session start"]
+      title: "First pinned edit",
+      commands: [
+        "vspec login",
+        "vspec project list",
+        'vspec session start --intent "Update checkout copy" --pin PAY-001',
+        "vspec usecase show PAY-001 --format=agent",
+        "vspec change propose --usecase PAY-001 --summary ..."
+      ]
     });
     expect(guide.suggested_next_actions[0]).toEqual({
       command: "vspec login",

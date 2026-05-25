@@ -48,6 +48,7 @@ export class UsecaseCommand extends Command {
     "dry-run": Flags.boolean(),
     field: Flags.string(),
     format: Flags.string(),
+    force: Flags.boolean(),
     interest: Flags.string(),
     level: Flags.string(),
     limit: Flags.string(),
@@ -156,7 +157,7 @@ async function createUsecase(
   const u = usecaseCreateFlagsFrom(flags);
   await runMutationCommand<UsecaseResponse>(
     {
-      body: { primary_actor: u.primaryActor, title: u.title },
+      body: { force: u.force, primary_actor: u.primaryActor, title: u.title },
       method: "POST",
       path: `/v1/projects/${u.projectId}/usecases`
     },

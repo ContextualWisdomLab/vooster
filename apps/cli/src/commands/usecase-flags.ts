@@ -13,6 +13,7 @@ export type UsecaseCliFlags = {
   "dry-run"?: boolean;
   field?: string;
   format?: string;
+  force?: boolean;
   interest?: string;
   level?: string;
   limit?: string;
@@ -34,6 +35,7 @@ export type UsecaseCreateFlags = {
   apiUrl: string;
   branch: string;
   dryRun: boolean;
+  force: boolean;
   primaryActor: string;
   projectId: string;
   root: string;
@@ -90,6 +92,7 @@ export function usecaseCreateFlagsFrom(flags: UsecaseCliFlags): UsecaseCreateFla
     apiUrl: resolveContextFlag(flags, "api-url"),
     branch: flags.branch ?? "main",
     dryRun: flags["dry-run"] === true,
+    force: flags.force === true,
     primaryActor: requiredFlag(flags, "primary-actor"),
     projectId: resolveContextFlag(flags, "project-id"),
     root: flags.root ?? process.cwd(),

@@ -80,8 +80,14 @@ function jsonGuide(cliVersion: string) {
   return {
     examples: [
       {
-        commands: ["vspec login", "vspec project list", "vspec session start"],
-        title: "First safe task"
+        commands: [
+          "vspec login",
+          "vspec project list",
+          'vspec session start --intent "Update checkout copy" --pin PAY-001',
+          "vspec usecase show PAY-001 --format=agent",
+          "vspec change propose --usecase PAY-001 --summary ..."
+        ],
+        title: "First pinned edit"
       }
     ],
     sections: guideSections(),
@@ -94,19 +100,23 @@ function guideSections(): AiGuideSection[] {
   return [
     {
       heading: "Why sessions exist",
-      body: "Sessions pin the exact use case revisions an agent may inspect and edit."
+      body: "Sessions pin exact revisions so parallel agents can inspect, edit, and merge without guessing whether a peer changed the same use case."
     },
     {
       heading: "Mandatory workflow",
-      body: "pin -> fetch via --format=agent -> propose-change -> commit"
+      body: "Before any write, start a session with --pin for every use case you will inspect. Fetch with --format=agent, apply one focused change, check suggested_next_actions, then commit or complete the session."
     },
     {
       heading: "The --format=agent payload contract",
-      body: "Agent payloads are JSON with context, suggested_next_actions, warnings, and format_version."
+      body: "Agent payloads are JSON. Inspect context, data, affected_files, dry_run, suggested_next_actions, warnings, and format_version before deciding the next command."
     },
     {
       heading: "Forbidden actions",
-      body: "Do not write without a pin, force a merge, or ignore suggested_next_actions."
+      body: "Never write without a pin. Never force a merge or ignore a conflict. Never discard suggested_next_actions; they are part of the command contract."
+    },
+    {
+      heading: "Worked example",
+      body: 'Log in, list projects, run vspec session start --intent "Update checkout copy" --pin PAY-001, inspect with vspec usecase show PAY-001 --format=agent, propose a focused change, and complete the session.'
     }
   ];
 }
@@ -115,19 +125,37 @@ function guideMarkdown() {
   return `# vspec AI Agent Guide
 
 ## Why sessions exist
-Sessions pin the exact use case revisions an agent is allowed to inspect and edit.
+Sessions pin exact use case revisions so parallel agents can work without guessing
+whether a peer changed the same spec. A session is the coordination handle for
+pins, locks, branch context, conflicts, and the final completion result.
 
 ## Mandatory workflow
-pin -> fetch via --format=agent -> propose-change -> commit
+Before any write, start a session with \`--pin\` for every use case you will
+inspect or edit. Then:
+
+1. Fetch the target with \`--format=agent\`.
+2. Read the envelope before choosing the next command.
+3. Make one focused change.
+4. Follow any \`suggested_next_actions\`.
+5. Complete the session or resolve the surfaced conflict.
 
 ## The --format=agent payload contract
-Agent payloads are JSON with context, suggested_next_actions, warnings, and format_version.
+Inspect \`context\`, \`suggested_next_actions\`, \`warnings\`, and \`format_version\`
+on every response. Treat \`data\` as the command result,
+\`affected_files\` as the local write set, and \`dry_run\` as a signal that no
+server mutation was committed.
 
 ## Forbidden actions
-Do not write without a pin, force a merge, or ignore suggested_next_actions.
+Never write without a pin. Never force a merge or ignore a conflict. Never
+discard \`suggested_next_actions\`; they are part of the command contract.
 
 ## Worked example
-Run vspec login, list projects, start a session with pinned use cases, fetch the spec, propose a change, then commit it.
+1. \`vspec login\`
+2. \`vspec project list\`
+3. \`vspec session start --intent "Update checkout copy" --pin PAY-001\`
+4. \`vspec usecase show PAY-001 --format=agent\`
+5. \`vspec change propose --usecase PAY-001 --summary ...\`
+6. \`vspec session complete <session-id>\`
 `;
 }
 

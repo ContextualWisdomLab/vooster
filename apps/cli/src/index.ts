@@ -67,6 +67,7 @@ export class VspecCommand extends Command {
     force: Flags.boolean(),
     format: Flags.string(),
     from: Flags.string(),
+    human: Flags.boolean(),
     help: Flags.help({ char: "h" }),
     intent: Flags.string(),
     into: Flags.string(),

@@ -16,7 +16,7 @@ describe("lock result responses", () => {
     expect(withId.body).toMatchObject({
       suggested_next_actions: [
         { command: "vspec lock renew lock-1" },
-        { command: "vspec unlock PAY-001" }
+        { command: "vspec lock release lock-1" }
       ]
     });
 
@@ -47,6 +47,20 @@ describe("lock result responses", () => {
 
     expect(captured.statusCode).toBeUndefined();
     expect(captured.body).toEqual({ lock: renewedLock });
+  });
+
+  test("serializes released locks", () => {
+    const captured = reply();
+    const releasedLock = lock({ expires_at: "2026-05-23T12:00:00Z" });
+
+    sendLockResult(captured.fastifyReply, {
+      lock: releasedLock,
+      status: "RELEASED",
+      usecase: usecase()
+    });
+
+    expect(captured.statusCode).toBeUndefined();
+    expect(captured.body).toEqual({ lock: releasedLock });
   });
 
   test("serializes active lock conflicts", () => {

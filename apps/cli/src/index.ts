@@ -187,7 +187,15 @@ export class VspecCommand extends Command {
       await runLock(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
       return;
     }
-    if (parsed.args.command === "lock" && this.argv[1] !== "renew") {
+    if (parsed.args.command === "lock" && this.argv[1] === "release") {
+      await runLock(parsed.flags, this.argv[1], this.argv[2], this.log.bind(this));
+      return;
+    }
+    if (
+      parsed.args.command === "lock" &&
+      this.argv[1] !== "renew" &&
+      this.argv[1] !== "release"
+    ) {
       await runLock(parsed.flags, "acquire", this.argv[1], this.log.bind(this));
       return;
     }

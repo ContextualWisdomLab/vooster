@@ -343,7 +343,9 @@ Request: { "target_type": "USECASE", "target_id": "...", "lock_type": "SEMANTIC"
 
 ### `GET /v1/locks?target_type=&target_id=` 🔵 Planned
 
-### `DELETE /v1/locks/:id` 🔵 Planned
+### `DELETE /v1/locks/:id`
+
+Releases an owned active lock and returns the released lock.
 
 ### `GET /v1/usecases/:id/who`
 

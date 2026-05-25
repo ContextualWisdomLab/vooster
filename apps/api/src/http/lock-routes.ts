@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   acquireLock,
+  releaseLock as releaseLockApplication,
   renewLock as renewLockApplication
 } from "../application/locks.js";
 import { sendLockResult } from "./lock-results.js";
@@ -35,6 +36,9 @@ export function registerLockRoutes(
   );
   app.post("/v1/locks/:lockId/renew", (request, reply) =>
     renewLock(request, reply, state, lockStore, membershipStore, useCaseStore)
+  );
+  app.delete("/v1/locks/:lockId", (request, reply) =>
+    releaseLock(request, reply, state, lockStore, membershipStore, useCaseStore)
   );
 }
 
@@ -88,6 +92,28 @@ async function renewLock(
         lockId: params.lockId,
         sessionId: sessionIdFrom(request),
         ttlMinutes: parsed.data.ttl_minutes,
+        userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+      }
+    )
+  );
+}
+
+async function releaseLock(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  lockStore: LockStore,
+  membershipStore: MembershipStore,
+  useCaseStore: UseCaseStore
+) {
+  const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
+  return sendLockResult(
+    reply,
+    await releaseLockApplication(
+      { lockStore, membershipStore, useCaseStore },
+      {
+        lockId: params.lockId,
+        sessionId: sessionIdFrom(request),
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
       }
     )

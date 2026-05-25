@@ -76,17 +76,19 @@ C1. **The acquire guidance matches lock-id renew.** The API lock acquire
 guidance emits `vspec lock renew ${result.lock.id}`.
 
 C2. **`lock renew` is routed without weakening acquire dispatch.** The CLI
-index routes `lock renew`, and the acquire dispatch still includes
-`this.argv[1] !== "renew"`.
+index routes `lock renew`, and the acquire dispatch still excludes lock
+subcommands with `this.argv[1] !== "renew"` and
+`this.argv[1] !== "release"`.
 
-C3. **`runLock` supports acquire and renew.** `runLock` accepts an action,
-routes `"renew"` through `/v1/locks/${lockId}/renew`, sends `ttl_minutes`,
-preserves optional `X-Vspec-Session`, and uses
+C3. **`runLock` supports acquire, renew, and later lock subcommands.** `runLock`
+accepts an action, routes `"renew"` through `/v1/locks/${lockId}/renew`, sends
+`ttl_minutes`, preserves optional `X-Vspec-Session`, and uses
 `body.suggested_next_actions ?? []`.
 
 C4. **Renew builds an agent envelope when requested.** The lock command renew
-path requires `format === "agent"`, `buildAgentEnvelope`, `data: body`,
-`context: { session_id: ... }`, and copied suggested actions.
+path uses the shared lock renderer, which requires `format === "agent"`,
+`buildAgentEnvelope`, `data: body`, `context: { session_id: ... }`, and copied
+suggested actions.
 
 ### Tranche D — Unit Proof
 
@@ -124,8 +126,8 @@ passes.**
 
 ## Scope Guards
 
-- No unlock or release implementation.
-- No API route changes.
+- Later goals may add `lock release`, but renew must keep routing through the
+  shared lock renderer.
 - No merge resolve implementation.
 - No lock acquire behavior change beyond guidance using lock id.
 - Do not remove the `&& this.argv[1] !== "renew"` acquire dispatch guard.

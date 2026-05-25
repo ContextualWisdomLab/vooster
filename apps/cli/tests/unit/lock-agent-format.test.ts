@@ -55,16 +55,43 @@ describe("lock acquire --format=agent", () => {
   });
 });
 
-function stubFetch(body: unknown): void {
+describe("lock release --format=agent", () => {
+  test("agent lock release", async () => {
+    const requests: Array<{ method: string | undefined; url: string }> = [];
+    stubFetch(releaseBody(), requests);
+    const lines: string[] = [];
+
+    await runLock(lockFlags({ format: "agent" }), "release", "lock-1", (line) =>
+      lines.push(line)
+    );
+
+    expect(requests).toEqual([
+      {
+        method: "DELETE",
+        url: "https://api.example.test/v1/locks/lock-1"
+      }
+    ]);
+    const envelope = expectAgentEnvelope(lines);
+    expect(envelope.data.lock.id).toBe("lock-1");
+    expect(envelope.context.session_id).toBe("session-1");
+    expect(envelope.suggested_next_actions).toEqual([]);
+  });
+});
+
+function stubFetch(
+  body: unknown,
+  requests: Array<{ method: string | undefined; url: string }> = []
+): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn(() =>
-      Promise.resolve({
+    vi.fn((url: string | URL, init?: RequestInit) => {
+      requests.push({ method: init?.method, url: String(url) });
+      return Promise.resolve({
         headers: new Headers(),
         json: () => Promise.resolve(body),
         ok: true
-      } as Response)
-    )
+      } as Response);
+    })
   );
 }
 
@@ -93,8 +120,14 @@ function lockBody() {
     },
     suggested_next_actions: [
       { command: "vspec lock renew lock-1" },
-      { command: "vspec unlock LCK-001" }
+      { command: "vspec lock release lock-1" }
     ]
+  };
+}
+
+function releaseBody() {
+  return {
+    lock: lockBody().lock
   };
 }
 

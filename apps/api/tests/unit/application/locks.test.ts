@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { acquireLock, renewLock } from "../../../src/application/locks.js";
+import { acquireLock, releaseLock, renewLock } from "../../../src/application/locks.js";
 import type {
   StoredLock,
   StoredMembership,
@@ -147,6 +147,56 @@ describe("locks application", () => {
     });
 
     expect(updatedLocks).toEqual([]);
+  });
+
+  test("releases an owned active lock", async () => {
+    const deletedLockIds: string[] = [];
+    const existingLock = lock();
+
+    const result = await releaseLock(depsFor({ deletedLockIds, existingLock }), {
+      lockId: "lock-1",
+      sessionId: "session-1",
+      userId: "user-1"
+    });
+
+    expect(result).toEqual({
+      lock: existingLock,
+      status: "RELEASED",
+      usecase: usecase()
+    });
+    expect(deletedLockIds).toEqual(["lock-1"]);
+  });
+
+  test("rejects foreign or expired release without deleting", async () => {
+    const deletedLockIds: string[] = [];
+    const activeLock = lock();
+    const expiredLock = lock({ expires_at: "2026-05-19T23:59:00.000Z" });
+
+    await expect(
+      releaseLock(depsFor({ deletedLockIds, existingLock: activeLock }), {
+        lockId: "lock-1",
+        sessionId: "session-other",
+        userId: "user-1"
+      })
+    ).resolves.toEqual({
+      lock: activeLock,
+      status: "FOREIGN_LOCK",
+      usecase: usecase()
+    });
+
+    await expect(
+      releaseLock(depsFor({ deletedLockIds, existingLock: expiredLock }), {
+        lockId: "lock-1",
+        sessionId: "session-1",
+        userId: "user-1"
+      })
+    ).resolves.toEqual({
+      lock: expiredLock,
+      status: "EXPIRED_LOCK",
+      usecase: usecase()
+    });
+
+    expect(deletedLockIds).toEqual([]);
   });
 });
 

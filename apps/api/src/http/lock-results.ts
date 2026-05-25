@@ -18,12 +18,14 @@ export function sendLockResult(reply: FastifyReply, result: LockResult) {
             reason: "Renew the lock before it expires."
           },
           {
-            command: `vspec unlock ${result.usecase.key}`,
+            command: `vspec lock release ${result.lock.id ?? result.usecase.id}`,
             reason: "Release the lock when the edit is complete."
           }
         ]
       });
     case "RENEWED":
+      return reply.send({ lock: result.lock });
+    case "RELEASED":
       return reply.send({ lock: result.lock });
     case "COMPETING_LOCK":
       return reply.code(409).send(competingLockProblem(result.lock, result.usecase));

@@ -59,7 +59,7 @@ describe("UC-022 - Lock a use case", () => {
       reason: "Renew the lock before it expires."
     });
     expect(body.suggested_next_actions).toContainEqual({
-      command: `vspec unlock ${usecase.key}`,
+      command: `vspec lock release ${body.lock.id}`,
       reason: "Release the lock when the edit is complete."
     });
   });

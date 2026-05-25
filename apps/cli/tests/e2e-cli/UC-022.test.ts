@@ -59,7 +59,7 @@ describe("UC-022 CLI - Lock a use case", () => {
       expect(result.stdout).toContain("Auto release true");
       expect(result.stdout).toContain("Expires at ");
       expect(result.stdout).toMatch(/vspec lock renew [a-f0-9-]+/u);
-      expect(result.stdout).toContain(`vspec unlock ${setup.usecaseKey}`);
+      expect(result.stdout).toMatch(/vspec lock release [a-f0-9-]+/u);
     } finally {
       await server.stop();
     }

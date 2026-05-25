@@ -13,6 +13,7 @@ GOAL_NAME="28-lock-renew-agent-format"
 
 GATE_INPUTS=(
   apps/api/src/http/lock-results.ts
+  apps/cli/src/commands/lock-output.ts
   apps/cli/src/commands/lock.ts
   apps/cli/src/index.ts
   apps/cli/tests/unit
@@ -34,6 +35,7 @@ PASS=true
 FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_SPEC=docs/07-cli-spec.md
 LOCK_CMD=apps/cli/src/commands/lock.ts
+LOCK_OUTPUT=apps/cli/src/commands/lock-output.ts
 CLI_INDEX=apps/cli/src/index.ts
 LOCK_RESULTS=apps/api/src/http/lock-results.ts
 UNIT_TEST=apps/cli/tests/unit/lock-renew-agent-format.test.ts
@@ -118,7 +120,8 @@ fi
 
 echo "[28.C2 lock renew is routed while acquire guard remains]"
 if grep -F 'parsed.args.command === "lock" && this.argv[1] === "renew"' "$CLI_INDEX" >/dev/null 2>&1 &&
-   grep -F 'parsed.args.command === "lock" && this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1; then
+   grep -F 'this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1 &&
+   grep -F 'this.argv[1] !== "release"' "$CLI_INDEX" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — lock renew route or acquire guard missing"
@@ -128,11 +131,11 @@ fi
 echo "[28.C3 runLock supports renew]"
 RUN_LOCK_BLOCK=$(extract_function "$LOCK_CMD" "runLock")
 if [ -n "$RUN_LOCK_BLOCK" ] &&
-   printf '%s\n' "$RUN_LOCK_BLOCK" | grep -F 'action: "acquire" | "renew"' >/dev/null 2>&1 &&
+   printf '%s\n' "$RUN_LOCK_BLOCK" | grep -F 'action: "acquire" | "release" | "renew"' >/dev/null 2>&1 &&
    grep -F "/v1/locks/\${renewFlags.lockId}/renew" "$LOCK_CMD" >/dev/null 2>&1 &&
    grep -F "ttl_minutes: renewFlags.ttlMinutes" "$LOCK_CMD" >/dev/null 2>&1 &&
    grep -F "X-Vspec-Session" "$LOCK_CMD" >/dev/null 2>&1 &&
-   grep -F "suggested_next_actions ?? []" "$LOCK_CMD" >/dev/null 2>&1; then
+   grep -F "suggested_next_actions ?? []" "$LOCK_OUTPUT" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — runLock renew support incomplete"
@@ -140,11 +143,11 @@ else
 fi
 
 echo "[28.C4 lock renew builds an agent envelope]"
-if grep -F 'format === "agent"' "$LOCK_CMD" >/dev/null 2>&1 &&
-   grep -F "buildAgentEnvelope" "$LOCK_CMD" >/dev/null 2>&1 &&
-   grep -F "data: body" "$LOCK_CMD" >/dev/null 2>&1 &&
-   grep -F "context: { session_id:" "$LOCK_CMD" >/dev/null 2>&1 &&
-   grep -F "suggested_next_actions: suggestedNextActions" "$LOCK_CMD" >/dev/null 2>&1; then
+if grep -F 'format === "agent"' "$LOCK_OUTPUT" >/dev/null 2>&1 &&
+   grep -F "buildAgentEnvelope" "$LOCK_OUTPUT" >/dev/null 2>&1 &&
+   grep -F "data: body" "$LOCK_OUTPUT" >/dev/null 2>&1 &&
+   grep -F "context: { session_id:" "$LOCK_OUTPUT" >/dev/null 2>&1 &&
+   grep -F "suggested_next_actions: suggestedNextActions" "$LOCK_OUTPUT" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — lock renew agent envelope missing"

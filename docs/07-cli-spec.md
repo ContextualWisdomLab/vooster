@@ -267,8 +267,8 @@ vspec merge resolve <id> --format=agent
 ```
 vspec lock <KEY-NNN> --type soft|semantic|hard [--reason "<text>"] [--ttl <minutes>]
 vspec lock list [--mine]   # 🔵 Planned
-vspec unlock <KEY-NNN>   # 🔵 Planned
 vspec lock renew <lock-id> [--ttl <minutes>]
+vspec lock release <lock-id>
 ```
 
 ### Agent Format for Locks
@@ -303,6 +303,18 @@ with the renew response as `data`. Agents can read `data.lock.id` and
 
 ```
 vspec lock renew <lock-id> --format=agent
+```
+
+### Agent Format - Lock Release
+
+`vspec lock release <lock-id> --format=agent` returns the shared agent envelope
+with the released lock response as `data`. `context.session_id` comes from the
+caller's `--session` flag or remains null. Release responses do not populate
+suggested_next_actions, so the envelope's top-level suggested_next_actions is
+an empty array. `warnings` remains empty.
+
+```
+vspec lock release <lock-id> --format=agent
 ```
 
 ## Versioning & Impact

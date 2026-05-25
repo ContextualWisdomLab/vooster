@@ -13,7 +13,11 @@ export type LockApplicationDeps = {
 };
 
 export type LockResult =
-  | { lock: StoredLock; status: "CREATED" | "RENEWED"; usecase: StoredUseCase }
+  | {
+      lock: StoredLock;
+      status: "CREATED" | "RELEASED" | "RENEWED";
+      usecase: StoredUseCase;
+    }
   | {
       lock: StoredLock;
       status: "COMPETING_LOCK" | "EXPIRED_LOCK" | "FOREIGN_LOCK";
@@ -35,6 +39,12 @@ export type RenewLockInput = {
   lockId: string;
   sessionId: null | string;
   ttlMinutes: number;
+  userId: string | undefined;
+};
+
+export type ReleaseLockInput = {
+  lockId: string;
+  sessionId: null | string;
   userId: string | undefined;
 };
 
@@ -85,6 +95,29 @@ export async function renewLock(
   ).toISOString();
   await deps.lockStore.updateLock(lock);
   return { lock, status: "RENEWED", usecase: found.usecase };
+}
+
+export async function releaseLock(
+  deps: LockApplicationDeps,
+  input: ReleaseLockInput
+): Promise<LockResult> {
+  const lock = await deps.lockStore.findLockById(input.lockId);
+  if (lock === undefined) {
+    return { status: "LOCK_NOT_FOUND" };
+  }
+  const found = await authorizedUseCase(deps, lock.usecase_id, input.userId);
+  if (found.status !== "AUTHORIZED") {
+    return found;
+  }
+  if (!ownsLock(lock, found.userId, input.sessionId)) {
+    return { lock, status: "FOREIGN_LOCK", usecase: found.usecase };
+  }
+  if (Date.parse(lock.expires_at) <= now(deps).getTime()) {
+    return { lock, status: "EXPIRED_LOCK", usecase: found.usecase };
+  }
+
+  await deps.lockStore.deleteLock(input.lockId);
+  return { lock, status: "RELEASED", usecase: found.usecase };
 }
 
 async function authorizedUseCase(

@@ -69,6 +69,47 @@ describe("honest CLI lock acquire --format=agent", () => {
       "vspec lock renew"
     );
   });
+
+  test("agent lock release", async () => {
+    const acquire = await expectOk(
+      runCli(
+        [
+          "lock",
+          seed.usecaseKey,
+          "--type",
+          "semantic",
+          "--reason",
+          "Agent is checking release envelopes.",
+          "--ttl",
+          "15",
+          "--session",
+          "session-agent-lock",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
+    const lockId = expectAgentEnvelope(acquire.stdout).data.lock.id;
+
+    const release = await expectOk(
+      runCli(
+        [
+          "lock",
+          "release",
+          lockId,
+          "--session",
+          "session-agent-lock",
+          "--format=agent"
+        ],
+        seed.env
+      )
+    );
+
+    const envelope = expectAgentEnvelope(release.stdout);
+    expect(envelope.data.lock.id).toBe(lockId);
+    expect(envelope.context.session_id).toBe("session-agent-lock");
+    expect(envelope.suggested_next_actions).toEqual([]);
+  });
 });
 
 function expectAgentEnvelope(stdout: string): LockAgentEnvelope {

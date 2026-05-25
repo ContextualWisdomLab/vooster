@@ -38,9 +38,11 @@ describe("lock routes", () => {
   });
 
   test("derives lock ownership from session headers", async () => {
+    const deletedLockIds: string[] = [];
     const savedLocks: StoredLock[] = [];
     const updatedLocks: StoredLock[] = [];
     const routes = registeredRoutes({
+      deletedLockIds,
       existingLock: lock({ held_by_session_id: null, holder: "user-1" }),
       savedLocks,
       updatedLocks
@@ -70,11 +72,20 @@ describe("lock routes", () => {
       }),
       reply().fastifyReply
     );
+    await routes.release(
+      request({
+        body: {},
+        cookie: "vspec_session=token-1",
+        params: { lockId: "lock-1" }
+      }),
+      reply().fastifyReply
+    );
 
     expect(savedLocks.map((item) => item.held_by_session_id)).toEqual([
       "session-array",
       null
     ]);
     expect(updatedLocks).toHaveLength(1);
+    expect(deletedLockIds).toEqual(["lock-1"]);
   });
 });

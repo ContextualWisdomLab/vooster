@@ -10,13 +10,17 @@ type Handler = (request: FastifyRequest, reply: FastifyReply) => unknown;
 
 export function registeredRoutes(
   options: {
+    deletedLockIds?: string[];
     existingLock?: StoredLock;
     savedLocks?: StoredLock[];
     updatedLocks?: StoredLock[];
   } = {}
 ) {
-  const handlers: { create?: Handler; renew?: Handler } = {};
+  const handlers: { create?: Handler; release?: Handler; renew?: Handler } = {};
   const app = {
+    delete: (path: string, handler: Handler) => {
+      if (path === "/v1/locks/:lockId") handlers.release = handler;
+    },
     post: (path: string, handler: Handler) => {
       if (path === "/v1/locks") handlers.create = handler;
       else handlers.renew = handler;
@@ -31,10 +35,18 @@ export function registeredRoutes(
     useCaseStore()
   );
 
-  if (handlers.create === undefined || handlers.renew === undefined) {
+  if (
+    handlers.create === undefined ||
+    handlers.release === undefined ||
+    handlers.renew === undefined
+  ) {
     throw new Error("expected lock routes");
   }
-  return { create: handlers.create, renew: handlers.renew };
+  return {
+    create: handlers.create,
+    release: handlers.release,
+    renew: handlers.renew
+  };
 }
 
 export function request(options: {
@@ -99,11 +111,16 @@ export function lock(overrides: Partial<StoredLock> = {}): StoredLock {
 }
 
 function lockStore(options: {
+  deletedLockIds?: string[];
   existingLock?: StoredLock;
   savedLocks?: StoredLock[];
   updatedLocks?: StoredLock[];
 }): LockStore {
   return {
+    deleteLock: (lockId: string) => {
+      options.deletedLockIds?.push(lockId);
+      return Promise.resolve();
+    },
     findLockById: () => Promise.resolve(options.existingLock),
     findLockForUseCase: () => Promise.resolve(undefined),
     saveLock: (newLock: StoredLock) => {

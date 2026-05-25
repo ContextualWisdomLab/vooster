@@ -13,6 +13,7 @@ GOAL_NAME="13-lock-agent-format"
 
 GATE_INPUTS=(
   apps/cli/src/agent-envelope.ts
+  apps/cli/src/commands/lock-output.ts
   apps/cli/src/commands/lock.ts
   apps/cli/src/index.ts
   apps/cli/tests/unit
@@ -37,6 +38,7 @@ FINDINGS=docs/findings/2026-05-21T1856-cli-spec-gaps.md
 CLI_SPEC=docs/07-cli-spec.md
 CLI_INDEX=apps/cli/src/index.ts
 LOCK_CMD=apps/cli/src/commands/lock.ts
+LOCK_OUTPUT=apps/cli/src/commands/lock-output.ts
 UNIT_TEST=apps/cli/tests/unit/lock-agent-format.test.ts
 HONEST_TEST=apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts
 
@@ -52,8 +54,8 @@ extract_function() {
   local file="$1"
   local fn="$2"
   awk -v fn="$fn" '
-    $0 ~ "^(export async )?function " fn "\\(" { capture=1 }
-    capture && $0 ~ "^(export async |async )?function " && $0 !~ "^(export async )?function " fn "\\(" { exit }
+    $0 ~ "^(export )?(async )?function " fn "\\(" { capture=1 }
+    capture && $0 ~ "^(export )?(async )?function " && $0 !~ "^(export )?(async )?function " fn "\\(" { exit }
     capture { print }
   ' "$file"
 }
@@ -90,18 +92,18 @@ else
   PASS=false
 fi
 
-echo "[13.C1 lock.ts discovered by Goal 7 agent-branch source]"
+echo "[13.C1 lock output is discovered by Goal 7 agent-branch source]"
 if grep -rlE 'format === "agent"' apps/cli/src/commands 2>/dev/null |
-   grep -Fx "$LOCK_CMD" >/dev/null 2>&1; then
+   grep -Fx "$LOCK_OUTPUT" >/dev/null 2>&1; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $LOCK_CMD is not in grep -rl 'format === \"agent\"' set"
+  echo "    ✗ fail — $LOCK_OUTPUT is not in grep -rl 'format === \"agent\"' set"
   PASS=false
 fi
 
 echo "[13.C2 runLock builds an agent envelope]"
 C2_BLOCK=$(extract_function "$LOCK_CMD" "runLock")
-LOCK_OUTPUT_BLOCK=$(extract_function "$LOCK_CMD" "writeLockOutput")
+LOCK_OUTPUT_BLOCK=$(extract_function "$LOCK_OUTPUT" "writeLockOutput")
 if [ -n "$C2_BLOCK" ] &&
    printf '%s\n' "$C2_BLOCK" | grep -F "writeLockOutput" >/dev/null 2>&1 &&
    printf '%s\n' "$LOCK_OUTPUT_BLOCK" | grep -F 'format === "agent"' >/dev/null 2>&1 &&
@@ -112,9 +114,10 @@ else
   PASS=false
 fi
 
-echo "[13.C3 dispatcher keeps lock scope to acquire]"
-if ! grep -F 'parsed.args.command === "lock" && this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1; then
-  echo "    ✗ fail — lock dispatch no longer excludes renew"
+echo "[13.C3 dispatcher keeps lock scope to implemented lock verbs]"
+if ! grep -F 'this.argv[1] !== "renew"' "$CLI_INDEX" >/dev/null 2>&1 ||
+   ! grep -F 'this.argv[1] !== "release"' "$CLI_INDEX" >/dev/null 2>&1; then
+  echo "    ✗ fail — acquire dispatch no longer excludes lock subcommands"
   PASS=false
 elif grep -F 'parsed.args.command === "unlock"' "$CLI_INDEX" >/dev/null 2>&1; then
   echo "    ✗ fail — unlock dispatch is out of scope for Goal 13"

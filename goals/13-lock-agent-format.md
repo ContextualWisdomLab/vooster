@@ -25,9 +25,9 @@ This goal is additive.
 - No prior gate is retargeted.
 - No prior invariant is loosened.
 - No prior goal is superseded.
-- Goal 7's grep-based envelope gates discover command files that contain
-  `format === "agent"`, so adding a branch in `lock.ts` makes those checks cover
-  this command file automatically.
+- Goal 7's grep-based envelope gates discover command modules that contain
+  `format === "agent"`, so the shared lock output module remains covered when
+  later lock verbs reuse the renderer.
 
 ## The Goal
 
@@ -55,10 +55,10 @@ B1. **`docs/07-cli-spec.md` documents lock acquire agent format.** A marked
 
 ### Tranche C — CLI Implementation
 
-C1. **`apps/cli/src/commands/lock.ts` is discovered by the same source of truth
-as Goal 7.** The gate runs
+C1. **`apps/cli/src/commands/lock-output.ts` is discovered by the same source of
+truth as Goal 7.** The gate runs
 `grep -rl 'format === "agent"' apps/cli/src/commands` and requires
-`apps/cli/src/commands/lock.ts` to appear.
+`apps/cli/src/commands/lock-output.ts` to appear.
 
 C2. **`lock` acquire builds an agent envelope when `--format=agent` is
 requested.** The gate requires `runLock` to route lock output through the
@@ -66,9 +66,9 @@ lock renderer, and requires that renderer to contain both
 `format === "agent"` and `buildAgentEnvelope`. Goal 28 may share this
 renderer with lock renew without weakening the acquire invariant.
 
-C3. **The dispatcher still scopes this goal to acquire only.** `apps/cli/src/index.ts`
-keeps the existing `lock` dispatch guard that excludes `renew`, and no
-`unlock` dispatch exists.
+C3. **The dispatcher keeps lock acquire distinct from lock subcommands.**
+`apps/cli/src/index.ts` keeps an acquire dispatch guard that excludes `renew`
+and `release`, and no `unlock` dispatch exists.
 
 ### Tranche D — Unit Proof
 
@@ -99,7 +99,8 @@ F1. **`scripts/check-gate-rigor.sh goals/13-lock-agent-format.md` passes.**
 
 ## Scope Guards
 
-- No `lock renew`, `unlock`, `lock list`, or release implementation in this
-  goal.
+- Later goals may add `lock renew` or `lock release`, but acquire must keep
+  routing through the shared lock renderer.
+- No `unlock` or `lock list` implementation in this goal.
 - No API response shape change.
 - No prior goal gate may be weakened to pass this goal.

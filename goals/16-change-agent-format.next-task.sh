@@ -10,13 +10,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/change.ts >/dev/null 2>&
   cat <<'EOF'
 TASK: Add RED tests, then implement change propose/commit --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/change-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/change-agent-format.test.ts
-
-  Then update apps/cli/src/commands/change.ts to use buildAgentEnvelope.
-  change propose keeps context.revision null; change commit sets it from the
-  first committed revision id when present.
+  See goals/16-change-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi
@@ -25,7 +20,8 @@ if grep -F '`change propose` / `change commit`' docs/findings/2026-05-21T1856-cl
   cat <<'EOF'
 TASK: Remove change propose/commit from the agent-format debt list.
 
-  Keep lock release/renew and merge open/resolve as unrelated debt.
+  See goals/16-change-agent-format.md § "Tranche A — Findings Debt".
+  Keep unrelated remaining debt queued.
 EOF
   exit 0
 fi

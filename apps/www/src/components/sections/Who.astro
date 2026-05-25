@@ -1,0 +1,81 @@
+---
+// "진짜 사용자는 에이전트" — 사람이 명령어/유스케이스 개념을 공부해야 하는지에 대한
+// 잠재 고객의 불안을 정면으로 받아치는 섹션. HowItWorks(기술 개념) 직후, Onboarding(4스텝) 앞.
+const agentDoes = [
+  { cmd: "vspec usecase", desc: "요청을 유스케이스로 구조화" },
+  { cmd: "vspec lock", desc: "다른 에이전트의 침범 차단" },
+  { cmd: "vspec sync", desc: "코드와 spec 동기화" },
+  { cmd: "vspec diff", desc: "코드·spec 어긋남 검증" },
+] as const;
+---
+
+<section id="who" class="section bg-canvas">
+  <div class="shell">
+    <div class="max-w-[760px]">
+      <p class="eyebrow">NO LEARNING CURVE · 학습 부담 제로</p>
+      <h2 class="section-heading">
+        당신이 배울 건<br />
+        <em>아무것도 없습니다.</em>
+      </h2>
+      <p class="mt-8 max-w-[680px] text-body text-base md:text-lg leading-[1.7]">
+        AI 에이전트에 한 번만 연동해두고, 평소처럼 프롬프팅하세요.
+        Vooster에 어떤 기능과 명령어가 있는지 하나도 몰라도 됩니다 —
+        에이전트가 알아서 처리합니다.
+      </p>
+    </div>
+
+    <div class="mt-16 grid gap-5 md:grid-cols-2 items-stretch who-grid">
+      <!-- 사람이 하는 일: 자연어 한 줄 -->
+      <div class="card flex flex-col gap-5 p-7">
+        <header class="flex items-center gap-3">
+          <span class="text-2xl leading-none" aria-hidden="true">👤</span>
+          <span class="text-mute font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+            YOU · 당신
+          </span>
+        </header>
+
+        <h3 class="text-ink-strong text-lg font-semibold tracking-tight leading-snug m-0">
+          평소처럼 한국어로 말합니다
+        </h3>
+
+        <div class="mt-1 p-4 bg-canvas-raised border border-hairline rounded-sm">
+          <div class="text-mute font-mono text-[11px] uppercase tracking-[0.14em] mb-2">
+            💬 You
+          </div>
+          <p class="m-0 text-ink-strong text-[15px] leading-snug">"결제 연동 추가해줘"</p>
+        </div>
+      </div>
+
+      <!-- 에이전트가 하는 일: vspec 명령어 전부 -->
+      <div class="card-emphasized flex flex-col gap-5 p-7">
+        <header class="flex items-center gap-3">
+          <span class="text-2xl leading-none" aria-hidden="true">🤖</span>
+          <span class="text-primary-soft font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">
+            AGENT · 에이전트
+          </span>
+        </header>
+
+        <h3 class="text-ink-strong text-lg font-semibold tracking-tight leading-snug m-0">
+          복잡한 기획은 에이전트가 알아서 합니다
+        </h3>
+
+        <ul class="flex flex-col gap-3.5 m-0 p-0 list-none">
+          {agentDoes.map((item) => (
+            <li class="flex items-center gap-3">
+              <code class="code-chip shrink-0">{item.cmd}</code>
+              <span class="text-body text-[14px] leading-snug">{item.desc}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* 두 카드의 높이를 맞춰 "당신 vs 에이전트" 대비가 또렷하게 보이도록. */
+  .who-grid > .card,
+  .who-grid > .card-emphasized {
+    height: 100%;
+  }
+</style>

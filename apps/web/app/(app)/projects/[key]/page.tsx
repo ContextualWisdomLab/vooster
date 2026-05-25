@@ -8,7 +8,9 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
+import { levelLabel } from "@/lib/labels";
 import { StatusPill } from "../../../components/StatusPill";
+import { TermLabel } from "../../../components/TermLabel";
 import { fetchProjectUsecases } from "../../../data";
 
 export default async function ProjectPage({
@@ -36,7 +38,9 @@ export default async function ProjectPage({
       </Breadcrumb>
       <div>
         <div className="eyebrow">Project {key}</div>
-        <h1>Use cases</h1>
+        <h1>
+          <TermLabel term="usecase" />
+        </h1>
       </div>
       <ul className="grid list-none gap-3 p-0">
         {usecases.map((usecase) => (
@@ -51,7 +55,7 @@ export default async function ProjectPage({
                   <StatusPill status={usecase.status} />
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {usecase.key} · {usecase.level} · {usecase.primary_actor}
+                  {usecase.key} · {levelLabel(usecase.level)} · {usecase.primary_actor}
                 </span>
               </Link>
             </Card>

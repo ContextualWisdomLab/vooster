@@ -8,7 +8,9 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
+import { levelLabel, STATUS_TERM_LABEL } from "@/lib/labels";
 import { StatusPill } from "../../../../../components/StatusPill";
+import { TermLabel } from "../../../../../components/TermLabel";
 import { fetchUsecaseDetail } from "../../../../../data";
 
 export default async function UsecasePage({
@@ -56,22 +58,24 @@ export default async function UsecasePage({
       <Card className="gap-0 py-0">
         <CardContent className="grid gap-0 p-0 sm:grid-cols-3 sm:divide-x sm:divide-border">
           <div className="flex flex-col gap-1 p-5">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              primary_actor
+            <div className="text-xs font-medium tracking-wide text-muted-foreground">
+              <TermLabel term="primary_actor" />
             </div>
             <div className="text-sm font-semibold text-foreground">
               {primary_actor.name}
             </div>
           </div>
           <div className="flex flex-col gap-1 border-t border-border p-5 sm:border-t-0">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              level
+            <div className="text-xs font-medium tracking-wide text-muted-foreground">
+              <TermLabel term="level" />
             </div>
-            <div className="text-sm font-semibold text-foreground">{level}</div>
+            <div className="text-sm font-semibold text-foreground">
+              {levelLabel(level)}
+            </div>
           </div>
           <div className="flex flex-col gap-1 border-t border-border p-5 sm:border-t-0">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              status
+            <div className="text-xs font-medium tracking-wide text-muted-foreground">
+              {STATUS_TERM_LABEL}
             </div>
             <div>
               <StatusPill status={status} />
@@ -80,7 +84,9 @@ export default async function UsecasePage({
         </CardContent>
       </Card>
       <section className="grid gap-3 rounded-lg bg-tint-mint p-5">
-        <h2>main_scenario</h2>
+        <h2>
+          <TermLabel term="main_scenario" />
+        </h2>
         <div className="border-l-[3px] border-brand pl-3.5">
           {main_scenario.steps.map((step) => (
             <p key={step.step_number}>
@@ -90,7 +96,9 @@ export default async function UsecasePage({
         </div>
       </section>
       <section className="grid gap-2 rounded-lg bg-tint-peach p-5">
-        <h2>extensions</h2>
+        <h2>
+          <TermLabel term="extensions" />
+        </h2>
         {extensions.map((extension) => (
           <p key={extension.condition}>
             {extension.condition}: {extension.outcome}
@@ -98,7 +106,9 @@ export default async function UsecasePage({
         ))}
       </section>
       <section className="grid gap-2 rounded-lg bg-tint-lavender p-5">
-        <h2>stakeholder_interests</h2>
+        <h2>
+          <TermLabel term="stakeholder_interests" />
+        </h2>
         {stakeholder_interests.map((item) => (
           <p key={`${item.stakeholder}-${item.interest}`}>
             {item.stakeholder}: {item.interest}

@@ -1,12 +1,19 @@
 import { z } from "zod";
 import type { StoredActor, StoredUseCase } from "../domain/entities/index.js";
+import type { UseCaseScenarioCounts } from "../ports/scenario-store.js";
 
-export function useCasePreview(usecase: StoredUseCase, actors: StoredActor[]) {
+export function useCasePreview(
+  usecase: StoredUseCase,
+  actors: StoredActor[],
+  counts: UseCaseScenarioCounts
+) {
   return {
+    extension_count: counts.extension_count,
     key: usecase.key,
     level: usecase.level,
     primary_actor:
       actors.find((actor) => actor.id === usecase.primary_actor_id)?.name ?? "",
+    scenario_count: counts.scenario_count,
     status: usecase.status,
     title: usecase.title,
     trigger_excerpt: ""

@@ -304,7 +304,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     stakeholderInterestStore,
     useCaseStore
   );
-  registerUseCaseSearchRoutes(app, state, actorStore, membershipStore, useCaseStore);
+  registerUseCaseSearchRoutes(
+    app,
+    state,
+    actorStore,
+    membershipStore,
+    scenarioStore,
+    useCaseStore
+  );
   registerUseCaseTestRoutes(app, state, useCaseStore);
   registerRevisionDiffRoutes(
     app,

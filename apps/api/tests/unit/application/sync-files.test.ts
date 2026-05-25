@@ -288,6 +288,7 @@ function membershipStore(membership: StoredMembership | undefined): MembershipSt
 
 function scenarioStore(): ScenarioStore {
   return {
+    countScenariosByUseCase: () => Promise.resolve(new Map()),
     findMainScenario: () => Promise.resolve(mainScenario()),
     findScenarioById: () => Promise.resolve(undefined),
     listScenarios: () =>

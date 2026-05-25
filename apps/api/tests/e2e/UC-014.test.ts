@@ -1,12 +1,18 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import {
+  createExtensionScenario,
+  createUseCaseWithMainStep
+} from "../helpers/scenario-fixtures.js";
 import { startServer, type TestServer } from "../helpers/server.js";
 import { createActor, createProject, createUseCase } from "../helpers/uc-fixtures.js";
 
 type SearchResponse = {
   items: Array<{
+    extension_count: number;
     key: string;
     level: string;
     primary_actor: string;
+    scenario_count: number;
     status: string;
     title: string;
     trigger_excerpt: string;
@@ -63,8 +69,10 @@ describe("UC-014 - Search and filter use cases", () => {
     expect(firstBody.items).toEqual([
       {
         key: "CHK-001",
+        extension_count: 0,
         level: "USER_GOAL",
         primary_actor: "Customer",
+        scenario_count: 0,
         status: "DRAFT",
         title: "Reviews a refund",
         trigger_excerpt: ""
@@ -85,6 +93,41 @@ describe("UC-014 - Search and filter use cases", () => {
     const secondBody = (await second.json()) as SearchResponse;
     expect(secondBody.items.map((item) => item.key)).toEqual(["CHK-002"]);
     expect(secondBody.next_cursor).toBeNull();
+  });
+
+  test("MAIN: every listed use case includes scenario and extension counts", async () => {
+    const ready = await createUseCaseWithMainStep(
+      server,
+      "Search Counts",
+      "search-counts",
+      "stub-search-counts"
+    );
+    await createExtensionScenario(server, ready.usecase.id, ready.setup.cookie, {
+      condition: "Payment fails",
+      extension_point: "1a"
+    });
+    await createUseCase(server, ready.setup, "Customer", "Reviews empty scenarios");
+
+    const response = await searchUseCases(
+      ready.setup.cookie,
+      ready.setup.projectId,
+      {}
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as SearchResponse;
+    expect(body.items).toEqual([
+      expect.objectContaining({
+        extension_count: 1,
+        key: "CHK-001",
+        scenario_count: 2
+      }),
+      expect.objectContaining({
+        extension_count: 0,
+        key: "CHK-002",
+        scenario_count: 0
+      })
+    ]);
   });
 
   test("2a: unknown enum filters are rejected with valid values", async () => {

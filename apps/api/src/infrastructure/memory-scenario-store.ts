@@ -21,6 +21,22 @@ export function createMemoryScenarioStore(): ScenarioStore {
       );
     },
 
+    countScenariosByUseCase() {
+      return Promise.resolve(
+        new Map(
+          [...scenariosByUseCase].map(([usecaseId, scenarios]) => [
+            usecaseId,
+            {
+              extension_count: scenarios.filter(
+                (scenario) => scenario.type === "EXTENSION"
+              ).length,
+              scenario_count: scenarios.length
+            }
+          ])
+        )
+      );
+    },
+
     listScenarios(usecaseId) {
       return Promise.resolve(scenariosByUseCase.get(usecaseId) ?? []);
     },

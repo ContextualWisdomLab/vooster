@@ -10,6 +10,7 @@ import {
 } from "./usecase-search-results.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const searchQuerySchema = z.object({
@@ -26,10 +27,19 @@ export function registerUseCaseSearchRoutes(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore
 ) {
   app.get("/v1/projects/:projectId/usecases", (request, reply) =>
-    searchUseCases(request, reply, state, actorStore, membershipStore, useCaseStore)
+    searchUseCases(
+      request,
+      reply,
+      state,
+      actorStore,
+      membershipStore,
+      scenarioStore,
+      useCaseStore
+    )
   );
 }
 
@@ -39,6 +49,7 @@ async function searchUseCases(
   state: SignupState,
   actorStore: ActorStore,
   membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
   useCaseStore: UseCaseStore
 ) {
   const projectId = z
@@ -90,6 +101,7 @@ async function searchUseCases(
     await filteredUseCases(useCaseStore, projectId, parsed.data, cursor)
   ).sort((left, right) => left.key.localeCompare(right.key));
   const items = sorted.slice(0, parsed.data.limit);
+  const scenarioCounts = await scenarioStore.countScenariosByUseCase(projectId);
   const emptyActions =
     items.length === 0 && cursor === null
       ? {
@@ -106,7 +118,13 @@ async function searchUseCases(
         }
       : {};
   return reply.send({
-    items: items.map((usecase) => useCasePreview(usecase, actors)),
+    items: items.map((usecase) =>
+      useCasePreview(
+        usecase,
+        actors,
+        scenarioCounts.get(usecase.id) ?? { extension_count: 0, scenario_count: 0 }
+      )
+    ),
     next_cursor:
       sorted.length > items.length && items.length > 0
         ? encodeCursor(items[items.length - 1]?.key ?? "")

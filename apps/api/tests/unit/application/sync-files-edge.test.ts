@@ -70,6 +70,7 @@ function depsFor(): SyncFileDeps {
     projectStore: {} as SyncFileDeps["projectStore"],
     revisionStore: {} as SyncFileDeps["revisionStore"],
     scenarioStore: {
+      countScenariosByUseCase: () => Promise.resolve(new Map()),
       findMainScenario: () => Promise.resolve(undefined),
       findScenarioById: () => Promise.resolve(undefined),
       listScenarios: () => Promise.resolve([]),

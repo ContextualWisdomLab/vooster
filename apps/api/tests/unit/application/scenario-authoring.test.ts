@@ -518,6 +518,7 @@ function scenarioStore(
   savedScenarios: StoredScenario[]
 ): ScenarioStore {
   return {
+    countScenariosByUseCase: () => Promise.resolve(new Map()),
     findMainScenario: () =>
       Promise.resolve(
         existingScenarios.find((scenario) => scenario.type === "MAIN_SUCCESS")

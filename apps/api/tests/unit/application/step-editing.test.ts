@@ -276,6 +276,7 @@ function revisionStore(
 
 function scenarioStore(scenario: StoredScenario | undefined): ScenarioStore {
   return {
+    countScenariosByUseCase: () => Promise.resolve(new Map()),
     findMainScenario: () => Promise.resolve(undefined),
     findScenarioById: () => Promise.resolve(scenario),
     listScenarios: () => Promise.resolve([]),

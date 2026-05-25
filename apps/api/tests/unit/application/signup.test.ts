@@ -280,6 +280,7 @@ function signupStore(options: {
     findBranchById: () => Promise.resolve(undefined),
     findBranchByProjectAndName: () => Promise.resolve(undefined),
     findCommentById: () => Promise.resolve(undefined),
+    countScenariosByUseCase: () => Promise.resolve(new Map()),
     findGoalById: () => Promise.resolve(undefined),
     findLockById: () => Promise.resolve(undefined),
     findLockForUseCase: () => Promise.resolve(undefined),

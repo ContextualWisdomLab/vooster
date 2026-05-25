@@ -171,6 +171,26 @@ Response: `UseCase` with a freshly-allocated `key` (e.g. `PAY-001`).
 
 `q` is full-text on `title` and `trigger`.
 
+Each item includes project-overview summary counts:
+
+```json
+{
+  "items": [
+    {
+      "key": "PAY-001",
+      "title": "Submit an order",
+      "level": "USER_GOAL",
+      "status": "DRAFT",
+      "primary_actor": "Customer",
+      "scenario_count": 2,
+      "extension_count": 1,
+      "trigger_excerpt": ""
+    }
+  ],
+  "next_cursor": null
+}
+```
+
 ### `GET /v1/usecases/:id?revision=&session=&format=`
 
 `format` ∈ `human` | `json` | `agent`.

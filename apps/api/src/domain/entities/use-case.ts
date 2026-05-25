@@ -8,7 +8,7 @@ export type StoredUseCase = {
   scope: string;
   primary_actor_id: string;
   priority: "P0" | "P1" | "P2" | "P3";
-  status: "DRAFT";
+  status: "APPROVED" | "DEPRECATED" | "DRAFT" | "IN_REVIEW";
   current_revision_id: string;
   archived_at: null | string;
 };

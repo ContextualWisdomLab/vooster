@@ -14,7 +14,11 @@ describe("usecase command", () => {
         json: () =>
           Promise.resolve({
             usecase: {
+              format: "BRIEF",
               key: "PAY-001",
+              level: "USER_GOAL",
+              priority: "P1",
+              scope: "checkout",
               status: "APPROVED",
               title: "Submit an order"
             }
@@ -48,7 +52,15 @@ describe("usecase command", () => {
         method: "PATCH"
       }
     );
-    expect(lines).toEqual(["UseCase PAY-001", "Status APPROVED"]);
+    expect(lines).toEqual([
+      "UseCase PAY-001",
+      "Title Submit an order",
+      "Level USER_GOAL",
+      "Format BRIEF",
+      "Status APPROVED",
+      "Priority P1",
+      "Scope checkout"
+    ]);
   });
 
   test("sets use case title through the API", async () => {
@@ -58,7 +70,11 @@ describe("usecase command", () => {
         json: () =>
           Promise.resolve({
             usecase: {
+              format: "BRIEF",
               key: "PAY-001",
+              level: "USER_GOAL",
+              priority: "P2",
+              scope: "checkout",
               status: "DRAFT",
               title: "Reviews checkout status"
             }

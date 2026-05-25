@@ -72,7 +72,7 @@ export type UsecaseArchiveFlags = {
 
 export type UsecaseSetFlags = {
   apiUrl: string;
-  field: "status";
+  field: "format" | "level" | "priority" | "scope" | "status" | "title";
   sessionCookie: string;
   usecaseId: string;
   value: string;
@@ -144,13 +144,9 @@ export function usecaseSetFlagsFrom(
   flags: UsecaseCliFlags,
   usecaseId: string | undefined
 ): UsecaseSetFlags {
-  const field = requiredFlag(flags, "field");
-  if (field !== "status") {
-    throw new Error("Only --field status is supported.");
-  }
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
-    field,
+    field: usecaseSetField(requiredFlag(flags, "field")),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     usecaseId: requiredArgument(usecaseId, "usecase-id"),
     value: requiredFlag(flags, "value")
@@ -182,4 +178,15 @@ function usecaseFormat(rawFormat: string): "agent" | "human" | "json" {
 
 function isUsecaseFormat(format: string): format is "agent" | "human" | "json" {
   return ["agent", "human", "json"].includes(format);
+}
+
+function usecaseSetField(
+  field: string
+): "format" | "level" | "priority" | "scope" | "status" | "title" {
+  if (["format", "level", "priority", "scope", "status", "title"].includes(field)) {
+    return field as "format" | "level" | "priority" | "scope" | "status" | "title";
+  }
+  throw new Error(
+    "Supported --field values: title, level, priority, format, status, scope."
+  );
 }

@@ -1,6 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { describe, expect, test } from "vitest";
-import type { StoredMembership, StoredUseCase } from "../../../src/domain/entities/index.js";
+import type {
+  StoredMembership,
+  StoredUseCase
+} from "../../../src/domain/entities/index.js";
 import { registerUseCaseUpdateRoutes } from "../../../src/http/usecase-update-routes.js";
 import type { SignupState } from "../../../src/http/signup-types.js";
 import type { BranchStore } from "../../../src/ports/branch-store.js";

@@ -52,8 +52,13 @@ export type UseCaseUpdateDeps = {
   useCaseStore: UseCaseStore;
 };
 
+export type UseCaseMetadataChanges = Partial<
+  Pick<StoredUseCase, "format" | "level" | "priority" | "scope" | "status" | "title">
+>;
+
 export type UseCaseUpdateInput = {
-  status: "APPROVED" | "DEPRECATED" | "DRAFT" | "IN_REVIEW" | undefined;
+  changes?: UseCaseMetadataChanges;
+  status?: StoredUseCase["status"];
   usecaseId: string;
   userId: string | undefined;
 };
@@ -119,6 +124,7 @@ export async function updateUseCaseMetadata(
   deps: UseCaseUpdateDeps,
   input: UseCaseUpdateInput
 ): Promise<UseCaseUpdateResult> {
+  const changes = useCaseMetadataChanges(input);
   const found = await deps.useCaseStore.findUseCaseWithProject(input.usecaseId);
   if (found === undefined) {
     return { status: "USECASE_NOT_FOUND" };
@@ -131,16 +137,17 @@ export async function updateUseCaseMetadata(
     return { status: "FORBIDDEN" };
   }
   if (
-    input.status !== undefined &&
-    input.status !== "DRAFT" &&
+    changes.status !== undefined &&
+    changes.status !== "DRAFT" &&
     (await deps.stakeholderInterestStore.listStakeholderInterests(found.usecase.id))
       .length === 0
   ) {
     return { status: "NEEDS_STAKEHOLDER_INTEREST" };
   }
 
-  await deps.useCaseStore.updateUseCase(found.usecase);
-  return { status: "UPDATED", usecase: found.usecase };
+  const usecase = { ...found.usecase, ...changes };
+  await deps.useCaseStore.updateUseCase(usecase);
+  return { status: "UPDATED", usecase };
 }
 
 async function seededUseCase(
@@ -207,6 +214,13 @@ function useCaseNextActions(key: string) {
 
 function suggestedTitles(title: string): string[] {
   return [`Reviews ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
+}
+
+function useCaseMetadataChanges(input: UseCaseUpdateInput): UseCaseMetadataChanges {
+  return {
+    ...(input.status === undefined ? {} : { status: input.status }),
+    ...(input.changes ?? {})
+  };
 }
 
 function idFrom(deps: UseCaseAuthoringDeps): string {

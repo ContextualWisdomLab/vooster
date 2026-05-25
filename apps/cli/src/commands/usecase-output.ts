@@ -48,8 +48,13 @@ export type UsecaseShowResponse = {
 
 export type UsecaseUpdateResponse = {
   usecase: {
+    format: string;
     key: string;
+    level: string;
+    priority: string;
+    scope: string;
     status: string;
+    title: string;
   };
 };
 
@@ -204,7 +209,12 @@ export function printUsecaseUpdate(
   writeLine: (message: string) => void
 ): void {
   writeLine(`UseCase ${body.usecase.key}`);
+  writeLine(`Title ${body.usecase.title}`);
+  writeLine(`Level ${body.usecase.level}`);
+  writeLine(`Format ${body.usecase.format}`);
   writeLine(`Status ${body.usecase.status}`);
+  writeLine(`Priority ${body.usecase.priority}`);
+  writeLine(`Scope ${body.usecase.scope}`);
 }
 
 export function printUsecaseRestore(

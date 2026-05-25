@@ -1,6 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { updateUseCaseMetadata } from "../application/usecases.js";
+import {
+  updateUseCaseMetadata,
+  type UseCaseMetadataChanges
+} from "../application/usecases.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import { restoreArchivedUseCase } from "./usecase-archive-routes.js";
@@ -15,7 +18,12 @@ import type { UseCaseStore } from "../ports/usecase-store.js";
 
 const useCasePatchSchema = z.object({
   archived_at: z.null().optional(),
-  status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional()
+  format: z.enum(["BRIEF"]).optional(),
+  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]).optional(),
+  priority: z.enum(["P0", "P1", "P2", "P3"]).optional(),
+  scope: z.string().min(1).optional(),
+  status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional(),
+  title: z.string().min(1).optional()
 });
 
 export function registerUseCaseUpdateRoutes(
@@ -77,7 +85,7 @@ async function patchUseCase(
     await updateUseCaseMetadata(
       { membershipStore, stakeholderInterestStore, useCaseStore },
       {
-        status: parsed.data.status,
+        changes: metadataChangesFrom(parsed.data),
         usecaseId,
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
       }
@@ -110,4 +118,17 @@ async function restoreUseCase(
 
 function usecaseIdFrom(params: unknown): string {
   return z.object({ usecaseId: z.string().min(1) }).parse(params).usecaseId;
+}
+
+function metadataChangesFrom(
+  data: z.infer<typeof useCasePatchSchema>
+): UseCaseMetadataChanges {
+  return {
+    ...(data.format === undefined ? {} : { format: data.format }),
+    ...(data.level === undefined ? {} : { level: data.level }),
+    ...(data.priority === undefined ? {} : { priority: data.priority }),
+    ...(data.scope === undefined ? {} : { scope: data.scope }),
+    ...(data.status === undefined ? {} : { status: data.status }),
+    ...(data.title === undefined ? {} : { title: data.title })
+  };
 }

@@ -2,9 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { type Status, statusLabel } from "@/lib/labels";
 
-// Styles cover every spec status enum value. Legacy board statuses
-// (READY/IN_PROGRESS/DONE/BLOCKED) are intentionally absent — the viewer
-// renders the spec status vocabulary only.
+// Styles cover every spec status enum value. Legacy board statuses are
+// intentionally absent — the viewer renders the spec status vocabulary only.
 const STATUS_STYLES: Record<Status, string> = {
   DRAFT: "bg-tint-gray text-foreground",
   IN_REVIEW: "bg-tint-sky text-brand-strong",

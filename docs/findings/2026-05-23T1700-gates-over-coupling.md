@@ -3,7 +3,7 @@ title: "Harness scripts (gates.sh + next-task.sh) are over-coupled to code/doc f
 created_at: 2026-05-23T17:00:00Z
 priority: P1
 resolved: partial
-status_notes: "2026-05-26: Goal 20 gates/next-task trim landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goals 7-19, 21, and 23-29 are still queued."
+status_notes: "2026-05-26: Goal 18 and Goal 20 gates/next-task trims landed; 2026-05-23: Goal 22 gates/next-task trim landed as the first per-goal sub-trim; remaining goals 7-17, 19, 21, and 23-29 are still queued."
 related:
   - docs/goal-design.md
   - guidelines/goal-iteration.md
@@ -120,6 +120,9 @@ Progress:
   proof, the Goal 7 UC-set negative invariant, and gate rigor; its
   `next-task.sh` now points to goal tranches instead of helper names and test
   paths.
+- 2026-05-26: `18-history-agent-format` was trimmed to the same pattern:
+  sentinel preservation, focused unit Vitest proof, honest CLI Vitest proof,
+  the Goal 7 UC-set negative invariant, and gate rigor.
 
 The trim is straightforward but needs to be done per-goal so prior
 invariants aren't accidentally weakened.

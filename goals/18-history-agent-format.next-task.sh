@@ -10,11 +10,9 @@ if grep -F '`history`, `impact`, `revert`, `wh''o`, `comment add|list|edit|resol
   cat <<'EOF'
 TASK: Retarget prior sentinels, then narrow history debt.
 
-  Prior gates 14-17 should use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
+  See goals/18-history-agent-format.md § "Tranche A — Findings Debt".
+  The post-history sentinel remains: `lock release`.
+  RED first if the sentinel behavior is not already covered.
 EOF
   exit 0
 fi
@@ -23,12 +21,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/history.ts >/dev/null 2>
   cat <<'EOF'
 TASK: Add RED tests, then implement history --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/history-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/history-agent-format.test.ts
-
-  Then update apps/cli/src/commands/history.ts to use buildAgentEnvelope.
-  context.revision should come from data.revisions[0].revision when present.
+  See goals/18-history-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

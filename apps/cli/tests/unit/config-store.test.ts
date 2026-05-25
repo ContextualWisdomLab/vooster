@@ -1,4 +1,11 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -12,10 +19,16 @@ import {
 
 describe("config-store", () => {
   const tmpDirs: string[] = [];
-  const previousEnv: { VSPEC_CONFIG_PATH?: string; VSPEC_GLOBAL_CONFIG_PATH?: string } =
-    {};
+  const previousEnv: {
+    HOME?: string;
+    NODE_ENV?: string;
+    VSPEC_CONFIG_PATH?: string;
+    VSPEC_GLOBAL_CONFIG_PATH?: string;
+  } = {};
 
   beforeEach(() => {
+    previousEnv.HOME = process.env.HOME;
+    previousEnv.NODE_ENV = process.env.NODE_ENV;
     previousEnv.VSPEC_CONFIG_PATH = process.env.VSPEC_CONFIG_PATH;
     previousEnv.VSPEC_GLOBAL_CONFIG_PATH = process.env.VSPEC_GLOBAL_CONFIG_PATH;
     delete process.env.VSPEC_CONFIG_PATH;
@@ -23,6 +36,8 @@ describe("config-store", () => {
   });
 
   afterEach(() => {
+    restoreEnv("HOME", previousEnv.HOME);
+    restoreEnv("NODE_ENV", previousEnv.NODE_ENV);
     if (previousEnv.VSPEC_CONFIG_PATH === undefined) {
       delete process.env.VSPEC_CONFIG_PATH;
     } else {
@@ -87,6 +102,19 @@ describe("config-store", () => {
   });
 
   describe("writeConfig isolation", () => {
+    it("refuses implicit global writes from test contexts", () => {
+      const home = tempDir();
+      delete process.env.VSPEC_CONFIG_PATH;
+      delete process.env.VSPEC_GLOBAL_CONFIG_PATH;
+      process.env.HOME = home;
+      process.env.NODE_ENV = "test";
+
+      expect(() => writeConfig({ session_token: "token" })).toThrow(
+        /VSPEC_CONFIG_PATH/
+      );
+      expect(existsSync(join(home, ".vspec", "config.json"))).toBe(false);
+    });
+
     it("does not bleed the per-repo overlay into the global config when writing the global config", () => {
       seedGlobal({ api_url: "https://example.com" });
       const repo = tempDir();
@@ -132,5 +160,13 @@ describe("config-store", () => {
   function seedLocal(cwd: string, values: Record<string, string>): void {
     mkdirSync(join(cwd, ".vspec"), { recursive: true });
     writeFileSync(join(cwd, ".vspec", "config.json"), JSON.stringify(values));
+  }
+
+  function restoreEnv(name: "HOME" | "NODE_ENV", value: string | undefined): void {
+    if (value === undefined) {
+      delete process.env[name];
+      return;
+    }
+    process.env[name] = value;
   }
 });

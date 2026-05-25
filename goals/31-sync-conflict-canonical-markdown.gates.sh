@@ -11,7 +11,7 @@ MARKDOWN_HITS="$(mktemp -t vspec-goal31-usecase-markdown.XXXXXX)"
 trap 'rm -f "$MARKDOWN_HITS"' EXIT
 
 echo "[31.A1] sync source no longer calls usecaseMarkdown"
-if rg -n 'usecaseMarkdown\s*\(' apps/api/src >"$MARKDOWN_HITS"; then
+if grep -rEn 'usecaseMarkdown[[:space:]]*\(' apps/api/src >"$MARKDOWN_HITS"; then
   echo "    ✗ fail — stripped sync markdown helper is still referenced:"
   sed 's/^/        /' "$MARKDOWN_HITS"
   PASS=false

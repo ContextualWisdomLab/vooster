@@ -48,7 +48,7 @@ export type CompleteOAuthResult =
       user: StoredUser;
       workspaces: WorkspaceSummary[];
     }
-  | { status: "UNVERIFIED_EMAIL" | "USER_NOT_FOUND" }
+  | { status: "UNVERIFIED_EMAIL" | "USER_ALREADY_EXISTS" | "USER_NOT_FOUND" }
   | { status: "WORKSPACE_SLUG_TAKEN"; suggestedSlug: string };
 
 export function startGithubOAuth(
@@ -80,6 +80,9 @@ async function completeSignup(
   profile: GithubProfile,
   pending: PendingSignup
 ): Promise<CompleteOAuthResult> {
+  if ((await deps.userStore.findUserByGithubId(profile.githubId)) !== undefined) {
+    return { status: "USER_ALREADY_EXISTS" };
+  }
   if (await deps.workspaceStore.workspaceSlugExists(pending.slug)) {
     return {
       status: "WORKSPACE_SLUG_TAKEN",

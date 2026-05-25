@@ -118,6 +118,30 @@ describe("UC-002 - Log in", () => {
     expect(body.recommended_next_command).toBe("vspec workspace create");
   });
 
+  test("2a: known user cannot sign up again with a workspace block", async () => {
+    const first = await completeDeviceSignup(
+      "stub-access-token-repeat-user",
+      "Repeat Workspace",
+      "repeat-workspace"
+    );
+    expect(first.status).toBe(201);
+
+    const second = await completeDeviceSignup(
+      "stub-access-token-repeat-user",
+      "Second Repeat Workspace",
+      "second-repeat-workspace"
+    );
+
+    expect(second.status).toBe(409);
+    const body = (await second.json()) as ProblemResponse;
+    expect(body.title).toMatch(/already has a vspec account/i);
+    expect(JSON.stringify(body)).not.toContain("P2002");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: "vspec login",
+      reason: "Re-run login without workspace flags."
+    });
+  });
+
   test("*a: GitHub network failure during login returns retry guidance", async () => {
     const loginStart = await startLogin();
     const login = await completeOAuth("stub-github-network-failure", loginStart);
@@ -164,5 +188,23 @@ async function completeOAuth(code: string, start: { cookie: string; state: strin
 
   return server.fetch(`/v1/auth/github/callback?${params.toString()}`, {
     headers: { Cookie: start.cookie }
+  });
+}
+
+function completeDeviceSignup(
+  accessToken: string,
+  workspaceName: string,
+  workspaceSlug: string
+) {
+  return server.fetch("/v1/auth/github/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      access_token: accessToken,
+      workspace: {
+        name: workspaceName,
+        slug: workspaceSlug
+      }
+    })
   });
 }

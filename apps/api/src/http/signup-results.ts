@@ -52,6 +52,15 @@ export function sendCompleteOAuthResult(
             { command: "vspec login", reason: "Sign up before logging in." }
           ])
         );
+    case "USER_ALREADY_EXISTS":
+      return reply.code(409).send(
+        problem(409, "GitHub identity already has a vspec account", {}, [
+          {
+            command: "vspec login",
+            reason: "Re-run login without workspace flags."
+          }
+        ])
+      );
     case "WORKSPACE_SLUG_TAKEN":
       return reply.code(422).send(
         problem(422, "Workspace slug is already taken", {

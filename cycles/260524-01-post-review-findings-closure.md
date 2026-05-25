@@ -1,4 +1,13 @@
-# 260524-goal.md — Post-review findings closure
+---
+cycle: 260524-01
+title: Post-review findings closure
+authored_at: 2026-05-24T03:47:00+09:00
+started_at: 2026-05-24T03:47:00+09:00
+completed_at: 2026-05-24T04:34:28+09:00
+status: complete
+---
+
+# 260524-01 — Post-review findings closure
 
 **목표**: 2026-05-23 dogfood-findings 브랜치에 대한 claude 리뷰
 (`claude-feedback.md`) 와 2026-05-24 spec ↔ impl audit
@@ -205,7 +214,8 @@ LOOP:
 - **#3 cycle 진입 시**: 동일하게 Gap A 처리 후 status_notes 에 한 줄
   추가. `resolved` 는 `partial` 유지.
 - **종료 시**: `resolved` 는 `partial`. status_notes 에 "Gap B — OPEN
-  (deferred — see 260524-goal.md Out of scope)" 명시.
+  (deferred — see cycles/260524-01-post-review-findings-closure.md
+  Out of scope)" 명시.
 
 ---
 

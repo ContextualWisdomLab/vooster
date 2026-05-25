@@ -1,4 +1,13 @@
-# 260523-goal.md — Overnight findings closure
+---
+cycle: 260523-01
+title: Overnight findings closure
+authored_at: 2026-05-23T03:54:56+09:00
+started_at: 2026-05-23T03:54:56+09:00
+completed_at: 2026-05-23T05:35:58+09:00
+status: complete
+---
+
+# 260523-01 — Overnight findings closure
 
 **목표**: 2026-05-23 세션에서 만든 7 개 findings 문서를 우선순위/의존성
 순서대로 닫는다. 일부는 goal 로 promote, 일부는 직접 작업. 매 finding

@@ -1,6 +1,6 @@
 오케이 난 이제 codex goal 돌려놓고 자러가고싶거든?
 
-이 goal 기능은, 정해진 프롬프트를 조건이 충족될때까지 무한대로 돌리는 기능이야. 이 기능을 잘 사용하기위해, 루트경로에 `260523-goal.md`라는 파일을 만들어두고, codex에게 `/goal 260523-goal.md의 내용을 모두 완수할때까지 작업해줘.`라고 지시할거야. 이를 위한 260523-goal.md 파일을 작성해보자.
+이 goal 기능은, 정해진 프롬프트를 조건이 충족될때까지 무한대로 돌리는 기능이야. 이 기능을 잘 사용하기위해, `cycles/` 폴더에 `YYMMDD-NN-<slug>.md` (예: `cycles/260523-01-overnight-findings-closure.md`) 라는 사이클 구동 문서를 만들어두고, codex에게 `/goal cycles/260523-01-overnight-findings-closure.md 의 내용을 모두 완수할때까지 작업해줘.`라고 지시할거야. 컨벤션은 `cycles/README.md` 참조. 이를 위한 사이클 문서를 작성해보자.
 
 여기엔 다음 내용이 반드시 포함되어야해.
 

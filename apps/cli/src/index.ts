@@ -125,7 +125,7 @@ export class VspecCommand extends Command {
       return;
     }
     if (parsed.args.command === "status") {
-      runStatus(parsed.flags, this.log.bind(this));
+      await runStatus(parsed.flags, this.log.bind(this));
       return;
     }
     if (parsed.args.command === "ai-guide") {

@@ -112,6 +112,45 @@ describe("honest CLI local context --format=agent", () => {
       "workspace-two"
     );
   });
+
+  test("human status shows active session context", async () => {
+    const statusSeed = await seedViaCli({
+      apiUrl: server.apiUrl,
+      projectKey: "STA",
+      runCli
+    });
+    const started = await expectOk(
+      runCli(
+        [
+          "session",
+          "start",
+          "--intent",
+          "Coordinate status panel work",
+          "--pin",
+          statusSeed.usecaseKey,
+          "--auto-branch",
+          "--branch-name",
+          "agent/status-panel"
+        ],
+        statusSeed.env
+      )
+    );
+    const sessionId = started.stdout.match(/Session ([^\s]+)/u)?.[1];
+    expect(sessionId).toBeDefined();
+
+    const status = await expectOk(runCli(["status"], statusSeed.env));
+
+    expect(status.stdout).toContain("Project STA");
+    expect(status.stdout).toContain("Active sessions 1");
+    expect(status.stdout).toContain(`Session ${sessionId as string}`);
+    expect(status.stdout).toContain("Intent Coordinate status panel work");
+    expect(status.stdout).toContain(`Pins ${statusSeed.usecaseKey}`);
+    expect(status.stdout).toContain("Branch agent/status-panel");
+    expect(status.stdout).toContain("Locks 1");
+    expect(status.stdout).toContain(
+      'Next action vspec session start --intent "..." --pin <KEY-NNN>'
+    );
+  });
 });
 
 function expectAgentEnvelope<TData>(stdout: string): AgentEnvelope<TData> {

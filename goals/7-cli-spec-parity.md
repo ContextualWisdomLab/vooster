@@ -110,7 +110,7 @@ B6. **The per-repo `.vspec/config.json` is actually read by subsequent
 commands run from the same cwd.** "Binding" means the file is not
 just written but observed. The gate runs `vspec init --project BOUND`
 in a tmp directory, then `vspec status` from the same directory, and
-asserts stdout contains `current_project_key BOUND`. Without the
+asserts stdout contains `Project BOUND`. Without the
 `config-store.ts` cwd-discovery overlay, status falls back to the
 global config and the assertion fails.
 

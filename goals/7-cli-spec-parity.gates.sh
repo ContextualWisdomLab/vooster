@@ -415,7 +415,7 @@ if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
     if [ -f "$B6_TMP/.vspec/config.json" ]; then
       B6_STATUS_OK=true
     fi
-    if grep -qE 'current_project_key[[:space:]]+BOUND' "$B6_STDOUT"; then
+    if grep -qE 'Project[[:space:]]+BOUND' "$B6_STDOUT"; then
       B6_KEY_OK=true
     fi
     if [ "$B6_STATUS_OK" = true ] && [ "$B6_KEY_OK" = true ]; then
@@ -425,7 +425,7 @@ if [ -f "$INIT_CMD" ] && [ -f "$CLI_BIN" ]; then
         echo "    ✗ fail — init did not create $B6_TMP/.vspec/config.json"
       fi
       if [ "$B6_KEY_OK" = false ]; then
-        echo "    ✗ fail — vspec status from same cwd did not surface current_project_key BOUND"
+        echo "    ✗ fail — vspec status from same cwd did not surface Project BOUND"
         echo "       stdout was:"
         while IFS= read -r line; do
           echo "         $line"

@@ -62,7 +62,7 @@ afterEach(() => {
 });
 
 describe("local context --format=agent", () => {
-  test("agent status", () => {
+  test("agent status", async () => {
     useIsolatedConfig();
     writeConfig({
       api_url: "https://api.example.test",
@@ -73,7 +73,7 @@ describe("local context --format=agent", () => {
     });
     const lines: string[] = [];
 
-    runStatus({ format: "agent" }, (line) => lines.push(line));
+    await runStatus({ format: "agent" }, (line) => lines.push(line));
 
     const stdout = lines.join("\n");
     const envelope = expectAgentEnvelope<StatusData>(stdout);
@@ -128,9 +128,16 @@ describe("local context --format=agent", () => {
       profile: "default"
     });
     const statusLines: string[] = [];
-    runStatus({}, (line) => statusLines.push(line));
-    expect(statusLines).toContain("api_url https://api.example.test");
-    expect(statusLines).toContain("current_project_key PAY");
+    await runStatus({}, (line) => statusLines.push(line));
+    expect(statusLines).toContain("Project PAY");
+    expect(statusLines).toContain("Workspace workspace-1");
+    expect(statusLines).toContain("Branch main");
+    expect(statusLines).toContain("Session none");
+    expect(statusLines).toContain("Active sessions run: vspec session list");
+    expect(statusLines).toContain("Locks run: vspec who <KEY-NNN>");
+    expect(statusLines).toContain(
+      'Next action vspec session start --intent "..." --pin <KEY-NNN>'
+    );
 
     const workspaceLines: string[] = [];
     runWorkspace({}, "switch", "workspace-two", (line) => workspaceLines.push(line));

@@ -138,3 +138,7 @@ authoring rules for claude-owned goals — lives in
 
 You are not racing. You are building correctly. Each commit is a tiny, verified
 step. The system grows as a series of small, correct moves.
+
+## Tool rules
+
+- Do not use `AskUserQuestions` tool

@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { exportGherkin } from "../../../src/application/gherkin-export.js";
-import { depsFor, scenarios, usecase } from "./gherkin-export-fixtures.js";
+import {
+  depsFor,
+  scenario,
+  scenarios,
+  step,
+  usecase
+} from "./gherkin-export-fixtures.js";
 
 describe("Gherkin export application", () => {
   test("renders deterministic feature text with sorted extensions", async () => {
@@ -32,6 +38,47 @@ Scenario: 1b Address is incomplete.
   When Customer Adds an address.
   Then outcome is FAILURE
 `);
+  });
+
+  test("renders extension defaults and sorts steps by step number", async () => {
+    const extension = {
+      ...scenario("scenario-default-extension", "EXTENSION", null, null),
+      parent_step_number: null
+    };
+    const result = await exportGherkin(
+      depsFor({
+        scenarios: [scenario("scenario-main", "MAIN_SUCCESS", null, null), extension],
+        stepsByScenario: new Map([
+          ["scenario-main", [step("scenario-main", "Completes checkout.")]],
+          [
+            "scenario-default-extension",
+            [
+              {
+                ...step("scenario-default-extension", "Retries later."),
+                actor_id: "missing-actor",
+                step_number: 2
+              },
+              step("scenario-default-extension", "Sees the failure.")
+            ]
+          ]
+        ])
+      }),
+      {
+        revisionId: undefined,
+        usecaseId: "usecase-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result.status).toBe("EXPORTED");
+    if (result.status !== "EXPORTED") {
+      throw new Error("expected Gherkin to export");
+    }
+    expect(result.feature).toContain(`Scenario: * Extension
+  Given main success reaches step 0
+  When Customer Sees the failure.
+  When System Retries later.
+  Then outcome is FAILURE`);
   });
 
   test("rejects missing use cases and guards revision reads behind membership", async () => {

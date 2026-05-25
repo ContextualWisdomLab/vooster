@@ -125,7 +125,7 @@ function revision(): StoredRevision {
   };
 }
 
-function scenario(
+export function scenario(
   id: string,
   type: StoredScenario["type"],
   extensionPoint: string | null,
@@ -143,7 +143,7 @@ function scenario(
   };
 }
 
-function step(scenarioId: string, action: string): StoredStep {
+export function step(scenarioId: string, action: string): StoredStep {
   return {
     action,
     actor_id: "actor-1",

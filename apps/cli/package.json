@@ -9,6 +9,9 @@
   "scripts": {
     "build": "cd ../.. && tsc -p tsconfig.json",
     "test": "cd ../.. && vitest run apps/cli/tests",
+    "test:e2e": "cd ../.. && vitest run apps/cli/tests/e2e-cli apps/cli/tests/e2e-cli-honest",
+    "test:unit": "cd ../.. && vitest run apps/cli/tests/unit",
+    "test:coverage": "cd ../.. && vitest run --config vitest.cli-unit.config.ts --coverage",
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
   }
 }

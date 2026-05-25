@@ -6,6 +6,7 @@
 #   M.2 — eslint . --max-warnings 0 clean
 #   M.3 — vitest run --coverage passes (tests green + coverage thresholds)
 #   M.4 — every app under apps/* with a build script builds
+#   M.5 — CLI in-process unit coverage passes on its dedicated surface
 #
 # These claims used to be duplicated across goals 0/1/2/3/4/5/8 and the
 # CI workflow. Centralizing here:
@@ -55,6 +56,7 @@ GATE_INPUTS=(
   tsconfig.json
   tsconfig.eslint.json
   vitest.config.ts
+  vitest.cli-unit.config.ts
   eslint.config.js
   goals/_meta.gates.sh
   goals/_meta.md
@@ -79,6 +81,7 @@ trap cleanup_meta_logs EXIT
 TSC_LOG="$LOG_DIR/tsc.log"
 ESLINT_LOG="$LOG_DIR/eslint.log"
 VITEST_LOG="$LOG_DIR/vitest.log"
+CLI_COVERAGE_LOG="$LOG_DIR/cli-coverage.log"
 
 # ─── M.1 TypeScript clean ───────────────────────────────────────────────
 echo "[M.1] tsc --noEmit (every TypeScript file compiles)"
@@ -143,6 +146,17 @@ else
     PASS=false
   fi
 fi
+
+# ─── M.5 CLI unit-source coverage ───────────────────────────────────────
+echo "[M.5] @vooster/cli unit-source coverage (in-process surface thresholds met)"
+CLI_COVERAGE_DIR=$(mktemp -d)
+if VSPEC_CLI_COVERAGE_DIR="$CLI_COVERAGE_DIR" pnpm --filter @vooster/cli test:coverage >"$CLI_COVERAGE_LOG" 2>&1; then
+  echo "    ✓ pass"
+else
+  echo "    ✗ fail — see $CLI_COVERAGE_LOG"
+  PASS=false
+fi
+rm -rf "$CLI_COVERAGE_DIR"
 
 if [ "$PASS" = true ]; then
   gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"

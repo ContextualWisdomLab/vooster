@@ -32,28 +32,34 @@
    declared in `vitest.config.ts` are met (`pnpm exec vitest run --coverage`).
 4. **Every app under `apps/*` that declares a `build` script** (api, cli, web,
    www) builds successfully (`pnpm --filter @vooster/<app> build`).
+5. **CLI in-process unit source coverage** passes on the dedicated surface
+   declared in `vitest.cli-unit.config.ts` (`pnpm --filter @vooster/cli
+test:coverage`). Spawned CLI e2e tests remain behavior coverage, not V8
+   source coverage.
 
 각 condition 은 source-of-truth 로부터 enumerate 된다:
 
-| Condition        | Source of truth                                                       | Iteration                                 |
-| ---------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| typecheck        | `tsconfig.json` 의 transitive include                                 | `pnpm exec tsc --noEmit` (sweep)          |
-| lint             | `eslint.config.js` 의 적용 범위                                       | `pnpm exec eslint .` (sweep)              |
-| tests + coverage | `vitest.config.ts`                                                    | `pnpm exec vitest run --coverage` (sweep) |
-| builds           | `find apps -maxdepth 2 -name package.json` 중 `scripts.build` 가진 것 | bash `for` loop over `pnpm --filter`      |
+| Condition         | Source of truth                                                       | Iteration                                  |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| typecheck         | `tsconfig.json` 의 transitive include                                 | `pnpm exec tsc --noEmit` (sweep)           |
+| lint              | `eslint.config.js` 의 적용 범위                                       | `pnpm exec eslint .` (sweep)               |
+| tests + coverage  | `vitest.config.ts`                                                    | `pnpm exec vitest run --coverage` (sweep)  |
+| builds            | `find apps -maxdepth 2 -name package.json` 중 `scripts.build` 가진 것 | bash `for` loop over `pnpm --filter`       |
+| CLI unit coverage | `vitest.cli-unit.config.ts`                                           | `pnpm --filter @vooster/cli test:coverage` |
 
 ## Env flags
 
 | Env                       | Effect                                                                                                                                                                                                                                                                                           |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VSPEC_GATES_SKIP_DEEP=1` | M.3 (vitest + coverage) 와 M.4 (app builds) 를 스킵. 빠른 iteration 용. 풀 검증은 그 env 없이.                                                                                                                                                                                                   |
+| `VSPEC_GATES_SKIP_DEEP=1` | M.3 (vitest + coverage) 와 M.4 (app builds) 를 스킵. 빠른 iteration 용. M.5 CLI unit-source coverage는 빠른 in-process suite라 shallow run에서도 유지한다. 풀 검증은 그 env 없이.                                                                                                                |
 | `VSPEC_GATES_SKIP_META=1` | `completion-check.sh` 가 `_meta` 전체를 sweep 에서 제외. CI 워크플로우에서만 사용 — workflow step 들이 이미 lint/typecheck/test/build 를 명시적으로 돌리고 있으므로 중복 실행을 피한다. 로컬 full sweep(`pnpm verify` 또는 pre-push hook)에서는 이 env 가 unset 이므로 `_meta` 가 정상 실행된다. |
 
 `SKIP_DEEP` 은 numeric goal 들의 `SKIP_DEEP` 정책과 동일한 의미 — 외부
 시스템 / 무거운 도구 호출을 빠른 iteration 에서만 우회.
 Shallow runs use a separate `_meta-shallow` cache key so repeated local
 completion checks can skip M.1/M.2 when inputs are unchanged without ever
-claiming that M.3/M.4 have run. A full run saves both `_meta` and
+claiming that M.3/M.4 have run. M.5 still runs in shallow mode because it is
+the fast CLI source-coverage signal that complements spawned CLI e2e. A full run saves both `_meta` and
 `_meta-shallow`, because it proves every shallow claim too.
 
 `SKIP_META` 는 환경별 책임 분리다. **"메타 claim 은 누가 enforce 하는가"**

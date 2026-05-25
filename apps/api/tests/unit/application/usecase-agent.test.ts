@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { agentData } from "../../../src/application/usecase-agent-data.js";
 import { showUseCaseForAgent } from "../../../src/application/usecase-agent.js";
 import type {
   StoredActor,
@@ -36,6 +37,28 @@ describe("usecase agent application", () => {
     ]);
     expect(result.data.scenarios[0]?.steps).toEqual([
       { action: "Places an order.", actor: "Customer", step_number: 1 }
+    ]);
+  });
+
+  test("uses explicit fallback labels when referenced readers are missing", async () => {
+    const deps = depsFor();
+    deps.actorStore = {
+      ...deps.actorStore,
+      findActorById: () => Promise.resolve(undefined)
+    };
+    deps.stakeholderStore = {
+      ...deps.stakeholderStore,
+      findStakeholderById: () => Promise.resolve(undefined)
+    };
+
+    const data = await agentData(deps, "project-1", usecase());
+
+    expect(data.primary_actor).toEqual({ name: "System" });
+    expect(data.scenarios[0]?.steps).toEqual([
+      { action: "Places an order.", actor: "System", step_number: 1 }
+    ]);
+    expect(data.stakeholder_interests).toEqual([
+      { interest: "Checkout revenue is protected.", stakeholder: "" }
     ]);
   });
 

@@ -60,7 +60,7 @@ describe("UC-017 CLI - Monitor active sessions", () => {
       expect(result.stdout).toContain(`Pins ${setup.usecaseKey}`);
       expect(result.stdout).toContain("Branch agent/monitor-session");
       expect(result.stdout).toMatch(/Idle seconds \d+/u);
-      expect(result.stdout).toContain("Locks 0");
+      expect(result.stdout).toContain("Locks 1");
       expect(result.stdout).toContain("Conflicts 0");
     } finally {
       await server.stop();

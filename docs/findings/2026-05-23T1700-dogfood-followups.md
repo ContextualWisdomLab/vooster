@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -44,7 +44,6 @@ as long as it closes each declared item with an enumerated gate.
 
 - **Self-teaching CLI** (`core differentiator #3` in
   `docs/00-overview.md`): A5, B2, B3.
-- **Doctor & status surface**: A4.
 - **Project / session context refresh**: A7, A8, A9, B6.
 - **CLI dispatcher & verb coverage**: A14, A15, H2.
 - **API contract honesty**: A12, B1, B4.
@@ -52,13 +51,6 @@ as long as it closes each declared item with an enumerated gate.
 - **Test isolation hazards**: H1.
 
 ## Open findings
-
-### A4 — `vspec status` is a 4-line key/value dump
-
-CLI spec §"Self-Teaching Behaviors §3" promises an active-sessions
-table, lock indicators, peers, and a next-action hint. Today it prints
-four config keys. Without this panel the "6+ concurrent agents" story
-has no visible surface.
 
 ### A5 — Self-teaching errors are not self-teaching
 
@@ -196,6 +188,9 @@ CLI-side warning per the soft-warning spec.
 
 ## Already closed
 
+- **A4** — Closed by 3b13715: human `vspec status` now shows the bound
+  project/workspace/branch/session panel, live active session and lock context
+  from `/v1/sessions` when authenticated, and the next session-start action.
 - **A6** — Closed by 7c8b6ec: root help now shows grouped command families,
   and both `vspec help <command>` and `<command> --help` route through the
   command-specific renderer.

@@ -14,6 +14,8 @@ export type UsecaseSummary = {
   primary_actor: string;
   status: string;
   title: string;
+  scenario_count: number;
+  extension_count: number;
 };
 
 export type UsecaseDetail = {
@@ -54,7 +56,9 @@ const demoUsecases: UsecaseSummary[] = [
     level: "USER_GOAL",
     primary_actor: "Customer",
     status: "DRAFT",
-    title: "Places an order"
+    title: "Places an order",
+    scenario_count: 1,
+    extension_count: 1
   }
 ];
 

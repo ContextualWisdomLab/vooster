@@ -147,7 +147,13 @@ async function setUsecase(
     }
   );
 
-  printUsecaseUpdate(response.body as UsecaseUpdateResponse, writeLine);
+  const body = response.body as UsecaseUpdateResponse;
+  if (flags.format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
+    return;
+  }
+
+  printUsecaseUpdate(body, writeLine);
 }
 
 async function createUsecase(

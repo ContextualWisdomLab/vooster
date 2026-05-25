@@ -3,7 +3,7 @@ title: Dogfood Follow-Ups — queued from 2026-05-23
 created_at: 2026-05-23T17:00:00Z
 priority: P2
 resolved: partial
-status_notes: "B4 closed by a817b92; H1 closed by fe5e79c; A15 closed by f7a3cb1; A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
+status_notes: "H2 closed by 4837084; B4 closed by a817b92; H1 closed by fe5e79c; A15 closed by f7a3cb1; A13/H3 closed by 4183c2a; B1 closed by 781b758; A12 closed by 0587abf; A7/A8/A9/B6 closed by 79351d6; A5/B2/B3 closed by 48390e2; A4 closed by 3b13715; A6 closed by 7c8b6ec; A1/A3/A10/A11 closed by docs/findings/2026-05-23T1750-dogfood-roundtrip.md; A2/B5 closed by docs/findings/2026-05-23T1825-doctor-route.md; remaining open IDs stay queued below."
 related:
   - docs/findings/2026-05-22T1632-dogfood-snapshot.md
   - docs/findings/2026-05-23T1700-gates-over-coupling.md
@@ -42,14 +42,16 @@ They are now listed under "Already closed" below.
 These groupings are advisory only; a future goal can choose any subset
 as long as it closes each declared item with an enumerated gate.
 
-- **CLI dispatcher & verb coverage**: A14, H2.
+- **Planned verb coverage**: A14.
 
 ## Open findings
 
-### A14 — Many spec-promised verbs are not routed at all
+### A14 — Planned verbs are not implemented yet
 
-The CLI dispatcher is a hand-maintained if/else chain. Unrouted /
-404 surfaces (full table in the snapshot):
+The dispatcher is no longer the bottleneck: implemented verbs are declared in
+one route table. The remaining items from the snapshot are product/API scope
+decisions or `docs/07-cli-spec.md` planned surfaces, not accidental missing
+dispatcher branches:
 
 ```
 workspace create / list
@@ -65,23 +67,18 @@ lock list / unlock <KEY>
 impact session [<id>]
 export project
 member list / set-role / remove
-help <command>
 diff (local-vs-server, no args)
 ```
 
-Beta-blockers from the snapshot: `session pin / unpin`, `unlock`,
-`merge preview`, `scenario edit / delete`, `step delete`, `help <cmd>`.
-
-### H2 — The CLI is a 400-line if/else chain in `index.ts`
-
-Every new verb requires editing `apps/cli/src/index.ts` in two
-places. Most "unrouted" verbs in A14 are unrouted because the
-dispatcher entry is missing, not because the command file is missing.
-A declarative table (`commands: Record<string, handler>`) would close
-the gap and unlock a real `COMMANDS` block for A6.
+Beta-blockers from the snapshot that remain planned/unimplemented:
+`session pin / unpin`, `unlock`, `merge preview`, `scenario edit / delete`,
+and `step delete`. `help <cmd>` was closed under A6.
 
 ## Already closed
 
+- **H2** — Closed by 4837084: `apps/cli/src/index.ts` now dispatches through a
+  single `Record<string, handler>` route table and exposes `commandRouteKeys()`
+  for unit tests and route-aware gates.
 - **B4** — Closed by a817b92: implemented write verbs now have agent-format
   coverage; the remaining verbs without output contracts are still queued under
   A14 until they are routed and implemented.

@@ -69,14 +69,17 @@ jobs:
       # _meta M.1 — typecheck.
       - name: Typecheck (tsc --noEmit)
         run: pnpm run typecheck
+      # _meta M.4 — every workspace app with a `build` script builds.
+      # `pnpm -r build` enumerates apps via pnpm-workspace.yaml and skips
+      # packages without a build script. Must run BEFORE the test step:
+      # apps/api/tests/integration/dogfood-test.test.ts consumes the build
+      # output (dist/scripts/dogfood-smoke.js) and asserts the script does
+      # not rebuild it, so the artifact must already exist when vitest runs.
+      - name: Build all workspace apps
+        run: pnpm -r build
       # _meta M.3 — vitest with coverage thresholds (subsumes plain test).
       - name: Test + coverage
         run: pnpm run test:coverage
-      # _meta M.4 — every workspace app with a `build` script builds.
-      # `pnpm -r build` enumerates apps via pnpm-workspace.yaml and skips
-      # packages without a build script.
-      - name: Build all workspace apps
-        run: pnpm -r build
       # Goal-local gates only (meta skipped via env above).
       - name: Run goal gate sweep
         run: bash scripts/completion-check.sh

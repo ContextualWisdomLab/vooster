@@ -13,13 +13,9 @@ if grep -F "$OLD_LOCK_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >/d
   cat <<'EOF'
 TASK: Retarget prior lock sentinels, then split findings to lock release.
 
-  Prior gate + next-task files that used lock release/renew as the
-  remaining-debt sentinel should now use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
-    `merge resolve public conflict setup`
+  See goals/28-lock-renew-agent-format.md § "Tranche A — Findings Debt".
+  Prior gate + next-task files should keep the next sentinel: `lock release`.
+  Findings should also keep: `merge resolve public conflict setup`.
 EOF
   exit 0
 fi
@@ -29,25 +25,19 @@ if grep -lF "$OLD_LOCK_BULLET" goals/*.gates.sh goals/*.next-task.sh 2>/dev/null
   cat <<'EOF'
 TASK: Finish retargeting prior lock sentinels.
 
-  Replace remaining goal gate/next-task sentinel literals:
-    `lock release` / `lock renew`
-
-  With:
-    `lock release`
+  See goals/28-lock-renew-agent-format.md § "Tranche A — Findings Debt".
+  The next remaining-debt sentinel is: `lock release`.
 EOF
   exit 0
 fi
 
-if ! grep -F 'parsed.args.command === "lock" && this.argv[1] === "renew"' apps/cli/src/index.ts >/dev/null 2>&1 ||
+if ! grep -F '"lock renew":' apps/cli/src/index.ts >/dev/null 2>&1 ||
    ! grep -F "/v1/locks/\${renewFlags.lockId}/renew" apps/cli/src/commands/lock.ts >/dev/null 2>&1; then
   cat <<'EOF'
 TASK: Add RED tests, then implement lock renew --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/lock-renew-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/lock-renew-agent-format.test.ts
-
-  Then update lock.ts, index.ts, and acquire guidance to support lock-id renew.
+  See goals/28-lock-renew-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

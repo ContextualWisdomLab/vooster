@@ -122,6 +122,18 @@ scanning, and what to do if a secret is leaked — live in the `/commit`
 skill (`.claude/skills/commit/SKILL.md`). Read it before your first
 commit in a session.
 
+## Delegating Presentation Work to Claude
+
+Presentation-layer goals (UI/UX, copywriting, design — typically under
+`apps/web` and `apps/www`) can be delegated to Claude Code headless instead
+of being built by the looping agent. A goal opts in with a `## Delegation`
+section in its `.md` (`owner: claude`); `scripts/next-task.sh` then routes
+to `scripts/delegate-to-claude.sh`. The contract — marker schema, the
+cwd-is-the-only-boundary rule, the self-looping dispatcher, and the
+authoring rules for claude-owned goals — lives in
+`docs/claude/delegation.md`. The `claude -p` flag reference is
+`docs/claude/headless.md`.
+
 ## Final Note
 
 You are not racing. You are building correctly. Each commit is a tiny, verified

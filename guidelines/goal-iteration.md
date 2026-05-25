@@ -158,6 +158,29 @@ git log --oneline -5  # 이번 iteration 커밋들이 보여야 함
 세부 규약(메시지 포맷, `--no-verify` 사용 조건, 시크릿 유출 대응 등)
 은 `/commit` 스킬을 따른다.
 
+## Delegated goals (claude-owned)
+
+Some goals — presentation layer work (UI/UX, copywriting, design) — are
+built by Claude Code instead of by you. Such a goal's `.md` declares a
+`## Delegation` section (`owner: claude`). When the active goal is
+claude-owned, `scripts/diagnose.sh` / `scripts/next-task.sh` say so and
+point at the dispatcher; do **not** run Phase 4 TDD yourself. Instead:
+
+```
+bash scripts/delegate-to-claude.sh <goal-name>   # self-loops, one Claude step/round
+case $? in
+  0) bash scripts/completion-check.sh ;;          # green → verify + advance + push
+  3) ;;                                            # stalled/budget — blocker written; stop, escalate
+  *) echo "hard error — inspect .state/delegation/<goal>.log" ;;
+esac
+```
+
+The dispatcher is the deterministic single owner of that one goal (stall
+counting, cumulative budget, fresh `--resume`-less calls). You just call
+it once and read the verdict; `completion-check.sh` remains the contract
+for "actually green + no regression." Full mechanism and the
+claude-owned-goal authoring rules: `docs/claude/delegation.md`.
+
 ## When You Are Stuck
 
 If you have spent more than 3 TDD cycles without progress on a single test:
@@ -306,6 +329,17 @@ doc when the goal turned out to be design-only — see
 
 배경 분석: `docs/findings/2026-05-23T1700-gates-over-coupling.md`
 (gates 와 next-task 양쪽의 over-coupling 패턴을 함께 다룬다).
+
+### 위임 goal 의 next-task 는 처방을 _더_ 얇게
+
+claude-owned goal (위 "Delegated goals" 참조) 에서는 `next-task.sh` 출력이
+그대로 Claude 에게 "현재 step" 으로 전달된다. 그래서 (II) mechanism
+prescription 의 비용이 평소보다 크다 — 정확한 JSX/심볼명/코드 전문을 박으면
+위임의 이유(Claude 의 디자인·카피 판단)를 그대로 죽인다. 위임 goal 의
+next-task 는 **"무엇(=현재 sub-gate 가 요구하는 것)" 만** 안내하고 "어떻게"
+는 전부 빼라. 동시에 (I) state detection 은 평소보다 _더_ 촘촘해야 한다 —
+sub-gate 마다 detector 가 있어야 "지금 어디까지" 가 신뢰성 있게 나온다.
+근거: `docs/claude/delegation.md` "위임 goal authoring 요건".
 
 ## Active Goal Lookup
 

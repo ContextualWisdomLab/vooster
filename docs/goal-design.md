@@ -395,3 +395,50 @@ TDD 단계, state 파일 규칙, gate 설계 원칙을 모른 채 작업을 시�
 이 self-audit 이 누락된 채 새 goal 이 들어가면 `completion-check` 는
 초록일 수 있어도 시스템의 의미가 조용히 무너진다 — gate 가 무엇을
 약속하는지 아무도 더 이상 보장하지 않게 된다.
+
+## Claude 위임 (claude-owned goals)
+
+presentation layer 작업(UI/UX, 카피라이팅, 디자인)은 codex 대신 Claude
+Code에 headless로 위임할 수 있다. goal 의 `.md` 가 `## Delegation` 섹션을
+선언하면 그 goal 은 **claude-owned** 이 된다:
+
+```markdown
+## Delegation
+
+- owner: claude
+- cwd: apps/web
+- model: opus
+```
+
+이때 흐름이 바뀌는 지점은 "codex 가 직접 TDD" 자리 하나뿐이다:
+
+- `scripts/next-task.sh` 가 활성 goal 의 이 마커를 감지해
+  `scripts/delegate-to-claude.sh` 로 라우팅한다 (advisory hint).
+- `delegate-to-claude.sh` 가 그 goal 의 단일 결정론적 오케스트레이터로서
+  Claude 를 **한 step 씩**(= 그 goal 의 `next-task.sh` 출력) 호출해 짓고,
+  게이트가 green 이 되면 종료한다. 정체/예산 초과 시 blocker 후 exit 3.
+- 그 뒤의 검증 경계(`completion-check.sh` 의 게이트 확인 · 포인터 전진 ·
+  회귀 점검)는 **일반 goal 과 완전히 동일**하다.
+
+핵심 불변량:
+
+- **핸드오프 패킷은 goal trio 자체다.** 완료가 이미 `gates.sh` 라는
+  기계검증 계약으로 표현되므로, 위임에 별도 작업지시 포맷이 필요 없다 —
+  `goal.md`(계약) + `next-task.sh` 출력(현재 step)을 Claude 에 인라인한다.
+- **`## Delegation` 은 rigor 와 무관한 메타데이터다.** universal claim ↔
+  enumeration 규칙(§1)에 영향을 주지 않으며 `check-gate-rigor.sh` 에
+  걸리지 않는다.
+- **cwd 가 유일한 안전 경계다.** 위임 호출은 `--dangerously-skip-permissions`
+  로 권한 프롬프트를 끄므로, Claude 가 다른 레이어(api/domain/ports/
+  scripts/goals)를 못 건드리게 막는 건 선언된 `cwd` 디렉토리뿐이다.
+
+위임 대상 goal 의 authoring 요건(이건 §1 의 universal-gate 규칙과 별개로
+위임 품질을 좌우한다):
+
+1. `next-task.sh` 가 sub-gate 마다 빠짐없이 detector 를 갖춘 완전한 state
+   machine 일 것 ("지금 어디까지" 의 신뢰성).
+2. next-task 힌트는 처방을 얇게 — "무엇" 만, "어떻게(정확한 코드/심볼명)"
+   는 빼라. 처방이 두꺼우면 위임의 이유(Claude 의 디자인·카피 판단)를
+   죽인다.
+
+전체 계약과 메커니즘: `docs/claude/delegation.md`.

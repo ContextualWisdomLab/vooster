@@ -3,6 +3,11 @@
 > **목적**: codex가 Claude Code에 코드 리뷰/피드백을 요청할 때, 이 문서를
 > 인용하여 정확한 명령어를 구성한다. 모든 플래그는 `claude --help` (Claude
 > Code v2.x) 출력을 기준으로 검증되었다.
+>
+> **작업(빌드) 위임은 별도 문서**: codex가 presentation goal을 Claude에
+> headless로 _짓게_ 하는 경우(리뷰가 아니라 construction)는
+> `docs/claude/delegation.md`의 계약을 따른다. 이 문서는 그 위임 호출이
+> 쓰는 플래그의 레퍼런스다.
 
 ## 핵심 개념
 
@@ -200,6 +205,28 @@ claude -p "..." --permission-mode plan --tools "Read,Grep,Glob"
 ```bash
 claude -p "..." --permission-mode acceptEdits --allowedTools "Read,Edit,Bash(git diff *)"
 ```
+
+### 7.1 위임(construction) 루프의 권장 조합 — cwd 가 경계
+
+`bypassPermissions` / `--dangerously-skip-permissions` 는 위 표에서 "격리
+환경 전용" 으로 적었지만, 그건 _권한이 유일한 경계일 때_ 의 보수적 규칙이다.
+codex → Claude **작업 위임 루프**(`docs/claude/delegation.md`)에서는 다른
+보완 통제를 쓴다: **cwd 를 goal 이 선언한 앱 디렉토리로 고정**한다.
+
+```bash
+cd apps/web && claude --dangerously-skip-permissions \
+  --model opus --output-format json --max-budget-usd 2.00 \
+  --append-system-prompt "이 디렉토리 밖은 손대지 말 것" \
+  -p "<goal.md + 현재 step>"
+```
+
+- skip-permissions 는 권한 _프롬프트_ 만 없앤다(헝 방지) — _blast radius_ 는
+  cwd 가 정한다. repo 루트에서 절대 돌리지 말고, api/domain 을 `--add-dir`
+  로 열지 마라.
+- `--bare` 는 **쓰지 않는다** — cwd 의 `CLAUDE.md`/`DESIGN.md` 가 자동
+  로드되어야 무상태 재호출 간 디자인 계약이 유지된다(§12 참조).
+- 비용·정체 상한은 위임 오케스트레이터(`scripts/delegate-to-claude.sh`)가
+  결정론적으로 강제한다.
 
 ## 8. 시스템 프롬프트
 

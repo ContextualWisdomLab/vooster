@@ -147,6 +147,22 @@ describe("goal promotion application", () => {
     });
   });
 
+  test("promotes vspec verb titles without a warning", async () => {
+    const result = await promoteGoal(
+      depsFor({ goal: goal({ description: "Pin a use case" }) }),
+      {
+        goalId: "goal-1",
+        userId: "user-1"
+      }
+    );
+
+    expect(result.status).toBe("PROMOTED");
+    if (result.status !== "PROMOTED") {
+      throw new Error("expected vspec verb title to promote");
+    }
+    expect(result.titleWarning).toBeUndefined();
+  });
+
   test("promotes an already loaded goal for use case creation flows", async () => {
     const result = await promoteLoadedGoal(depsFor(), {
       goal: goal(),

@@ -72,6 +72,32 @@ describe("use case authoring application", () => {
     });
   });
 
+  test.each([
+    "Pin a use case",
+    "Pull project specs",
+    "Push local changes",
+    "Start a session",
+    "Lock a use case",
+    "Unlock a use case",
+    "Branch from main",
+    "Merge a branch",
+    "Sync markdown files",
+    "Run diagnostics",
+    "Author a use case",
+    "Diagnose project drift",
+    "Diff local changes",
+    "Revert a revision",
+    "Comment on a use case",
+    "Export markdown",
+    "Import markdown",
+    "Inspect project health"
+  ])("accepts vspec verb phrase title '%s'", async (title) => {
+    await expect(authorUseCase(depsFor(), input({ title }))).resolves.toMatchObject({
+      status: "CREATED",
+      usecase: { title }
+    });
+  });
+
   test("returns failure statuses without writing", async () => {
     await expect(
       authorUseCase(depsFor({ membership: undefined }), input())

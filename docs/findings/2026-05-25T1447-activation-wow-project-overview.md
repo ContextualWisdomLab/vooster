@@ -5,6 +5,8 @@ resolved: false
 priority: P1
 kind: snapshot
 status_notes: |
+  2026-05-26: F1(web-viewer-de-jargon) closed via delegated goal 32
+  (commits 629957b..1d4d672); F2/F3/F4 remain child work.
   분석/결정 스냅샷(rationale, goal 아님). 실행은 자식 findings로 분해:
   F1(웹뷰어 디저젯) · F2(프로젝트 개요 청사진) · F3(페르소나 dogfood 하니스) ·
   F4(GAP-A 생성 보조). 실유저 측정은 docs/practices/analytics.md.

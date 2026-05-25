@@ -1,8 +1,15 @@
 ---
 title: "F1 — 웹 뷰어 디저젯: 캐논 용어 라벨 + ? popover 용어집"
 created_at: 2026-05-25T15:03:32Z
-resolved: false
+resolved: true
 priority: P1
+resolved_by:
+  - 629957b
+  - 79eb478
+  - 9b12f51
+  - 8364bd1
+  - fe4bd78
+  - 1d4d672
 related:
   - docs/findings/2026-05-25T1447-activation-wow-project-overview.md
   - apps/web/app/components/StatusPill.tsx
@@ -111,3 +118,18 @@ enum인지 자유텍스트인지 코드 미확인. enum이면 번역 대상(`FAI
 apps/web). 위 "Gate (universal claim)"가 그대로 `goals/<n>.gates.sh`가 되고,
 승격 goal의 next-task 힌트는 처방을 얇게 둔다(용어집/popover의 정확한 코드 대신
 "무엇"만 — Claude의 표기 판단을 살림). 계약: `docs/claude/delegation.md`.
+
+## Resolution
+
+Closed by delegated goal 32:
+
+- `629957b` added `apps/web/lib/labels.ts` and exhaustive unit coverage for level/status labels and glossary descriptions.
+- `79eb478`/`9b12f51` aligned `StatusPill` to `DRAFT`/`IN_REVIEW`/`APPROVED`/`DEPRECATED` and removed legacy status tokens.
+- `8364bd1` added the `TermLabel` question-mark popover affordance.
+- `fe4bd78` replaced raw project/use-case page labels and raw level rendering with canonical labels and glossary popovers.
+- `1d4d672` added `goals/32-web-viewer-de-jargon.*` as the machine gate for the promoted finding.
+
+Acceptance evidence:
+
+- `bash goals/32-web-viewer-de-jargon.gates.sh` passed on 2026-05-26, including the raw-label negative check, enum label checks, glossary checks, web unit tests, typecheck, and gate rigor.
+- `bash scripts/completion-check.sh` passed with goal 32 included and `.state/active-goal` returning to `ALL_DONE`.

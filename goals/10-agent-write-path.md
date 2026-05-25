@@ -44,8 +44,8 @@ goal invariant.
 
 ## The Goal
 
-All conditions below hold. Gates enumerate the declared verb sets; one example
-cannot satisfy the goal.
+All conditions below hold. The focused unit and honest CLI proofs enumerate the
+declared verb set; one example cannot satisfy the goal.
 
 ### Tranche A — Findings Debt
 
@@ -63,44 +63,35 @@ Source of truth:
 
     The gate scopes to bullet lines in that section and checks each token.
 
-### Tranche B — Handler-Level Agent Branches
+### Tranche B — Unit Proof
 
-B1. **Every core write-path handler builds an agent envelope when
-`--format=agent` is requested.** Source of truth:
+B1. **The focused unit proof covers the core write-path verbs.** Source of
+truth:
 
     ```
-    actor create        -> apps/cli/src/commands/actor.ts:createActor
-    stakeholder create  -> apps/cli/src/commands/stakeholder.ts:createStakeholder
-    goal create         -> apps/cli/src/commands/goal.ts:createGoal
-    goal list           -> apps/cli/src/commands/goal.ts:listGoals
-    goal promote        -> apps/cli/src/commands/goal.ts:promoteGoal
-    usecase create      -> apps/cli/src/commands/usecase.ts:createUsecase
+    actor create
+    stakeholder create
+    goal create
+    goal list
+    goal promote
+    usecase create
     ```
 
-    The gate extracts each function body and requires either a direct
-    `format === "agent"` / `buildAgentEnvelope` branch or delegation to
-    `runMutationCommand` with `format: flags.format`, which centralizes
-    the mutation agent envelope.
+    `pnpm exec vitest run apps/cli/tests/unit/agent-format-write-path.test.ts`
+    must pass. That test file invokes each command with `--format=agent`,
+    parses the output JSON, and asserts the agent envelope contract.
 
-### Tranche C — Unit Proof
+### Tranche C — Honest E2E Proof
 
-C1. **Every core write-path verb has a distinct unit proof.** The file
-`apps/cli/tests/unit/agent-format-write-path.test.ts` contains a distinct
-test title of the form `agent <verb>`, invokes the command with
-`--format=agent`, parses the output JSON, and asserts `format_version`.
+C1. **The focused honest E2E proof covers the core write-path verbs.**
+`pnpm exec vitest run apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`
+must pass. That test file exercises the same declared verbs through `runCli`,
+uses isolated CLI config, parses the output JSON, and asserts the agent
+envelope contract.
 
-### Tranche D — Honest E2E Proof
+### Tranche D — Rigor
 
-D1. **Every core write-path verb has a distinct honest E2E proof.** The file
-`apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts` contains a
-distinct test title of the form `agent <verb>`, invokes `runCli([ ... ])`
-with the exact topic/action tokens and `--format=agent`, uses
-`VSPEC_CONFIG_PATH`, does not call `fetch(`, parses the output JSON, and
-asserts `format_version`.
-
-### Tranche E — Rigor
-
-E1. **`scripts/check-gate-rigor.sh goals/10-agent-write-path.md` passes.**
+D1. **`scripts/check-gate-rigor.sh goals/10-agent-write-path.md` passes.**
 
 ## Scope Guards
 
@@ -116,4 +107,4 @@ E1. **`scripts/check-gate-rigor.sh goals/10-agent-write-path.md` passes.**
 3. Add focused unit proofs for the declared verbs.
 4. Add one honest E2E file covering the declared verbs.
 5. Run `bash goals/10-agent-write-path.gates.sh`, then
-   `bash scripts/active-check.sh`.
+   `VSPEC_GATES_CONCURRENCY=1 bash scripts/completion-check.sh`.

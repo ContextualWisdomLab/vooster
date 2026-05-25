@@ -8,6 +8,7 @@ related:
   - docs/findings/2026-05-25T1503-web-viewer-de-jargon.md
   - apps/web/app/(app)/projects/[key]/page.tsx
   - apps/web/app/data.tsx
+  - docs/claude/delegation.md
 ---
 
 # F2 — 프로젝트 개요 = 구조화 청사진 (substance 카운트 + 예외 강조)
@@ -86,3 +87,12 @@ related:
 - 예외 _조건 텍스트 칩_(top-N condition enrich).
 - 액터/레벨/기능영역 그룹핑(라이트 출시 반응 본 뒤 결정).
 - 관계 그래프·완성도 스코어·라이브 리프레시·impact 오버레이(WOW-4).
+
+## Promotion (위임)
+
+**혼합 goal**이다 — 백엔드(usecases 응답 `scenario_count`/`extension_count`
+enrich + 단일 집계 쿼리)는 codex의 TDD 영역이고, 프론트(개요 페이지)는
+presentation이다. whole-goal 위임만 구현된 현재는 **슬라이스-레벨 위임**
+(`docs/claude/delegation.md`의 Open decision) 케이스라: 백엔드 sub-goal(codex)과
+프론트 claude-owned sub-goal로 **분할**하거나, 분할 전까진 codex-led로 둔다
+(F1 claude-owned 선행 의존은 그대로 유지).

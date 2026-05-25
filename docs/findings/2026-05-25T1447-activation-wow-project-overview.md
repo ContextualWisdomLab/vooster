@@ -17,6 +17,7 @@ related:
   - form-data/vooster-icp-gap-analysis.md
   - form-data/vooster-early-access-summary.md
   - docs/00-overview.md
+  - docs/claude/delegation.md
 ---
 
 # 스냅샷 — WOW-3·4 activation 분석 + 디저젯된 프로젝트 개요 결정

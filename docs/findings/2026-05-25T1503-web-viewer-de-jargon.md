@@ -10,6 +10,7 @@ related:
   - apps/web/app/(app)/projects/[key]/page.tsx
   - apps/web/lib/labels.ts
   - apps/web/DESIGN.md
+  - docs/claude/delegation.md
 ---
 
 # F1 — 웹 뷰어 디저젯: 캐논 용어 라벨 + ? popover 용어집
@@ -102,3 +103,11 @@ enum인지 자유텍스트인지 코드 미확인. enum이면 번역 대상(`FAI
 ## 크기
 
 ~1일 (라벨 헬퍼·용어집 + `?` popover 컴포넌트 + 두 페이지 적용 + 단위테스트).
+
+## Promotion (위임)
+
+순수 presentation 작업(apps/web 한정, 데이터 중립 → gate 깨끗)이라 goal로 승격
+시 **claude-owned 위임 goal**이 된다 — `## Delegation` (owner: claude, cwd:
+apps/web). 위 "Gate (universal claim)"가 그대로 `goals/<n>.gates.sh`가 되고,
+승격 goal의 next-task 힌트는 처방을 얇게 둔다(용어집/popover의 정확한 코드 대신
+"무엇"만 — Claude의 표기 판단을 살림). 계약: `docs/claude/delegation.md`.

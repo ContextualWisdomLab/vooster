@@ -8,6 +8,7 @@ related:
   - docs/findings/2026-05-25T1503-web-viewer-de-jargon.md
   - docs/findings/2026-05-25T1511-project-overview-blueprint.md
   - docs/claude/headless.md
+  - docs/claude/delegation.md
   - form-data/vooster-icp-gap-analysis.md
 ---
 
@@ -92,3 +93,11 @@ dogfood/
 - 나머지 페르소나(주니어·개발자, 메타하네스 시니어).
 - 실유저 측정은 본 프록시가 아니라 `docs/practices/analytics.md`(post-beta).
 - 결과가 크면 goal로 승격.
+
+## 위임 하니스와의 관계
+
+본 `run.sh`는 codex→Claude 위임 오케스트레이터(`scripts/delegate-to-claude.sh`,
+`docs/claude/delegation.md`)와 형제 headless-loop다 — 차용할 결정론 패턴: 최종
+result 이벤트에서 cost/`is_error`를 jq로 파싱, 누적 예산·정체(stall) 캡, cwd
+격리(여기선 `dogfood/consumer/`). 단 본 finding은 위임 _대상_ 이 아니라 관찰
+도구이고, transcript를 위해 `stream-json`을 쓰는 점만 다르다.

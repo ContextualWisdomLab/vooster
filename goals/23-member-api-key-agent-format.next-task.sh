@@ -13,12 +13,9 @@ if grep -F "$OLD_MEMBER_BULLET" docs/findings/2026-05-21T1856-cli-spec-gaps.md >
   cat <<'EOF'
 TASK: Retarget prior member/API-key sentinels, then remove that findings debt.
 
-  Prior gate + next-task files that used member/API-key as the remaining-debt
-  sentinel should now use:
-    `lock release`
-
-  Findings should keep:
-    `lock release`
+  See goals/23-member-api-key-agent-format.md § "Tranche A — Findings Debt".
+  The next remaining-debt sentinel is: `lock release`.
+  RED first if the sentinel behavior is not already covered.
 EOF
   exit 0
 fi
@@ -28,11 +25,8 @@ if ! grep -F 'format === "agent"' apps/cli/src/commands/member.ts >/dev/null 2>&
   cat <<'EOF'
 TASK: Add RED tests, then implement member/API-key --format=agent.
 
-  Start with:
-    apps/cli/tests/unit/member-api-key-agent-format.test.ts
-    apps/cli/tests/e2e-cli-honest/member-api-key-agent-format.test.ts
-
-  Then update member.ts and api-key.ts to use buildAgentEnvelope.
+  See goals/23-member-api-key-agent-format.md § "Tranche C — CLI Implementation",
+  § "Tranche D — Unit Proof", and § "Tranche E — Honest E2E Proof".
 EOF
   exit 0
 fi

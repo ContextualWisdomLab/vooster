@@ -43,6 +43,11 @@ goal 로 promote, 일부는 claude 위임, 대부분 직접 작업. 매 작업 �
 ## 루프 알고리즘
 
 ```
+  step 0 — 최초 1회 (루프 진입 전):
+    이 문서(cycles/260526-01) frontmatter 갱신:
+      started_at = 현재 시각(ISO-8601 +09:00), status: running.
+    → commit + push.
+
 LOOP:
 
   step 1 — chain 상태 확인:
@@ -89,7 +94,10 @@ LOOP:
 2. `bash scripts/completion-check.sh` exit 0
 3. `git status --short` 비어 있고 `git log @{u}..HEAD` 비어 있음 (push 완료)
 
-종료 시 `docs/state/learnings.md` 에 한 줄 요약 append.
+종료 시: 이 문서(cycles/260526-01) frontmatter 의 `completed_at` 을 현재
+시각으로 기입하고 `status` 를 `complete`(모든 in-scope 닫힘) 또는
+`partial`(deferred 남음)로 갱신. 그리고 `docs/state/learnings.md` 에 한 줄
+요약 append. → commit + push.
 
 **막혀도 종료하지 마라.** 한 target 에서 stuck → blocker 기록 → 다음
 target. 모든 target 이 stuck 인 극단적 경우에만, 닫은 것까지 commit/push

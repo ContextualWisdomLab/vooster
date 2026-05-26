@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  usecaseParamsSchema,
+  usecasePatchRequestSchema,
+  type UsecasePatchRequest
+} from "@vooster/contracts";
 import {
   updateUseCaseMetadata,
   type UseCaseMetadataChanges
@@ -15,16 +19,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const useCasePatchSchema = z.object({
-  archived_at: z.null().optional(),
-  format: z.enum(["BRIEF"]).optional(),
-  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]).optional(),
-  priority: z.enum(["P0", "P1", "P2", "P3"]).optional(),
-  scope: z.string().min(1).optional(),
-  status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional(),
-  title: z.string().min(1).optional()
-});
 
 export function registerUseCaseUpdateRoutes(
   app: FastifyInstance,
@@ -62,7 +56,7 @@ async function patchUseCase(
   stakeholderInterestStore: StakeholderInterestStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = useCasePatchSchema.safeParse(request.body);
+  const parsed = usecasePatchRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid use case update"));
   }
@@ -117,12 +111,10 @@ async function restoreUseCase(
 }
 
 function usecaseIdFrom(params: unknown): string {
-  return z.object({ usecaseId: z.string().min(1) }).parse(params).usecaseId;
+  return usecaseParamsSchema.parse(params).usecaseId;
 }
 
-function metadataChangesFrom(
-  data: z.infer<typeof useCasePatchSchema>
-): UseCaseMetadataChanges {
+function metadataChangesFrom(data: UsecasePatchRequest): UseCaseMetadataChanges {
   return {
     ...(data.format === undefined ? {} : { format: data.format }),
     ...(data.level === undefined ? {} : { level: data.level }),

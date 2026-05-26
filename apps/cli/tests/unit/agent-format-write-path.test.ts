@@ -131,6 +131,8 @@ describe("--format=agent write-path envelopes", () => {
 
   test("agent usecase create", async () => {
     stubFetch({
+      revision: { version_number: 1 },
+      suggested_next_actions: [{ command: "vspec scenario add", reason: "Write." }],
       usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" }
     });
     const lines: string[] = [];

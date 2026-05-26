@@ -5,8 +5,11 @@ import {
   projectListResponseSchema,
   projectRenameRequestSchema,
   projectRenameResponseSchema,
+  usecaseAgentEnvelopeSchema,
+  usecaseListResponseSchema,
   type ActorSummary as ContractActorSummary,
-  type ProjectListItem
+  type ProjectListItem,
+  type UsecaseListResponse
 } from "@vooster/contracts";
 import { mutateApi, readApi } from "./api-client";
 import {
@@ -22,14 +25,11 @@ import {
 
 export type ProjectSummary = ProjectListItem;
 
-export type UsecaseSummary = {
-  key: string;
-  level: string;
-  primary_actor: string;
-  status: string;
-  title: string;
-  scenario_count: number;
+type ContractUsecaseSummary = UsecaseListResponse["items"][number];
+
+export type UsecaseSummary = ContractUsecaseSummary & {
   extension_count: number;
+  scenario_count: number;
 };
 
 export type ActorSummary = Pick<
@@ -49,8 +49,8 @@ export type UsecaseInvokedBy = {
 export type UsecaseDetail = {
   title: string;
   primary_actor: { name: string };
-  level: string;
-  status: string;
+  level: UsecaseSummary["level"];
+  status: UsecaseSummary["status"];
   main_scenario: {
     steps: Array<{
       action: string;
@@ -89,7 +89,11 @@ export async function fetchProjectUsecases(
     return stubUsecases(projectKey);
   }
 
-  return readApi<UsecaseSummary[]>(`/v1/projects/${projectKey}/usecases`);
+  const response = await readApi(
+    `/v1/projects/${projectKey}/usecases`,
+    usecaseListResponseSchema
+  );
+  return response.items;
 }
 
 export async function fetchProjectActors(projectKey: string): Promise<ActorSummary[]> {
@@ -112,7 +116,77 @@ export async function fetchUsecaseDetail(
     return stubUsecaseDetail(projectKey, ucKey);
   }
 
-  return readApi<UsecaseDetail>(`/v1/usecases/${ucKey}?format=agent`);
+  const response = await readApi(
+    `/v1/usecases/${ucKey}?format=agent`,
+    usecaseAgentEnvelopeSchema
+  );
+  return usecaseDetailFromAgentData(response.data);
+}
+
+function usecaseDetailFromAgentData(
+  data: ReturnType<typeof usecaseAgentEnvelopeSchema.parse>["data"]
+): UsecaseDetail {
+  const scenarios = data.scenarios ?? [];
+  const main = scenarios.find((scenario) => scenario.type === "MAIN_SUCCESS");
+  return {
+    title: stringFrom(data.title ?? data.usecase.title),
+    primary_actor: data.primary_actor ?? { name: "" },
+    level: levelFrom(data.usecase.level),
+    status: statusFrom(data.usecase.status),
+    main_scenario: {
+      steps: main?.steps ?? []
+    },
+    extensions: scenarios
+      .filter((scenario) => scenario.type === "EXTENSION")
+      .map((scenario) => ({
+        condition: scenario.condition ?? "",
+        outcome: stringFrom(scenario.outcome)
+      })),
+    stakeholder_interests: data.stakeholder_interests ?? [],
+    invoked_by: invokedByFrom(data.invoked_by)
+  };
+}
+
+function invokedByFrom(value: unknown[] | undefined): UsecaseInvokedBy[] {
+  return (value ?? [])
+    .filter(isInvokedBy)
+    .map(({ key, step_number, title }) => ({ key, step_number, title }));
+}
+
+function isInvokedBy(value: unknown): value is UsecaseInvokedBy {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "key" in value &&
+    "step_number" in value &&
+    "title" in value &&
+    typeof value.key === "string" &&
+    typeof value.step_number === "number" &&
+    typeof value.title === "string"
+  );
+}
+
+function levelFrom(value: unknown): UsecaseSummary["level"] {
+  if (value === "SUMMARY" || value === "USER_GOAL" || value === "SUBFUNCTION") {
+    return value;
+  }
+  return "USER_GOAL";
+}
+
+function statusFrom(value: unknown): UsecaseSummary["status"] {
+  if (
+    value === "DRAFT" ||
+    value === "IN_REVIEW" ||
+    value === "APPROVED" ||
+    value === "DEPRECATED"
+  ) {
+    return value;
+  }
+  return "DRAFT";
+}
+
+function stringFrom(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 export type CreateProjectInput = {

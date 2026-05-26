@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
+import { usecaseParamsSchema, usecaseShowQuerySchema } from "@vooster/contracts";
 import { showUseCaseForAgent } from "../application/usecase-agent.js";
 import { authenticatedUserId } from "./session-support.js";
 import { sendUseCaseAgentResult } from "./usecase-agent-results.js";
@@ -15,13 +15,6 @@ import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
-
-const paramsSchema = z.object({ usecaseId: z.string().min(1) });
-const querySchema = z.object({
-  format: z.enum(["agent", "human", "json"]).default("human"),
-  revision: z.string().optional(),
-  session: z.string().optional()
-});
 
 export function registerUseCaseAgentRoutes(
   app: FastifyInstance,
@@ -71,8 +64,8 @@ async function showUseCase(
   stakeholderStore: StakeholderStore,
   stepStore: StepStore
 ) {
-  const usecaseId = paramsSchema.parse(request.params).usecaseId;
-  const query = querySchema.parse(request.query);
+  const usecaseId = usecaseParamsSchema.parse(request.params).usecaseId;
+  const query = usecaseShowQuerySchema.parse(request.query);
   return sendUseCaseAgentResult(
     reply,
     await showUseCaseForAgent(

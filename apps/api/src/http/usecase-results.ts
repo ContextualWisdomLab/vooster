@@ -1,4 +1,8 @@
 import type { FastifyReply } from "fastify";
+import {
+  usecaseCreateResponseSchema,
+  usecaseUpdateResponseSchema
+} from "@vooster/contracts";
 import type {
   UseCaseAuthoringResult,
   UseCaseUpdateResult
@@ -47,11 +51,13 @@ export function sendUseCaseAuthoringResult(
         )
       );
     case "CREATED":
-      return reply.code(201).send({
-        revision: result.revision,
-        suggested_next_actions: result.suggestedNextActions,
-        usecase: result.usecase
-      });
+      return reply.code(201).send(
+        usecaseCreateResponseSchema.parse({
+          revision: result.revision,
+          suggested_next_actions: result.suggestedNextActions,
+          usecase: result.usecase
+        })
+      );
   }
 }
 
@@ -84,6 +90,6 @@ export function sendUseCaseUpdateResult(
         .code(422)
         .send(problem(422, "Use case needs at least one stakeholder interest"));
     case "UPDATED":
-      return reply.send({ usecase: result.usecase });
+      return reply.send(usecaseUpdateResponseSchema.parse({ usecase: result.usecase }));
   }
 }

@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { usecaseArchiveQuerySchema, usecaseParamsSchema } from "@vooster/contracts";
 import {
   archiveUseCase as archiveUseCaseWorkflow,
   restoreUseCase as restoreUseCaseWorkflow
@@ -70,7 +70,7 @@ async function archiveUseCase(
         workSessionStore
       },
       {
-        hardDeleteRequested: hardDeleteRequested(request.query),
+        hardDeleteRequested: usecaseArchiveQuerySchema.parse(request.query),
         usecaseId: usecaseIdFrom(request.params),
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
       }
@@ -109,18 +109,6 @@ export async function restoreArchivedUseCase(
   );
 }
 
-function hardDeleteRequested(query: unknown): boolean {
-  const parsed = z
-    .object({
-      hard: z.literal("true").optional(),
-      purge: z.literal("true").optional()
-    })
-    .safeParse(query);
-  return (
-    parsed.success && (parsed.data.hard === "true" || parsed.data.purge === "true")
-  );
-}
-
 function usecaseIdFrom(params: unknown): string {
-  return z.object({ usecaseId: z.string().min(1) }).parse(params).usecaseId;
+  return usecaseParamsSchema.parse(params).usecaseId;
 }

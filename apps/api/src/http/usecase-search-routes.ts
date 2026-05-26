@@ -1,5 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  usecaseListQuerySchema,
+  usecaseListResponseSchema,
+  usecaseProjectParamsSchema,
+  type UsecaseListQuery
+} from "@vooster/contracts";
 import { membershipForProject } from "./membership-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
@@ -19,15 +24,6 @@ type SearchDeps = {
   scenarioStore: ScenarioStore;
   useCaseStore: UseCaseStore;
 };
-
-const searchQuerySchema = z.object({
-  actor_id: z.string().optional(),
-  cursor: z.string().optional(),
-  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]).optional(),
-  limit: z.coerce.number().int().positive().max(200).default(50),
-  q: z.string().optional(),
-  status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "DEPRECATED"]).optional()
-});
 
 export function registerUseCaseSearchRoutes(
   app: FastifyInstance,
@@ -49,16 +45,14 @@ async function searchUseCases(
   state: SignupState,
   deps: SearchDeps
 ) {
-  const projectId = z
-    .object({ projectId: z.string().min(1) })
-    .parse(request.params).projectId;
+  const projectId = usecaseProjectParamsSchema.parse(request.params).projectId;
   if (
     (await membershipForProject(request, state, deps.membershipStore, projectId)) ===
     undefined
   ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  const parsed = searchQuerySchema.safeParse(request.query);
+  const parsed = usecaseListQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(
       problem(400, "Unknown use case filter value", {
@@ -83,16 +77,18 @@ async function searchUseCases(
     parsed.data.actor_id !== undefined &&
     !actors.some((actor) => actor.id === parsed.data.actor_id)
   ) {
-    return reply.send({
-      items: [],
-      next_cursor: null,
-      suggested_next_actions: [
-        {
-          command: "vspec actor list",
-          reason: "Find a valid actor id for this project."
-        }
-      ]
-    });
+    return reply.send(
+      usecaseListResponseSchema.parse({
+        items: [],
+        next_cursor: null,
+        suggested_next_actions: [
+          {
+            command: "vspec actor list",
+            reason: "Find a valid actor id for this project."
+          }
+        ]
+      })
+    );
   }
   const sorted = (
     await filteredUseCases(deps.useCaseStore, projectId, parsed.data, cursor)
@@ -114,26 +110,28 @@ async function searchUseCases(
           ]
         }
       : {};
-  return reply.send({
-    items: items.map((usecase) =>
-      useCasePreview(
-        usecase,
-        actors,
-        scenarioCounts.get(usecase.id) ?? { extension_count: 0, scenario_count: 0 }
-      )
-    ),
-    next_cursor:
-      sorted.length > items.length && items.length > 0
-        ? encodeCursor(items[items.length - 1]?.key ?? "")
-        : null,
-    ...emptyActions
-  });
+  return reply.send(
+    usecaseListResponseSchema.parse({
+      items: items.map((usecase) =>
+        useCasePreview(
+          usecase,
+          actors,
+          scenarioCounts.get(usecase.id) ?? { extension_count: 0, scenario_count: 0 }
+        )
+      ),
+      next_cursor:
+        sorted.length > items.length && items.length > 0
+          ? encodeCursor(items[items.length - 1]?.key ?? "")
+          : null,
+      ...emptyActions
+    })
+  );
 }
 
 async function filteredUseCases(
   useCaseStore: UseCaseStore,
   projectId: string,
-  query: z.infer<typeof searchQuerySchema>,
+  query: UsecaseListQuery,
   cursor: null | string
 ) {
   const text = query.q?.toLowerCase();

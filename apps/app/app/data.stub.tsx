@@ -661,7 +661,8 @@ function toUsecaseSummary(usecase: DemoUsecase): UsecaseSummary {
     status: detail.status,
     title: detail.title,
     scenario_count: 1 + detail.extensions.length,
-    extension_count: detail.extensions.length
+    extension_count: detail.extensions.length,
+    trigger_excerpt: ""
   };
 }
 

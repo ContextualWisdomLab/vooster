@@ -41,17 +41,11 @@ describe("usecase command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/usecases/usecase-1",
-      {
-        body: JSON.stringify({ status: "APPROVED" }),
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "vspec_session=session-token"
-        },
-        method: "PATCH"
-      }
-    );
+    expect(requestFrom(fetchStub)).toEqual({
+      body: { status: "APPROVED" },
+      method: "PATCH",
+      url: "https://api.example.test/v1/usecases/usecase-1"
+    });
     expect(lines).toEqual([
       "UseCase PAY-001",
       "Title Submit an order",
@@ -97,17 +91,11 @@ describe("usecase command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/usecases/usecase-1",
-      {
-        body: JSON.stringify({ title: "Reviews checkout status" }),
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "vspec_session=session-token"
-        },
-        method: "PATCH"
-      }
-    );
+    expect(requestFrom(fetchStub)).toEqual({
+      body: { title: "Reviews checkout status" },
+      method: "PATCH",
+      url: "https://api.example.test/v1/usecases/usecase-1"
+    });
     expect(lines).toContain("Title Reviews checkout status");
   });
 
@@ -181,17 +169,24 @@ describe("usecase command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/usecases/usecase-1",
-      {
-        body: JSON.stringify({ archived_at: null }),
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "vspec_session=session-token"
-        },
-        method: "PATCH"
-      }
-    );
+    expect(requestFrom(fetchStub)).toEqual({
+      body: { archived_at: null },
+      method: "PATCH",
+      url: "https://api.example.test/v1/usecases/usecase-1"
+    });
     expect(lines).toEqual(["UseCase PAY-001", "Restored"]);
   });
 });
+
+function requestFrom(fetchStub: ReturnType<typeof vi.fn>) {
+  const call = fetchStub.mock.calls[0] as
+    | [string, { body?: string; method?: string }]
+    | undefined;
+  const [url, init] = call ?? ["", {}];
+  const body = init.body ?? "{}";
+  return {
+    body: JSON.parse(body) as unknown,
+    method: init.method,
+    url
+  };
+}

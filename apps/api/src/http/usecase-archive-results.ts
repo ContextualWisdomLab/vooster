@@ -1,4 +1,8 @@
 import type { FastifyReply } from "fastify";
+import {
+  usecaseArchiveResponseSchema,
+  usecaseRestoreResponseSchema
+} from "@vooster/contracts";
 import type {
   UseCaseArchiveResult,
   UseCaseRestoreResult
@@ -28,19 +32,21 @@ export function sendArchiveUseCaseResult(
         })
       );
     case "ARCHIVED":
-      return reply.send({
-        active_locks_count: result.activeLocksCount,
-        affected_sessions: result.affectedSessions,
-        affected_sessions_count: result.affectedSessions.length,
-        revision: result.revision,
-        suggested_next_actions: [
-          {
-            command: `vspec usecase restore ${result.usecase.key}`,
-            reason: "Restore the use case if it returns to scope."
-          }
-        ],
-        usecase: result.usecase
-      });
+      return reply.send(
+        usecaseArchiveResponseSchema.parse({
+          active_locks_count: result.activeLocksCount,
+          affected_sessions: result.affectedSessions,
+          affected_sessions_count: result.affectedSessions.length,
+          revision: result.revision,
+          suggested_next_actions: [
+            {
+              command: `vspec usecase restore ${result.usecase.key}`,
+              reason: "Restore the use case if it returns to scope."
+            }
+          ],
+          usecase: result.usecase
+        })
+      );
   }
 }
 
@@ -58,10 +64,12 @@ export function sendRestoreUseCaseResult(
     case "NOT_ARCHIVED":
       return reply.code(409).send(problem(409, "Use case is not archived"));
     case "RESTORED":
-      return reply.send({
-        revision: result.revision,
-        usecase: result.usecase
-      });
+      return reply.send(
+        usecaseRestoreResponseSchema.parse({
+          revision: result.revision,
+          usecase: result.usecase
+        })
+      );
   }
 }
 

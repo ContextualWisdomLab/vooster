@@ -31,13 +31,27 @@ function usecaseShowResponse(): UsecaseShowResponse {
   return {
     scenarios: [
       {
-        steps: [{ action: "Places an order.", actor: "Customer", step_number: 1 }],
+        steps: [
+          {
+            action: "Places an order.",
+            actor: "Customer",
+            invokes: [],
+            step_number: 1
+          }
+        ],
         type: "MAIN_SUCCESS"
       },
       {
         condition: "Payment is declined.",
         extension_point: "1a",
-        steps: [{ action: "Uses a backup card.", actor: "Customer", step_number: 1 }],
+        steps: [
+          {
+            action: "Uses a backup card.",
+            actor: "Customer",
+            invokes: [],
+            step_number: 1
+          }
+        ],
         type: "EXTENSION"
       }
     ],

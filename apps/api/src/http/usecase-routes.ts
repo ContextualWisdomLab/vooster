@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  usecaseCreateQuerySchema,
+  usecaseCreateRequestSchema
+} from "@vooster/contracts";
 import { authorUseCase } from "../application/usecases.js";
 import { projectIdFrom } from "./goal-support.js";
 import { membershipForProject } from "./membership-support.js";
@@ -18,15 +21,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 
-const useCaseRequestSchema = z.object({
-  force: z.boolean().default(false),
-  level: z.enum(["SUMMARY", "USER_GOAL", "SUBFUNCTION"]).default("USER_GOAL"),
-  primary_actor: z.string().min(1),
-  priority: z.enum(["P0", "P1", "P2", "P3"]).default("P2"),
-  scope: z.string().optional(),
-  simulate_key_collision_once: z.boolean().default(false),
-  title: z.string().min(1)
-});
 export function registerUseCaseRoutes(
   app: FastifyInstance,
   state: SignupState,
@@ -84,7 +78,7 @@ async function createUseCase(
   ) {
     return undefined;
   }
-  const parsed = useCaseRequestSchema.safeParse(request.body);
+  const parsed = usecaseCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid use case request"));
   }
@@ -99,7 +93,7 @@ async function createUseCase(
         useCaseStore
       },
       {
-        dryRun: dryRunFromQuery(request.query),
+        dryRun: usecaseCreateQuerySchema.parse(request.query),
         force: parsed.data.force,
         level: parsed.data.level,
         primaryActor: parsed.data.primary_actor,
@@ -112,11 +106,4 @@ async function createUseCase(
       }
     )
   );
-}
-
-function dryRunFromQuery(query: unknown): boolean {
-  if (typeof query !== "object" || query === null) {
-    return false;
-  }
-  return (query as { dry_run?: unknown }).dry_run === "true";
 }

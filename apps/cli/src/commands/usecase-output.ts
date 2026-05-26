@@ -1,83 +1,20 @@
-export type UsecaseResponse = {
-  revision: {
-    version_number: number;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    format: string;
-    key: string;
-    level: string;
-    priority: string;
-    status: string;
-    title: string;
-  };
-};
+import type {
+  UsecaseArchiveResponse,
+  UsecaseCreateResponse as ContractUsecaseResponse,
+  UsecaseListResponse,
+  UsecaseRestoreResponse,
+  UsecaseShowResponse,
+  UsecaseUpdateResponse
+} from "@vooster/contracts";
 
-export type UsecaseListResponse = {
-  items: Array<{
-    key: string;
-    level: string;
-    primary_actor: string;
-    status: string;
-    title: string;
-    trigger_excerpt: string;
-  }>;
-  next_cursor: string | null;
-  suggested_next_actions?: Array<{
-    command: string;
-  }>;
+export type {
+  UsecaseArchiveResponse,
+  UsecaseListResponse,
+  UsecaseRestoreResponse,
+  UsecaseShowResponse,
+  UsecaseUpdateResponse
 };
-
-export type UsecaseShowResponse = {
-  scenarios?: Array<{
-    condition?: string | null;
-    extension_point?: string | null;
-    steps: Array<{ action: string; actor: string; step_number: number }>;
-    type: string;
-  }>;
-  stakeholder_interests?: Array<{ interest: string; stakeholder: string }>;
-  usecase: {
-    current_revision_id: string;
-    key: string;
-    status: string;
-    title: string;
-  };
-};
-
-export type UsecaseUpdateResponse = {
-  usecase: {
-    format: string;
-    key: string;
-    level: string;
-    priority: string;
-    scope: string;
-    status: string;
-    title: string;
-  };
-};
-
-export type UsecaseArchiveResponse = {
-  active_locks_count: number;
-  affected_sessions_count: number;
-  revision: {
-    change_summary: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    archived_at: string;
-    key: string;
-  };
-};
-
-export type UsecaseRestoreResponse = {
-  usecase: {
-    key: string;
-  };
-};
+export type UsecaseResponse = ContractUsecaseResponse;
 
 export type StakeholderInterestResponse = {
   next_missing_role_hint: string;
@@ -104,11 +41,11 @@ export function printUsecase(
   writeLine: (message: string) => void
 ): void {
   writeLine(`UseCase ${body.usecase.key}`);
-  writeLine(`Title ${body.usecase.title}`);
-  writeLine(`Level ${body.usecase.level}`);
-  writeLine(`Format ${body.usecase.format}`);
-  writeLine(`Status ${body.usecase.status}`);
-  writeLine(`Priority ${body.usecase.priority}`);
+  writeLine(`Title ${body.usecase.title ?? ""}`);
+  writeLine(`Level ${body.usecase.level ?? ""}`);
+  writeLine(`Format ${body.usecase.format ?? ""}`);
+  writeLine(`Status ${body.usecase.status ?? ""}`);
+  writeLine(`Priority ${body.usecase.priority ?? ""}`);
   writeLine(`Revision version ${String(body.revision.version_number)}`);
   for (const action of body.suggested_next_actions) {
     writeLine(action.command);
@@ -155,9 +92,9 @@ export function printUsecaseShow(
   writeLine: (message: string) => void
 ): void {
   writeLine(`UseCase ${body.usecase.key}`);
-  writeLine(`Title ${body.usecase.title}`);
-  writeLine(`Status ${body.usecase.status}`);
-  writeLine(`Revision ${body.usecase.current_revision_id}`);
+  writeLine(`Title ${body.usecase.title ?? ""}`);
+  writeLine(`Status ${body.usecase.status ?? ""}`);
+  writeLine(`Revision ${body.usecase.current_revision_id ?? ""}`);
   if ((body.stakeholder_interests ?? []).length > 0) {
     writeLine("Stakeholders and Interests");
     for (const interest of body.stakeholder_interests ?? []) {
@@ -195,8 +132,8 @@ export function printUsecaseArchive(
   writeLine: (message: string) => void
 ): void {
   writeLine(`UseCase ${body.usecase.key}`);
-  writeLine(`Archived at ${body.usecase.archived_at}`);
-  writeLine(body.revision.change_summary);
+  writeLine(`Archived at ${body.usecase.archived_at ?? ""}`);
+  writeLine(body.revision.change_summary ?? "");
   writeLine(`Affected sessions ${String(body.affected_sessions_count)}`);
   writeLine(`Active locks ${String(body.active_locks_count)}`);
   for (const action of body.suggested_next_actions) {
@@ -209,12 +146,12 @@ export function printUsecaseUpdate(
   writeLine: (message: string) => void
 ): void {
   writeLine(`UseCase ${body.usecase.key}`);
-  writeLine(`Title ${body.usecase.title}`);
-  writeLine(`Level ${body.usecase.level}`);
-  writeLine(`Format ${body.usecase.format}`);
-  writeLine(`Status ${body.usecase.status}`);
-  writeLine(`Priority ${body.usecase.priority}`);
-  writeLine(`Scope ${body.usecase.scope}`);
+  writeLine(`Title ${body.usecase.title ?? ""}`);
+  writeLine(`Level ${body.usecase.level ?? ""}`);
+  writeLine(`Format ${body.usecase.format ?? ""}`);
+  writeLine(`Status ${body.usecase.status ?? ""}`);
+  writeLine(`Priority ${body.usecase.priority ?? ""}`);
+  writeLine(`Scope ${body.usecase.scope ?? ""}`);
 }
 
 export function printUsecaseRestore(

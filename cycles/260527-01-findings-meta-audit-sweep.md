@@ -670,6 +670,25 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm --filter @vooster/app test`, targeted eslint, and targeted prettier
   exited 0. Next step: required meta-system audit checkpoint before the next
   target.
+- 2026-05-27T04:51:40+09:00 — Meta-audit checkpoint after `audit_counter=28`:
+  KEEP. Project/comment shared-contract schemas are production-consumed by API,
+  CLI, and web paths where applicable; push-time `completion-check.sh` verified
+  the status claims; the project CLI unit no longer asserts exact
+  `fetch(..., RequestInit)` equality. No work-unit count change.
+- 2026-05-27T05:03:30+09:00 — Tier 3#5 shared-api-contracts usecase domain
+  complete; `audit_counter=29`. Added `packages/contracts/src/usecase.ts`, moved
+  usecase create/list/show/update/archive/restore params, request bodies,
+  queries, and success response DTOs into shared schemas, made API usecase
+  routes/results parse through those schemas, made CLI usecase read/write paths
+  parse shared request and response shapes, made app usecase list/detail readers
+  parse shared responses, preserved full usecase metadata in agent detail
+  payloads, and relaxed usecase CLI unit tests off exact `fetch(...,
+RequestInit)` equality while still asserting URL/method/payload.
+  Domains migrated: 12/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/usecase.test.ts apps/api/tests/unit/http/usecase-results.test.ts apps/api/tests/unit/http/usecase-agent-results.test.ts apps/api/tests/unit/http/usecase-archive-results.test.ts apps/api/tests/unit/http/usecase-routes.test.ts apps/api/tests/unit/http/usecase-update-routes.test.ts apps/cli/tests/unit/usecase-command.test.ts apps/cli/tests/unit/usecase-output.test.ts apps/cli/tests/unit/agent-format-write-path.test.ts apps/cli/tests/e2e-cli-honest/UC-009-usecase.test.ts apps/cli/tests/e2e-cli-honest/usecase-write.test.ts apps/cli/tests/e2e-cli-honest/login-to-usecase.test.ts apps/app/tests/unit/data-stub.test.tsx`,
+  `pnpm exec tsc --noEmit`, `pnpm --filter @vooster/app typecheck`,
+  `pnpm --filter @vooster/app test`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

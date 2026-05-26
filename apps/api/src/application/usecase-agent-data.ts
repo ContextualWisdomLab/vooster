@@ -43,7 +43,7 @@ export async function agentData(
       )
     ),
     title: usecase.title,
-    usecase: { id: usecase.id, key: usecase.key }
+    usecase
   };
 }
 

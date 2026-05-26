@@ -9,3 +9,4 @@ export * from "./goal.js";
 export * from "./lock.js";
 export * from "./project.js";
 export * from "./stakeholder.js";
+export * from "./usecase.js";

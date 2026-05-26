@@ -1,4 +1,16 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  usecaseAgentEnvelopeSchema,
+  usecaseArchiveResponseSchema,
+  usecaseCreateRequestSchema,
+  usecaseCreateResponseSchema,
+  usecaseListResponseSchema,
+  usecasePatchRequestSchema,
+  usecaseRestoreResponseSchema,
+  usecaseShowResponseSchema,
+  usecaseUpdateResponseSchema,
+  type UsecaseCreateResponse
+} from "@vooster/contracts";
 
 import {
   stakeholderInterestFlagsFrom,
@@ -17,13 +29,7 @@ import {
   printUsecaseRestore,
   printUsecaseShow,
   printUsecaseUpdate,
-  type StakeholderInterestResponse,
-  type UsecaseArchiveResponse,
-  type UsecaseListResponse,
-  type UsecaseResponse,
-  type UsecaseRestoreResponse,
-  type UsecaseShowResponse,
-  type UsecaseUpdateResponse
+  type StakeholderInterestResponse
 } from "./usecase-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -124,13 +130,13 @@ async function restoreUsecase(
   const restoreFlags = usecaseArchiveFlagsFrom(flags, usecaseId);
   const response = await patchJson(
     `${restoreFlags.apiUrl}/v1/usecases/${restoreFlags.usecaseId}`,
-    { archived_at: null },
+    usecasePatchRequestSchema.parse({ archived_at: null }),
     {
       Cookie: restoreFlags.sessionCookie
     }
   );
 
-  printUsecaseRestore(response.body as UsecaseRestoreResponse, writeLine);
+  printUsecaseRestore(usecaseRestoreResponseSchema.parse(response.body), writeLine);
 }
 
 async function setUsecase(
@@ -141,13 +147,13 @@ async function setUsecase(
   const setFlags = usecaseSetFlagsFrom(flags, usecaseId);
   const response = await patchJson(
     `${setFlags.apiUrl}/v1/usecases/${setFlags.usecaseId}`,
-    { [setFlags.field]: setFlags.value },
+    usecasePatchRequestSchema.parse({ [setFlags.field]: setFlags.value }),
     {
       Cookie: setFlags.sessionCookie
     }
   );
 
-  const body = response.body as UsecaseUpdateResponse;
+  const body = usecaseUpdateResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
@@ -161,11 +167,17 @@ async function createUsecase(
   writeLine: (message: string) => void
 ): Promise<void> {
   const u = usecaseCreateFlagsFrom(flags);
-  await runMutationCommand<UsecaseResponse>(
+  const body = usecaseCreateRequestSchema.parse({
+    force: u.force,
+    primary_actor: u.primaryActor,
+    title: u.title
+  });
+  await runMutationCommand<UsecaseCreateResponse>(
     {
-      body: { force: u.force, primary_actor: u.primaryActor, title: u.title },
+      body,
       method: "POST",
-      path: `/v1/projects/${u.projectId}/usecases`
+      path: `/v1/projects/${u.projectId}/usecases`,
+      selectData: (responseBody) => usecaseCreateResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(u),
     { format: flags.format, human: printUsecase, writeLine }
@@ -212,7 +224,7 @@ async function listUsecases(
     }
   });
 
-  printUsecaseList(response.body as UsecaseListResponse, writeLine);
+  printUsecaseList(usecaseListResponseSchema.parse(response.body), writeLine);
 }
 
 async function showUsecase(
@@ -233,7 +245,7 @@ async function showUsecase(
   });
 
   if (showFlags.format === "agent") {
-    const agentBody = agentBodyFrom(response.body);
+    const agentBody = agentBodyFrom(usecaseAgentEnvelopeSchema.parse(response.body));
     writeLine(
       JSON.stringify(
         buildAgentEnvelope({
@@ -254,7 +266,7 @@ async function showUsecase(
     return;
   }
 
-  printUsecaseShow(response.body as UsecaseShowResponse, writeLine);
+  printUsecaseShow(usecaseShowResponseSchema.parse(response.body), writeLine);
 }
 
 async function archiveUsecase(
@@ -270,7 +282,7 @@ async function archiveUsecase(
     }
   );
 
-  printUsecaseArchive(response.body as UsecaseArchiveResponse, writeLine);
+  printUsecaseArchive(usecaseArchiveResponseSchema.parse(response.body), writeLine);
 }
 
 function setSearchParam(url: URL, name: string, value: string | undefined): void {

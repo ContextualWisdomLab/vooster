@@ -386,6 +386,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   existing non-blocking lock instead of preserving it with a warning; CI still
   declares shard `[1, 2, 3, 4]`; `apps/api/src/http/actor-results.ts` still
   emits `vspec actor restore`.
+- 2026-05-27T01:11:18+09:00 — Tier 1#1 harness-spec-debt item 3 complete;
+  audit_counter=2. Commit `bf9f3bf` converted Goal 7's honest UC surface from a
+  hand-maintained positive `HONEST_UC_SET` to `docs/usecases/UC-*.md` minus
+  `HONEST_UC_ALLOWLIST`, added `docs/usecases` to `GATE_INPUTS`, updated the
+  matching next-task/prose, and added
+  `apps/api/tests/integration/goal7-honest-uc-set.test.ts`. Verification:
+  `pnpm exec vitest run apps/api/tests/integration/goal7-honest-uc-set.test.ts`,
+  `bash goals/7-cli-spec-parity.gates.sh`, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint.
 
 ---
 

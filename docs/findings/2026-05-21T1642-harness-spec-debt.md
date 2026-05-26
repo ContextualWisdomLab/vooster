@@ -1,11 +1,15 @@
 ---
 title: harness-engineer / harness-advisor Spec Debt
 created_at: 2026-05-21T16:42:09Z
-resolved: partial
+resolved: true
+resolved_by:
+  - 49422d7
+  - b377d66
+  - bf9f3bf
 status_notes: |
   Item 1 (case (d) in goal-design.md §5) — CLOSED on 2026-05-26.
   Item 2 (Step 4 tiebreaker in harness-engineer.md) — CLOSED on 2026-05-26.
-  Item 3 (HONEST_UC_SET hardcoded in goals/7-cli-spec-parity.gates.sh) — open.
+  Item 3 (HONEST_UC_SET hardcoded in goals/7-cli-spec-parity.gates.sh) — CLOSED on 2026-05-27 (commit bf9f3bf): Goal 7 now derives the honest UC set from docs/usecases/UC-*.md minus HONEST_UC_ALLOWLIST, includes docs/usecases in GATE_INPUTS, and is covered by apps/api/tests/integration/goal7-honest-uc-set.test.ts.
   Item 4 (Goal-9 read-path routes missing) — CLOSED on 2026-05-23
   (actor/stakeholder/goal management routes exist; check-honest-cli-e2e.sh
   passes 39 files / 47 tests).
@@ -191,3 +195,12 @@ stakeholder, and goal route files; add the missing read-path handlers
 (list/show/edit/archive endpoints) so the honest CLI suite turns green
 without weakening 7.C5. This is app-code scope, not harness scope, and
 should be picked up as its own goal/tranche.
+
+## Resolution
+
+- 2026-05-27: Item 3 closed by `bf9f3bf`. Acceptance evidence:
+  `apps/api/tests/integration/goal7-honest-uc-set.test.ts` proves Goal 7 derives
+  its honest UC set from `docs/usecases/UC-*.md` minus
+  `HONEST_UC_ALLOWLIST`; `goals/7-cli-spec-parity.gates.sh` includes
+  `docs/usecases` in `GATE_INPUTS`; `bash goals/7-cli-spec-parity.gates.sh` and
+  `bash scripts/completion-check.sh` both exited 0 after the change.

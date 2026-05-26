@@ -192,11 +192,17 @@ else
 fi
 
 echo "[8.A6 apps/app/.next/ exists (build artifact)]"
-# The build command is enforced by goals/_meta.gates.sh (M.4); this gate
-# only verifies the resulting .next/ directory. In CI where _meta is
-# skipped, the workflow's explicit build step produces .next/ for this
-# check to find.
-if [ ! -f "$WEB_PKG" ]; then
+# The .next/ build is produced by goals/_meta.gates.sh M.4, which is
+# itself skipped under VSPEC_GATES_SKIP_DEEP=1 (the fast/default chain).
+# Asserting the artifact here while its producer is skipped fails every
+# source-only local push, so this consumer gate skips in lockstep with
+# M.4 — mirroring 8.D5 (test:e2e), which already does this. CI runs the
+# build as an explicit step (SKIP_DEEP=0), so the artifact is present and
+# this gate enforces it there. See
+# docs/findings/2026-05-26T1333-build-artifact-precondition-gates.md.
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1 — M.4 build not run)"
+elif [ ! -f "$WEB_PKG" ]; then
   echo "    ✗ fail — preconditions unmet (no $WEB_PKG)"
   PASS=false
 elif [ -d "$WEB_DIR/.next" ]; then

@@ -73,8 +73,16 @@ else
 fi
 
 # ---------- Gate 0.3: dogfooding ----------
+# dogfood-test.sh consumes the dist/ build owned by goals/_meta.gates.sh
+# M.4, which is skipped under VSPEC_GATES_SKIP_DEEP=1 (the fast/default
+# chain). Run it only when M.4 also runs, so a source-only local push is
+# not failed by a build it never produced. CI (SKIP_DEEP=0) builds first
+# and enforces this. See
+# docs/findings/2026-05-26T1333-build-artifact-precondition-gates.md.
 echo "[0.3/3] Self-dogfooding..."
-if [ -f "$ROOT/scripts/dogfood-test.sh" ] && bash "$ROOT/scripts/dogfood-test.sh" >/dev/null 2>&1; then
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1 — M.4 build not run)"
+elif [ -f "$ROOT/scripts/dogfood-test.sh" ] && bash "$ROOT/scripts/dogfood-test.sh" >/dev/null 2>&1; then
   echo "    ✓ vspec manages its own use cases"
 else
   echo "    ✗ Self-dogfooding failed (or not yet runnable)"

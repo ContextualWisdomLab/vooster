@@ -57,8 +57,21 @@ run_gate() {
   fi
 }
 
-run_gate "1.1/5 Bootable"    "$ROOT/scripts/check-bootable.sh"
-run_gate "1.2/5 Persistence" "$ROOT/scripts/check-persistence.sh"
+# 1.1 + 1.2 boot the built API (dist/apps/api/src/index.js), produced by
+# goals/_meta.gates.sh M.4 — skipped under VSPEC_GATES_SKIP_DEEP=1 (the
+# fast/default chain). Skip these consumers in lockstep so a source-only
+# local push is not failed by a build it never produced. CI (SKIP_DEEP=0)
+# builds first and enforces. See
+# docs/findings/2026-05-26T1333-build-artifact-precondition-gates.md.
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "[1.1/5 Bootable]"
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1 — M.4 build not run)"
+  echo "[1.2/5 Persistence]"
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1 — M.4 build not run)"
+else
+  run_gate "1.1/5 Bootable"    "$ROOT/scripts/check-bootable.sh"
+  run_gate "1.2/5 Persistence" "$ROOT/scripts/check-persistence.sh"
+fi
 run_gate "1.3/5 CLI binary"  "$ROOT/scripts/check-cli.sh"
 
 echo "[1.4/5 CLI E2E files present]"

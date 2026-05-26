@@ -181,6 +181,7 @@ A `UseCase` must have exactly one `Scenario` with `type=MAIN_SUCCESS`.
 | step_number    | Int      | 1-based within scenario.                                        |
 | actor_id       | String   | FK → Actor. Required (system steps reference a "System" actor). |
 | action         | String   | Verb phrase.                                                    |
+| invokes        | String[] | UseCase keys invoked by this step. Default empty.               |
 | is_system_step | Boolean  | True when actor_id refers to the System actor.                  |
 | notes          | String?  |                                                                 |
 | order_index    | Int      |                                                                 |

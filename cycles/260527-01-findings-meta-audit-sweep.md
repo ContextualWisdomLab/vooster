@@ -497,6 +497,13 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   Verification: focused impact-analysis test, API typecheck, targeted eslint,
   and targeted prettier exited 0. Next step: required meta-system audit
   checkpoint before invocation-links Stage 3.
+- 2026-05-27T02:33:02+09:00 — Meta-audit checkpoint #6 complete;
+  `audit_counter=13`. Q6 on invocation-links Stage 1/2 found the severity
+  table had been updated but the `Step` data-model table still omitted the
+  actual `invokes` field added in Stage 1a. Improvement: documented
+  `Step.invokes` as the invoked UseCase-key list with an empty default.
+  Verification: targeted prettier and `bash scripts/completion-check.sh`
+  exited 0.
 
 ---
 

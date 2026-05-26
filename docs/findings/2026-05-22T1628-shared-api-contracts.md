@@ -4,10 +4,14 @@ created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
   Not started. packages/ workspace directory does not exist yet.
+  2026-05-27: web app paths corrected apps/web → apps/app (@vooster/app); the
+  product UI package is @vooster/app. Picked up by cycle 260527-01 as an XL,
+  chain-green-per-commit, partial-OK block — see "Unattended execution" below.
+  Expect to end partial ("N/21 domains migrated"); that is a successful run.
 related:
   - apps/api
   - apps/cli
-  - apps/web
+  - apps/app
   - pnpm-workspace.yaml
 ---
 
@@ -24,7 +28,7 @@ contract package consumed by API, CLI, and Web.
 Add `packages/contracts` as the single source of truth for production HTTP
 boundary schemas. Migrate all production routes to parse params, query, body,
 and response DTOs through those schemas. Add a typed CLI API client layer and
-make `apps/web` parse API responses in its data layer.
+make `apps/app` parse API responses in its data layer.
 
 This is a larger structural task, not a small test cleanup. It should be
 implemented as one focused tranche but committed in small verified steps.
@@ -39,7 +43,7 @@ In scope:
 3. Update `apps/api` route handlers to import and use the shared schemas.
 4. Add a typed `apps/cli` API client layer that owns URL construction, request
    validation, and response parsing.
-5. Update `apps/web` data access to use shared response schemas and avoid
+5. Update `apps/app` data access to use shared response schemas and avoid
    duplicating API DTO types locally.
 6. Relax CLI command tests away from exact `fetch` object equality and toward
    command behavior plus typed client contracts.
@@ -90,7 +94,7 @@ packages/contracts/
 ```text
 packages/contracts
         ↑
- apps/api   apps/cli   apps/web
+ apps/api   apps/cli   apps/app
 ```
 
 It must not import from `apps/api/src/domain`, Prisma, Fastify, CLI commands, or
@@ -131,7 +135,7 @@ Test routes under `__test/*` are not part of the public shared contract.
 - Add `packages/contracts/package.json`.
 - Add `packages/**/*.ts` to root `tsconfig.json` include.
 - Add `@vooster/contracts: workspace:*` to `apps/api`, `apps/cli`, and
-  `apps/web`.
+  `apps/app`.
 - Add a minimal `packages/contracts/src/index.ts` and one smoke test proving
   schema inference and runtime parsing work.
 
@@ -171,7 +175,7 @@ Test routes under `__test/*` are not part of the public shared contract.
 
 ### 5. Web Data Layer
 
-- Replace local DTO types in `apps/web/app/data.tsx` with contract-inferred
+- Replace local DTO types in `apps/app/app/data.tsx` with contract-inferred
   types where they describe API responses.
 - Change `readApi<T>(path)` to `readApi(path, schema)`.
 - Change `mutateApi(...)` to parse successful JSON responses with a supplied
@@ -187,10 +191,10 @@ Targeted checks:
 - `pnpm exec vitest run apps/api/tests/unit apps/api/tests/e2e`
 - `pnpm exec vitest run apps/cli/tests/unit`
 - focused CLI E2E tests for commands migrated to the client layer
-- `pnpm --filter @vooster/web test`
+- `pnpm --filter @vooster/app test`
 
 Known caveat: root `pnpm typecheck` currently fails before this work because
-`apps/web/hooks/use-mobile.ts` references `window` without DOM lib typing. Do
+`apps/app/hooks/use-mobile.ts` references `window` without DOM lib typing. Do
 not hide that failure inside the contract migration; report it separately unless
 the contract work naturally touches the Web tsconfig boundary.
 
@@ -199,7 +203,7 @@ the contract work naturally touches the Web tsconfig boundary.
 The finding is resolved when:
 
 1. `packages/contracts` exists and is consumed by `apps/api`, `apps/cli`, and
-   `apps/web`.
+   `apps/app`.
 2. Production route-local request schemas have been replaced by shared contract
    schemas.
 3. CLI API calls for production API surfaces go through a typed client that
@@ -226,4 +230,71 @@ The finding is resolved when:
 2. `test: cover shared http contracts`
 3. `refactor(api): use shared route contracts`
 4. `refactor(cli): add typed api client`
-5. `refactor(web): parse api responses with contracts`
+5. `refactor(app): parse api responses with contracts`
+
+---
+
+## Unattended execution — chain-green-per-commit ledger (locked 2026-05-27)
+
+This is an **XL structural refactor** (≈44 API routes + 19 CLI fetch sites + 16
+`apps/app` readers). The risk is not the design — the plan above is settled —
+it is the **scale**: a half-done migration splits the schema source of truth
+and breaks `completion-check.sh`. To make it safe for an unattended overnight
+loop, execute it as an **append-only ledger of small, independently-green
+commits**, never as one big change. **Ending partial is the expected, correct
+outcome** — the night closes K domains and leaves the chain green.
+
+### The iron rule
+
+**Every commit leaves `bash scripts/completion-check.sh` GREEN.** No exceptions.
+A commit that can't be greened in one RED→GREEN cycle is reverted (below).
+
+### Commit order (one slice per commit, each green)
+
+1. **Scaffold** (`setup:`) — add `packages/*` to `pnpm-workspace.yaml`; create
+   `packages/contracts/{package.json,src/index.ts}`; add `packages/**/*.ts` to
+   root `tsconfig.json` include; add `@vooster/contracts: workspace:*` to
+   `apps/api`, `apps/cli`, `apps/app`; one smoke test
+   (`packages/contracts/.../smoke.test.ts`) proving inference + runtime parse.
+   No consumers yet — an unused workspace **dependency** is chain-safe (it is
+   not an unused _import_). `pnpm install` + `completion-check.sh` green.
+2. **Per-domain slices** — **one domain module per commit**, in roughly this
+   risk order (low → high; mirror the route-test risk order):
+   `common` → `ai-guide` / `doctor` / health → `actor` → `stakeholder` →
+   `goal` → `comment` → `project` → `usecase` → `scenario`/`step` →
+   `revision` → `export` → `lock` → `branch` → `merge` → `change` → `sync` →
+   `who` → `session` → `auth` → `api-key` → `invitation`.
+   For each domain, in the **same commit**: (a) define the domain's contract
+   module in `packages/contracts/src/<domain>.ts`; (b) replace the route-local
+   Zod in the matching `apps/api/src/http/*-routes.ts`; (c) route the matching
+   `apps/cli` fetch site(s) through the typed client method; (d) parse the
+   matching `apps/app` reader(s) with the contract schema; (e) relax that
+   domain's CLI unit test off exact `fetch(..., RequestInit)` equality.
+   Tests green → commit `refactor(contracts): migrate <domain> to shared schema`.
+3. Update this finding's status_notes after each domain: "N/21 domains".
+
+### Revert-guard (HARD, prevents wedging the night)
+
+If a domain slice leaves the chain red and you cannot green it within **one**
+RED→GREEN cycle: `git revert` that commit (do **not** `reset --hard`), set this
+finding `resolved: partial` with status_notes "N/21 domains migrated; <domain>
+reverted — <one-line reason>", append a `docs/state/blockers.md` line, and
+**move to the next cycle target**. The chain returns to green; the night
+continues elsewhere. Do not retry the same domain more than twice.
+
+### Disjoint from route-test Phase 2
+
+This block edits `apps/api/src/http/*-routes.ts` (route _source_); the
+route-test Phase 2 queue edits `apps/api/tests/.../*-routes.test.ts` (route
+_tests_). They are mostly file-disjoint. If both touch the same domain in one
+session, do the contract slice first, then migrate that route's test — never
+interleave the two on the same file within one iteration.
+
+### Typecheck caveat (updated path)
+
+The finding originally noted root `pnpm typecheck` failing on
+`apps/app/hooks/use-mobile.ts` (`window` without DOM lib typing). The chain is
+currently GREEN, so this is either resolved or not on the `completion-check`
+path. If a root typecheck failure surfaces there during this work, **report it
+separately** (a blocker line) — do not absorb or hide it inside a contract
+slice.

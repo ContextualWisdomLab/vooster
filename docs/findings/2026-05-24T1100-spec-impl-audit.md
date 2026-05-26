@@ -96,18 +96,56 @@ into `editStep` to resolve actor name → id (mirror the step-add path), adds an
 `UNKNOWN_ACTOR` result, sets BREAKING severity on actor change, wires the CLI
 body, and adds tests. ~4 source files + 2 test files; localized.
 
-**B — UC-022 SOFT lock semantics — LARGE (needs a design decision).**
+**B — UC-022 SOFT lock semantics — MEDIUM (decision LOCKED 2026-05-27).**
 Spec: "SOFT always succeeds but emits a warning if any other lock exists."
 `blockingLock` already never blocks SOFT (`locks.ts:121`), but `acquireLock`
-deletes any existing lock before saving (`locks.ts:55`), so a SOFT acquire
-silently destroys another holder's lock instead of coexisting + warning. True
-coexistence requires the lock store to hold **multiple locks per use case** —
-today `findLockForUseCase`/`deleteLock(usecase_id)` and the Prisma
-`@@unique([target_type,target_id,lock_type])` all assume one. Touches the
-lock-store port, memory + prisma stores, schema, and every caller
-(`step-editing`, `work-session-start`, `who-is-working`, `session-completion`).
-**Recommend: keep as this finding; resolve via a dedicated goal after a model
-decision (multi-lock-per-usecase yes/no).**
+deletes any existing lock before saving (`locks.ts:~55-66`), so a SOFT acquire
+silently destroys another holder's lock instead of coexisting + warning.
+
+Re-scoped MEDIUM (not LARGE): the lock-store port **already exposes
+`listLocksForUseCase` (array) and `listLocksHeldBySession`**
+(`apps/api/src/ports/lock-store.ts`), so the multi-lock read path exists — the
+remaining work is the schema uniqueness, the SOFT acquire path, and caller
+tolerance.
+
+### Decisions locked (user-approved 2026-05-27)
+
+- **D1 — coexistence.** Multiple SOFT locks may coexist on the same target,
+  **one per holder**. HARD stays exclusive; SEMANTIC behavior unchanged.
+- **D2 — SOFT acquire is spec-faithful (refined from the brief's matrix).**
+  A SOFT acquire **always succeeds** and **never deletes** an existing lock.
+  If any other lock exists on the target, the result carries a **warning
+  naming the existing holder(s)**. HARD/SEMANTIC acquires keep their current
+  `blockingLock` behavior unchanged. _(This matches the cited spec — "SOFT
+  always succeeds but warns" — and is simpler/safer than rejecting SOFT when a
+  HARD exists, which the spec does not say.)_
+- **D3 — schema.** Change the Prisma
+  `@@unique([target_type, target_id, lock_type])` (`schema.prisma:344`) to key
+  on the holder as well so multiple SOFT locks coexist — recommended
+  `@@unique([target_type, target_id, lock_type, held_by_user_id])` (confirm the
+  actual holder column; domain `Lock` carries `held_by_user_id`). This still
+  prevents one holder from double-locking the same target+type.
+- **D4 — port & callers.** Use the existing `listLocksForUseCase` instead of
+  `findLockForUseCase` on the SOFT path. In `acquireLock`, drop the
+  delete-before-save for SOFT; save the new SOFT lock and collect any existing
+  locks into the warning. Audit callers (`step-editing`, `work-session-start`,
+  `who-is-working`, `session-completion`) to tolerate a **list** of SOFT locks
+  rather than assuming one.
+
+### Build spec (decision-free; mechanical TDD)
+
+1. RED: extend `apps/api/tests/e2e/UC-022.test.ts` (or the locks integration
+   test) with: actor A SOFT-locks UC-X → success, no warning. Actor B
+   SOFT-locks UC-X → success **+ warning naming A**; **both** locks persist
+   (regression against the silent-delete bug); `who` reports both A and B as
+   SOFT holders of UC-X.
+2. GREEN: D3 migration → D4 `acquireLock` SOFT path → caller tolerance.
+3. REFACTOR: dedupe the existing-holder lookup; keep HARD/SEMANTIC paths byte-
+   for-byte unchanged.
+
+When A, B, and C are all green, flip this finding's status_notes Gap B line to
+CLOSED; per the Acceptance signal below, the snapshot's `resolved` may flip to
+`true` (A/C already closed).
 
 **C — UC-016 auto-branch SEMANTIC locks — SMALL.**
 Success Guarantee: `--auto-branch` creates one SEMANTIC `Lock` per pinned use

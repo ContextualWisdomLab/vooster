@@ -201,10 +201,15 @@ Decisions already settled for this finding:
 4. **Doc/shape → store `invokes`, derive `invoked-by`**; this is a finding
    (queued, P2), not yet a goal.
 
-**Load-bearing open decision:** the precise **contract-surface field set** in
-3b's first table. The list above is the recommendation; it should be
-re-confirmed against real specs during dogfood before the 3b stage lands, since
-getting it wrong is the difference between a trusted signal and alert fatigue.
+**Load-bearing decision — LOCKED 2026-05-27 (user-approved).** The
+**contract-surface field set** in 3b's first table is **final** for this
+implementation: propagate to callers on a change to `success_guarantee`,
+`minimal_guarantee`, `primary_actor`, or `trigger`; do **not** propagate on
+internal step text, added/removed steps, `title`, or `level`. This is no longer
+an open question — dogfood may tune it later via a follow-up finding, but it
+does not block landing 3b. With D1 (`Step.invokes: String[]`), D2 (grammar
+`_(includes: <KEY>)_`), and this field set all settled, every stage below is
+decision-free mechanical TDD.
 
 ---
 
@@ -241,3 +246,41 @@ One finding, three sequenced stages (sequence, not scope-cut):
 
 Stage 1 alone delivers traceability/navigation value; 2 and 3 layer impact
 intelligence on top once edges exist to test against.
+
+---
+
+## Build spec — unattended execution split (locked 2026-05-27)
+
+Picked up by cycle `cycles/260527-01-*`. Decisions locked above. Each stage is
+its own RED→GREEN→REFACTOR; commit per stage. **Backend = direct TDD; web
+rendering = claude-owned delegate goal** (cwd `apps/app`, per
+`docs/claude/delegation.md`).
+
+- **Stage 1a — schema + parse/serialize (DIRECT TDD).**
+  - `Step.invokes String[] @default([])` in `apps/api/prisma/schema.prisma`
+    (model `Step`, ~:203) + migration.
+  - `invokes: string[]` on `StoredStep` (`apps/api/src/domain/entities/step.ts`).
+  - Parse/serialize the trailing `_(includes: <KEY>[, <KEY>...])_` token,
+    case-insensitive, in the markdown renderer/parser; **round-trip gate**:
+    `serialize(parse(F)) === F` (Acceptance signal #1).
+  - `doctor`: dangling-key warn + self-ref/cycle warn (not a hard block).
+  - Derived **`invoked-by`** query (reverse scan, no stored back-pointer);
+    expose on the use-case read endpoint (Acceptance signal #2).
+- **Stage 1b — web rendering (DELEGATE to claude, cwd `apps/app`).**
+  Render "호출 / 호출됨" (calls / called-by) sections on the use-case detail
+  page from the API's `invokes` / derived `invoked_by`. Pure presentation;
+  no contract decisions. Gate only after Stage 1a backend is green.
+- **Stage 2 — local severity (DIRECT TDD).** Add the three `invokes`-edit rows
+  to the Severity Classification Rules (`docs/05-data-model.md:307-331`) and to
+  `impact-analysis.ts` diffing: add = NON_BREAKING, remove = BREAKING,
+  retarget = BREAKING.
+- **Stage 3 — contract-surface transitive impact (DIRECT TDD).** Extend
+  `affectedActiveSessions` (`apps/api/src/application/impact-analysis.ts:152`)
+  to walk reverse `invokes` edges and add callers' sessions to
+  `affected_sessions` **only** when a locked contract-surface field changed
+  (reason `"의존 UC의 계약 변경"`). Multi-hop + cycle-safe. Additive to
+  `ImpactPayload`; **do not** forge caller severity (Acceptance signal #3).
+
+**Guard**: Stages depend in order (1a → 1b → 2 → 3). If any stage hits 3
+RED→GREEN cycles without progress, mark this finding `partial` with a
+status_notes line naming the last green stage, and move on — partial is fine.

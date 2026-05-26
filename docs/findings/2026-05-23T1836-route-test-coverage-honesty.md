@@ -7,7 +7,7 @@ resolved_by:
   - 629c842
 status_notes: |
   Phase 1 is closed: the route integration pattern is documented below, and three app.inject exemplars now live under apps/api/tests/integration/http/.
-  Phase 2 remains open and explicitly out of scope for this cycle: migrate the existing apps/api/tests/unit/http/*-routes.test.ts back catalog per route.
+  Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27: 37 *-routes.test.ts files remain (33 pure-mock, 4 partial app.inject) — 0/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
 related:
   - docs/findings/2026-05-23T1730-coverage-diagnosis.md
   - apps/api/tests/unit/http

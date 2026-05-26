@@ -1,0 +1,421 @@
+---
+cycle: 260527-01
+title: Findings closure + meta-system audit sweep
+authored_at: 2026-05-27T00:52:02+09:00
+started_at:
+completed_at:
+status: draft
+---
+
+# 260527-01 — Findings closure + meta-system audit sweep
+
+**목표**: 2026-05-27 시점 `docs/findings/` 의 미해결 finding 중, **무인 실행에
+안전하도록 설계 결정을 미리 잠근(decision-locked)** 항목을 우선순위/의존성
+순서대로 닫는다. 그리고 **finding 2 work-unit 마다 메타 시스템 감사
+체크포인트**를 돌려 하니스/lint/테스트 코드를 점검하고 개선을 처리한다.
+
+본 문서를 codex/claude 에게 **무한 루프 모드**로 넘긴다:
+`/goal cycles/260527-01-findings-meta-audit-sweep.md 의 내용을 모두
+완수할때까지 작업해줘.`
+
+이것은 **무인(set-and-sleep) 실행**이다. 설계 원칙: 결정이 끝난(높은 확실성)
+작업을 먼저, 깊고 안전한 대량 큐를 backstop 으로, 매 작업 단위 commit + push
+**(브랜치 `main`, 직접 push 허용 — 사용자가 코드 전수 검토 불가함을 양해함)**.
+**조기 종료 절대 금지** — 막히면 blocker 기록 후 다음 target. 할 일은 의도적으로
+하룻밤보다 많게 깔아두었다.
+
+## 작업 시작 전 반드시 읽을 것
+
+- `docs/goal-design.md` — harness 설계 (특히 §1.5 최소 gate 패턴, §5 immutability/case (a)/(b)/(c)/(d))
+- `guidelines/goal-iteration.md` — iteration 프로토콜 (TDD, commit cadence, Phase 4)
+- `guidelines/meta-system-audit.md` — **메타 감사 렌즈 (Q1–Q8, 판정 프레임).
+  체크포인트의 source of truth**
+- `.claude/skills/commit/SKILL.md` (또는 `/commit` skill) — 커밋 규약, secret-scan
+- `docs/findings/AGENTS.md` — finding frontmatter schema
+  (`resolved: false|"partial"|true`, `priority`, `resolved_by`, `kind`,
+  `status_notes`, `related`) + honesty rules
+- 위임 goal 생성 시: `docs/claude/delegation.md` + `docs/claude/headless.md`
+  (이미 `goals/32`, `goals/33` 이 claude-owned 선례)
+
+## 시작 상태 (2026-05-27)
+
+- chain **GREEN** (`.state/active-goal == ALL_DONE`).
+- 최고 goal 번호 `33` → 다음 빈 번호 **`34`**.
+- 작업 브랜치 **`main`** (별도 branch 생성 금지, `origin/main` 으로 push).
+- 직전 cycle `260526-01` 이 안전한 기계적 item 대부분을 이미 닫음. 그래서 이
+  cycle 의 in-scope 는 (a) 결정-잠금된 4개 finding, (b) 작은 안전 item 2개,
+  (c) route-test Phase 2 backstop 큐, (d) 매 2 work-unit 의 메타 감사가 생성하는
+  개선 작업이다.
+
+---
+
+## 루프 알고리즘
+
+```
+  step 0 — 최초 1회 (루프 진입 전):
+    이 문서(cycles/260527-01) frontmatter 갱신:
+      started_at = 현재 시각(ISO-8601 +09:00), status: running.
+    audit_counter = 0  (메타 감사 트리거용 work-unit 카운터; 본문/learnings 로 추적)
+    → commit + push.
+
+LOOP:
+
+  step 1 — chain 상태 확인:
+    $ bash scripts/completion-check.sh
+    if exit 0 (.state/active-goal == ALL_DONE):
+      → step 2
+    else:
+      → .state/active-goal 의 goal 을 TDD 로 GREEN (guidelines/goal-iteration.md Phase 4)
+      → 위임 goal(## Delegation owner: claude)이면 next-task.sh 가
+        delegate-to-claude.sh 로 라우팅; dispatcher self-loop 가 각 step 처리.
+      → commit + push
+      → ★ DEADLOCK 가드: 이 active goal 이 본 cycle 이 promote 한 goal 인데
+        3 TDD 사이클(또는 위임 3 라운드) 무진전이면 → promotion back out:
+        방금 추가한 goals/<n>-*.{md,gates.sh,next-task.sh} 삭제 →
+        commit "revert: withdraw incomplete goal <n> (see blockers.md)" →
+        blocker 기록 → 해당 finding 은 partial + status_notes "promotion
+        withdrawn, deferred". chain 이 다시 GREEN 으로 복귀.
+      → step 1 (재확인)
+
+  step 2 — work-unit 진행:
+    target 리스트(아래 "Target")에서 첫 미완료 항목 선택, "Finding 처리 절차" 수행.
+    한 work-unit 완료 = {finding 1건 closed | route-test 배치(≤5 파일) |
+      shared-contracts 도메인 1개 | 메타 감사가 만든 개선 1건 완료} 중 하나.
+    완료 시:
+      → frontmatter/status_notes 갱신, commit + push
+      → audit_counter += 1
+      → if audit_counter % 2 == 0:  ★ 메타 감사 체크포인트 (아래 절차) 실행
+      → step 1
+
+  step 3 — 소진 확인:
+    모든 in-scope target 이 resolved/partial(명시적 deferred 만 남음)이고
+    route-test Phase 2 backstop 까지 처리 가능한 만큼 처리했으면:
+      → TERMINATE
+    (route-test 는 사실상 무한 filler 이므로, 다른 모든 in-scope 가 닫힌 뒤에도
+     시간이 남으면 계속 마이그레이션. 멈추는 건 종료 조건이 모두 충족될 때만.)
+```
+
+종료 조건 (셋 다 만족):
+
+1. 모든 in-scope target finding 이 `resolved: true` 또는 명시적 `partial`
+   (out-of-scope/deferred sub-item 만 남음).
+2. `bash scripts/completion-check.sh` exit 0.
+3. `git status --short` 비어 있고 `git log @{u}..HEAD` 비어 있음 (push 완료).
+
+종료 시: 본 문서 frontmatter `completed_at` 기입, `status` 를
+`complete`/`partial`/`aborted` 로 갱신. `docs/state/learnings.md` 한 줄 요약
+append. → commit + push.
+
+**막혀도 종료하지 마라.** 한 target stuck → blocker 기록 → 다음 target.
+route-test backstop 이 남아 있는 한 할 일은 항상 있다.
+
+---
+
+## Target (실행 순서)
+
+### Tier 0 — Honesty pass (가장 먼저, 빠름, work-unit 1개)
+
+직전 cycle 이 닫았으나 frontmatter 가 어긋난 finding 을 정정한다 (사용자 지시).
+검증으로 확인된 stale 은 대부분 이미 보정됨 — 이 패스는 **재검증**이다:
+
+- 각 미해결 finding 의 status_notes 의 "OPEN" 주장을 코드로 대조
+  (`guidelines/meta-system-audit.md` Q6). 이미 닫힌 item 을 OPEN 으로 두고
+  있으면 status_notes 를 CLOSED 로 정정하고 닫은 커밋/파일을 인용. 거꾸로
+  열려 있는데 closed 로 적힌 것도 정정.
+- 한 work-unit 으로 묶어 처리, commit + push.
+
+### Tier 1 — 작은 안전 직접 작업
+
+**1. `docs/findings/2026-05-21T1642-harness-spec-debt.md` — item 3 (HONEST_UC_SET)**
+
+- `goals/7-cli-spec-parity.gates.sh:~132` 의 하드코딩 `HONEST_UC_SET` 배열을
+  `ls docs/usecases/UC-*.md` 도출 + 명시적 allow-list 로. 화석화된 invariant
+  제거 (audit P4). **S**, 직접 TDD. item 1·2·4 는 이미 닫힘.
+- ★ 이건 **prior goal(7) 의 gate 수정**이다 → §5 case (b) (enforcement 를
+  derivation 으로 이전, 약화 아님). 커밋 메시지에 harness-spec-debt 인용 +
+  변경 후 `completion-check.sh` GREEN 확인. (Forbidden #1 의 sanctioned 예외.)
+
+**2. `docs/findings/2026-05-25T1823-ci-resource-optimization.md` — item 2 (CI shard)**
+
+- "Build spec — locked" 그대로: `.github/workflows/ci.yml` 의 test matrix
+  `shard: [1,2,3,4]` → `[1,2]`, 분모 참조 일관 갱신, before/after billable
+  분 측정 기록. **S**, 직접. Guard: 다음 CI run 이 이 변경 때문에 red 면 revert.
+
+### Tier 2 — 결정-잠금된 bounded feature
+
+**3. `docs/findings/2026-05-24T1100-spec-impl-audit.md` — Gap B (UC-022 SOFT lock)**
+
+- finding 의 "Build spec (decision-free)" 그대로. 결정 D1–D4 잠김 (spec-faithful:
+  SOFT 항상 성공 + 경고, 삭제 금지). port `listLocksForUseCase` 이미 존재 → **M**.
+- 직접 TDD. universal invariant 가 명확하면 일반 goal `34` 로 promote 가능,
+  아니면 직접. A·C 이미 닫힘 → B 닫으면 status_notes Gap B 를 CLOSED, finding
+  자체 acceptance 에 따라 `resolved: true` 가능.
+
+**4. `docs/findings/2026-05-26T1504-usecase-invocation-links.md`**
+
+- finding 의 "Build spec — unattended execution split" 그대로. 결정 잠김
+  (D1 `Step.invokes String[]`, D2 `_(includes: KEY)_`, contract-surface 필드셋
+  4종). **MIXED**:
+  - Stage 1a(schema/parse/serialize/doctor/invoked-by query), Stage 2(severity),
+    Stage 3(transitive impact) = **직접 TDD** (`apps/api`).
+  - Stage 1b(web "호출/호출됨" 렌더) = **claude-owned 위임 goal** (cwd `apps/app`),
+    Stage 1a backend GREEN 이후에만.
+- Guard: 단계 순서 의존(1a→1b→2→3). 한 단계 3사이클 무진전이면 partial +
+  마지막 green 단계 기록 후 다음 target.
+
+### Tier 3 — XL ledgered (chain-green-per-commit, partial 정상)
+
+**5. `docs/findings/2026-05-22T1628-shared-api-contracts.md`**
+
+- finding 의 "Unattended execution — chain-green-per-commit ledger" 그대로.
+  **iron rule: 매 커밋이 `completion-check.sh` GREEN**. scaffold 1커밋 →
+  도메인 1개당 1커밋(저위험→고위험 순) → status_notes "N/21 domains".
+- ★ **revert-guard 필수**: 도메인 슬라이스가 1 RED→GREEN 사이클에 안 green
+  되면 `git revert`(reset --hard 금지) → finding partial "N/21, <domain>
+  reverted" → blocker → 다음 target. **partial 로 끝나는 게 정상적 성공.**
+- route-test Phase 2(Tier 4)와 파일 disjoint: 같은 도메인을 한 세션에서 둘 다
+  건드리면 contract 슬라이스 먼저, 그 다음 route 테스트. 한 파일을 한 iteration
+  에서 교차 편집 금지.
+
+### Tier 4 — Backstop 무한 filler (다른 in-scope 사이사이 + 소진 후)
+
+**6. `docs/findings/2026-05-23T1836-route-test-coverage-honesty.md` — Phase 2**
+
+- `apps/api/tests/unit/http/*-routes.test.ts` **37개**(33 pure-mock + 4 partial
+  app.inject)를 `app.inject` integration 패턴으로 per-file 마이그레이션.
+  exemplar: `apps/api/tests/integration/http/{doctor,lock,sync}-route.test.ts`
+  - helper `apps/api/tests/helpers/server.ts`.
+- **직접 작업, per-file.** risk 낮은 순(doctor→sync→signup→lock/session→
+  alphabetical). 파일당: integration 테스트 작성(happy + error) → 원본 unit
+  테스트 삭제 → `pnpm exec vitest run apps/api/tests/http` green → 1파일 1커밋.
+- 배치(≤5파일) = 1 work-unit. **coverage threshold(75/80/80/80) 인하 금지,
+  `.skip` 금지.** 하룻밤에 다 못 닫혀도 OK → `partial` "Phase 2: N/37 migrated".
+
+### Tier 5 — optional (시간 남을 때만, 맨 끝)
+
+**7. `docs/findings/2026-05-26T1234-agent-contract-followups.md` — item 4b만**
+
+- `apps/api/src/http/actor-results.ts:~55` 의 라우팅 불가 `actor restore`
+  suggestion 제거 + UC-005 문구 손질. **S**. item 3·4a·4c 는 out-of-scope(계약 설계).
+
+---
+
+## 메타 시스템 감사 체크포인트 (매 2 work-unit)
+
+`guidelines/meta-system-audit.md` 가 source of truth. work-unit 2개 완료마다
+실행. **목적: 하니스/테스트 코드가 제품에 비해 과하거나 부정직해지지 않게 유지.**
+
+### 절차
+
+1. **렌즈 적용** — 최근 변경 + 인접 메타 산출물에 Q1–Q8 을 적용:
+   - Q1: "이 게이트가 없으면 어떤 _테스트_ 가 빨개지는가?" 답 있으면 MOVE-TO-TEST.
+   - Q2: 무해한 리팩터(rename/이동/heredoc)로 깨지는 양식-결합 검사 → TRIM.
+   - Q3/Q5: LOC 예산 초과 / 제품에서 먼 비싼 메타 → TRIM 또는 DEFER.
+   - Q6: `resolved/green` 주장 ↔ acceptance signal 재실행 대조.
+2. **테스트 코드 렌즈** (`prompts/check-test-codes` 철학):
+   - **구현 overfit 테스트 제거** (check-test-codes #1): 내부 헬퍼 호출 횟수·
+     사적 자료구조·구현 디테일을 단언하는데 동등한 **행위 단언**으로 대체
+     가능한 테스트 → 행위 단언으로 교체하거나 제거.
+   - ⚠️ **단, fetch payload/schema 과검증은 손대지 마라** — 그건
+     `shared-api-contracts`(Tier 3, in-scope) 의 영역이다. 거기로 합쳐 처리하고,
+     이 렌즈에서 별도로 RequestInit 단언을 일괄 삭제하지 마라(중복/충돌).
+3. **개선 처리** — 가장 가치 높은 구체 개선 **1건**을 선택해:
+   - gate 로 검증 가능한 **universal invariant** 면 → 다음 빈 goal 로 **promote**
+     (최소 gate; 아래 "Goal 화 시 주의점").
+   - 아니면(대부분) → **직접 TDD + finding 기록** (case (b): 테스트로 이전 후
+     gate trim, 또는 overfit 테스트 교체). 사용자 표현 "goal 생성" 은 이
+     case 에선 "개선 work-item 처리 + finding 로그"로 충족.
+4. 이 개선 처리 자체가 1 work-unit (즉 audit_counter += 1). commit + push.
+
+### 안전 자율성 (사용자 확정)
+
+- **case (b) 준수 시 자율 진행**: 게이트/검사를 약화/삭제하려면 **대응 테스트가
+  먼저 존재**해야 한다 (then trim). prior goal gate 면 커밋에 권한 근거 인용
+  (gates-over-coupling finding 또는 본 cycle Tier1#1 같은 finding 권한).
+- **HARD STOP (Q7)**: 선언·테스트 이전 없이 게이트/테스트를 약화·삭제하는 시도
+  → 진행 금지, blocker 기록. 정직성 위반은 협상 불가 (audit P6).
+- 감사가 "지금 손댈 게 없음(KEEP)"으로 끝나면 그렇게 한 줄 근거 남기고
+  (audit Q8) work-unit 으로 카운트하지 말고 다음 target 으로.
+
+---
+
+## Reference snapshots — 작업 대상 아님 (force-close 금지)
+
+`kind: snapshot`/`append-only-log` — "resolved" 대상이 아니다. 자식 work item
+을 통해서만 닫히고 본체는 reference. **`resolved: true` 로 뒤집지 마라.**
+
+- `docs/findings/2026-05-21T1635-perf-log.md` — append-only harness perf 로그.
+- `docs/findings/2026-05-22T1632-dogfood-snapshot.md` — dogfood frozen 스냅샷.
+- `docs/findings/2026-05-25T1447-activation-wow-project-overview.md` — WOW 분석 rationale.
+- `docs/findings/2026-05-24T1100-spec-impl-audit.md` — **예외**: 이건 snapshot
+  이지만 Gap B(자식 work)가 Tier2#3 로 in-scope. Gap B 닫으면 finding 자체
+  acceptance("A·B·C 모두 green 시 resolved")에 따라 `resolved: true` 가능.
+
+---
+
+## Out of scope (본 cycle 에서 손대지 마라)
+
+발견해도 **fix 시도 금지** — 기존 finding 에 note 만. 무인 실행에 위험/불확실/
+유료/설계결정-필요 항목들이다. (각 근거는 해당 finding 본문 참조.)
+
+- **dogfood-followups A14** (`…2026-05-23T1700-dogfood-followups.md`) — 23/24
+  닫힘. 잔여 A14(미라우팅 verb)는 **어떤 verb 를 베타에 넣을지 제품 결정**.
+- **cli-spec-gaps merge-resolve public setup** (`…2026-05-21T1856`) — divergent
+  revision 생성용 **공개 API 신설(설계) 필요**, test infra 차단.
+- **agent-contract items 3·4a·4c** (`…2026-05-26T1234`) — 봉투 format_version
+  통합 / `command` optional 화 = **post-beta 계약 설계**. (4b 만 Tier5 에 포함.)
+- **ci-resource item (구 #2 process)** — 이미 finding 에서 제거됨 (branch
+  protection 은 main 직접 push 모드와 상호배타). 재시도 금지.
+- **F3 persona-dogfood-harness** (`…2026-05-25T1516`) — `claude -p` **유료
+  헤드리스 에이전트 자율 spawn** = 비용/예측불가. 결과 해석도 사람 필요.
+- **F4 gap-a-authoring-assist** (`…2026-05-25T1520`) — **F3 측정 결과 의존** +
+  설계 미정 + 스코프 가변. XL.
+
+---
+
+## Finding 처리 절차
+
+각 finding/work-unit 마다:
+
+1. **읽기**: frontmatter + TL;DR + (있으면) "Build spec"/"Decisions locked"/
+   Acceptance signal. 본 cycle 의 in-scope 4개는 finding 안에 결정-잠금된
+   build spec 이 있으니 **그대로 따른다 (새 설계 결정 금지)**. `partial` 이면
+   status_notes 의 OPEN item 만.
+2. **판단 — promote / delegate / direct**:
+   - **claude 위임** (`## Delegation` owner: claude): UI/카피/디자인 (`apps/app`).
+     invocation-links Stage 1b 가 해당. `docs/claude/delegation.md` 계약 준수.
+   - **goal promote** (다음 빈 번호 `34`, …): 셋 다 만족 시만 — (a) gate 검증
+     가능한 universal invariant, (b) multi-step RED/GREEN, (c) prior goal 과 별개.
+   - **직접 작업**: 위 아니면 (대부분). guidelines/goal-iteration.md Phase 4.
+3. **실행**: RED → GREEN → REFACTOR, 각 phase 한 커밋. promote 했다면 각 phase
+   직후 `bash scripts/active-check.sh` 로 chain 점검.
+4. **검증**: finding 의 Acceptance signal 그대로 실행 → `completion-check.sh`
+   ALL_DONE. 다른 goal 이 깨졌으면 STOP, `docs/state/blockers.md` 기록.
+5. **마무리**: frontmatter (`resolved: true` + `resolved_by: <sha>`; 또는
+   `partial` + status_notes OPEN item). finding 본문 끝에 "## Resolution"
+   append (어떤 커밋이 어떤 acceptance signal 을 flip 했는지). commit + push.
+
+---
+
+## Goal 화 시 주의점 (`docs/goal-design.md §1.5/§5` 종합)
+
+### 최소 gates.sh
+
+**금지**: 함수 본문 grep / 타입 필드 grep / 테스트 제목 grep / 특정 경로 파일
+존재 강제 / 마크다운 헤딩 grep / findings bullet 제거 추적.
+**허용**: Rigor 메커니즘(마지막 게이트 `scripts/check-gate-rigor.sh …` 항상
+포함) / Negative universal grep("codebase 어디에도 X 없음") / 구조 앵커(필요한
+문서·파일 존재만).
+
+### 회의적 휴리스틱
+
+**"이 invariant 가 깨지면 어떤 테스트가 빨개지는가?"** 답 있으면 gate 에서 빼라.
+
+### Prior goal gate 수정 (case b/c/d)
+
+prior goal gate 를 약화/이전해야 하면: 새 goal `.md` 에 `## Supersedes`(case c)
+또는 enforcement-이전을 커밋/PR 에 명시(case b), prose-only drift 면 case d.
+**선언·테스트 이전 없이 prior gate 삭제 절대 금지** (§5). Tier1#1 의
+HONEST_UC_SET 변경은 sanctioned case (b).
+
+---
+
+## Forbidden actions (HARD STOP — `docs/state/blockers.md` 기록 후 다음으로)
+
+1. **Prior goal invariant 약화** — §5 case (b)/(c)/(d) 미준수 변경 금지.
+   `## Supersedes`/enforcement-이전 선언 없이 prior `.gates.sh`/`.md` 손대지
+   마라. (Tier1#1, 메타 감사의 sanctioned trim 은 규칙 준수 시 예외.)
+2. **Hook 우회 금지** — `--no-verify`, `--no-gpg-sign` 등. fail 하면 디버그.
+3. **테스트/lint 비활성화 금지** — `.skip()`/`xit()`/`it.skip()`, 새
+   `eslint-disable`/`@ts-ignore`/`@ts-expect-error` 추가 금지. 깨진 동작이면
+   _코드_ 를 고쳐라. (overfit 테스트 _교체_ 는 허용 — 행위 단언으로 대체.)
+4. **Coverage threshold 인하 금지** — `vitest.config.ts` baseline(75/80/80/80).
+5. **3 TDD 사이클(또는 위임 3 라운드) 무진전** — blocker append 후 다음 target.
+   promote 한 goal 이면 ★ DEADLOCK 가드(promotion back out). shared-contracts
+   도메인이면 ★ revert-guard(git revert + partial).
+6. **Chain 이 예상 못한 방식으로 깨질 때** — `.state/active-goal` 이 plan 과
+   안 맞거나 새 fail goal → STOP, blocker.
+7. **Destructive git 금지** — `push --force`/`-f`, `reset --hard`,
+   `checkout -- .`, `clean -f`, `rebase -i`, `filter-branch`. **main force push
+   절대 금지.** (revert-guard 는 `git revert` 사용 — reset 아님.)
+8. **`.env`/credentials/대용량 산출물 commit 금지** (`/commit` secret-scan).
+9. **사용자 환경 영향 금지** — 호스트 설정/`~/.vspec/config.json` 덮어쓰기 금지.
+10. **Out of scope 항목 작업 금지** — A14, merge-resolve setup, agent-contract
+    3/4a/4c, F3, F4, branch-protection. 발견해도 note 만.
+11. **결정-잠금된 finding 의 설계 재결정 금지** — Gap B/invocation-links/
+    shared-contracts 는 build spec 그대로 실행. "더 나은 설계" 가 떠올라도 본
+    cycle 에선 실행하지 말고 finding 에 note 만 남겨라 (무인 실행은 설계 결정
+    금지가 안전 원칙).
+
+---
+
+## Commit / push 프로토콜
+
+`/commit` skill + `guidelines/goal-iteration.md` Phase 4:
+
+- TDD 각 phase (RED/GREEN/REFACTOR) — **한 phase 한 commit**.
+- finding/sub-item/work-unit 완료 후 마무리 commit + `git push origin main`.
+- **브랜치 `main` 유지** (별도 branch 생성 금지). 시작 시 현재 브랜치 확인.
+- 커밋 메시지 끝에 Co-Authored-By (실행 에이전트 자신). HEREDOC 으로 전달.
+- **Push 실패 시**: 원인 디버그(네트워크? remote rejection?). retry 1회 OK.
+  두 번째도 실패하면 blocker.
+
+---
+
+## 진행 상황 추적
+
+- `docs/state/progress.md`, `docs/state/next-task.md` 는 `scripts/update-state.sh`
+  자동 생성 — **손대지 마라**.
+- `docs/state/learnings.md`, `docs/state/blockers.md` 는 append-only.
+  - learnings: finding/감사 처리 중 발견한 의외의 점 한 줄. audit_counter 진행도.
+  - blockers: forbidden action 트리거 / 3-사이클 stuck / promotion back out /
+    revert-guard 발동 시.
+
+---
+
+## 검증 — 진짜 끝났는지
+
+종료 직전:
+
+```bash
+# 1. in-scope target findings 상태 점검
+for f in \
+  docs/findings/2026-05-21T1642-harness-spec-debt.md \
+  docs/findings/2026-05-25T1823-ci-resource-optimization.md \
+  docs/findings/2026-05-24T1100-spec-impl-audit.md \
+  docs/findings/2026-05-26T1504-usecase-invocation-links.md \
+  docs/findings/2026-05-22T1628-shared-api-contracts.md \
+  docs/findings/2026-05-23T1836-route-test-coverage-honesty.md \
+; do
+  awk '/^---$/{c++; if(c==2)exit} /^resolved:/{print FILENAME": "$0}' "$f"
+done
+
+# 예상:
+#   harness-spec-debt          → true (item3 닫힘) 또는 partial
+#   ci-resource-optimization   → true (item2 닫힘) 또는 partial
+#   spec-impl-audit (Gap B)    → true (A·B·C green) 또는 partial
+#   usecase-invocation-links   → true 또는 partial (마지막 green 단계 표기)
+#   shared-api-contracts       → partial ("N/21 domains") — XL, partial 정상
+#   route-test-coverage-honesty→ partial ("Phase 2: N/37 migrated")
+
+# 2. chain green
+bash scripts/completion-check.sh; echo "exit: $?"   # 0
+
+# 3. 작업 트리 clean
+git status --short    # 비어야 함
+
+# 4. push 완료
+git log @{u}..HEAD --oneline   # 비어야 함
+```
+
+다 통과하면 `docs/state/learnings.md` 에 append:
+
+```
+- 2026-05-27 findings+meta-audit sweep: closed/advanced N findings
+  (harness-spec-debt#3, ci-shard, Gap B, invocation-links, shared-contracts
+  K/21 domains, route-test M/37). Ran A meta-audit checkpoints → B improvements.
+  Out of scope: A14, merge-resolve setup, agent-contract 3/4a/4c, F3, F4,
+  branch-protection. Open blockers: C. See git log for details.
+```
+
+TERMINATE.

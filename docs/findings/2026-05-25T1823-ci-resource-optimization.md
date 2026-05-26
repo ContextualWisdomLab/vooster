@@ -2,7 +2,7 @@
 title: CI runs full lint/typecheck/test matrix on code-free pushes
 created_at: 2026-05-25T18:23:52Z
 resolved: partial
-priority: P1
+priority: P2
 resolved_by:
   - 508c6c2
 status_notes: |
@@ -10,11 +10,12 @@ status_notes: |
     Skips the lint+typecheck+4-shard test matrix when a push/PR touches only
     proven-non-code paths. Measured to drop 36.6% of pushes with zero
     false-skips of a code change.
-  Test-job overhead (build run 4x, ~50% of each shard is fixed setup) — OPEN.
-    Candidate: drop matrix shard 4→2, or build-once + share dist. See below.
-  Process: CI is post-hoc on direct pushes to main; main was red ~84% of the
-    last 5 days; no branch protection. Out of scope for "resource waste" but
-    surfaced here — OPEN.
+  Test-job overhead (build run 4x, ~50% of each shard is fixed setup) — OPEN,
+    decision LOCKED 2026-05-27: reduce the test matrix shard [1,2,3,4] → [1,2]
+    (option a, the boring win). Picked up by cycle 260527-01. See "Build spec".
+  (Priority lowered P1→P2: the P1 driver was the branch-protection/post-hoc-CI
+    process item, removed 2026-05-27 — see note below. The remaining shard
+    item is P2 pure-meta-speed.)
 related:
   - .github/workflows/ci.yml
   - .github/workflows/verify.yml
@@ -81,22 +82,46 @@ blocks a merge — no stub job needed.
 ## Open items / recommendations (data-backed, not yet done)
 
 1. **Test-job overhead (P2, ~9 CI-h/week)**. ~50% of each test shard is fixed
-   setup, and `pnpm -r build` (38s) runs **4×** when 1 build would do. Options:
-   (a) drop the matrix `shard: [1,2,3,4]` → `[1,2]` (12→8 billable min on the
-   test job; ~4 min/code-run; trades ~2min extra wall latency); (b) build once
-   in a setup job, upload `dist` artifact, download per shard. (a) is the
-   boring win; (b) keeps 4-way parallelism. Measure before picking.
-2. **Process: post-hoc CI on a red main (P1, structural)**. 166/183 changes
-   reach `main` by **direct push**, and CI runs _after_ merge. CI failed
-   ~84% of the last 5 days (now green for the last ~10 runs). The blocking
-   gate gates nothing for the agent. If stability is the goal, route the
-   autonomous agent through PRs + branch protection so CI runs _before_ the
-   commit lands on `main`. Bigger change — left for a deliberate decision.
+   setup, and `pnpm -r build` (38s) runs **4×** when 1 build would do. Options
+   were (a) drop the matrix `shard: [1,2,3,4]` → `[1,2]`; (b) build once in a
+   setup job, upload `dist` artifact, download per shard. **Decision LOCKED
+   2026-05-27 → option (a)**, the boring/reversible win. See "Build spec".
+
+> **Removed 2026-05-27 — branch-protection / post-hoc-CI process item.** A
+> prior revision raised "route the autonomous agent through PRs + branch
+> protection so CI runs before the commit lands on main." That is **mutually
+> exclusive** with the agent's `commit → push origin main` workflow: turning on
+> branch protection blocks direct pushes, which would wedge the autonomous
+> loop. It is a harness-redesign decision, not a resource-waste fix, so it is
+> deliberately dropped from this finding. Re-raise as a separate
+> harness-redesign finding if/when the team wants PR-gated agent commits.
+
+## Build spec — locked for unattended execution (2026-05-27)
+
+Decision-free; an overnight agent can execute mechanically.
+
+1. In `.github/workflows/ci.yml`, change the test job matrix
+   `shard: [1, 2, 3, 4]` → `shard: [1, 2]` (currently at `ci.yml:102-103`).
+   Leave the `pnpm -r build` step and everything else untouched — option (b)
+   (artifact sharing) is explicitly **not** part of this change.
+2. If the shard count is referenced anywhere else (e.g. a `--shard=$i/4`
+   argument in `scripts/run-tests.sh` or the workflow), update the denominator
+   to `/2` consistently so all tests still run across the 2 shards. Grep:
+   `rg -n 'shard|/4|1,2,3,4' .github/workflows scripts` and reconcile.
+3. **Measurement requirement** (satisfies the finding's "measure before
+   picking"): after the change lands and CI runs once on a code push, append
+   the observed before/after `test`-job billable minutes to this finding's
+   status_notes (target: 12 → ≤8).
+4. **Guard**: if the next CI run on `main` is **red** for a reason caused by
+   this change (e.g. a test only ran under shard 3/4 and is now skipped), the
+   sharding is mis-wired — revert the commit and record a blocker. A correct
+   2-shard split runs **every** test, just across 2 jobs.
 
 ## Acceptance signal
 
 - Shipped item: push a `docs/state/`-only change to `main`; **no CI run**
   appears for that SHA (`gh run list --workflow=ci.yml`), while a sibling
   `apps/**` push still triggers all 5 jobs.
-- Open item 1: after a shard/build change, `test` job billable minutes drop
-  from 12 to ≤8 on a code push (job-step timing).
+- Open item 1: after the shard change, the `test` job runs **2** parallel jobs
+  (not 4), every test still executes (no count drop vs. the 4-shard run), and
+  billable minutes for the `test` job drop from ~12 to ≤8 on a code push.

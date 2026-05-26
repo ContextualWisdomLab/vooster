@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  markdownExportResponseSchema,
+  usecaseExportParamsSchema,
+  usecaseExportRequestSchema
+} from "@vooster/contracts";
 import {
   exportMarkdown as exportMarkdownWorkflow,
   type MarkdownExportResult
@@ -20,14 +24,6 @@ import {
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-
-const paramsSchema = z.object({ id: z.string().min(1) });
-const exportSchema = z.object({
-  existing_file_content: z.string().optional(),
-  force: z.boolean().default(false),
-  output_path: z.string().optional(),
-  revision_id: z.string().optional()
-});
 
 export function registerMarkdownExportRoutes(
   app: FastifyInstance,
@@ -71,8 +67,8 @@ async function exportMarkdown(
   stakeholderStore: StakeholderStore,
   stepStore: StepStore
 ) {
-  const usecaseId = paramsSchema.parse(request.params).id;
-  const parsed = exportSchema.safeParse(request.body ?? {});
+  const usecaseId = usecaseExportParamsSchema.parse(request.params).id;
+  const parsed = usecaseExportRequestSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid markdown export request"));
   }
@@ -110,7 +106,7 @@ async function exportMarkdown(
   return reply
     .header("x-vspec-round-trip-self-check", "passed")
     .type("text/markdown")
-    .send(result.markdown);
+    .send(markdownExportResponseSchema.parse(result.markdown));
 }
 
 function sendMarkdownExportProblem(

@@ -5,6 +5,7 @@ export * from "./branch.js";
 export * from "./common.js";
 export * from "./comment.js";
 export * from "./doctor.js";
+export * from "./export.js";
 export * from "./goal.js";
 export * from "./invitation.js";
 export * from "./lock.js";

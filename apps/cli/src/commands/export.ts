@@ -1,6 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  gherkinExportResponseSchema,
+  markdownExportResponseSchema,
+  usecaseExportRequestSchema,
+  type GherkinExportResponse,
+  type MarkdownExportResponse,
+  type UsecaseExportRequest
+} from "@vooster/contracts";
 
 import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { postText } from "../http-client.js";
@@ -81,8 +89,9 @@ async function exportGherkin(
       Cookie: exportFlags.sessionCookie
     }
   );
+  const body: GherkinExportResponse = gherkinExportResponseSchema.parse(response.body);
 
-  await writeExportResponse(response.body, exportFlags.output, writeLine);
+  await writeExportResponse(body, exportFlags.output, writeLine);
 }
 
 async function exportMarkdown(
@@ -98,16 +107,19 @@ async function exportMarkdown(
       Cookie: exportFlags.sessionCookie
     }
   );
+  const body: MarkdownExportResponse = markdownExportResponseSchema.parse(
+    response.body
+  );
 
-  await writeExportResponse(response.body, exportFlags.output, writeLine);
+  await writeExportResponse(body, exportFlags.output, writeLine);
 }
 
-function exportPayload(flags: ExportFlags): Record<string, string | boolean> {
-  return {
+function exportPayload(flags: ExportFlags): UsecaseExportRequest {
+  return usecaseExportRequestSchema.parse({
     force: flags.force,
     ...(flags.output === undefined ? {} : { output_path: flags.output }),
     ...(flags.revision === undefined ? {} : { revision_id: flags.revision })
-  };
+  });
 }
 
 async function writeExportResponse(

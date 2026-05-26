@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  gherkinExportResponseSchema,
+  usecaseExportParamsSchema,
+  usecaseExportRequestSchema
+} from "@vooster/contracts";
 import { exportGherkin as exportGherkinWorkflow } from "../application/gherkin-export.js";
 import { existingOutputProblem, outputPathProblem } from "./gherkin-export-problems.js";
 import { sendGherkinExportProblem } from "./gherkin-export-results.js";
@@ -12,14 +16,6 @@ import type { RevisionStore } from "../ports/revision-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const paramsSchema = z.object({ id: z.string().min(1) });
-const exportSchema = z.object({
-  existing_file_content: z.string().optional(),
-  force: z.boolean().default(false),
-  output_path: z.string().optional(),
-  revision_id: z.string().optional()
-});
 
 export function registerGherkinExportRoutes(
   app: FastifyInstance,
@@ -57,8 +53,8 @@ async function exportGherkin(
   scenarioStore: ScenarioStore,
   stepStore: StepStore
 ) {
-  const usecaseId = paramsSchema.parse(request.params).id;
-  const parsed = exportSchema.safeParse(request.body ?? {});
+  const usecaseId = usecaseExportParamsSchema.parse(request.params).id;
+  const parsed = usecaseExportRequestSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid Gherkin export request"));
   }
@@ -98,5 +94,7 @@ async function exportGherkin(
         )
       );
   }
-  return reply.type("text/plain").send(result.feature);
+  return reply
+    .type("text/plain")
+    .send(gherkinExportResponseSchema.parse(result.feature));
 }

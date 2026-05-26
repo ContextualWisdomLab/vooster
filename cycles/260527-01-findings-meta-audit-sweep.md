@@ -724,6 +724,20 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T05:30:14+09:00 — Meta-audit checkpoint after
+  `audit_counter=32`: KEEP. Invitation shared-contract schemas are
+  production-consumed by API and CLI, push-time `completion-check.sh` verified
+  the status claim, and the migration did not add brittle exact
+  `fetch(..., RequestInit)` equality tests. No work-unit count change.
+- 2026-05-27T05:32:51+09:00 — Tier 3#5 shared-api-contracts export domain
+  complete; `audit_counter=33`. Added `packages/contracts/src/export.ts`, moved
+  usecase export params, request bodies, and gherkin/markdown text response DTOs
+  into shared schemas, made API gherkin/markdown export routes parse through
+  those schemas, and made CLI export parse shared request/response shapes before
+  file/stdout rendering. Domains migrated: 16/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/export.test.ts apps/api/tests/unit/http/gherkin-export-routes.test.ts apps/api/tests/unit/http/markdown-export-routes.test.ts apps/api/tests/e2e/UC-030.test.ts apps/api/tests/e2e/UC-031.test.ts apps/cli/tests/e2e-cli/UC-030.test.ts apps/cli/tests/e2e-cli/UC-031.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

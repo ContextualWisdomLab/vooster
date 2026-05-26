@@ -3,6 +3,10 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Export domain CLOSED on 2026-05-27: usecase export params/body and
+  gherkin/markdown text response schemas moved to `@vooster/contracts`; API and
+  CLI export paths now parse through the shared schemas. Domains migrated:
+  16/21.
   Invitation domain CLOSED on 2026-05-27: create/accept params and request
   bodies plus create/accept success response schemas moved to
   `@vooster/contracts`; API and CLI member invite now parse through the shared

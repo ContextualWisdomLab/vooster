@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { levelLabel, STATUS_TERM_LABEL } from "@/lib/labels";
 import { StatusPill } from "../../../../../components/StatusPill";
@@ -18,7 +19,8 @@ export default async function UsecasePage({
     status,
     main_scenario,
     extensions,
-    stakeholder_interests
+    stakeholder_interests,
+    invoked_by
   } = detail;
 
   return (
@@ -59,11 +61,27 @@ export default async function UsecasePage({
         <h2>
           <TermLabel term="main_scenario" />
         </h2>
-        <div className="border-l-[3px] border-foreground/20 pl-3.5">
+        <div className="grid gap-1.5 border-l-[3px] border-foreground/20 pl-3.5">
           {main_scenario.steps.map((step) => (
-            <p key={step.step_number}>
-              {step.step_number}. {step.actor} {step.action}
-            </p>
+            <div key={step.step_number}>
+              <p>
+                {step.step_number}. {step.actor} {step.action}
+              </p>
+              {step.invokes && step.invokes.length > 0 ? (
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span className="font-medium">호출</span>
+                  {step.invokes.map((target) => (
+                    <Link
+                      key={target}
+                      href={`/projects/${key}/usecases/${target}`}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {target}
+                    </Link>
+                  ))}
+                </p>
+              ) : null}
+            </div>
           ))}
         </div>
       </section>
@@ -87,6 +105,22 @@ export default async function UsecasePage({
           </p>
         ))}
       </section>
+      {invoked_by && invoked_by.length > 0 ? (
+        <section className="grid gap-2 rounded-lg border border-border bg-muted/40 p-5">
+          <h2>호출됨</h2>
+          {invoked_by.map((caller) => (
+            <p key={`${caller.key}-${caller.step_number}`}>
+              <Link
+                href={`/projects/${key}/usecases/${caller.key}`}
+                className="font-medium text-foreground hover:underline"
+              >
+                {caller.key}
+              </Link>{" "}
+              {caller.title} ({caller.step_number}단계)
+            </p>
+          ))}
+        </section>
+      ) : null}
     </article>
   );
 }

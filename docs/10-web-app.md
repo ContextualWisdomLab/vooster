@@ -56,8 +56,10 @@ is absent.
 
 ## Consumed API surface
 
-Every endpoint the app calls lives in `app/data.tsx`. This table is the seam to
-`06-api-contract.md`; when the API contract changes, this is what breaks.
+Every endpoint the app calls lives in `app/data.tsx` (HTTP transport in
+`app/api-client.tsx`, demo/stub responses in `app/data.stub.tsx`). This table is
+the seam to `06-api-contract.md`; when the API contract changes, this is what
+breaks.
 
 | Method & path                           | Plane              | Used by               |
 | --------------------------------------- | ------------------ | --------------------- |
@@ -93,15 +95,16 @@ but which are **not yet built**. Anything not listed here is forbidden (see
   only links to the start URL and reads the resulting cookie.
 - `app/auth.tsx` (`hasSessionCookie`) gates the `(app)` layout; missing cookie →
   redirect to `/login`.
-- Every server-side fetch forwards `Cookie: vspec_session=…` (`app/data.tsx`
+- Every server-side fetch forwards `Cookie: vspec_session=…` (`app/api-client.tsx`
   `readApi` / `mutateApi`) and uses `cache: "no-store"`.
 
 ## Demo / stub mode
 
 `VSPEC_AUTH_STUB=1` short-circuits auth (`hasSessionCookie` → true) and serves
 in-memory demo data instead of calling the API, including a mutable demo project
-store so create/rename/delete work offline. This is the mode the Playwright
-suite and local UI work run in.
+store so create/rename/delete work offline. The fixtures, the demo store, and
+the `isAuthStub()` toggle all live in `app/data.stub.tsx`. This is the mode the
+Playwright suite and local UI work run in.
 
 | Env var           | Default                 | Purpose                              |
 | ----------------- | ----------------------- | ------------------------------------ |

@@ -10,11 +10,11 @@ import {
 } from "../../app/data";
 
 type StubGlobal = {
-  __vsepecDemoProjects?: unknown;
+  __vspecDemoProjects?: unknown;
 };
 
 afterEach(() => {
-  delete (globalThis as StubGlobal).__vsepecDemoProjects;
+  delete (globalThis as StubGlobal).__vspecDemoProjects;
   vi.unstubAllEnvs();
 });
 

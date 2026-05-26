@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Actor/stakeholder CLI unit overfit CLOSED on 2026-05-27: migrated command
+  tests no longer assert exact `fetch(..., RequestInit)` objects; shared
+  schemas and honest CLI E2E cover contract and behavior drift.
   Stakeholder domain CLOSED on 2026-05-27: create/patch params and list/show/
   create/archive response schemas moved to `@vooster/contracts`; API and CLI
   now parse through the shared schemas. Domains migrated: 5/21.

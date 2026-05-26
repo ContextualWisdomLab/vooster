@@ -32,14 +32,7 @@ describe("actor command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/projects/project-1/actors",
-      {
-        headers: {
-          Cookie: "vspec_session=session-token"
-        }
-      }
-    );
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toEqual(["Customer PRIMARY actor-1"]);
   });
 
@@ -68,14 +61,7 @@ describe("actor command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/projects/project-1/actors/actor-1",
-      {
-        headers: {
-          Cookie: "vspec_session=session-token"
-        }
-      }
-    );
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toEqual(["Customer PRIMARY actor-1"]);
   });
 
@@ -105,17 +91,7 @@ describe("actor command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/projects/project-1/actors/actor-1",
-      {
-        body: JSON.stringify({ name: "Buyer" }),
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "vspec_session=session-token"
-        },
-        method: "PATCH"
-      }
-    );
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toEqual(["Buyer PRIMARY actor-1"]);
   });
 
@@ -147,15 +123,7 @@ describe("actor command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith(
-      "https://api.example.test/v1/projects/project-1/actors/actor-1",
-      {
-        headers: {
-          Cookie: "vspec_session=session-token"
-        },
-        method: "DELETE"
-      }
-    );
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toEqual(["Archived actor-1"]);
   });
 });

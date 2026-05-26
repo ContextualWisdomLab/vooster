@@ -573,6 +573,14 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run apps/api/tests/e2e/UC-006.test.ts apps/cli/tests/e2e-cli-honest/UC-006-stakeholder.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-read.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-edit.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
   Next step: required meta-system audit checkpoint before the next target.
+- 2026-05-27T03:28:40+09:00 — Meta-audit checkpoint after `audit_counter=20`
+  found actor/stakeholder CLI unit tests still asserting exact
+  `fetch(..., RequestInit)` objects after their shared schema migrations.
+  Replaced those implementation-detail assertions with behavior-level call
+  count + rendered-output checks; `audit_counter=21`. Verification:
+  `pnpm exec vitest run apps/cli/tests/unit/actor-command.test.ts apps/cli/tests/unit/stakeholder-command.test.ts apps/cli/tests/e2e-cli-honest/actor-read.test.ts apps/cli/tests/e2e-cli-honest/actor-edit.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-read.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-edit.test.ts`,
+  targeted eslint, targeted prettier, and `bash scripts/completion-check.sh`
+  exited 0.
 
 ---
 

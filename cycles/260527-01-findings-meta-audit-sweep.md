@@ -396,6 +396,15 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `bash goals/7-cli-spec-parity.gates.sh`, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint.
+- 2026-05-27T01:16:53+09:00 — Meta-audit checkpoint #1 complete;
+  audit_counter=3. Q2/Q3 found the new Goal 7 UC derivation duplicated in
+  `goals/7-cli-spec-parity.gates.sh` and `.next-task.sh`, while the regression
+  test was coupled to a literal `find docs/usecases ...` shell shape. Improvement:
+  extracted `scripts/derive-honest-uc-set.sh`, made both Goal 7 scripts call it,
+  and changed `apps/api/tests/integration/goal7-honest-uc-set.test.ts` to verify
+  helper behavior with a fixture. Verification: focused vitest, `tsc --noEmit`,
+  eslint on the test, `VSPEC_GATES_SKIP_DEEP=1 bash goals/7-cli-spec-parity.gates.sh`,
+  and `bash scripts/completion-check.sh` exited 0.
 
 ---
 

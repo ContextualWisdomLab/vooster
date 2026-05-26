@@ -33,6 +33,7 @@ GATE_INPUTS=(
   apps/cli/bin
   apps/cli/package.json
   docs/usecases
+  scripts/derive-honest-uc-set.sh
   scripts/check-gate-rigor.sh
   scripts/check-honest-cli-e2e.sh
   goals/7-cli-spec-parity.gates.sh
@@ -160,23 +161,9 @@ HONEST_UC_ALLOWLIST=(
 )
 HONEST_UC_SET=(
 )
-
-derive_honest_uc_set() {
-  local allowed=" ${HONEST_UC_ALLOWLIST[*]} "
-  local uc
-  while IFS= read -r uc; do
-    if [[ "$allowed" == *" $uc "* ]]; then
-      continue
-    fi
-    HONEST_UC_SET+=("$uc")
-  done < <(
-    find docs/usecases -name 'UC-*.md' -type f 2>/dev/null \
-      | sed -E 's#.*/(UC-[0-9]+).*#\1#' \
-      | sort
-  )
-}
-
-derive_honest_uc_set
+while IFS= read -r uc; do
+  HONEST_UC_SET+=("$uc")
+done < <(bash scripts/derive-honest-uc-set.sh docs/usecases "${HONEST_UC_ALLOWLIST[@]}")
 
 # ─── Tranche A — Envelope module + standardization ───────────────────────
 

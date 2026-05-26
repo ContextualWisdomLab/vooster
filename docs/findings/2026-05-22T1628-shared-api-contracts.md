@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  AI-guide domain CLOSED on 2026-05-27: route query/body and success response
+  schemas moved to `@vooster/contracts`; API and CLI now parse through them.
+  Domains migrated: 2/21.
   Common/health domain CLOSED on 2026-05-27: `/healthz` now returns through
   `@vooster/contracts` `healthResponseSchema`. Domains migrated: 1/21.
   Scaffold CLOSED on 2026-05-27: `packages/contracts` exists, workspace package

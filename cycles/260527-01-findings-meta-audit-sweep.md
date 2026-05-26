@@ -532,6 +532,14 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
   Next step: required meta-system audit checkpoint before the next contract
   domain.
+- 2026-05-27T02:56:32+09:00 — Tier 3#5 shared-api-contracts AI-guide domain
+  complete; `audit_counter=17`. Added `packages/contracts/src/ai-guide.ts`
+  with query/body and success response schemas, made the API route parse
+  request and 200-response DTOs through the shared schemas, and made the CLI
+  `ai-guide` command parse markdown/json responses before rendering. Domains
+  migrated: 2/21. Verification:
+  `pnpm exec vitest run packages/contracts apps/api/tests/e2e/UC-033.test.ts apps/cli/tests/e2e-cli/UC-033.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
 
 ---
 

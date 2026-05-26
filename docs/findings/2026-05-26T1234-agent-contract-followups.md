@@ -1,0 +1,126 @@
+---
+title: Agent-facing contract follow-ups (post spec-impl audit)
+created_at: 2026-05-26T12:34:51Z
+resolved: partial
+priority: P2
+resolved_by:
+  - 8d27157
+  - 5ce7ea5
+status_notes: |
+  Suggested-command corrections — CLOSED 2026-05-26 (commit 8d27157).
+  Goal create `--actor` name alignment — CLOSED 2026-05-26 (commit 5ce7ea5);
+    closes audit §A2 "Goals: requires --actor-id not --actor".
+  Agent envelope `format_version` split (1 read / 2 mutation) — OPEN (P2).
+  API suggests unimplemented `member set-role` / `member list` — OPEN (P2).
+related:
+  - docs/findings/2026-05-24T1100-spec-impl-audit.md
+  - docs/06-api-contract.md
+  - docs/07-cli-spec.md
+---
+
+# Agent-facing contract follow-ups (post spec-impl audit)
+
+## TL;DR
+
+A focused pass over the **agent-facing contract** (the `suggested_next_actions`
+commands the API hands back, and the goal-create actor field) on top of the
+2026-05-24 spec↔impl audit. Two agent-breaking issues are now **fixed**; two
+contract-shape items are **deferred to post-beta** and recorded here. Domain
+model / endpoint-shape drift is **not** re-litigated here — it lives in
+`docs/findings/2026-05-24T1100-spec-impl-audit.md` (§A1, §A5).
+
+## Closed in this pass
+
+### 1. Untruthful `suggested_next_actions` — CLOSED (commit `8d27157`)
+
+The API emitted next-step commands that don't exist or are malformed, so an AI
+agent following them would fail. Each correct form already existed elsewhere in
+the codebase; these were internal-inconsistency outliers (several pinned in
+place by tests asserting the wrong string).
+
+- `vspec actor define` → `vspec actor create` (`apps/api/src/http/project-results.ts:19`).
+- `vspec scenario main` → `vspec scenario add <key> --type main-success` (`apps/api/src/http/goal-promotion-results.ts:63`).
+- `vspec changes commit <id>` → `vspec change commit --preview-id <id>` (`apps/api/src/application/impact-analysis.ts:177`).
+- `vspec unlock` → `vspec who <key>` (`apps/api/src/http/step-lock-support.ts:40,58`; `apps/api/src/http/change-preview-support.ts:49`). Required threading the use case into the step-edit lock results (`apps/api/src/application/step-editing.ts:52-53,100,106`) so the key is available.
+- Dropped redundant/false `vspec lock list` from `who` output (`apps/api/src/application/who-is-working.ts`) — the response already lists the locks.
+
+Acceptance signal: `grep -rn "actor define\|scenario main\|changes commit\|vspec unlock\|vspec lock list" apps/api/src apps/cli/src apps/api/tests apps/cli/tests` returns nothing. Full suite green (952 → see commit).
+
+### 2. Goal create `--actor` by name — CLOSED (commit `5ce7ea5`)
+
+`goal create` was the lone command requiring an actor _id_ while usecase
+authoring, step add, and stakeholder interests resolve by name — forcing agents
+to special-case goals. It now also accepts `--actor <name>` / `{ actor }`,
+resolved via `ActorStore.findActorByName` (`apps/api/src/application/actor-goals.ts`),
+keeping `--actor-id` / `actor_id` for back-compat (at least one required).
+Closes the audit §A2 item "Goals: requires `--actor-id` not `--actor`".
+
+## Open (deferred to post-beta)
+
+### 3. Agent envelope `format_version` split — P2
+
+The documented agent envelope is `format_version: 1`
+(`docs/07-cli-spec.md:565`, `docs/usecases/UC-034-ai-fetch-spec.md:42,83`), and
+read commands emit it via `apps/cli/src/agent-envelope.ts:1`
+(`FORMAT_VERSION = 1`). But **mutation** commands emit a _different_
+`format_version: 2` envelope (`apps/cli/src/domain/envelope.ts:1`
+`ENVELOPE_VERSION_V2 = 2`, consumed in
+`apps/cli/src/application/mutation-command.ts:3`) with extra
+`status` / `error` / `affected_files` / `dry_run` fields.
+
+The richer mutation envelope is _useful_ (an agent committing a change wants
+`affected_files` and `dry_run`), but using `format_version` to encode a
+read-vs-write distinction is wrong: that field denotes schema evolution, and the
+extra fields are additive/optional, so they don't need a version bump.
+
+**Recommendation:** consolidate to a single `format_version: 1` schema where the
+mutation-only fields are optional additions, rather than two coexisting
+versions. Touches every mutation command + tests, so defer until after beta.
+
+**Acceptance signal:** `grep -rn "ENVELOPE_VERSION_V2\|format_version: 2\|: 2 as const" apps/cli/src` returns nothing, and both read and mutation agent output carry `format_version: 1`.
+
+### 4. API suggests unimplemented `member` commands — P2
+
+The API hands back `vspec member set-role` / `vspec member list` as
+`suggested_next_actions` in permission-denied (403) contexts, but only
+`member invite` is implemented (`apps/cli/src/commands/member.ts`; the audit
+§07 lists `member list/set-role/remove` as 🔵 Planned). Sites:
+
+- `apps/api/src/http/usecase-results.ts:65`
+- `apps/api/src/http/revision-diff-routes.ts:103`
+- `apps/api/src/http/invitation-problems.ts:19`
+- `apps/api/src/http/invitation-results.ts:33`
+- `apps/api/src/http/impact-results.ts:63`
+- `apps/api/src/http/revision-history-results.ts:37`
+- `apps/api/src/http/branch-results.ts:18`
+- `apps/api/src/http/api-key-results.ts:79`
+
+These were deliberately **not** corrected alongside item 1: they sit in 403
+contexts where the recipient lacks the permission to run them anyway, they
+point at _planned_ commands (not typos of existing ones), and they are pinned
+by ~10 test assertions (e.g. `apps/api/tests/e2e/UC-009.test.ts:214`,
+`UC-027.test.ts:224`, `apps/cli/tests/unit/member-api-key-agent-format.test.ts:64`).
+
+**Options:**
+
+- (a) Implement `member list` / `member set-role` (post-MVP feature; carries authz design).
+- (b) Strip the `command` field and make these reason-only advisory. Requires making `command` optional in `SuggestedNextAction` (`apps/cli/src/domain/envelope.ts:11`, `apps/cli/src/agent-envelope.ts:11`) and updating the asserting tests.
+
+**Recommendation:** (b) after beta — a 403 advisory should not advertise a
+command the caller cannot run. Pre-MVP, leave as-is (no new command surface).
+
+**Acceptance signal:** no `suggested_next_actions` entry carries a `command`
+that the CLI dispatcher (`apps/cli/src/index.ts`) cannot route.
+
+## Decisions on file (sync-check triage, 2026-05-26)
+
+1. **Untruthful suggestions** → correct to existing commands / remove; do not
+   build new commands pre-MVP (item 1 done; item 4 deferred).
+2. **name vs id** → name-based is canonical; goal aligned to accept `--actor`
+   while keeping `--actor-id` (item 2 done).
+3. **Envelope v2** → document as-built now; consolidate to a single additive
+   schema post-beta (item 3).
+4. **Work product** → fix agent-breaking bugs now (Track 1/2); stale-but-clear
+   docs patched directly (07 package name, 05 enum/String banner); deferred
+   design debt recorded here. Domain/endpoint-shape drift stays in the
+   2026-05-24 audit, not duplicated.

@@ -7,7 +7,7 @@ design decision here favors discoverability over brevity.
 
 ## Binary
 
-`vspec` (npm package `@vooster/vspec-cli`, single executable).
+`vspec` (npm package `@vooster/cli`, single executable).
 
 ## Output Formats
 

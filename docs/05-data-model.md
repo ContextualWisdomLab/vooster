@@ -3,6 +3,16 @@
 This document defines the 16 MVP entities, their fields, and their
 relationships. It is the authority for `prisma/schema.prisma`.
 
+> **MVP implementation status.** The shipped Prisma schema
+> (`apps/api/prisma/schema.prisma`) stores every `Enum`, `Json`, and
+> `String[]` column below as a plain `String` (enum value / JSON encoded
+> in-string) — a deliberate MVP simplification, not reflected in the type
+> columns here. Two entities exist in code but are absent from the
+> 16-entity index: `ApiKey` and `Invitation` (domain-only, no Prisma
+> model). Several domain types under `apps/api/src/domain/entities/` also
+> narrow or extend their schema counterparts. Full enumeration with
+> file:line: `docs/findings/2026-05-24T1100-spec-impl-audit.md` (§A5).
+
 ## Conventions
 
 - All `id` fields are CUIDs (`@default(cuid())`).

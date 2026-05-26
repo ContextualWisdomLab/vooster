@@ -5,6 +5,8 @@ import type { SignupState } from "../../../src/http/signup-types.js";
 import type { LockStore } from "../../../src/ports/lock-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
+import type { ScenarioStore } from "../../../src/ports/scenario-store.js";
+import type { StepStore } from "../../../src/ports/step-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
 
@@ -44,6 +46,8 @@ function registeredRoute(): Handler {
     {} as LockStore,
     {} as MembershipStore,
     {} as RevisionStore,
+    {} as ScenarioStore,
+    {} as StepStore,
     {} as WorkSessionStore,
     {} as UseCaseStore
   );

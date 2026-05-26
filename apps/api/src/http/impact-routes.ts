@@ -12,6 +12,8 @@ import type { SignupState } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
@@ -30,6 +32,8 @@ export function registerImpactRoutes(
   lockStore: LockStore,
   membershipStore: MembershipStore,
   revisionStore: RevisionStore,
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
@@ -54,6 +58,8 @@ export function registerImpactRoutes(
       state,
       membershipStore,
       revisionStore,
+      scenarioStore,
+      stepStore,
       workSessionStore,
       useCaseStore
     );
@@ -66,6 +72,8 @@ async function previewImpact(
   state: SignupState,
   membershipStore: MembershipStore,
   revisionStore: RevisionStore,
+  scenarioStore: ScenarioStore,
+  stepStore: StepStore,
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
@@ -80,6 +88,8 @@ async function previewImpact(
         cache: cacheFor(state),
         membershipStore,
         revisionStore,
+        scenarioStore,
+        stepStore,
         useCaseStore,
         workSessionStore
       },

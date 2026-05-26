@@ -3,11 +3,15 @@ import { previewImpact } from "../../../src/application/impact-analysis.js";
 import type {
   StoredMembership,
   StoredRevision,
+  StoredScenario,
+  StoredStep,
   StoredUseCase,
   StoredWorkSession
 } from "../../../src/domain/entities/index.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { RevisionStore } from "../../../src/ports/revision-store.js";
+import type { ScenarioStore } from "../../../src/ports/scenario-store.js";
+import type { StepStore } from "../../../src/ports/step-store.js";
 import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 import type { WorkSessionStore } from "../../../src/ports/work-session-store.js";
 
@@ -120,6 +124,134 @@ describe("impact analysis application", () => {
     }
   );
 
+  test("adds caller sessions through reverse invocation edges for contract-surface changes", async () => {
+    const callee = usecase({ key: "PAY-001" });
+    const caller = usecase({
+      current_revision_id: "revision-caller",
+      id: "usecase-caller",
+      key: "CHK-001"
+    });
+    const summary = usecase({
+      current_revision_id: "revision-summary",
+      id: "usecase-summary",
+      key: "SUM-001"
+    });
+    const result = await previewImpact(
+      depsFor({
+        found: { projectId: "project-1", usecase: callee },
+        revisions: [
+          revision("revision-parent", "NON_BREAKING", {
+            snapshot: usecase({ primary_actor_id: "actor-1" }),
+            version_number: 1
+          }),
+          revision("revision-current", "NON_BREAKING", {
+            parent_revision_id: "revision-parent",
+            snapshot: usecase({ primary_actor_id: "actor-2" }),
+            version_number: 2
+          })
+        ],
+        scenarios: [
+          scenario({ id: "scenario-callee", usecase_id: callee.id }),
+          scenario({ id: "scenario-caller", usecase_id: caller.id }),
+          scenario({ id: "scenario-summary", usecase_id: summary.id })
+        ],
+        sessions: [
+          session({
+            id: "session-caller",
+            pinned_revisions: { [caller.id]: caller.current_revision_id },
+            usecase_id: caller.id
+          }),
+          session({
+            id: "session-summary",
+            pinned_revisions: { [summary.id]: summary.current_revision_id },
+            usecase_id: summary.id
+          })
+        ],
+        steps: [
+          step({
+            invokes: [summary.key],
+            scenario_id: "scenario-callee"
+          }),
+          step({
+            invokes: [callee.key],
+            scenario_id: "scenario-caller"
+          }),
+          step({
+            invokes: [caller.key],
+            scenario_id: "scenario-summary"
+          })
+        ],
+        usecases: [callee, caller, summary]
+      }),
+      input({ baseRevision: "revision-current", entityId: callee.id })
+    );
+
+    expect(result.status).toBe("PREVIEWED");
+    if (result.status !== "PREVIEWED") {
+      throw new Error("expected preview result");
+    }
+    expect(result.impact.affected_sessions).toEqual([
+      {
+        agent_type: "CODEX",
+        id: "session-caller",
+        owner: "user-1",
+        pinned_revision: caller.current_revision_id,
+        reason: "의존 UC의 계약 변경"
+      },
+      {
+        agent_type: "CODEX",
+        id: "session-summary",
+        owner: "user-1",
+        pinned_revision: summary.current_revision_id,
+        reason: "의존 UC의 계약 변경"
+      }
+    ]);
+    expect(result.impact.severity).toBe("NON_BREAKING");
+  });
+
+  test("does not add caller sessions for internal callee changes", async () => {
+    const callee = usecase({ key: "PAY-001" });
+    const caller = usecase({
+      current_revision_id: "revision-caller",
+      id: "usecase-caller",
+      key: "CHK-001"
+    });
+    const result = await previewImpact(
+      depsFor({
+        found: { projectId: "project-1", usecase: callee },
+        revisions: [
+          revision("revision-parent", "BREAKING", {
+            snapshot: usecaseSnapshot({ action: "Authorizes the payment" }),
+            version_number: 1
+          }),
+          revision("revision-current", "BREAKING", {
+            parent_revision_id: "revision-parent",
+            snapshot: usecaseSnapshot({ action: "Authorizes the card payment" }),
+            version_number: 2
+          })
+        ],
+        scenarios: [scenario({ id: "scenario-caller", usecase_id: caller.id })],
+        sessions: [
+          session({
+            id: "session-caller",
+            pinned_revisions: { [caller.id]: caller.current_revision_id },
+            usecase_id: caller.id
+          })
+        ],
+        steps: [step({ invokes: [callee.key], scenario_id: "scenario-caller" })],
+        usecases: [callee, caller]
+      }),
+      input({ baseRevision: "revision-current", entityId: callee.id })
+    );
+
+    expect(result.status).toBe("PREVIEWED");
+    if (result.status !== "PREVIEWED") {
+      throw new Error("expected preview result");
+    }
+    expect(result.impact.affected_sessions).toEqual([]);
+    expect(result.impact.severity).toBe("BREAKING");
+  });
+
   test("returns failure statuses before computing impact", async () => {
     await expect(
       previewImpact(depsFor({ found: undefined }), input())
@@ -157,7 +289,10 @@ function depsFor(
     found?: { projectId: string; usecase: StoredUseCase };
     membership?: StoredMembership;
     revisions?: StoredRevision[];
+    scenarios?: StoredScenario[];
     sessions?: StoredWorkSession[];
+    steps?: StoredStep[];
+    usecases?: StoredUseCase[];
   } = {}
 ) {
   return {
@@ -168,10 +303,13 @@ function depsFor(
       "membership" in options ? options.membership : membership()
     ),
     revisionStore: revisionStore(options.revisions),
+    scenarioStore: scenarioStore(options.scenarios ?? []),
+    stepStore: stepStore(options.steps ?? []),
     useCaseStore: useCaseStore(
       "found" in options
         ? options.found
-        : { projectId: "project-1", usecase: usecase() }
+        : { projectId: "project-1", usecase: options.usecases?.[0] ?? usecase() },
+      options.usecases ?? []
     ),
     workSessionStore: workSessionStore(options.sessions ?? [])
   };
@@ -215,14 +353,38 @@ function revisionStore(revisions?: StoredRevision[]): RevisionStore {
   };
 }
 
+function scenarioStore(scenarios: StoredScenario[]): ScenarioStore {
+  return {
+    countScenariosByUseCase: () => Promise.resolve(new Map()),
+    findMainScenario: () => Promise.resolve(undefined),
+    findScenarioById: () => Promise.resolve(undefined),
+    listScenarios: (usecaseId) =>
+      Promise.resolve(
+        scenarios.filter((candidate) => candidate.usecase_id === usecaseId)
+      ),
+    saveScenario: () => Promise.resolve()
+  };
+}
+
+function stepStore(steps: StoredStep[]): StepStore {
+  return {
+    findStepById: () => Promise.resolve(undefined),
+    listSteps: (scenarioId) =>
+      Promise.resolve(steps.filter((step) => step.scenario_id === scenarioId)),
+    saveStep: () => Promise.resolve(),
+    updateStep: () => Promise.resolve()
+  };
+}
+
 function useCaseStore(
-  found: { projectId: string; usecase: StoredUseCase } | undefined
+  found: { projectId: string; usecase: StoredUseCase } | undefined,
+  usecases: StoredUseCase[]
 ): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () => Promise.resolve(found),
     findUseCasesByKey: () => Promise.resolve([]),
-    listUseCases: () => Promise.resolve([]),
+    listUseCases: () => Promise.resolve(usecases),
     saveUseCase: () => Promise.resolve(),
     updateUseCase: () => Promise.resolve()
   };
@@ -232,7 +394,13 @@ function workSessionStore(sessions: StoredWorkSession[]): WorkSessionStore {
   return {
     findWorkSessionById: () => Promise.resolve(undefined),
     listWorkSessions: () => Promise.resolve([]),
-    listWorkSessionsForUseCase: () => Promise.resolve(sessions),
+    listWorkSessionsForUseCase: (usecaseId) =>
+      Promise.resolve(
+        sessions.filter(
+          (session) =>
+            session.usecase_id === undefined || session.usecase_id === usecaseId
+        )
+      ),
     saveWorkSession: () => Promise.resolve(),
     updateWorkSession: () => Promise.resolve()
   };
@@ -274,7 +442,7 @@ function session(overrides: Partial<StoredWorkSession> = {}): StoredWorkSession 
   };
 }
 
-function usecase(): StoredUseCase {
+function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
   return {
     archived_at: null,
     current_revision_id: "revision-current",
@@ -287,25 +455,56 @@ function usecase(): StoredUseCase {
     project_id: "project-1",
     scope: "vspec",
     status: "DRAFT",
-    title: "Reviews a refund"
+    title: "Reviews a refund",
+    ...overrides
   };
 }
 
 function usecaseSnapshot(options: {
-  invokes: readonly string[];
+  action?: string;
+  invokes?: readonly string[];
 }): StoredRevision["snapshot"] {
   return {
     ...usecase(),
     main_success: {
       steps: [
         {
-          action: "Pays for the order",
+          action: options.action ?? "Pays for the order",
           actor_id: "actor-1",
           id: "step-1",
-          invokes: [...options.invokes],
+          invokes: [...(options.invokes ?? [])],
           step_number: 1
         }
       ]
     }
   } as StoredRevision["snapshot"];
+}
+
+function scenario(overrides: Partial<StoredScenario> = {}): StoredScenario {
+  return {
+    condition: null,
+    extension_point: null,
+    id: "scenario-1",
+    order_index: 0,
+    outcome: "SUCCESS",
+    parent_step_number: null,
+    type: "MAIN_SUCCESS",
+    usecase_id: "usecase-1",
+    ...overrides
+  };
+}
+
+function step(overrides: Partial<StoredStep> = {}): StoredStep {
+  return {
+    action: "Pays for the order",
+    actor_id: "actor-1",
+    id: "step-1",
+    invokes: [],
+    is_system_step: false,
+    notes: null,
+    order_index: 0,
+    scenario_id: "scenario-1",
+    step_number: 1,
+    ...overrides
+  };
 }

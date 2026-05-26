@@ -504,6 +504,18 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `Step.invokes` as the invoked UseCase-key list with an empty default.
   Verification: targeted prettier and `bash scripts/completion-check.sh`
   exited 0.
+- 2026-05-27T02:39:31+09:00 — Tier 2#4 invocation-links Stage 3 contract
+  transitive impact complete; `audit_counter=14`. RED: impact preview tests
+  required contract-surface callee changes to add active caller sessions through
+  reverse invocation edges transitively and cycle-safely, while internal callee
+  changes must not add caller sessions. GREEN: impact analysis now compares
+  contract-surface snapshot fields, walks reverse `invokes` edges through the
+  project invocation graph, annotates caller sessions with
+  "의존 UC의 계약 변경", and leaves severity based on the changed UC/direct
+  sessions rather than forging caller severity. The invocation-links finding is
+  now resolved. Verification: focused impact/route tests, API typecheck,
+  targeted eslint/prettier, and `pnpm --filter @vooster/api test` exited 0.
+  Next step: required meta-system audit checkpoint before the next target.
 
 ---
 

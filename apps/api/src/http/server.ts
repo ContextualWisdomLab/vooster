@@ -221,6 +221,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
     lockStore,
     membershipStore,
     revisionStore,
+    scenarioStore,
+    stepStore,
     workSessionStore,
     useCaseStore
   );

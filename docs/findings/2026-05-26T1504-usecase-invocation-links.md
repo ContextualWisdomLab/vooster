@@ -1,12 +1,15 @@
 ---
 title: "Use-case invocation links (invokes / invoked-by)"
 created_at: 2026-05-26T15:04:22Z
-resolved: false
+resolved: true
 priority: P2
 status_notes: |
+  Stage 3 — CLOSED on 2026-05-27: contract-surface callee changes now walk
+  reverse `invokes` edges transitively/cycle-safely and add caller sessions with
+  reason "의존 UC의 계약 변경" without forging caller severity.
   Stage 2 — CLOSED on 2026-05-27: local impact severity now classifies
   invocation edits from the caller revision diff: add = NON_BREAKING,
-  remove/retarget = BREAKING. Stage 3 remains open.
+  remove/retarget = BREAKING.
   Stage 1b — CLOSED on 2026-05-27: delegated web rendering goal 34 is green
   (commits cb8ebff, eb58bb6, 8d4a549).
   Stage 1a — CLOSED on 2026-05-27: backend schema/domain `Step.invokes`, markdown

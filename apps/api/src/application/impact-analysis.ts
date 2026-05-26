@@ -6,8 +6,11 @@ import type {
 } from "../domain/entities/index.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
+import type { ScenarioStore } from "../ports/scenario-store.js";
+import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
+import { invocationGraph } from "./usecase-invocations.js";
 
 export type ImpactPayload = {
   affected_branches: string[];
@@ -23,6 +26,7 @@ export type ImpactSession = {
   id: string;
   owner: string | undefined;
   pinned_revision: string | undefined;
+  reason?: string;
 };
 
 export type ImpactDeps = {
@@ -31,6 +35,8 @@ export type ImpactDeps = {
   idFactory?: () => string;
   membershipStore: MembershipStore;
   revisionStore: RevisionStore;
+  scenarioStore: Pick<ScenarioStore, "listScenarios">;
+  stepStore: Pick<StepStore, "listSteps">;
   useCaseStore: UseCaseStore;
   workSessionStore: WorkSessionStore;
 };
@@ -105,10 +111,16 @@ export async function previewImpact(
     };
   }
 
+  const parent = parentRevision(revisions, revision);
   const impact = impactPayload(
     revision,
-    parentRevision(revisions, revision),
-    await affectedActiveSessions(deps.workSessionStore, found.usecase.id),
+    parent,
+    await affectedActiveSessions(
+      deps,
+      found.projectId,
+      found.usecase,
+      contractSurfaceChanged(parent?.snapshot, revision.snapshot)
+    ),
     inputHash
   );
   deps.cache.set(inputHash, impact);
@@ -157,7 +169,7 @@ function impactPayload(
     affected_tests: [],
     confidence: 1,
     input_hash: inputHash,
-    severity: affectedSessions.length > 0 ? "BREAKING" : localSeverity
+    severity: hasDirectAffectedSession(affectedSessions) ? "BREAKING" : localSeverity
   };
 }
 
@@ -246,9 +258,44 @@ function severityRank(severity: ImpactPayload["severity"]): number {
   return { BREAKING: 3, COSMETIC: 1, NON_BREAKING: 2 }[severity];
 }
 
+function hasDirectAffectedSession(sessions: ImpactSession[]): boolean {
+  return sessions.some((session) => session.reason === undefined);
+}
+
 async function affectedActiveSessions(
+  deps: Pick<
+    ImpactDeps,
+    "scenarioStore" | "stepStore" | "useCaseStore" | "workSessionStore"
+  >,
+  projectId: string,
+  usecase: StoredUseCase,
+  propagateToCallers: boolean
+): Promise<ImpactSession[]> {
+  const sessions = await activeSessionsFor(deps.workSessionStore, usecase.id);
+  if (!propagateToCallers) {
+    return sessions;
+  }
+
+  const seenSessionIds = new Set(sessions.map((session) => session.id));
+  for (const caller of await transitiveCallers(deps, projectId, usecase.key)) {
+    for (const session of await activeSessionsFor(
+      deps.workSessionStore,
+      caller.id,
+      "의존 UC의 계약 변경"
+    )) {
+      if (!seenSessionIds.has(session.id)) {
+        seenSessionIds.add(session.id);
+        sessions.push(session);
+      }
+    }
+  }
+  return sessions;
+}
+
+async function activeSessionsFor(
   workSessionStore: WorkSessionStore,
-  usecaseId: string
+  usecaseId: string,
+  reason?: string
 ): Promise<ImpactSession[]> {
   return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
@@ -256,8 +303,87 @@ async function affectedActiveSessions(
       agent_type: session.agent_type,
       id: session.id,
       owner: session.user_id,
-      pinned_revision: session.pinned_revisions?.[usecaseId]
+      pinned_revision: session.pinned_revisions?.[usecaseId],
+      ...(reason === undefined ? {} : { reason })
     }));
+}
+
+async function transitiveCallers(
+  deps: Pick<ImpactDeps, "scenarioStore" | "stepStore" | "useCaseStore">,
+  projectId: string,
+  targetKey: string
+): Promise<StoredUseCase[]> {
+  const graph = await invocationGraph(deps, projectId);
+  const callers: StoredUseCase[] = [];
+  const visited = new Set([targetKey]);
+  const queue = [targetKey];
+
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    for (const [candidateKey, edges] of graph) {
+      if (
+        visited.has(candidateKey) ||
+        !edges.some((edge) => edge.step.invokes.includes(next))
+      ) {
+        continue;
+      }
+      visited.add(candidateKey);
+      queue.push(candidateKey);
+      const caller = edges[0]?.usecase;
+      if (caller !== undefined) {
+        callers.push(caller);
+      }
+    }
+  }
+
+  return callers;
+}
+
+function contractSurfaceChanged(
+  from: StoredRevision["snapshot"] | undefined,
+  to: StoredRevision["snapshot"]
+): boolean {
+  if (from === undefined) {
+    return false;
+  }
+  return (
+    stringFieldChanged(from, to, "primary_actor_id") ||
+    stringFieldChanged(from, to, "primary_actor") ||
+    stringFieldChanged(from, to, "trigger") ||
+    weakenedTextField(from, to, "success_guarantee") ||
+    weakenedTextField(from, to, "minimal_guarantee")
+  );
+}
+
+function stringFieldChanged(
+  from: StoredRevision["snapshot"],
+  to: StoredRevision["snapshot"],
+  field: string
+) {
+  const before = stringField(from, field);
+  const after = stringField(to, field);
+  return before !== undefined && after !== undefined && before !== after;
+}
+
+function weakenedTextField(
+  from: StoredRevision["snapshot"],
+  to: StoredRevision["snapshot"],
+  field: string
+) {
+  const before = stringField(from, field);
+  const after = stringField(to, field);
+  return (
+    before !== undefined &&
+    after !== undefined &&
+    after.trim().length < before.trim().length
+  );
+}
+
+function stringField(
+  snapshot: StoredRevision["snapshot"],
+  field: string
+): string | undefined {
+  const value = record(snapshot)?.[field];
+  return typeof value === "string" ? value : undefined;
 }
 
 function nextActions(usecase: StoredUseCase, previewId: string) {

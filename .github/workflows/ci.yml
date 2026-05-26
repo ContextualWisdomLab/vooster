@@ -100,7 +100,7 @@ jobs:
       # mask failures in the others.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:16-alpine
@@ -142,5 +142,5 @@ jobs:
       # _meta M.3 — vitest. Coverage thresholds are enforced in verify.yml, not
       # here, to keep the blocking path fast. `--shard=i/N` splits test files
       # deterministically across the matrix.
-      - name: Test (shard ${{ matrix.shard }}/4)
-        run: pnpm exec vitest run --shard=${{ matrix.shard }}/4
+      - name: Test (shard ${{ matrix.shard }}/2)
+        run: pnpm exec vitest run --shard=${{ matrix.shard }}/2

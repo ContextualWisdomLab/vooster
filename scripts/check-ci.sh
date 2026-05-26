@@ -47,6 +47,7 @@ pg_re    = %r{(\A|/)postgres(\z|[:/])}
 parse_ok = true
 has_pg_suite = false
 has_sweep = false
+shards_ok = true
 
 ARGV.each do |path|
   begin
@@ -68,6 +69,24 @@ ARGV.each do |path|
 
     job_has_pg    = services.values.any? { |s| s.is_a?(Hash) && s["image"].to_s =~ pg_re }
     job_runs_test = runs.any? { |r| r =~ test_re }
+    shard_matrix  = job.dig("strategy", "matrix", "shard")
+
+    if shard_matrix.is_a?(Array)
+      if File.basename(path) == "ci.yml" && shard_matrix.length > 2
+        warn "✗ check-ci: #{path} test shard matrix has #{shard_matrix.length} shards; expected at most 2"
+        shards_ok = false
+      end
+
+      runs.each do |run|
+        next unless run =~ /--shard=\$\{\{\s*matrix\.shard\s*\}\}\/(\d+)/
+
+        denominator = Regexp.last_match(1).to_i
+        next if denominator == shard_matrix.length
+
+        warn "✗ check-ci: #{path} shard denominator /#{denominator} does not match matrix size #{shard_matrix.length}"
+        shards_ok = false
+      end
+    end
 
     has_pg_suite ||= (job_has_pg && job_runs_test)
     has_sweep    ||= runs.any? { |r| r =~ sweep_re }
@@ -75,6 +94,7 @@ ARGV.each do |path|
 end
 
 ok = parse_ok
+ok &&= shards_ok
 unless has_pg_suite
   warn "✗ check-ci: no workflow runs the test suite in a job with a Postgres service"
   ok = false
@@ -110,6 +130,23 @@ jobs:
       - run: bash scripts/completion-check.sh
 YML
 
+  cat >"$d/bad-shards.yml" <<'YML'
+name: bad-shards
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2]
+    services:
+      postgres:
+        image: postgres:16-alpine
+    steps:
+      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/4
+      - run: bash scripts/completion-check.sh
+YML
+
   cat >"$d/comment-only.yml" <<'YML'
 # postgres + completion-check.sh appear only in this comment, never executed
 name: comment-only
@@ -136,7 +173,8 @@ YML
 
   if VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pass.yml $d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
     && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
-    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pg-unused.yml" bash "$0" >/dev/null 2>&1; then
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pg-unused.yml" bash "$0" >/dev/null 2>&1 \
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/bad-shards.yml" bash "$0" >/dev/null 2>&1; then
     :
   else
     echo "✗ check-ci self-test: structural checks are gameable (comment-only or unused-service workflow not rejected)"

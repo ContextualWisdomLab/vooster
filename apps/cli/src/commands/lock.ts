@@ -1,4 +1,9 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  lockCreateRequestSchema,
+  lockRenewRequestSchema,
+  lockResponseSchema
+} from "@vooster/contracts";
 
 import { deleteJson, postJson } from "../http-client.js";
 import {
@@ -7,7 +12,7 @@ import {
   lockRenewFlagsFrom,
   type LockCliFlags
 } from "./lock-flags.js";
-import { writeLockOutput, type LockResponse } from "./lock-output.js";
+import { writeLockOutput } from "./lock-output.js";
 
 export class LockCommand extends Command {
   static override description = "Create a use case lock.";
@@ -49,25 +54,22 @@ export async function runLock(
   }
 
   const lockFlags = lockCreateFlagsFrom(flags, targetId);
-  const response = await postJson(
-    `${lockFlags.apiUrl}/v1/locks`,
-    {
-      lock_type: lockFlags.type,
-      reason: lockFlags.reason,
-      target_id: lockFlags.targetId,
-      target_type: "USECASE",
-      ttl_minutes: lockFlags.ttlMinutes
-    },
-    {
-      Cookie: lockFlags.sessionCookie,
-      ...(lockFlags.sessionId === undefined
-        ? {}
-        : { "X-Vspec-Session": lockFlags.sessionId })
-    }
-  );
-  const body = response.body as LockResponse;
+  const body = lockCreateRequestSchema.parse({
+    lock_type: lockFlags.type,
+    reason: lockFlags.reason,
+    target_id: lockFlags.targetId,
+    target_type: "USECASE",
+    ttl_minutes: lockFlags.ttlMinutes
+  });
+  const response = await postJson(`${lockFlags.apiUrl}/v1/locks`, body, {
+    Cookie: lockFlags.sessionCookie,
+    ...(lockFlags.sessionId === undefined
+      ? {}
+      : { "X-Vspec-Session": lockFlags.sessionId })
+  });
+  const parsedBody = lockResponseSchema.parse(response.body);
 
-  writeLockOutput(flags, body, lockFlags.sessionId, writeLine);
+  writeLockOutput(flags, parsedBody, lockFlags.sessionId, writeLine);
 }
 
 async function renewLock(
@@ -76,9 +78,10 @@ async function renewLock(
   writeLine: (message: string) => void
 ): Promise<void> {
   const renewFlags = lockRenewFlagsFrom(flags, lockId);
+  const body = lockRenewRequestSchema.parse({ ttl_minutes: renewFlags.ttlMinutes });
   const response = await postJson(
     `${renewFlags.apiUrl}/v1/locks/${renewFlags.lockId}/renew`,
-    { ttl_minutes: renewFlags.ttlMinutes },
+    body,
     {
       Cookie: renewFlags.sessionCookie,
       ...(renewFlags.sessionId === undefined
@@ -86,9 +89,9 @@ async function renewLock(
         : { "X-Vspec-Session": renewFlags.sessionId })
     }
   );
-  const body = response.body as LockResponse;
+  const parsedBody = lockResponseSchema.parse(response.body);
 
-  writeLockOutput(flags, body, renewFlags.sessionId, writeLine);
+  writeLockOutput(flags, parsedBody, renewFlags.sessionId, writeLine);
 }
 
 async function releaseLock(
@@ -106,7 +109,7 @@ async function releaseLock(
         : { "X-Vspec-Session": releaseFlags.sessionId })
     }
   );
-  const body = response.body as LockResponse;
+  const body = lockResponseSchema.parse(response.body);
 
   writeLockOutput(flags, body, releaseFlags.sessionId, writeLine);
 }

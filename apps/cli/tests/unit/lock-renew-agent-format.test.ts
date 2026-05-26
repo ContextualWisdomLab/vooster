@@ -137,15 +137,21 @@ function lockFlags(
 function lockBody(overrides: { heldBySessionId?: null | string } = {}) {
   return {
     lock: {
+      acquired_at: "2026-05-22T00:00:00.000Z",
       auto_release: true,
       expires_at: "2026-05-22T00:45:00.000Z",
       held_by_session_id: Object.hasOwn(overrides, "heldBySessionId")
         ? overrides.heldBySessionId
         : "session-1",
       held_by_user_id: "user-1",
+      holder: overrides.heldBySessionId ?? "session-1",
       id: "lock-1",
       lock_type: "SEMANTIC",
-      target_id: "LCK-001"
+      mode: "SEMANTIC",
+      reason: "Editing the success scenario.",
+      target_id: "LCK-001",
+      target_type: "USECASE",
+      usecase_id: "LCK-001"
     }
   };
 }

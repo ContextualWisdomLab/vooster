@@ -98,13 +98,18 @@ export function lockBody() {
 
 export function lock(overrides: Partial<StoredLock> = {}): StoredLock {
   return {
+    acquired_at: "2099-01-01T00:00:00.000Z",
+    auto_release: true,
     expires_at: "2099-01-01T00:00:00.000Z",
     held_by_session_id: "session-1",
     held_by_user_id: "user-1",
     holder: "session-1",
     id: "lock-1",
+    lock_type: "SEMANTIC",
     mode: "SEMANTIC",
     reason: "Edit use case",
+    target_id: "usecase-1",
+    target_type: "USECASE",
     usecase_id: "usecase-1",
     ...overrides
   };

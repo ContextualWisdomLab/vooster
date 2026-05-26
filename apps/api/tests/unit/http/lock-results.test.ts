@@ -154,13 +154,18 @@ function reply() {
 
 function lock(overrides: Partial<StoredLock> = {}): StoredLock {
   return {
+    acquired_at: "2026-05-23T10:00:00Z",
+    auto_release: true,
     expires_at: "2026-05-23T11:00:00Z",
     held_by_session_id: "session-2",
     held_by_user_id: "user-2",
     holder: "session-2",
     id: "lock-1",
+    lock_type: "HARD",
     mode: "HARD",
     reason: "Edit use case",
+    target_id: "usecase-1",
+    target_type: "USECASE",
     usecase_id: "usecase-1",
     ...overrides
   };

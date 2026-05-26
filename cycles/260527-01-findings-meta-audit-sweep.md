@@ -630,6 +630,17 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run packages/contracts/tests/branch.test.ts apps/cli/tests/unit/branch-agent-format.test.ts apps/cli/tests/e2e-cli-honest/branch-agent-format.test.ts apps/cli/tests/e2e-cli-honest/UC-019-create-branch.test.ts apps/api/tests/e2e/UC-019.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T04:23:08+09:00 — Tier 3#5 shared-api-contracts lock domain
+  complete; `audit_counter=26`. Added `packages/contracts/src/lock.ts`, moved
+  lock acquire/renew/release params, request bodies, and success response DTOs
+  into shared schemas, made API lock routes/results parse through those schemas,
+  made CLI lock acquire/renew/release parse shared request/response shapes before
+  rendering, and tightened lock CLI fixtures to match the production response
+  contract. Domains migrated: 9/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/lock.test.ts apps/cli/tests/unit/lock-agent-format.test.ts apps/cli/tests/unit/lock-renew-agent-format.test.ts apps/cli/tests/e2e-cli-honest/lock-agent-format.test.ts apps/cli/tests/e2e-cli-honest/lock-renew-agent-format.test.ts apps/api/tests/e2e/UC-022.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

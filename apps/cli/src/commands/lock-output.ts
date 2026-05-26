@@ -1,19 +1,5 @@
 import { buildAgentEnvelope } from "../agent-envelope.js";
-
-export type LockResponse = {
-  lock: {
-    auto_release: boolean;
-    expires_at: string;
-    held_by_session_id: null | string;
-    held_by_user_id: string;
-    id: string;
-    lock_type: string;
-    target_id: string;
-  };
-  suggested_next_actions?: Array<{
-    command: string;
-  }>;
-};
+import type { LockResponse } from "@vooster/contracts";
 
 type LockOutputFlags = {
   format?: string;
@@ -41,7 +27,7 @@ export function writeLockOutput(
     return;
   }
 
-  writeLine(`Lock ${body.lock.id}`);
+  writeLine(`Lock ${body.lock.id ?? body.lock.usecase_id}`);
   writeLine(`Type ${body.lock.lock_type}`);
   writeLine(`Target ${body.lock.target_id}`);
   writeLine(`Holder ${body.lock.held_by_session_id ?? body.lock.held_by_user_id}`);

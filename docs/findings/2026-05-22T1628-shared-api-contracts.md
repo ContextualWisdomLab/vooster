@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Lock domain CLOSED on 2026-05-27: acquire/renew/release params/body and
+  success response schemas moved to `@vooster/contracts`; API and CLI now parse
+  through the shared schemas. Domains migrated: 9/21.
   Branch domain CLOSED on 2026-05-27: create request params/body and success
   response schemas moved to `@vooster/contracts`; API and CLI now parse through
   the shared schemas. Domains migrated: 8/21.

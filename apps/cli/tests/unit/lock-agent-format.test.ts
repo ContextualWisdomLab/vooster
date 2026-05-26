@@ -110,17 +110,29 @@ function lockFlags(overrides: Record<string, string> = {}): Record<string, strin
 function lockBody() {
   return {
     lock: {
+      acquired_at: "2026-05-22T00:00:00.000Z",
       auto_release: true,
       expires_at: "2026-05-22T00:15:00.000Z",
       held_by_session_id: "session-1",
       held_by_user_id: "user-1",
+      holder: "session-1",
       id: "lock-1",
       lock_type: "SEMANTIC",
-      target_id: "LCK-001"
+      mode: "SEMANTIC",
+      reason: "Editing the success scenario.",
+      target_id: "LCK-001",
+      target_type: "USECASE",
+      usecase_id: "LCK-001"
     },
     suggested_next_actions: [
-      { command: "vspec lock renew lock-1" },
-      { command: "vspec lock release lock-1" }
+      {
+        command: "vspec lock renew lock-1",
+        reason: "Renew the lock before it expires."
+      },
+      {
+        command: "vspec lock release lock-1",
+        reason: "Release the lock when the edit is complete."
+      }
     ]
   };
 }

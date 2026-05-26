@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  lockCreateRequestSchema,
+  lockParamsSchema,
+  lockRenewRequestSchema
+} from "@vooster/contracts";
 import {
   acquireLock,
   releaseLock as releaseLockApplication,
@@ -12,17 +16,6 @@ import type { SignupState } from "./signup-types.js";
 import type { LockStore } from "../ports/lock-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const lockSchema = z.object({
-  lock_type: z.enum(["SOFT", "SEMANTIC", "HARD"]),
-  reason: z.string().min(1),
-  target_id: z.string().min(1),
-  target_type: z.literal("USECASE"),
-  ttl_minutes: z.number().positive().default(30)
-});
-const renewSchema = z.object({
-  ttl_minutes: z.number().positive().default(30)
-});
 
 export function registerLockRoutes(
   app: FastifyInstance,
@@ -50,7 +43,7 @@ async function createLock(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = lockSchema.safeParse(request.body);
+  const parsed = lockCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid lock request"));
   }
@@ -79,8 +72,8 @@ async function renewLock(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
-  const parsed = renewSchema.safeParse(request.body);
+  const params = lockParamsSchema.parse(request.params);
+  const parsed = lockRenewRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid lock renewal request"));
   }
@@ -106,7 +99,7 @@ async function releaseLock(
   membershipStore: MembershipStore,
   useCaseStore: UseCaseStore
 ) {
-  const params = z.object({ lockId: z.string().min(1) }).parse(request.params);
+  const params = lockParamsSchema.parse(request.params);
   return sendLockResult(
     reply,
     await releaseLockApplication(

@@ -1,4 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  mergeOpenRequestSchema,
+  mergeOpenResponseSchema,
+  mergeResolveParamsSchema,
+  mergeResolveRequestSchema,
+  mergeResolveResponseSchema,
+  type MergeResolutionStrategy,
+  type MergeStrategy
+} from "@vooster/contracts";
 
 import {
   printMergeOpen,
@@ -31,7 +40,7 @@ type MergeOpenFlags = {
   apiUrl: string;
   sessionCookie: string;
   sourceBranchId: string;
-  strategy: "FAST_FORWARD" | "SQUASH" | undefined;
+  strategy: MergeStrategy | undefined;
   target: "main";
 };
 
@@ -42,7 +51,7 @@ type MergeResolveFlags = {
   field: string;
   mergeId: string;
   sessionCookie: string;
-  strategy: "MANUAL" | "MINE" | "THEIRS";
+  strategy: MergeResolutionStrategy;
   value: string | undefined;
 };
 
@@ -102,18 +111,15 @@ async function openMerge(
   writeLine: (message: string) => void
 ): Promise<void> {
   const mergeFlags = mergeOpenFlagsFrom(flags, sourceBranchId);
-  const response = await postJson(
-    `${mergeFlags.apiUrl}/v1/merges`,
-    {
-      source_branch_id: mergeFlags.sourceBranchId,
-      ...(mergeFlags.strategy === undefined ? {} : { strategy: mergeFlags.strategy }),
-      target: mergeFlags.target
-    },
-    {
-      Cookie: mergeFlags.sessionCookie
-    }
-  );
-  const body = response.body as MergeOpenResponse;
+  const requestBody = mergeOpenRequestSchema.parse({
+    source_branch_id: mergeFlags.sourceBranchId,
+    ...(mergeFlags.strategy === undefined ? {} : { strategy: mergeFlags.strategy }),
+    target: mergeFlags.target
+  });
+  const response = await postJson(`${mergeFlags.apiUrl}/v1/merges`, requestBody, {
+    Cookie: mergeFlags.sessionCookie
+  });
+  const body: MergeOpenResponse = mergeOpenResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(
@@ -141,24 +147,26 @@ async function resolveMerge(
   writeLine: (message: string) => void
 ): Promise<void> {
   const mergeFlags = mergeResolveFlagsFrom(flags, mergeId);
+  const params = mergeResolveParamsSchema.parse({ mergeId: mergeFlags.mergeId });
+  const requestBody = mergeResolveRequestSchema.parse({
+    base_revision: mergeFlags.baseRevision,
+    resolutions: [
+      {
+        entity_id: mergeFlags.entityId,
+        field: mergeFlags.field,
+        strategy: mergeFlags.strategy,
+        ...(mergeFlags.value === undefined ? {} : { value: mergeFlags.value })
+      }
+    ]
+  });
   const response = await postJson(
-    `${mergeFlags.apiUrl}/v1/merges/${mergeFlags.mergeId}/resolve`,
-    {
-      base_revision: mergeFlags.baseRevision,
-      resolutions: [
-        {
-          entity_id: mergeFlags.entityId,
-          field: mergeFlags.field,
-          strategy: mergeFlags.strategy,
-          ...(mergeFlags.value === undefined ? {} : { value: mergeFlags.value })
-        }
-      ]
-    },
+    `${mergeFlags.apiUrl}/v1/merges/${params.mergeId}/resolve`,
+    requestBody,
     {
       Cookie: mergeFlags.sessionCookie
     }
   );
-  const body = response.body as MergeResolveResponse;
+  const body: MergeResolveResponse = mergeResolveResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(
@@ -210,9 +218,7 @@ function mergeResolveFlagsFrom(
   };
 }
 
-function mergeStrategy(
-  rawStrategy: string | undefined
-): "FAST_FORWARD" | "SQUASH" | undefined {
+function mergeStrategy(rawStrategy: string | undefined): MergeStrategy | undefined {
   if (rawStrategy === undefined) {
     return undefined;
   }
@@ -224,7 +230,7 @@ function mergeStrategy(
   throw new Error("Merge strategy must be FAST_FORWARD or SQUASH.");
 }
 
-function resolutionStrategy(rawStrategy: string): "MANUAL" | "MINE" | "THEIRS" {
+function resolutionStrategy(rawStrategy: string): MergeResolutionStrategy {
   const strategy = rawStrategy.toUpperCase();
   if (strategy === "MANUAL" || strategy === "MINE" || strategy === "THEIRS") {
     return strategy;

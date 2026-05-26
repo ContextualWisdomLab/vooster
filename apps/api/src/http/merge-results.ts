@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { mergeOpenResponseSchema } from "@vooster/contracts";
 import type { OpenMergeResult } from "../application/merge-types.js";
 import { problem } from "./signup-support.js";
 
@@ -47,17 +48,19 @@ export function sendOpenMergeResult(reply: FastifyReply, result: OpenMergeResult
         )
       );
     case "CONFLICTS":
-      return reply.code(201).send({
-        main_head_revision_ids: result.mainHeadRevisionIds,
-        merge_request: result.mergeRequest,
-        source_branch: result.sourceBranch,
-        suggested_next_actions: [
-          {
-            command: `vspec merge resolve ${result.mergeRequest.id}`,
-            reason: "Resolve conflicts before this branch can merge."
-          }
-        ]
-      });
+      return reply.code(201).send(
+        mergeOpenResponseSchema.parse({
+          main_head_revision_ids: result.mainHeadRevisionIds,
+          merge_request: result.mergeRequest,
+          source_branch: result.sourceBranch,
+          suggested_next_actions: [
+            {
+              command: `vspec merge resolve ${result.mergeRequest.id}`,
+              reason: "Resolve conflicts before this branch can merge."
+            }
+          ]
+        })
+      );
     case "WRITE_FAILED":
       return reply.code(500).send(
         problem(
@@ -78,16 +81,18 @@ export function sendOpenMergeResult(reply: FastifyReply, result: OpenMergeResult
         )
       );
     case "MERGED":
-      return reply.code(201).send({
-        main_head_revision_ids: result.mainHeadRevisionIds,
-        merge_request: result.mergeRequest,
-        source_branch: result.sourceBranch,
-        suggested_next_actions: [
-          {
-            command: `vspec merge show ${result.mergeRequest.id}`,
-            reason: "Review the completed merge request."
-          }
-        ]
-      });
+      return reply.code(201).send(
+        mergeOpenResponseSchema.parse({
+          main_head_revision_ids: result.mainHeadRevisionIds,
+          merge_request: result.mergeRequest,
+          source_branch: result.sourceBranch,
+          suggested_next_actions: [
+            {
+              command: `vspec merge show ${result.mergeRequest.id}`,
+              reason: "Review the completed merge request."
+            }
+          ]
+        })
+      );
   }
 }

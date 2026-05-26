@@ -131,7 +131,9 @@ function mergeResolveBody(overrides: { newRevisions?: Array<{ id: string }> } = 
       name: "feature/resolve-refund",
       status: "MERGED"
     },
-    suggested_next_actions: [{ command: "vspec usecase show RSV-001" }]
+    suggested_next_actions: [
+      { command: "vspec usecase show RSV-001", reason: "Review it." }
+    ]
   };
 }
 

@@ -1,43 +1,6 @@
-export type MergeOpenResponse = {
-  main_head_revision_ids: Record<string, string>;
-  merge_request: {
-    conflicts: unknown[];
-    id: string;
-    impact: {
-      severity_by_entity: Record<string, string>;
-    };
-    status: string;
-    strategy: string;
-  };
-  source_branch: {
-    id: string;
-    name: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
+import type { MergeOpenResponse, MergeResolveResponse } from "@vooster/contracts";
 
-export type MergeResolveResponse = {
-  main_head_revision_ids: Record<string, string>;
-  merge_request: {
-    conflicts: unknown[];
-    id: string;
-    status: string;
-  };
-  new_revisions: Array<{
-    id: string;
-  }>;
-  source_branch: {
-    id: string;
-    name: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
+export type { MergeOpenResponse, MergeResolveResponse };
 
 export function printMergeOpen(
   body: MergeOpenResponse,

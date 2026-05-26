@@ -749,6 +749,21 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T05:47:23+09:00 — Meta-audit checkpoint after
+  `audit_counter=34`: KEEP. Change shared-contract schemas are
+  production-consumed by API and CLI, push-time `completion-check.sh` verified
+  the status claim, and the migrated change tests assert agent behavior without
+  exact `fetch(..., RequestInit)` equality. No work-unit count change.
+- 2026-05-27T05:51:22+09:00 — Tier 3#5 shared-api-contracts merge domain
+  complete; `audit_counter=35`. Added `packages/contracts/src/merge.ts`, moved
+  merge open/resolve request bodies, resolve params, and success response DTOs
+  into shared schemas, made API merge open/result/resolve paths parse through
+  those schemas, made CLI merge open/resolve parse shared request/response
+  shapes before agent/human rendering, and tightened merge CLI fixtures to match
+  the production response contract. Domains migrated: 18/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/merge.test.ts apps/api/tests/unit/http/merge-results.test.ts apps/api/tests/unit/http/merge-resolution-results.test.ts apps/cli/tests/unit/merge-open-agent-format.test.ts apps/cli/tests/unit/merge-resolve-agent-format.test.ts apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts apps/cli/tests/e2e-cli/merge-resolve-agent-format.test.ts apps/api/tests/e2e/UC-020.test.ts apps/api/tests/e2e/UC-021.test.ts apps/cli/tests/e2e-cli/UC-020.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

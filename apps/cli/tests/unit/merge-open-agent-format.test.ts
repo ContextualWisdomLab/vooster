@@ -115,7 +115,12 @@ function mergeOpenBody() {
       name: "agent/merge-open",
       status: "ACTIVE"
     },
-    suggested_next_actions: [{ command: "vspec merge resolve merge-1" }]
+    suggested_next_actions: [
+      {
+        command: "vspec merge resolve merge-1",
+        reason: "Resolve conflicts before this branch can merge."
+      }
+    ]
   };
 }
 

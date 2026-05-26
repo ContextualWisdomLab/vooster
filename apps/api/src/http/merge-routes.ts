@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { mergeOpenRequestSchema } from "@vooster/contracts";
 import { openMerge as openMergeWorkflow } from "../application/merges.js";
 import { sendOpenMergeResult } from "./merge-results.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -12,13 +12,6 @@ import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const mergeOpenSchema = z.object({
-  simulate_write_failure: z.boolean().default(false),
-  source_branch_id: z.string().min(1),
-  strategy: z.enum(["FAST_FORWARD", "SQUASH"]).optional(),
-  target: z.literal("main").default("main")
-});
 
 export function registerMergeRoutes(
   app: FastifyInstance,
@@ -59,7 +52,7 @@ async function openMerge(
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = mergeOpenSchema.safeParse(request.body);
+  const parsed = mergeOpenRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid merge request"));
   }

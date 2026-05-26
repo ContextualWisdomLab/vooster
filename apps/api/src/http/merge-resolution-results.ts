@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { mergeResolveResponseSchema } from "@vooster/contracts";
 import type { ResolveMergeResult } from "../application/merge-resolution.js";
 import {
   missingManualValueProblem,
@@ -70,12 +71,14 @@ export function sendResolveMergeResult(
         )
       );
     case "MERGED":
-      return reply.send({
-        main_head_revision_ids: result.mainHeadRevisionIds,
-        merge_request: result.mergeRequest,
-        new_revisions: result.newRevisions,
-        source_branch: result.sourceBranch,
-        suggested_next_actions: result.suggestedNextActions
-      });
+      return reply.send(
+        mergeResolveResponseSchema.parse({
+          main_head_revision_ids: result.mainHeadRevisionIds,
+          merge_request: result.mergeRequest,
+          new_revisions: result.newRevisions,
+          source_branch: result.sourceBranch,
+          suggested_next_actions: result.suggestedNextActions
+        })
+      );
   }
 }

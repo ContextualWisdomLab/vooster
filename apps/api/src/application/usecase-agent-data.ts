@@ -2,6 +2,7 @@ import type { StoredUseCase } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseAgentDeps } from "./usecase-agent-types.js";
+import { invokedBy } from "./usecase-invocations.js";
 
 export async function agentData(
   deps: UseCaseAgentDeps,
@@ -9,6 +10,7 @@ export async function agentData(
   usecase: StoredUseCase
 ) {
   return {
+    invoked_by: await invokedBy(deps, projectId, usecase.key),
     primary_actor: {
       name: await actorName(deps.actorStore, projectId, usecase.primary_actor_id)
     },
@@ -21,6 +23,7 @@ export async function agentData(
           (await deps.stepStore.listSteps(scenario.id)).map(async (step) => ({
             action: step.action,
             actor: await actorName(deps.actorStore, projectId, step.actor_id),
+            invokes: step.invokes,
             step_number: step.step_number
           }))
         ),

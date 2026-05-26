@@ -1,4 +1,6 @@
 import { problem } from "./signup-support.js";
+export { parseStepAction } from "../application/markdown-invocations.js";
+
 export type SyncFile = {
   content: string;
   path: string;

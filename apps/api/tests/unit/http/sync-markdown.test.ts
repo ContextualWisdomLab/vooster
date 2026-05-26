@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { StoredUseCase } from "../../../src/domain/entities/index.js";
 import {
+  parseStepAction,
   parseFileErrors,
   parseFilesProblem,
   titleFrom,
@@ -48,6 +49,23 @@ describe("sync markdown helpers", () => {
   test("extracts titles from markdown body", () => {
     expect(titleFrom("---\n---\n\n# Place an order\n")).toBe("Place an order");
     expect(titleFrom("---\n---\nBody only\n")).toBe("Untitled use case");
+  });
+
+  test("parses trailing includes annotations case-insensitively", () => {
+    expect(
+      parseStepAction("Validates the cart. _(includes: CHECKOUT-006, CHECKOUT-007)_")
+    ).toEqual({
+      action: "Validates the cart.",
+      invokes: ["CHECKOUT-006", "CHECKOUT-007"]
+    });
+    expect(parseStepAction("Processes payment. _(INCLUDES: PAY-001)_")).toEqual({
+      action: "Processes payment.",
+      invokes: ["PAY-001"]
+    });
+    expect(parseStepAction("Mentions _(includes: PAY-001)_ in the middle.")).toEqual({
+      action: "Mentions _(includes: PAY-001)_ in the middle.",
+      invokes: []
+    });
   });
 
   test("renders use case paths", () => {

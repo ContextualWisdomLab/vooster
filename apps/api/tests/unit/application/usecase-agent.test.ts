@@ -36,7 +36,103 @@ describe("usecase agent application", () => {
       { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }
     ]);
     expect(result.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", step_number: 1 }
+      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
+    ]);
+  });
+
+  test("returns forward and derived reverse invocation links", async () => {
+    const callerOne = usecase({
+      id: "usecase-1",
+      key: "CHK-001",
+      title: "Places an order"
+    });
+    const callerTwo = usecase({
+      id: "usecase-2",
+      key: "CHK-002",
+      title: "Checks out as guest"
+    });
+    const callee = usecase({
+      id: "usecase-7",
+      key: "CHK-007",
+      title: "Processes a payment"
+    });
+    const result = await showUseCaseForAgent(
+      depsFor({
+        scenariosByUseCase: new Map([
+          [
+            callerOne.id,
+            [scenario({ id: "scenario-caller-1", usecase_id: callerOne.id })]
+          ],
+          [
+            callerTwo.id,
+            [scenario({ id: "scenario-caller-2", usecase_id: callerTwo.id })]
+          ],
+          [callee.id, [scenario({ id: "scenario-callee", usecase_id: callee.id })]]
+        ]),
+        stepsByScenario: new Map([
+          [
+            "scenario-caller-1",
+            [
+              step({
+                id: "step-caller-1",
+                invokes: [callee.key],
+                scenario_id: "scenario-caller-1"
+              })
+            ]
+          ],
+          [
+            "scenario-caller-2",
+            [
+              step({
+                id: "step-caller-2",
+                invokes: [callee.key],
+                scenario_id: "scenario-caller-2"
+              })
+            ]
+          ],
+          [
+            "scenario-callee",
+            [
+              step({
+                action: "Charges the card.",
+                id: "step-callee",
+                invokes: ["CHK-006"],
+                scenario_id: "scenario-callee"
+              })
+            ]
+          ]
+        ]),
+        usecase: callee,
+        usecases: [callerOne, callerTwo, callee]
+      }),
+      input({ format: "human", usecaseId: callee.id })
+    );
+
+    expect(result.status).toBe("SIMPLE");
+    if (result.status !== "SIMPLE") {
+      throw new Error("expected simple result");
+    }
+    expect(result.data.scenarios[0]?.steps).toEqual([
+      {
+        action: "Charges the card.",
+        actor: "Customer",
+        invokes: ["CHK-006"],
+        step_number: 1
+      }
+    ]);
+    expect(result.data.invoked_by).toEqual([
+      {
+        key: "CHK-001",
+        scenario_id: "scenario-caller-1",
+        step_number: 1,
+        title: "Places an order"
+      },
+      {
+        key: "CHK-002",
+        scenario_id: "scenario-caller-2",
+        step_number: 1,
+        title: "Checks out as guest"
+      }
     ]);
   });
 
@@ -55,7 +151,7 @@ describe("usecase agent application", () => {
 
     expect(data.primary_actor).toEqual({ name: "System" });
     expect(data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "System", step_number: 1 }
+      { action: "Places an order.", actor: "System", invokes: [], step_number: 1 }
     ]);
     expect(data.stakeholder_interests).toEqual([
       { interest: "Checkout revenue is protected.", stakeholder: "" }
@@ -92,7 +188,7 @@ describe("usecase agent application", () => {
       warnings: []
     });
     expect(result.envelope.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", step_number: 1 }
+      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
     ]);
     expect(result.envelope.suggested_next_actions).toContainEqual({
       command: "vspec change propose CHK-001",
@@ -170,11 +266,15 @@ function depsFor(
   options: {
     found?: { projectId: string; usecase: StoredUseCase };
     membership?: StoredMembership;
+    scenariosByUseCase?: Map<string, StoredScenario[]>;
     session?: StoredWorkSession;
+    stepsByScenario?: Map<string, StoredStep[]>;
     usecase?: StoredUseCase;
+    usecases?: StoredUseCase[];
   } = {}
 ) {
   const selectedUseCase = options.usecase ?? usecase();
+  const usecases = options.usecases ?? [selectedUseCase];
   return {
     actorStore: actorStore(),
     membershipStore: membershipStore(
@@ -182,14 +282,15 @@ function depsFor(
     ),
     projectStore: projectStore(),
     revisionStore: revisionStore(),
-    scenarioStore: scenarioStore(),
+    scenarioStore: scenarioStore(options.scenariosByUseCase),
     stakeholderInterestStore: stakeholderInterestStore(),
     stakeholderStore: stakeholderStore(),
-    stepStore: stepStore(),
+    stepStore: stepStore(options.stepsByScenario),
     useCaseStore: useCaseStore(
       "found" in options
         ? options.found
-        : { projectId: "project-1", usecase: selectedUseCase }
+        : { projectId: "project-1", usecase: selectedUseCase },
+      usecases
     ),
     workSessionStore: workSessionStore(options.session)
   };
@@ -251,12 +352,16 @@ function revisionStore(): RevisionStore {
   };
 }
 
-function scenarioStore(): ScenarioStore {
+function scenarioStore(
+  scenariosByUseCase?: Map<string, StoredScenario[]>
+): ScenarioStore {
   return {
     countScenariosByUseCase: () => Promise.resolve(new Map()),
-    findMainScenario: () => Promise.resolve(scenario()),
+    findMainScenario: (usecaseId) =>
+      Promise.resolve((scenariosByUseCase?.get(usecaseId) ?? [scenario()])[0]),
     findScenarioById: () => Promise.resolve(undefined),
-    listScenarios: () => Promise.resolve([scenario()]),
+    listScenarios: (usecaseId) =>
+      Promise.resolve(scenariosByUseCase?.get(usecaseId) ?? [scenario()]),
     saveScenario: () => Promise.resolve()
   };
 }
@@ -281,23 +386,37 @@ function stakeholderStore(): StakeholderStore {
   };
 }
 
-function stepStore(): StepStore {
+function stepStore(stepsByScenario?: Map<string, StoredStep[]>): StepStore {
   return {
     findStepById: () => Promise.resolve(undefined),
-    listSteps: () => Promise.resolve([step()]),
+    listSteps: (scenarioId) =>
+      Promise.resolve(stepsByScenario?.get(scenarioId) ?? [step()]),
     saveStep: () => Promise.resolve(),
     updateStep: () => Promise.resolve()
   };
 }
 
 function useCaseStore(
-  found: { projectId: string; usecase: StoredUseCase } | undefined
+  found: { projectId: string; usecase: StoredUseCase } | undefined,
+  usecases: StoredUseCase[]
 ): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
-    findUseCaseWithProject: () => Promise.resolve(found),
+    findUseCaseWithProject: (usecaseIdOrKey) =>
+      Promise.resolve(
+        found === undefined
+          ? undefined
+          : {
+              projectId: found.projectId,
+              usecase:
+                usecases.find(
+                  (candidate) =>
+                    candidate.id === usecaseIdOrKey || candidate.key === usecaseIdOrKey
+                ) ?? found.usecase
+            }
+      ),
     findUseCasesByKey: () => Promise.resolve([]),
-    listUseCases: () => Promise.resolve([]),
+    listUseCases: () => Promise.resolve(usecases),
     saveUseCase: () => Promise.resolve(),
     updateUseCase: () => Promise.resolve()
   };
@@ -357,7 +476,7 @@ function revision(id: string): StoredRevision {
   };
 }
 
-function scenario(): StoredScenario {
+function scenario(overrides: Partial<StoredScenario> = {}): StoredScenario {
   return {
     condition: null,
     extension_point: null,
@@ -366,7 +485,8 @@ function scenario(): StoredScenario {
     outcome: "SUCCESS",
     parent_step_number: null,
     type: "MAIN_SUCCESS",
-    usecase_id: "usecase-1"
+    usecase_id: "usecase-1",
+    ...overrides
   };
 }
 
@@ -400,16 +520,18 @@ function stakeholderInterest(): StoredStakeholderInterest {
   };
 }
 
-function step(): StoredStep {
+function step(overrides: Partial<StoredStep> = {}): StoredStep {
   return {
     action: "Places an order.",
     actor_id: "actor-1",
     id: "step-1",
+    invokes: [],
     is_system_step: false,
     notes: null,
     order_index: 0,
     scenario_id: "scenario-1",
-    step_number: 1
+    step_number: 1,
+    ...overrides
   };
 }
 

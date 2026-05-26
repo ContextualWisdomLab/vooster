@@ -30,6 +30,7 @@ export function sendUseCaseAgentResult(reply: FastifyReply, result: ShowUseCaseR
       );
     case "SIMPLE":
       return reply.send({
+        invoked_by: result.data.invoked_by,
         primary_actor: result.data.primary_actor,
         scenarios: result.data.scenarios,
         stakeholder_interests: result.data.stakeholder_interests,

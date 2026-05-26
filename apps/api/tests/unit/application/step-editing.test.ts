@@ -366,6 +366,7 @@ function step(overrides: Partial<StoredStep> = {}): StoredStep {
     action: "Places an order.",
     actor_id: "actor-1",
     id: "step-1",
+    invokes: [],
     is_system_step: false,
     notes: null,
     order_index: 0,

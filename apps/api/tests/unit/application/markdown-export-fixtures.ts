@@ -176,11 +176,16 @@ function stakeholderInterest(): StoredStakeholderInterest {
   };
 }
 
-function step(scenarioId: string, stepNumber: number, action: string): StoredStep {
+export function step(
+  scenarioId: string,
+  stepNumber: number,
+  action: string
+): StoredStep {
   return {
     action,
     actor_id: "actor-1",
     id: `${scenarioId}-step-${String(stepNumber)}`,
+    invokes: [],
     is_system_step: false,
     notes: null,
     order_index: stepNumber,

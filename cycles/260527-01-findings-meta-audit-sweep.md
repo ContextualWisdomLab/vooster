@@ -447,6 +447,15 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   for other holders. Verification: focused lock tests,
   `pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
   eslint, and `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T01:59:20+09:00 — Tier 2#4 invocation-links Stage 1a backend
+  complete; audit*counter=8. RED covered markdown `*(includes: ...)`parsing
+and rendering, use-case read`invokes`/derived `invoked_by`, and doctor
+warnings for dangling/self/cyclic links. GREEN added `Step.invokes`,
+parse/render helpers, Prisma/domain mapper support, reverse-edge scanning,
+and doctor warning checks. Verification: focused invocation tests,
+`pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
+eslint, and `bash scripts/check-db-consistency.sh` exited 0. Next step:
+  required meta-system audit checkpoint before Stage 1b delegation.
 
 ---
 

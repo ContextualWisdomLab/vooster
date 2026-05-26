@@ -74,32 +74,92 @@ describe("doctor application", () => {
       );
     }
   });
+
+  test("warns on dangling, self, and cyclic invocation links", async () => {
+    const target = usecase({ id: "usecase-1", key: "PAY-001" });
+    const child = usecase({ id: "usecase-2", key: "PAY-002" });
+    const result = await diagnoseUseCase(
+      depsFor({
+        interests: [interest()],
+        scenariosByUseCase: new Map([
+          [target.id, [scenario({ id: "scenario-1", usecase_id: target.id })]],
+          [child.id, [scenario({ id: "scenario-2", usecase_id: child.id })]]
+        ]),
+        stepsByScenario: new Map([
+          [
+            "scenario-1",
+            [
+              step({
+                invokes: ["PAY-999", target.key, child.key],
+                scenario_id: "scenario-1"
+              })
+            ]
+          ],
+          ["scenario-2", [step({ invokes: [target.key], scenario_id: "scenario-2" })]]
+        ]),
+        usecase: { projectId: "project-1", usecase: target },
+        usecases: [target, child]
+      }),
+      target.key
+    );
+
+    expect(result.status).toBe("issues_found");
+    if (result.status !== "issues_found") {
+      throw new Error("expected doctor warnings");
+    }
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "invokes.target_exists",
+          status: "warning"
+        }),
+        expect.objectContaining({
+          id: "invokes.no_self_reference",
+          status: "warning"
+        }),
+        expect.objectContaining({
+          id: "invokes.acyclic",
+          status: "warning"
+        })
+      ])
+    );
+  });
 });
 
 type DoctorOptions = {
   interests?: StoredStakeholderInterest[];
   mainScenario?: StoredScenario;
+  scenariosByUseCase?: Map<string, StoredScenario[]>;
   steps?: StoredStep[];
+  stepsByScenario?: Map<string, StoredStep[]>;
   usecase?: { projectId: string; usecase: StoredUseCase } | null;
+  usecases?: StoredUseCase[];
 };
 
 function depsFor(options: DoctorOptions = {}) {
   return {
     projectStore: {} as never,
-    scenarioStore: scenarioStore(options.mainScenario),
+    scenarioStore: scenarioStore(options.mainScenario, options.scenariosByUseCase),
     stakeholderInterestStore: stakeholderInterestStore(options.interests ?? []),
-    stepStore: stepStore(options.steps ?? []),
+    stepStore: stepStore(options.steps ?? [], options.stepsByScenario),
     useCaseStore: useCaseStore(
       options.usecase === null
         ? undefined
-        : (options.usecase ?? { projectId: "project-1", usecase: usecase() })
+        : (options.usecase ?? { projectId: "project-1", usecase: usecase() }),
+      options.usecases
     )
   };
 }
 
-function scenarioStore(found: StoredScenario | undefined): ScenarioStore {
+function scenarioStore(
+  found: StoredScenario | undefined,
+  scenariosByUseCase?: Map<string, StoredScenario[]>
+): ScenarioStore {
   return {
-    findMainScenario: () => Promise.resolve(found)
+    findMainScenario: (usecaseId: string) =>
+      Promise.resolve(found ?? scenariosByUseCase?.get(usecaseId)?.[0]),
+    listScenarios: (usecaseId: string) =>
+      Promise.resolve(scenariosByUseCase?.get(usecaseId) ?? [])
   } as unknown as ScenarioStore;
 }
 
@@ -111,22 +171,28 @@ function stakeholderInterestStore(
   } as unknown as StakeholderInterestStore;
 }
 
-function stepStore(steps: StoredStep[]): StepStore {
+function stepStore(
+  steps: StoredStep[],
+  stepsByScenario?: Map<string, StoredStep[]>
+): StepStore {
   return {
-    listSteps: () => Promise.resolve(steps)
+    listSteps: (scenarioId: string) =>
+      Promise.resolve(stepsByScenario?.get(scenarioId) ?? steps)
   } as unknown as StepStore;
 }
 
 function useCaseStore(
-  found: { projectId: string; usecase: StoredUseCase } | undefined
+  found: { projectId: string; usecase: StoredUseCase } | undefined,
+  usecases?: StoredUseCase[]
 ): UseCaseStore {
   return {
     findUseCaseWithProject: () => Promise.resolve(found),
-    listUseCases: () => Promise.resolve(found === undefined ? [] : [found.usecase])
+    listUseCases: () =>
+      Promise.resolve(usecases ?? (found === undefined ? [] : [found.usecase]))
   } as unknown as UseCaseStore;
 }
 
-function usecase(): StoredUseCase {
+function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
   return {
     archived_at: null,
     current_revision_id: "revision-1",
@@ -139,7 +205,8 @@ function usecase(): StoredUseCase {
     project_id: "project-1",
     scope: "Payments",
     status: "DRAFT",
-    title: "Pay an invoice"
+    title: "Pay an invoice",
+    ...overrides
   };
 }
 
@@ -153,7 +220,7 @@ function interest(): StoredStakeholderInterest {
   };
 }
 
-function scenario(): StoredScenario {
+function scenario(overrides: Partial<StoredScenario> = {}): StoredScenario {
   return {
     condition: null,
     extension_point: null,
@@ -162,19 +229,22 @@ function scenario(): StoredScenario {
     outcome: "SUCCESS",
     parent_step_number: null,
     type: "MAIN_SUCCESS",
-    usecase_id: "usecase-1"
+    usecase_id: "usecase-1",
+    ...overrides
   };
 }
 
-function step(): StoredStep {
+function step(overrides: Partial<StoredStep> = {}): StoredStep {
   return {
     action: "Pays the invoice.",
     actor_id: "actor-1",
     id: "step-1",
+    invokes: [],
     is_system_step: false,
     notes: null,
     order_index: 1,
     scenario_id: "scenario-1",
-    step_number: 1
+    step_number: 1,
+    ...overrides
   };
 }

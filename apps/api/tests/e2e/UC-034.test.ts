@@ -68,7 +68,7 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     expect(body.data.title).toBe("Places an order");
     expect(body.data.primary_actor).toEqual({ name: "Customer" });
     expect(body.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", step_number: 1 }
+      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
     ]);
     expect(body.data.stakeholder_interests).toEqual([
       { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }

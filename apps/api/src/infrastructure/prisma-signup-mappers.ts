@@ -244,6 +244,7 @@ export function storedStep(step: {
   action: string;
   actor_id: string;
   id: string;
+  invokes?: string[];
   is_system_step: boolean;
   notes: null | string;
   order_index: number;
@@ -254,6 +255,7 @@ export function storedStep(step: {
     action: step.action,
     actor_id: step.actor_id,
     id: step.id,
+    invokes: step.invokes ?? [],
     is_system_step: step.is_system_step,
     notes: step.notes,
     order_index: step.order_index,
@@ -682,6 +684,7 @@ export function stepData(step: StoredStep) {
     action: step.action,
     actor_id: step.actor_id,
     id: step.id,
+    invokes: step.invokes,
     is_system_step: step.is_system_step,
     notes: step.notes,
     order_index: step.order_index,
@@ -694,6 +697,7 @@ export function stepUpdate(step: StoredStep) {
   return {
     action: step.action,
     actor_id: step.actor_id,
+    invokes: step.invokes,
     is_system_step: step.is_system_step,
     notes: step.notes,
     order_index: step.order_index,

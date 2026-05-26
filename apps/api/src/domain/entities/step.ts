@@ -4,6 +4,7 @@ export type StoredStep = {
   step_number: number;
   actor_id: string;
   action: string;
+  invokes: string[];
   is_system_step: boolean;
   notes: null | string;
   order_index: number;

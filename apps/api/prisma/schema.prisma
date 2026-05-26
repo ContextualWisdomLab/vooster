@@ -24,35 +24,35 @@ datasource db {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model User {
-  id            String       @id @default(cuid())
-  github_id     String       @unique
-  email         String       @unique
+  id            String    @id @default(cuid())
+  github_id     String    @unique
+  email         String    @unique
   name          String?
   avatar_url    String?
   last_login_at DateTime?
-  created_at    DateTime     @default(now())
+  created_at    DateTime  @default(now())
 
-  memberships   Membership[]
-  ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
-  revisions     Revision[]
-  comments      Comment[]
-  apiKeys       ApiKey[]
-  sessions      WorkSession[]
-  locks         Lock[]       @relation("LockHolder")
-  mergesCreated MergeRequest[] @relation("MergeCreator")
-  mergesReviewed MergeRequest[] @relation("MergeReviewer")
+  memberships     Membership[]
+  ownedWorkspaces Workspace[]    @relation("WorkspaceOwner")
+  revisions       Revision[]
+  comments        Comment[]
+  apiKeys         ApiKey[]
+  sessions        WorkSession[]
+  locks           Lock[]         @relation("LockHolder")
+  mergesCreated   MergeRequest[] @relation("MergeCreator")
+  mergesReviewed  MergeRequest[] @relation("MergeReviewer")
 }
 
 model Workspace {
-  id          String       @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  slug        String       @unique
+  slug        String    @unique
   owner_id    String
-  plan        String       @default("FREE")
-  settings    String       @default("{}")
+  plan        String    @default("FREE")
+  settings    String    @default("{}")
   archived_at DateTime?
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 
   owner       User         @relation("WorkspaceOwner", fields: [owner_id], references: [id])
   projects    Project[]
@@ -74,24 +74,24 @@ model Membership {
 }
 
 model Project {
-  id                String       @id @default(cuid())
+  id                String   @id @default(cuid())
   workspace_id      String
   name              String
   key               String
   description       String?
-  visibility        String       @default("PRIVATE")
-  default_branch_id String?      @unique
-  created_at        DateTime     @default(now())
-  updated_at        DateTime     @updatedAt
+  visibility        String   @default("PRIVATE")
+  default_branch_id String?  @unique
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 
-  workspace         Workspace    @relation(fields: [workspace_id], references: [id])
-  default_branch    SpecBranch?  @relation("ProjectDefaultBranch", fields: [default_branch_id], references: [id])
-  actors            Actor[]
-  stakeholders      Stakeholder[]
-  goals             Goal[]
-  usecases          UseCase[]
-  branches          SpecBranch[] @relation("ProjectBranches")
-  sessions          WorkSession[]
+  workspace      Workspace     @relation(fields: [workspace_id], references: [id])
+  default_branch SpecBranch?   @relation("ProjectDefaultBranch", fields: [default_branch_id], references: [id])
+  actors         Actor[]
+  stakeholders   Stakeholder[]
+  goals          Goal[]
+  usecases       UseCase[]
+  branches       SpecBranch[]  @relation("ProjectBranches")
+  sessions       WorkSession[]
 
   @@unique([workspace_id, key])
 }
@@ -101,50 +101,50 @@ model Project {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Actor {
-  id          String     @id @default(cuid())
+  id          String    @id @default(cuid())
   project_id  String
   name        String
   type        String
   description String?
-  is_human    Boolean    @default(true)
-  aliases     String     @default("[]")
+  is_human    Boolean   @default(true)
+  aliases     String    @default("[]")
   archived_at DateTime?
-  created_at  DateTime   @default(now())
+  created_at  DateTime  @default(now())
 
-  project        Project   @relation(fields: [project_id], references: [id])
-  primaryFor     UseCase[] @relation("UseCasePrimaryActor")
-  goals          Goal[]
-  steps          Step[]
+  project    Project   @relation(fields: [project_id], references: [id])
+  primaryFor UseCase[] @relation("UseCasePrimaryActor")
+  goals      Goal[]
+  steps      Step[]
 
   @@unique([project_id, name])
 }
 
 model Stakeholder {
-  id          String         @id @default(cuid())
+  id          String    @id @default(cuid())
   project_id  String
   name        String
   type        String
   description String?
   archived_at DateTime?
-  created_at  DateTime       @default(now())
+  created_at  DateTime  @default(now())
 
-  project   Project              @relation(fields: [project_id], references: [id])
+  project   Project               @relation(fields: [project_id], references: [id])
   interests StakeholderInterest[]
 
   @@unique([project_id, name])
 }
 
 model Goal {
-  id                String     @id @default(cuid())
+  id                String    @id @default(cuid())
   project_id        String
   actor_id          String
   description       String
   level             String
-  status            String     @default("IDENTIFIED")
-  linked_usecase_id String?    @unique
-  priority          String     @default("P2")
+  status            String    @default("IDENTIFIED")
+  linked_usecase_id String?   @unique
+  priority          String    @default("P2")
   archived_at       DateTime?
-  created_at        DateTime   @default(now())
+  created_at        DateTime  @default(now())
 
   project        Project  @relation(fields: [project_id], references: [id])
   actor          Actor    @relation(fields: [actor_id], references: [id])
@@ -152,47 +152,47 @@ model Goal {
 }
 
 model UseCase {
-  id                  String         @id @default(cuid())
+  id                  String    @id @default(cuid())
   project_id          String
   key                 String
   title               String
   level               String
-  format              String         @default("FULLY_DRESSED")
+  format              String    @default("FULLY_DRESSED")
   scope               String
   primary_actor_id    String
   trigger             String
-  preconditions       String         @default("[]")
+  preconditions       String    @default("[]")
   success_guarantee   String
   minimal_guarantee   String
   frequency           String?
-  priority            String         @default("P2")
-  status              String         @default("DRAFT")
-  current_revision_id String?        @unique
+  priority            String    @default("P2")
+  status              String    @default("DRAFT")
+  current_revision_id String?   @unique
   archived_at         DateTime?
-  created_at          DateTime       @default(now())
-  updated_at          DateTime       @updatedAt
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
 
-  project              Project              @relation(fields: [project_id], references: [id])
-  primary_actor        Actor                @relation("UseCasePrimaryActor", fields: [primary_actor_id], references: [id])
-  current_revision     Revision?            @relation("UseCaseCurrentRevision", fields: [current_revision_id], references: [id])
+  project              Project               @relation(fields: [project_id], references: [id])
+  primary_actor        Actor                 @relation("UseCasePrimaryActor", fields: [primary_actor_id], references: [id])
+  current_revision     Revision?             @relation("UseCaseCurrentRevision", fields: [current_revision_id], references: [id])
   scenarios            Scenario[]
   stakeholderInterests StakeholderInterest[]
   comments             Comment[]
-  promotedFromGoal     Goal?                @relation("GoalLinkedUseCase")
+  promotedFromGoal     Goal?                 @relation("GoalLinkedUseCase")
 
   @@unique([project_id, key])
 }
 
 model Scenario {
-  id                 String       @id @default(cuid())
+  id                 String   @id @default(cuid())
   usecase_id         String
   type               String
   extension_point    String?
   parent_step_number Int?
   condition          String?
-  outcome            String       @default("SUCCESS")
-  order_index        Int          @default(0)
-  created_at         DateTime     @default(now())
+  outcome            String   @default("SUCCESS")
+  order_index        Int      @default(0)
+  created_at         DateTime @default(now())
 
   usecase UseCase @relation(fields: [usecase_id], references: [id])
   steps   Step[]
@@ -206,6 +206,7 @@ model Step {
   step_number    Int
   actor_id       String
   action         String
+  invokes        String[] @default([])
   is_system_step Boolean  @default(false)
   notes          String?
   order_index    Int      @default(0)
@@ -232,24 +233,24 @@ model StakeholderInterest {
 }
 
 model Revision {
-  id                  String         @id @default(cuid())
-  entity_type         String
-  entity_id           String
-  branch_id           String
-  version_number      Int
-  content_hash        String
-  snapshot            String
-  change_summary      String?
-  author_id           String
-  parent_revision_id  String?
-  severity            String?
-  created_at          DateTime       @default(now())
+  id                 String   @id @default(cuid())
+  entity_type        String
+  entity_id          String
+  branch_id          String
+  version_number     Int
+  content_hash       String
+  snapshot           String
+  change_summary     String?
+  author_id          String
+  parent_revision_id String?
+  severity           String?
+  created_at         DateTime @default(now())
 
-  branch          SpecBranch @relation(fields: [branch_id], references: [id])
-  author          User       @relation(fields: [author_id], references: [id])
-  parent_revision Revision?  @relation("RevisionParent", fields: [parent_revision_id], references: [id])
-  children        Revision[] @relation("RevisionParent")
-  currentForUseCase UseCase? @relation("UseCaseCurrentRevision")
+  branch            SpecBranch @relation(fields: [branch_id], references: [id])
+  author            User       @relation(fields: [author_id], references: [id])
+  parent_revision   Revision?  @relation("RevisionParent", fields: [parent_revision_id], references: [id])
+  children          Revision[] @relation("RevisionParent")
+  currentForUseCase UseCase?   @relation("UseCaseCurrentRevision")
 
   @@unique([entity_type, entity_id, branch_id, version_number])
   @@index([entity_type, entity_id])
@@ -260,43 +261,43 @@ model Revision {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SpecBranch {
-  id                 String          @id @default(cuid())
-  project_id         String
-  name               String
-  base_branch_id     String?
-  base_revision_ids  String          @default("{}")
-  head_revision_ids  String          @default("{}")
-  owner_type         String
-  owner_id           String
-  purpose            String?
-  status             String          @default("ACTIVE")
-  created_at         DateTime        @default(now())
-  merged_at          DateTime?
+  id                String    @id @default(cuid())
+  project_id        String
+  name              String
+  base_branch_id    String?
+  base_revision_ids String    @default("{}")
+  head_revision_ids String    @default("{}")
+  owner_type        String
+  owner_id          String
+  purpose           String?
+  status            String    @default("ACTIVE")
+  created_at        DateTime  @default(now())
+  merged_at         DateTime?
 
-  project          Project        @relation("ProjectBranches", fields: [project_id], references: [id])
-  base_branch      SpecBranch?    @relation("BranchParent", fields: [base_branch_id], references: [id])
-  derivedBranches  SpecBranch[]   @relation("BranchParent")
-  defaultForProject Project?      @relation("ProjectDefaultBranch")
-  sessions         WorkSession[]
-  revisions        Revision[]
-  sourceMRs        MergeRequest[] @relation("MergeSourceBranch")
-  targetMRs        MergeRequest[] @relation("MergeTargetBranch")
+  project           Project        @relation("ProjectBranches", fields: [project_id], references: [id])
+  base_branch       SpecBranch?    @relation("BranchParent", fields: [base_branch_id], references: [id])
+  derivedBranches   SpecBranch[]   @relation("BranchParent")
+  defaultForProject Project?       @relation("ProjectDefaultBranch")
+  sessions          WorkSession[]
+  revisions         Revision[]
+  sourceMRs         MergeRequest[] @relation("MergeSourceBranch")
+  targetMRs         MergeRequest[] @relation("MergeTargetBranch")
 
   @@unique([project_id, name])
 }
 
 model MergeRequest {
-  id                String        @id @default(cuid())
-  source_branch_id  String
-  target_branch_id  String
-  status            String        @default("OPEN")
-  strategy          String
-  impact            String        @default("{}")
-  conflicts         String        @default("[]")
-  created_by        String
-  reviewed_by       String?
-  created_at        DateTime      @default(now())
-  resolved_at       DateTime?
+  id               String    @id @default(cuid())
+  source_branch_id String
+  target_branch_id String
+  status           String    @default("OPEN")
+  strategy         String
+  impact           String    @default("{}")
+  conflicts        String    @default("[]")
+  created_by       String
+  reviewed_by      String?
+  created_at       DateTime  @default(now())
+  resolved_at      DateTime?
 
   source_branch SpecBranch @relation("MergeSourceBranch", fields: [source_branch_id], references: [id])
   target_branch SpecBranch @relation("MergeTargetBranch", fields: [target_branch_id], references: [id])
@@ -305,16 +306,16 @@ model MergeRequest {
 }
 
 model WorkSession {
-  id               String        @id @default(cuid())
+  id               String    @id @default(cuid())
   project_id       String
   user_id          String
-  agent_type       String        @default("HUMAN")
+  agent_type       String    @default("HUMAN")
   agent_identifier String?
   intent           String
-  pinned_revisions String        @default("{}")
+  pinned_revisions String    @default("{}")
   branch_id        String?
-  status           String        @default("ACTIVE")
-  started_at       DateTime      @default(now())
+  status           String    @default("ACTIVE")
+  started_at       DateTime  @default(now())
   last_activity_at DateTime?
   ended_at         DateTime?
 
@@ -327,16 +328,16 @@ model WorkSession {
 }
 
 model Lock {
-  id                  String     @id @default(cuid())
-  target_type         String
-  target_id           String
-  lock_type           String
-  held_by_session_id  String?
-  held_by_user_id     String
-  reason              String
-  acquired_at         DateTime   @default(now())
-  expires_at          DateTime
-  auto_release        Boolean    @default(true)
+  id                 String   @id @default(cuid())
+  target_type        String
+  target_id          String
+  lock_type          String
+  held_by_session_id String?
+  held_by_user_id    String
+  reason             String
+  acquired_at        DateTime @default(now())
+  expires_at         DateTime
+  auto_release       Boolean  @default(true)
 
   session WorkSession? @relation(fields: [held_by_session_id], references: [id])
   user    User         @relation("LockHolder", fields: [held_by_user_id], references: [id])
@@ -350,13 +351,13 @@ model Lock {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Comment {
-  id          String        @id @default(cuid())
-  target_type String  @default("USECASE")
+  id          String    @id @default(cuid())
+  target_type String    @default("USECASE")
   target_id   String
   author_id   String
   body        String
-  resolved    Boolean       @default(false)
-  created_at  DateTime      @default(now())
+  resolved    Boolean   @default(false)
+  created_at  DateTime  @default(now())
   resolved_at DateTime?
   updated_at  DateTime?
 

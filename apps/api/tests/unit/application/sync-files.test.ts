@@ -495,6 +495,7 @@ function step(scenarioId: string, stepNumber: number, action: string): StoredSte
     action,
     actor_id: "actor-1",
     id: `${scenarioId}-step-${String(stepNumber)}`,
+    invokes: [],
     is_system_step: false,
     notes: null,
     order_index: stepNumber,

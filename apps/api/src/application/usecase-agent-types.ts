@@ -12,12 +12,23 @@ import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 export type AgentWarning = { message: string; type: string };
 export type UseCaseShowData = {
+  invoked_by: Array<{
+    key: string;
+    scenario_id: string;
+    step_number: number;
+    title: string;
+  }>;
   primary_actor: { name: string };
   scenarios: Array<{
     condition: null | string;
     extension_point: null | string;
     id: string;
-    steps: Array<{ action: string; actor: string; step_number: number }>;
+    steps: Array<{
+      action: string;
+      actor: string;
+      invokes: string[];
+      step_number: number;
+    }>;
     type: string;
   }>;
   stakeholder_interests: Array<{ interest: string; stakeholder: string }>;

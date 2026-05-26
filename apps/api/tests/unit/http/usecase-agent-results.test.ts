@@ -110,6 +110,7 @@ function reply() {
 
 function data() {
   return {
+    invoked_by: [],
     primary_actor: { name: "Customer" },
     scenarios: [],
     stakeholder_interests: [],

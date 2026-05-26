@@ -4,6 +4,7 @@ import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
+import { invocationGraph, type InvocationGraph } from "./usecase-invocations.js";
 
 export type DoctorCheck = {
   id: string;
@@ -92,7 +93,7 @@ export async function diagnoseUseCase(
     interests.length,
     mainScenario !== undefined,
     mainSteps.length
-  );
+  ).concat(await invocationChecks(deps, found.projectId, found.usecase));
   const suggested_next_actions = nextActions(found.usecase, checks);
 
   return {
@@ -146,6 +147,70 @@ function useCaseChecks(
       status: mainStepCount === 0 ? "fail" : "pass"
     }
   ];
+}
+
+async function invocationChecks(
+  deps: Pick<DoctorDeps, "scenarioStore" | "stepStore" | "useCaseStore">,
+  projectId: string,
+  usecase: StoredUseCase
+): Promise<DoctorCheck[]> {
+  const graph = await invocationGraph(deps, projectId);
+  const knownKeys = new Set(graph.keys());
+  const invokes = (graph.get(usecase.key) ?? []).flatMap((edge) => edge.step.invokes);
+  const checks: DoctorCheck[] = [];
+
+  const dangling = invokes.filter((key) => !knownKeys.has(key));
+  if (dangling.length > 0) {
+    checks.push({
+      id: "invokes.target_exists",
+      message: `Invocation target(s) not found: ${unique(dangling).join(", ")}.`,
+      status: "warning"
+    });
+  }
+
+  if (invokes.includes(usecase.key)) {
+    checks.push({
+      id: "invokes.no_self_reference",
+      message: `Use case ${usecase.key} invokes itself.`,
+      status: "warning"
+    });
+  }
+
+  if (hasInvocationCycle(graph, usecase.key)) {
+    checks.push({
+      id: "invokes.acyclic",
+      message: `Use case ${usecase.key} participates in an invocation cycle.`,
+      status: "warning"
+    });
+  }
+
+  return checks;
+}
+
+function hasInvocationCycle(graph: InvocationGraph, startKey: string): boolean {
+  const seen = new Set<string>();
+
+  function visit(key: string): boolean {
+    for (const next of (graph.get(key) ?? []).flatMap((edge) => edge.step.invokes)) {
+      if (next === startKey) {
+        return true;
+      }
+      if (!graph.has(next) || seen.has(next)) {
+        continue;
+      }
+      seen.add(next);
+      if (visit(next)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return visit(startKey);
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
 }
 
 function nextActions(usecase: StoredUseCase, checks: DoctorCheck[]) {

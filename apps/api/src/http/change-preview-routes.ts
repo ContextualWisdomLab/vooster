@@ -1,5 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  changePreviewMarkerSchema,
+  changePreviewRequestSchema
+} from "@vooster/contracts";
 import { previewChange } from "../application/change-preview.js";
 import { sendChangePreviewResult } from "./change-preview-results.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -11,20 +14,6 @@ import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
-const proposalMarkerSchema = z.object({
-  patch: z.unknown(),
-  usecase_key: z.string().min(1)
-});
-const proposalSchema = z.object({
-  auto_commit: z.boolean().optional(),
-  base_revision: z.string().min(1),
-  patch: z.object({
-    entity_id: z.string().min(1),
-    entity_type: z.literal("USECASE"),
-    fields: z.object({ title: z.string().min(1) })
-  }),
-  usecase_key: z.string().min(1)
-});
 export async function previewSpecChange(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -35,10 +24,10 @@ export async function previewSpecChange(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ): Promise<boolean> {
-  if (!proposalMarkerSchema.safeParse(request.body).success) {
+  if (!changePreviewMarkerSchema.safeParse(request.body).success) {
     return false;
   }
-  const parsed = proposalSchema.safeParse(request.body);
+  const parsed = changePreviewRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     reply.code(400).send(problem(400, "Invalid change proposal"));
     return true;

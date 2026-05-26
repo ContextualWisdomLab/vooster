@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  changeCommitRequestSchema,
+  changeCommitResponseSchema,
+  changeTestPreviewExpireParamsSchema
+} from "@vooster/contracts";
 import { previewProblem, previews } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
@@ -9,11 +13,6 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const commitSchema = z.object({
-  confirmed: z.boolean().optional(),
-  preview_id: z.string().min(1)
-});
 
 export function registerChangeCommitRoutes(
   app: FastifyInstance,
@@ -35,7 +34,7 @@ export function registerChangeCommitRoutes(
     )
   );
   app.post("/__test/changes/previews/:previewId/expire", (request, reply) => {
-    const params = z.object({ previewId: z.string().min(1) }).parse(request.params);
+    const params = changeTestPreviewExpireParamsSchema.parse(request.params);
     const preview = previews(state).get(params.previewId);
     if (preview === undefined) {
       return reply.code(404).send(problem(404, "Change preview not found"));
@@ -54,7 +53,7 @@ async function commitSpecChange(
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = commitSchema.safeParse(request.body);
+  const parsed = changeCommitRequestSchema.safeParse(request.body);
   const preview = parsed.success
     ? previews(state).get(parsed.data.preview_id)
     : undefined;
@@ -96,15 +95,17 @@ async function commitSpecChange(
     preview.diff[0]?.after ?? usecase.title
   );
   previews(state).delete(preview.id);
-  return reply.send({
-    revisions: [{ entity_id: usecase.id, revision_id: revision.id }],
-    suggested_next_actions: [
-      {
-        command: `vspec history ${usecase.key}`,
-        reason: "Review the committed revision."
-      }
-    ]
-  });
+  return reply.send(
+    changeCommitResponseSchema.parse({
+      revisions: [{ entity_id: usecase.id, revision_id: revision.id }],
+      suggested_next_actions: [
+        {
+          command: `vspec history ${usecase.key}`,
+          reason: "Review the committed revision."
+        }
+      ]
+    })
+  );
 }
 
 async function appendPreviewRevision(

@@ -738,6 +738,17 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec vitest run packages/contracts/tests/export.test.ts apps/api/tests/unit/http/gherkin-export-routes.test.ts apps/api/tests/unit/http/markdown-export-routes.test.ts apps/api/tests/e2e/UC-030.test.ts apps/api/tests/e2e/UC-031.test.ts apps/cli/tests/e2e-cli/UC-030.test.ts apps/cli/tests/e2e-cli/UC-031.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T05:42:54+09:00 — Tier 3#5 shared-api-contracts change domain
+  complete; `audit_counter=34`. Added `packages/contracts/src/change.ts`, moved
+  change preview/commit request bodies and success response DTOs into shared
+  schemas, made API change preview/result/commit paths parse through those
+  schemas, made CLI change propose/commit parse shared request/response shapes
+  before agent/human rendering, and tightened change CLI fixtures to match the
+  production response contract. Domains migrated: 17/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/change.test.ts apps/api/tests/unit/http/change-preview-routes.test.ts apps/api/tests/unit/http/change-preview-results.test.ts apps/api/tests/unit/http/change-commit-routes.test.ts apps/cli/tests/unit/change-agent-format.test.ts apps/cli/tests/e2e-cli-honest/change-agent-format.test.ts apps/api/tests/e2e/UC-035.test.ts apps/cli/tests/e2e-cli/UC-035.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

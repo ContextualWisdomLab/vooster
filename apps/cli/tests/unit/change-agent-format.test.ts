@@ -162,6 +162,7 @@ function previewBody() {
       {
         after: "Reviews a refund",
         before: "Reviews an order",
+        entity_id: "usecase-1",
         entity_type: "USECASE",
         path: "title",
         severity: "NON_BREAKING"
@@ -174,7 +175,12 @@ function previewBody() {
     },
     preview_id: "preview-1",
     severity: "NON_BREAKING",
-    suggested_next_actions: [{ command: "vspec change commit --preview-id preview-1" }],
+    suggested_next_actions: [
+      {
+        command: "vspec change commit --preview-id preview-1",
+        reason: "Commit the preview after human review."
+      }
+    ],
     warnings: [{ message: "Review impacted sessions.", type: "IMPACT" }]
   };
 }
@@ -187,7 +193,9 @@ function commitBody() {
         revision_id: "revision-1"
       }
     ],
-    suggested_next_actions: [{ command: "vspec history CHG-001" }]
+    suggested_next_actions: [
+      { command: "vspec history CHG-001", reason: "Review the committed revision." }
+    ]
   };
 }
 

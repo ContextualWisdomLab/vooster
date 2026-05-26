@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { changePreviewResponseSchema } from "@vooster/contracts";
 import type { ChangePreviewResult } from "../application/change-preview.js";
 import { hardLockProblem, previews } from "./change-preview-support.js";
 import { problem } from "./signup-support.js";
@@ -24,18 +25,20 @@ export function sendChangePreviewResult(
         .send(staleBaseProblem(result.usecase, result.currentRevision));
     case "PREVIEWED":
       previews(state).set(result.preview.id, result.preview);
-      return reply.code(201).send({
-        diff: result.preview.diff,
-        expires_at: result.preview.expires_at,
-        impact: {
-          affected_sessions: result.affectedSessions,
-          severity: result.preview.severity
-        },
-        preview_id: result.preview.id,
-        severity: result.preview.severity,
-        suggested_next_actions: result.suggestedNextActions,
-        warnings: result.warnings
-      });
+      return reply.code(201).send(
+        changePreviewResponseSchema.parse({
+          diff: result.preview.diff,
+          expires_at: result.preview.expires_at,
+          impact: {
+            affected_sessions: result.affectedSessions,
+            severity: result.preview.severity
+          },
+          preview_id: result.preview.id,
+          severity: result.preview.severity,
+          suggested_next_actions: result.suggestedNextActions,
+          warnings: result.warnings
+        })
+      );
   }
 }
 

@@ -1,39 +1,6 @@
-export type ChangePreviewResponse = {
-  diff: Array<{
-    after: string;
-    before: string;
-    entity_type: string;
-    path: string;
-    severity: string;
-  }>;
-  expires_at: string;
-  impact: {
-    affected_sessions: Array<{
-      id: string;
-      pinned_usecase_keys: string[];
-    }>;
-    severity: string;
-  };
-  preview_id: string;
-  severity: string;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings: Array<{
-    message: string;
-    type: string;
-  }>;
-};
+import type { ChangeCommitResponse, ChangePreviewResponse } from "@vooster/contracts";
 
-export type ChangeCommitResponse = {
-  revisions: Array<{
-    entity_id: string;
-    revision_id: string;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
+export type { ChangeCommitResponse, ChangePreviewResponse };
 
 export function printChangePreview(
   body: ChangePreviewResponse,

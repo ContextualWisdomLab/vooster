@@ -1,5 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  changeCommitRequestSchema,
+  changeCommitResponseSchema,
+  changePreviewRequestSchema,
+  changePreviewResponseSchema
+} from "@vooster/contracts";
 
 import {
   printChangeCommit,
@@ -85,20 +91,21 @@ async function proposeChange(
 ): Promise<void> {
   const changeFlags = changeProposeFlagsFrom(flags);
   const patch = await readJsonFile(changeFlags.patchPath);
+  const requestBody = changePreviewRequestSchema.parse({
+    auto_commit: changeFlags.autoCommit,
+    base_revision: changeFlags.baseRevision,
+    patch,
+    usecase_key: changeFlags.usecaseKey
+  });
   const response = await postJson(
     `${changeFlags.apiUrl}/v1/changes/preview`,
-    {
-      auto_commit: changeFlags.autoCommit,
-      base_revision: changeFlags.baseRevision,
-      patch,
-      usecase_key: changeFlags.usecaseKey
-    },
+    requestBody,
     {
       Cookie: changeFlags.sessionCookie
     }
   );
 
-  const body = response.body as ChangePreviewResponse;
+  const body: ChangePreviewResponse = changePreviewResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
@@ -122,18 +129,19 @@ async function commitChange(
   writeLine: (message: string) => void
 ): Promise<void> {
   const changeFlags = changeCommitFlagsFrom(flags);
+  const requestBody = changeCommitRequestSchema.parse({
+    confirmed: true,
+    preview_id: changeFlags.previewId
+  });
   const response = await postJson(
     `${changeFlags.apiUrl}/v1/changes/commit`,
-    {
-      confirmed: true,
-      preview_id: changeFlags.previewId
-    },
+    requestBody,
     {
       Cookie: changeFlags.sessionCookie
     }
   );
 
-  const body = response.body as ChangeCommitResponse;
+  const body: ChangeCommitResponse = changeCommitResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(

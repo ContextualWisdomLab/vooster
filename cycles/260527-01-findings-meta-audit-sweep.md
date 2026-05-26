@@ -792,6 +792,21 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec vitest run packages/contracts/tests/sync.test.ts apps/api/tests/unit/http/sync-routes.test.ts apps/api/tests/unit/http/sync-result-support.test.ts apps/api/tests/integration/http/sync-route.test.ts apps/cli/tests/unit/pull-sync-agent-format.test.ts apps/cli/tests/unit/push-agent-format.test.ts apps/cli/tests/e2e-cli-honest/pull-sync-agent-format.test.ts apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts apps/api/tests/e2e/UC-029.test.ts apps/cli/tests/e2e-cli/UC-029.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T06:23:58+09:00 — Tier 3#5 shared-api-contracts session domain
+  complete; `audit_counter=38`. Added `packages/contracts/src/session.ts`,
+  moved session start/list/watch/complete params, query/body, and success
+  response DTOs into shared schemas, made API session routes/results parse
+  through those schemas while keeping the internal `__test` heartbeat route
+  local, made CLI session start/list/complete parse shared request/response
+  shapes before session-file writes and agent/human rendering, and tightened
+  session CLI fixtures to match the production suggested-action contract.
+  Domains migrated: 21/21 ledgered slices; auth remains open because Doctor was
+  counted as an additional slice beyond the original package-shape list.
+  Verification:
+  `pnpm exec vitest run packages/contracts/tests/session.test.ts apps/api/tests/unit/http/session-routes.test.ts apps/api/tests/unit/http/session-list-routes.test.ts apps/api/tests/unit/http/session-complete-routes.test.ts apps/cli/tests/unit/session-agent-format.test.ts apps/cli/tests/e2e-cli-honest/session-agent-format.test.ts apps/cli/tests/e2e-cli-honest/UC-016-start-session.test.ts apps/api/tests/e2e/UC-016.test.ts apps/api/tests/e2e/UC-017.test.ts apps/api/tests/e2e/UC-018.test.ts apps/cli/tests/e2e-cli/UC-016.test.ts apps/cli/tests/e2e-cli/UC-017.test.ts apps/cli/tests/e2e-cli/UC-018.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

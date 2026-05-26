@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { sessionStartRequestSchema } from "@vooster/contracts";
 import {
   startWorkSession,
   type StartWorkSessionResult
@@ -20,16 +20,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
-
-const sessionStartSchema = z.object({
-  agent_type: z.string().default("OTHER"),
-  auto_branch: z.boolean().default(false),
-  branch_name: z.string().min(1).optional(),
-  intent: z.string().min(1),
-  pins: z.array(z.string().min(1)).min(1),
-  project_id: z.string().min(1),
-  simulate_write_failure: z.boolean().default(false)
-});
 
 export function registerSessionRoutes(
   app: FastifyInstance,
@@ -66,7 +56,7 @@ async function startSession(
   deps: Parameters<typeof startWorkSession>[0],
   state: SignupState
 ) {
-  const parsed = sessionStartSchema.safeParse(request.body);
+  const parsed = sessionStartRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid session request"));
   }

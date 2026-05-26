@@ -1,3 +1,4 @@
+import { sessionStartResponseSchema } from "@vooster/contracts";
 import type { StoredSpecBranch, StoredWorkSession } from "../domain/entities/index.js";
 import { problem } from "./signup-support.js";
 
@@ -7,7 +8,7 @@ export function sessionStartResponse(
   warning?: { message: string; type: "UNKNOWN_AGENT_TYPE" },
   branch?: StoredSpecBranch
 ) {
-  return {
+  return sessionStartResponseSchema.parse({
     session,
     ...(branch === undefined ? {} : { branch }),
     ...(warning === undefined ? {} : { warnings: [warning] }),
@@ -25,7 +26,7 @@ export function sessionStartResponse(
         reason: "Close the session when the work is done."
       }
     ]
-  };
+  });
 }
 
 export function writeFailureProblem() {

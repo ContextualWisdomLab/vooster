@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { sessionCompleteResponseSchema } from "@vooster/contracts";
 import type { CompleteSessionResult } from "../application/session-completion.js";
 import { problem } from "./signup-support.js";
 
@@ -37,15 +38,17 @@ export function sendCompleteSessionResult(
         ])
       );
     case "COMPLETED":
-      return reply.send({
-        session: result.session,
-        released_lock_ids: result.releasedLockIds,
-        ...(result.warnings.length === 0 ? {} : { warnings: result.warnings }),
-        ...(result.mergeRequest === undefined
-          ? {}
-          : { merge_request: result.mergeRequest }),
-        session_file: { path: ".vspec/session.json", cleared: true },
-        suggested_next_actions: result.suggestedNextActions
-      });
+      return reply.send(
+        sessionCompleteResponseSchema.parse({
+          session: result.session,
+          released_lock_ids: result.releasedLockIds,
+          ...(result.warnings.length === 0 ? {} : { warnings: result.warnings }),
+          ...(result.mergeRequest === undefined
+            ? {}
+            : { merge_request: result.mergeRequest }),
+          session_file: { path: ".vspec/session.json", cleared: true },
+          suggested_next_actions: result.suggestedNextActions
+        })
+      );
   }
 }

@@ -3,6 +3,11 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Session domain CLOSED on 2026-05-27: start/list/watch/complete params,
+  query/body, and success response schemas moved to `@vooster/contracts`; API
+  and CLI session paths now parse through the shared schemas. Domains migrated:
+  21/21 ledgered slices; auth remains open because Doctor was counted as an
+  additional slice beyond the original package-shape list.
   Sync domain CLOSED on 2026-05-27: pull/push project params, request bodies,
   and success response schemas moved to `@vooster/contracts`; API and CLI sync
   paths now parse through the shared schemas. Domains migrated: 20/21.

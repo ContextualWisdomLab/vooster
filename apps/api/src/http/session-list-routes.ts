@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { sessionListQuerySchema } from "@vooster/contracts";
 import { z } from "zod";
 import { listSessionSnapshot } from "../application/session-list.js";
 import {
@@ -16,12 +17,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
-const sessionListSchema = z.object({
-  project_id: z.string().optional(),
-  status: z.enum(["ABANDONED", "ACTIVE", "COMPLETED"]).default("ACTIVE"),
-  user_id: z.string().optional(),
-  workspace_id: z.string().min(1)
-});
 const heartbeatSchema = z.object({ last_activity_at: z.iso.datetime() });
 
 type SessionRouteDeps = {
@@ -96,7 +91,7 @@ async function sessionSnapshot(
   state: SignupState,
   deps: SessionRouteDeps
 ) {
-  const parsed = sessionListSchema.safeParse(request.query);
+  const parsed = sessionListQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     reply.code(400).send(problem(400, "Invalid session list request"));
     return undefined;

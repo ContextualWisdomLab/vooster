@@ -169,7 +169,12 @@ function sessionStartBody() {
       path: ".vspec/session.json",
       session_id: "session-1"
     },
-    suggested_next_actions: [{ command: "vspec usecase show AGT-001" }]
+    suggested_next_actions: [
+      {
+        command: "vspec usecase show AGT-001",
+        reason: "Open the pinned use case revision."
+      }
+    ]
   };
 }
 
@@ -190,7 +195,12 @@ function sessionListBody() {
         status: "ACTIVE"
       }
     ],
-    suggested_next_actions: [{ command: 'vspec session start --intent "..."' }],
+    suggested_next_actions: [
+      {
+        command: 'vspec session start --intent "..."',
+        reason: "Start a session when work begins."
+      }
+    ],
     summary: { total_conflicts: 0 },
     total: 1
   };
@@ -208,7 +218,12 @@ function sessionCompleteBody() {
       cleared: true,
       path: ".vspec/session.json"
     },
-    suggested_next_actions: [{ command: "vspec merge open" }]
+    suggested_next_actions: [
+      {
+        command: "vspec merge open",
+        reason: "Open a merge request for the completed branch later."
+      }
+    ]
   };
 }
 

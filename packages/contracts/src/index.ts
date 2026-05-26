@@ -14,6 +14,7 @@ export * from "./merge.js";
 export * from "./project.js";
 export * from "./revision.js";
 export * from "./scenario.js";
+export * from "./session.js";
 export * from "./stakeholder.js";
 export * from "./sync.js";
 export * from "./usecase.js";

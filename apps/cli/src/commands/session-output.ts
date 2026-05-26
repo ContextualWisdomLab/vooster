@@ -1,66 +1,10 @@
-export type SessionStartResponse = {
-  session: {
-    agent_identifier: string;
-    agent_type: string;
-    id: string;
-    intent: string;
-    pinned_revisions: Record<string, string>;
-  };
-  session_file: {
-    path: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
+import type {
+  SessionCompleteResponse,
+  SessionListResponse,
+  SessionStartResponse
+} from "@vooster/contracts";
 
-export type SessionListResponse = {
-  sessions: Array<{
-    agent_identifier: string;
-    agent_type: string;
-    branch_name: null | string;
-    conflict_markers: string[];
-    id: string;
-    idle_seconds: number;
-    intent: string;
-    lock_count: number;
-    markers: string[];
-    pinned_keys: string[];
-    status: string;
-  }>;
-  suggested_next_actions?: Array<{
-    command: string;
-  }>;
-  summary: {
-    total_conflicts: number;
-  };
-  total: number;
-};
-
-export type SessionCompleteResponse = {
-  merge_request?: {
-    conflicts: unknown[];
-    id: string;
-    status: string;
-    strategy: string;
-  };
-  released_lock_ids: string[];
-  session: {
-    ended_at: string;
-    id: string;
-    status: string;
-  };
-  session_file: {
-    path: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings?: Array<{
-    lock_id: string;
-    type: string;
-  }>;
-};
+export type { SessionCompleteResponse, SessionListResponse, SessionStartResponse };
 
 export function printSessionStart(
   body: SessionStartResponse,

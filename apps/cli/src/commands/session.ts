@@ -1,4 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  sessionCompleteParamsSchema,
+  sessionCompleteRequestSchema,
+  sessionCompleteResponseSchema,
+  sessionListQuerySchema,
+  sessionListResponseSchema,
+  sessionStartRequestSchema,
+  sessionStartResponseSchema
+} from "@vooster/contracts";
 
 import {
   printSessionComplete,
@@ -82,25 +91,22 @@ async function startSession(
   writeLine: (message: string) => void
 ): Promise<void> {
   const sessionFlags = sessionStartFlagsFrom(flags);
-  const response = await postJson(
-    `${sessionFlags.apiUrl}/v1/sessions`,
-    {
-      agent_type: sessionFlags.agentType,
-      auto_branch: sessionFlags.autoBranch,
-      ...(sessionFlags.branchName === undefined
-        ? {}
-        : { branch_name: sessionFlags.branchName }),
-      intent: sessionFlags.intent,
-      pins: sessionFlags.pins,
-      project_id: sessionFlags.projectId
-    },
-    {
-      Cookie: sessionFlags.sessionCookie,
-      "X-Vspec-Agent": "codex-cli"
-    }
-  );
+  const requestBody = sessionStartRequestSchema.parse({
+    agent_type: sessionFlags.agentType,
+    auto_branch: sessionFlags.autoBranch,
+    ...(sessionFlags.branchName === undefined
+      ? {}
+      : { branch_name: sessionFlags.branchName }),
+    intent: sessionFlags.intent,
+    pins: sessionFlags.pins,
+    project_id: sessionFlags.projectId
+  });
+  const response = await postJson(`${sessionFlags.apiUrl}/v1/sessions`, requestBody, {
+    Cookie: sessionFlags.sessionCookie,
+    "X-Vspec-Agent": "codex-cli"
+  });
 
-  const body = response.body as SessionStartResponse;
+  const body: SessionStartResponse = sessionStartResponseSchema.parse(response.body);
   writeSessionFile(sessionFlags.root, body.session_file.path, {
     pinned_revisions: body.session.pinned_revisions,
     project_id: sessionFlags.projectId,
@@ -128,10 +134,21 @@ async function listSessions(
   writeLine: (message: string) => void
 ): Promise<void> {
   const sessionFlags = sessionListFlagsFrom(flags);
+  const query = sessionListQuerySchema.parse({
+    ...(sessionFlags.projectId === undefined
+      ? {}
+      : { project_id: sessionFlags.projectId }),
+    ...(sessionFlags.status === undefined ? {} : { status: sessionFlags.status }),
+    workspace_id: sessionFlags.workspaceId
+  });
   const url = new URL("/v1/sessions", sessionFlags.apiUrl);
-  url.searchParams.set("workspace_id", sessionFlags.workspaceId);
-  setSearchParam(url, "project_id", sessionFlags.projectId);
-  setSearchParam(url, "status", sessionFlags.status);
+  url.searchParams.set("workspace_id", query.workspace_id);
+  setSearchParam(url, "project_id", query.project_id);
+  setSearchParam(
+    url,
+    "status",
+    sessionFlags.status === undefined ? undefined : query.status
+  );
 
   const response = await fetchJson(url, {
     headers: {
@@ -139,7 +156,7 @@ async function listSessions(
     }
   });
 
-  const body = response.body as SessionListResponse;
+  const body: SessionListResponse = sessionListResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
@@ -154,18 +171,24 @@ async function completeSession(
   writeLine: (message: string) => void
 ): Promise<void> {
   const sessionFlags = sessionCompleteFlagsFrom(flags, sessionId);
+  const params = sessionCompleteParamsSchema.parse({
+    sessionId: sessionFlags.sessionId
+  });
+  const requestBody = sessionCompleteRequestSchema.parse({
+    no_merge: sessionFlags.noMerge,
+    ...(sessionFlags.summary === undefined ? {} : { summary: sessionFlags.summary })
+  });
   const response = await postJson(
-    `${sessionFlags.apiUrl}/v1/sessions/${sessionFlags.sessionId}/complete`,
-    {
-      no_merge: sessionFlags.noMerge,
-      ...(sessionFlags.summary === undefined ? {} : { summary: sessionFlags.summary })
-    },
+    `${sessionFlags.apiUrl}/v1/sessions/${params.sessionId}/complete`,
+    requestBody,
     {
       Cookie: sessionFlags.sessionCookie
     }
   );
 
-  const body = response.body as SessionCompleteResponse;
+  const body: SessionCompleteResponse = sessionCompleteResponseSchema.parse(
+    response.body
+  );
   clearSessionFile(sessionFlags.root, body.session_file.path);
   if (flags.format === "agent") {
     writeLine(

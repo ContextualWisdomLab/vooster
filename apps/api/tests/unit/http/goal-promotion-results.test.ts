@@ -160,11 +160,19 @@ function goal(): StoredGoal {
 
 function usecase(): StoredUseCase {
   return {
+    archived_at: null,
     current_revision_id: "revision-1",
+    format: "BRIEF",
     id: "usecase-1",
     key: "PAY-001",
+    level: "USER_GOAL",
+    primary_actor_id: "actor-1",
+    priority: "P1",
+    project_id: "project-1",
+    scope: "pay",
+    status: "DRAFT",
     title: "Place an order"
-  } as StoredUseCase;
+  };
 }
 
 function revision(): StoredRevision {

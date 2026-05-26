@@ -3,7 +3,6 @@ import type { StoredGoal } from "../../../src/domain/entities/index.js";
 import {
   allowedStatusTransitions,
   canTransition,
-  goalCreateResponse,
   goalIdFrom,
   goalRevision,
   nearDuplicateGoal,
@@ -66,27 +65,6 @@ describe("goal support", () => {
     expect(
       nearDuplicateGoal(goals, "actor-3", "Review purchase order")
     ).toBeUndefined();
-  });
-
-  test("adds a warning only when a duplicate goal exists", () => {
-    const goal = storedGoal({ id: "goal-new" });
-    const duplicate = storedGoal({ id: "goal-existing" });
-    const revision = goalRevision(goal, 1);
-
-    expect(goalCreateResponse(goal, revision, undefined)).toEqual({
-      goal,
-      recommended_next_command: "vspec goal list",
-      revision
-    });
-    expect(goalCreateResponse(goal, revision, duplicate)).toMatchObject({
-      warnings: [
-        {
-          candidate_goal_id: "goal-existing",
-          command: "vspec goal show goal-existing",
-          type: "NEAR_DUPLICATE_GOAL"
-        }
-      ]
-    });
   });
 
   test("extracts route ids from valid params", () => {

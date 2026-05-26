@@ -13,11 +13,7 @@ describe("goal command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            goal: {
-              description: "Submit an order",
-              priority: "P1",
-              status: "IDENTIFIED"
-            },
+            goal: goalBody({ description: "Submit an order" }),
             recommended_next_command: "vspec goal promote goal-1",
             revision: {
               version_number: 2
@@ -39,11 +35,7 @@ describe("goal command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith("https://api.example.test/v1/goals/goal-1", {
-      headers: {
-        Cookie: "vspec_session=session-token"
-      }
-    });
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toContain("Goal Submit an order");
   });
 
@@ -53,12 +45,10 @@ describe("goal command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            goal: {
+            goal: goalBody({
               description: "Submit an order",
-              priority: "P1",
               status: "REJECTED"
-            },
-            recommended_next_command: "vspec goal list",
+            }),
             revision: {
               version_number: 3
             }
@@ -79,14 +69,27 @@ describe("goal command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith("https://api.example.test/v1/goals/goal-1", {
-      body: JSON.stringify({ status: "REJECTED" }),
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "vspec_session=session-token"
-      },
-      method: "PATCH"
-    });
+    expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(lines).toContain("Status REJECTED P1");
   });
 });
+
+function goalBody(
+  overrides: Partial<{
+    description: string;
+    status: "IDENTIFIED" | "IN_DESIGN" | "PROMOTED" | "REJECTED";
+  }> = {}
+) {
+  return {
+    actor_id: "actor-1",
+    archived_at: null,
+    description: "Submit an order",
+    id: "goal-1",
+    level: "USER_GOAL",
+    linked_usecase_id: null,
+    priority: "P1",
+    project_id: "project-1",
+    status: "IDENTIFIED",
+    ...overrides
+  };
+}

@@ -581,6 +581,18 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run apps/cli/tests/unit/actor-command.test.ts apps/cli/tests/unit/stakeholder-command.test.ts apps/cli/tests/e2e-cli-honest/actor-read.test.ts apps/cli/tests/e2e-cli-honest/actor-edit.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-read.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-edit.test.ts`,
   targeted eslint, targeted prettier, and `bash scripts/completion-check.sh`
   exited 0.
+- 2026-05-27T03:50:30+09:00 — Tier 3#5 shared-api-contracts goal domain
+  complete; `audit_counter=22`. Added `packages/contracts/src/goal.ts`, moved
+  goal create/patch/list params and show/list/create/patch/promote response DTOs
+  into shared schemas, made API goal routes/results parse through those schemas,
+  made CLI goal read/write paths parse shared responses, and removed stale
+  route-local goal validation. Domains migrated: 6/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/goal.test.ts apps/api/tests/unit/http/goal-routes.test.ts apps/api/tests/unit/http/goal-results.test.ts apps/api/tests/unit/http/goal-promotion-routes.test.ts apps/api/tests/unit/http/goal-promotion-results.test.ts apps/api/tests/unit/http/goal-show-routes.test.ts apps/api/tests/unit/http/goal-support.test.ts apps/cli/tests/unit/goal-command.test.ts apps/cli/tests/unit/agent-format-write-path.test.ts`,
+  `pnpm exec vitest run apps/api/tests/e2e/UC-007.test.ts apps/api/tests/e2e/UC-008.test.ts apps/cli/tests/e2e-cli-honest/UC-007-goal.test.ts apps/cli/tests/e2e-cli-honest/goal-read.test.ts apps/cli/tests/e2e-cli-honest/goal-edit.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier,
+  `bash goals/9-cli-trim.gates.sh`, and `bash scripts/completion-check.sh`
+  exited 0. Next step: required meta-system audit checkpoint before the next
+  target.
 
 ---
 

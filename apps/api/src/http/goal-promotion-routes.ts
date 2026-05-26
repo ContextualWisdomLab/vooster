@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { goalParamsSchema, goalPromoteRequestSchema } from "@vooster/contracts";
 import { promoteGoal as promoteGoalApplication } from "../application/goal-promotion.js";
 import type { GoalStore } from "../ports/goal-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
@@ -10,10 +10,6 @@ import { sendGoalPromotionResult } from "./goal-promotion-results.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-
-const promoteRequestSchema = z.object({
-  simulate_usecase_insert_failure: z.boolean().optional()
-});
 
 export function registerGoalPromotionRoutes(
   app: FastifyInstance,
@@ -48,7 +44,7 @@ async function promoteGoal(
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = promoteRequestSchema.safeParse(request.body ?? {});
+  const parsed = goalPromoteRequestSchema.safeParse(request.body ?? {});
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid promotion request"));
   }
@@ -65,5 +61,5 @@ async function promoteGoal(
 }
 
 function goalIdFrom(params: unknown): string {
-  return z.object({ goalId: z.string().min(1) }).parse(params).goalId;
+  return goalParamsSchema.parse(params).goalId;
 }

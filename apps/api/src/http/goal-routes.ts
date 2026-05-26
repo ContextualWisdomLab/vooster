@@ -1,7 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  goalCreateRequestSchema,
+  goalListQuerySchema,
+  goalPatchRequestSchema
+} from "@vooster/contracts";
 import { goalIdFrom, projectIdFrom } from "./goal-support.js";
-import { goalPatchSchema, goalRequestSchema } from "./goal-validation.js";
 import {
   createGoal as createGoalUseCase,
   listGoals as listGoalsUseCase,
@@ -76,7 +79,7 @@ async function createGoal(
   deps: ActorGoalsDeps
 ) {
   const projectId = projectIdFrom(request.params);
-  const parsed = goalRequestSchema.safeParse(request.body);
+  const parsed = goalCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid goal request"));
   }
@@ -117,7 +120,7 @@ async function patchGoal(
   state: SignupState,
   deps: ActorGoalsDeps
 ) {
-  const parsed = goalPatchSchema.safeParse(request.body);
+  const parsed = goalPatchRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid goal update"));
   }
@@ -137,13 +140,10 @@ async function listGoals(
   state: SignupState,
   deps: Pick<ActorGoalsDeps, "actorStore" | "goalStore" | "membershipStore">
 ) {
-  const projectId = projectIdFrom(request.params);
-  const { actor_id: actorId } = z
-    .object({ actor_id: z.string().optional() })
-    .parse(request.query);
+  const { actor_id: actorId } = goalListQuerySchema.parse(request.query);
   const result = await listGoalsUseCase(deps, {
     actorId,
-    projectId,
+    projectId: projectIdFrom(request.params),
     userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
   });
   return sendListGoalsResult(reply, result);

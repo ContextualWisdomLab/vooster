@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { goalPromotionResponseSchema } from "@vooster/contracts";
 import type { GoalPromotionResult } from "../application/goal-promotion.js";
 import { problem } from "./signup-support.js";
 
@@ -22,15 +23,17 @@ export function sendGoalPromotionResult(
     case "PROJECT_NOT_FOUND":
       return reply.code(404).send(problem(404, "Project not found"));
     case "PROMOTED":
-      return reply.code(201).send({
-        goal: result.goal,
-        revision: result.revision,
-        suggested_next_actions: suggestedNextActions(result),
-        usecase: result.usecase,
-        ...(result.titleWarning === undefined
-          ? {}
-          : { warnings: [result.titleWarning] })
-      });
+      return reply.code(201).send(
+        goalPromotionResponseSchema.parse({
+          goal: result.goal,
+          revision: result.revision,
+          suggested_next_actions: suggestedNextActions(result),
+          usecase: result.usecase,
+          ...(result.titleWarning === undefined
+            ? {}
+            : { warnings: [result.titleWarning] })
+        })
+      );
     case "PROMOTION_FAILED":
       return reply.code(500).send(
         problem(500, "Promotion failed", { exit_code: 5 }, [

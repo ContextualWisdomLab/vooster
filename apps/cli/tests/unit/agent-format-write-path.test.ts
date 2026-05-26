@@ -64,7 +64,9 @@ describe("--format=agent write-path envelopes", () => {
 
   test("agent goal create", async () => {
     stubFetch({
-      goal: { id: "goal-1", description: "Places an order", status: "IDENTIFIED" }
+      goal: goalBody({ description: "Places an order" }),
+      recommended_next_command: "vspec goal list",
+      revision: { version_number: 1 }
     });
     const lines: string[] = [];
 
@@ -87,8 +89,17 @@ describe("--format=agent write-path envelopes", () => {
     stubFetch({
       actors: [
         {
-          actor: { id: "actor-1" },
-          goals: [{ id: "goal-1", description: "Places an order" }]
+          actor: {
+            aliases: [],
+            archived_at: null,
+            description: "",
+            id: "actor-1",
+            is_human: true,
+            name: "Customer",
+            project_id: "project-1",
+            type: "PRIMARY"
+          },
+          goals: [goalBody({ description: "Places an order" })]
         }
       ]
     });
@@ -101,7 +112,15 @@ describe("--format=agent write-path envelopes", () => {
 
   test("agent goal promote", async () => {
     stubFetch({
-      usecase: { id: "usecase-1", key: "AGT-001", title: "Places an order" }
+      goal: goalBody({ description: "Places an order", status: "PROMOTED" }),
+      revision: { version_number: 1 },
+      suggested_next_actions: [{ command: "vspec scenario add", reason: "Write." }],
+      usecase: {
+        format: "BRIEF",
+        id: "usecase-1",
+        key: "AGT-001",
+        title: "Places an order"
+      }
     });
     const lines: string[] = [];
 
@@ -146,6 +165,26 @@ function baseFlags(overrides: Record<string, string> = {}): Record<string, strin
     format: "agent",
     "project-id": "project-1",
     "session-cookie": "session-token",
+    ...overrides
+  };
+}
+
+function goalBody(
+  overrides: Partial<{
+    description: string;
+    status: "IDENTIFIED" | "IN_DESIGN" | "PROMOTED" | "REJECTED";
+  }> = {}
+) {
+  return {
+    actor_id: "actor-1",
+    archived_at: null,
+    description: "Places an order",
+    id: "goal-1",
+    level: "USER_GOAL",
+    linked_usecase_id: null,
+    priority: "P1",
+    project_id: "project-1",
+    status: "IDENTIFIED",
     ...overrides
   };
 }

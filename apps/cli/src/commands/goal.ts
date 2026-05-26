@@ -1,4 +1,15 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  goalCreateRequestSchema,
+  goalCreateResponseSchema,
+  goalListQuerySchema,
+  goalListResponseSchema,
+  goalPatchRequestSchema,
+  goalPatchResponseSchema,
+  goalPromotionResponseSchema,
+  goalShowResponseSchema,
+  type GoalCreateResponse
+} from "@vooster/contracts";
 
 import {
   goalCreateFlagsFrom,
@@ -6,14 +17,7 @@ import {
   goalListFlagsFrom,
   type GoalCliFlags
 } from "./goal-flags.js";
-import {
-  printGoalList,
-  printGoalPromotion,
-  printGoalResponse,
-  type GoalListResponse,
-  type GoalPromotionResponse,
-  type GoalResponse
-} from "./goal-output.js";
+import { printGoalList, printGoalPromotion, printGoalResponse } from "./goal-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
   commonMutationContextFrom,
@@ -62,28 +66,25 @@ export async function runGoal(
   goalId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  if (action === "create") {
-    await createGoal(flags, writeLine);
-    return;
-  }
-  if (action === "list") {
-    await listGoals(flags, writeLine);
-    return;
-  }
-  if (action === "promote") {
-    await promoteGoal(flags, goalId, writeLine);
-    return;
-  }
-  if (action === "show") {
-    await showGoal(flags, goalId, writeLine);
-    return;
-  }
-  if (action === "reject") {
-    await rejectGoal(flags, goalId, writeLine);
-    return;
-  }
-
+  if (action === "create") return createGoal(flags, writeLine);
+  if (action === "list") return listGoals(flags, writeLine);
+  if (action === "promote") return promoteGoal(flags, goalId, writeLine);
+  if (action === "show") return showGoal(flags, goalId, writeLine);
+  if (action === "reject") return rejectGoal(flags, goalId, writeLine);
   throw new Error("Missing goal action.");
+}
+
+function printGoalCommandBody<T>(
+  format: string | undefined,
+  data: T,
+  human: (body: T, writeLine: (message: string) => void) => void,
+  writeLine: (message: string) => void
+): void {
+  if (format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data }), null, 2));
+    return;
+  }
+  human(data, writeLine);
 }
 
 async function rejectGoal(
@@ -94,16 +95,12 @@ async function rejectGoal(
   const goalFlags = goalIdFlagsFrom(flags, goalId);
   const response = await patchJson(
     `${goalFlags.apiUrl}/v1/goals/${goalFlags.goalId}`,
-    { status: "REJECTED" },
+    goalPatchRequestSchema.parse({ status: "REJECTED" }),
     { Cookie: goalFlags.sessionCookie }
   );
+  const body = goalPatchResponseSchema.parse(response.body);
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
-    return;
-  }
-
-  printGoalResponse(response.body as GoalResponse, writeLine);
+  printGoalCommandBody(flags.format, body, printGoalResponse, writeLine);
 }
 
 async function showGoal(
@@ -117,13 +114,9 @@ async function showGoal(
       Cookie: goalFlags.sessionCookie
     }
   });
+  const body = goalShowResponseSchema.parse(response.body);
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
-    return;
-  }
-
-  printGoalResponse(response.body as GoalResponse, writeLine);
+  printGoalCommandBody(flags.format, body, printGoalResponse, writeLine);
 }
 
 async function createGoal(
@@ -131,21 +124,20 @@ async function createGoal(
   writeLine: (message: string) => void
 ): Promise<void> {
   const goalFlags = goalCreateFlagsFrom(flags);
-  await runMutationCommand<GoalResponse>(
+  const body = goalCreateRequestSchema.parse({
+    ...(goalFlags.actor === undefined ? {} : { actor: goalFlags.actor }),
+    ...(goalFlags.actorId === undefined ? {} : { actor_id: goalFlags.actorId }),
+    description: goalFlags.description,
+    level: goalFlags.level,
+    priority: goalFlags.priority
+  });
+  await runMutationCommand<GoalCreateResponse>(
     {
-      body: {
-        ...(goalFlags.actor === undefined ? {} : { actor: goalFlags.actor }),
-        ...(goalFlags.actorId === undefined ? {} : { actor_id: goalFlags.actorId }),
-        description: goalFlags.description,
-        level: goalFlags.level,
-        priority: goalFlags.priority
-      },
+      body,
       method: "POST",
       path: `/v1/projects/${goalFlags.projectId}/goals`,
-      successHints: (data) =>
-        data.recommended_next_command === undefined
-          ? []
-          : [{ command: data.recommended_next_command }]
+      selectData: (responseBody) => goalCreateResponseSchema.parse(responseBody),
+      successHints: (data) => [{ command: data.recommended_next_command }]
     },
     commonMutationContextFrom(goalFlags),
     { format: flags.format, human: printGoalResponse, writeLine }
@@ -161,20 +153,16 @@ async function listGoals(
   if (goalFlags.actorId !== undefined) {
     url.searchParams.set("actor_id", goalFlags.actorId);
   }
+  goalListQuerySchema.parse(Object.fromEntries(url.searchParams));
 
   const response = await fetchJson(url, {
     headers: {
       Cookie: goalFlags.sessionCookie
     }
   });
-  const body = response.body as GoalListResponse;
+  const body = goalListResponseSchema.parse(response.body);
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
-    return;
-  }
-
-  printGoalList(body, writeLine);
+  printGoalCommandBody(flags.format, body, printGoalList, writeLine);
 }
 
 async function promoteGoal(
@@ -190,12 +178,7 @@ async function promoteGoal(
       Cookie: goalFlags.sessionCookie
     }
   );
-  const body = response.body as GoalPromotionResponse;
+  const body = goalPromotionResponseSchema.parse(response.body);
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
-    return;
-  }
-
-  printGoalPromotion(body, writeLine);
+  printGoalCommandBody(flags.format, body, printGoalPromotion, writeLine);
 }

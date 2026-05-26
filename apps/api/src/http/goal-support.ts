@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
+import { goalParamsSchema, goalProjectParamsSchema } from "@vooster/contracts";
 import type { StoredGoal } from "../domain/entities/index.js";
 
 export const allowedStatusTransitions = [
@@ -43,31 +43,8 @@ export function nearDuplicateGoal(
   );
 }
 
-export function goalCreateResponse(
-  goal: StoredGoal,
-  revision: ReturnType<typeof goalRevision>,
-  duplicate: StoredGoal | undefined
-) {
-  return {
-    goal,
-    revision,
-    recommended_next_command: "vspec goal list",
-    ...(duplicate === undefined
-      ? {}
-      : {
-          warnings: [
-            {
-              type: "NEAR_DUPLICATE_GOAL",
-              candidate_goal_id: duplicate.id,
-              command: `vspec goal show ${duplicate.id}`
-            }
-          ]
-        })
-  };
-}
-
 export function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  return goalProjectParamsSchema.parse(params).projectId;
 }
 
 function comparableDescription(description: string): string {
@@ -81,5 +58,5 @@ function comparableDescription(description: string): string {
 }
 
 export function goalIdFrom(params: unknown): string {
-  return z.object({ goalId: z.string().min(1) }).parse(params).goalId;
+  return goalParamsSchema.parse(params).goalId;
 }

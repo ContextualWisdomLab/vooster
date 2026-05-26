@@ -1,5 +1,10 @@
 import type { FastifyReply } from "fastify";
 import {
+  goalCreateResponseSchema,
+  goalListResponseSchema,
+  goalPatchResponseSchema
+} from "@vooster/contracts";
+import {
   allowedGoalStatusTransitions,
   type CreateGoalResult,
   type ListGoalsResult,
@@ -33,7 +38,9 @@ export function sendPatchGoalResult(reply: FastifyReply, result: PatchGoalResult
         })
       );
     case "PATCHED":
-      return reply.send({ goal: result.goal, revision: result.revision });
+      return reply.send(
+        goalPatchResponseSchema.parse({ goal: result.goal, revision: result.revision })
+      );
     case "PROMOTED_REJECT_REQUIRES_ARCHIVE":
       return reply.code(422).send(promotedRejectProblem());
     case "WORKSPACE_ARCHIVED":
@@ -46,7 +53,7 @@ export function sendListGoalsResult(reply: FastifyReply, result: ListGoalsResult
     case "FORBIDDEN":
       return reply.code(403).send(accessProblem());
     case "LISTED":
-      return reply.send({ actors: result.actors });
+      return reply.send(goalListResponseSchema.parse({ actors: result.actors }));
   }
 }
 
@@ -69,7 +76,7 @@ function actorUnavailableProblem(actorId: string) {
 }
 
 function goalCreateResponse(result: Extract<CreateGoalResult, { status: "CREATED" }>) {
-  return {
+  return goalCreateResponseSchema.parse({
     goal: result.goal,
     recommended_next_command: "vspec goal list",
     revision: result.revision,
@@ -84,7 +91,7 @@ function goalCreateResponse(result: Extract<CreateGoalResult, { status: "CREATED
             }
           ]
         })
-  };
+  });
 }
 
 function promotedRejectProblem() {

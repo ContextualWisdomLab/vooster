@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { goalShowResponseSchema } from "@vooster/contracts";
 
 import { goalIdFrom } from "./goal-support.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -28,8 +29,10 @@ export async function showGoal(
   ) {
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
-  return reply.send({
-    goal,
-    recommended_next_command: "vspec goal list"
-  });
+  return reply.send(
+    goalShowResponseSchema.parse({
+      goal,
+      recommended_next_command: "vspec goal list"
+    })
+  );
 }

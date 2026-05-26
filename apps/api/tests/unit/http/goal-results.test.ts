@@ -181,17 +181,39 @@ function reply() {
 }
 
 function actor(): StoredActor {
-  return { id: "actor-1" } as StoredActor;
+  return {
+    aliases: [],
+    archived_at: null,
+    description: "",
+    id: "actor-1",
+    is_human: true,
+    name: "Customer",
+    project_id: "project-1",
+    type: "PRIMARY"
+  };
 }
 
 function goal(overrides: Partial<StoredGoal> = {}): StoredGoal {
   return {
+    actor_id: "actor-1",
+    archived_at: null,
+    description: "Places an order",
     id: "goal-1",
+    level: "USER_GOAL",
+    linked_usecase_id: null,
+    priority: "P1",
+    project_id: "project-1",
     status: "IDENTIFIED",
     ...overrides
-  } as StoredGoal;
+  };
 }
 
 function revision(): StoredRevision {
-  return { id: "revision-1" } as StoredRevision;
+  return {
+    entity_id: "goal-1",
+    entity_type: "GOAL",
+    id: "revision-1",
+    snapshot: goal(),
+    version_number: 1
+  };
 }

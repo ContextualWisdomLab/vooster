@@ -13,13 +13,7 @@ describe("actor command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            items: [
-              {
-                id: "actor-1",
-                name: "Customer",
-                type: "PRIMARY"
-              }
-            ]
+            items: [actorBody({ name: "Customer" })]
           }),
         ok: true
       } as Response)
@@ -55,11 +49,7 @@ describe("actor command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            actor: {
-              id: "actor-1",
-              name: "Customer",
-              type: "PRIMARY"
-            }
+            actor: actorBody({ name: "Customer" })
           }),
         ok: true
       } as Response)
@@ -95,11 +85,7 @@ describe("actor command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            actor: {
-              id: "actor-1",
-              name: "Buyer",
-              type: "PRIMARY"
-            }
+            actor: actorBody({ name: "Buyer" })
           }),
         ok: true
       } as Response)
@@ -173,3 +159,14 @@ describe("actor command", () => {
     expect(lines).toEqual(["Archived actor-1"]);
   });
 });
+
+function actorBody(overrides: { name: string }) {
+  return {
+    aliases: [],
+    description: "",
+    id: "actor-1",
+    is_human: true,
+    name: overrides.name,
+    type: "PRIMARY"
+  };
+}

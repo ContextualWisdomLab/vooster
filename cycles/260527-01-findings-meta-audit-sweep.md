@@ -549,6 +549,20 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run packages/contracts apps/api/tests/unit/http/doctor-routes.test.ts apps/api/tests/integration/http/doctor-route.test.ts apps/cli/tests/unit/doctor-command.test.ts apps/cli/tests/e2e-cli-honest/doctor.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
   Next step: required meta-system audit checkpoint before the next target.
+- 2026-05-27T03:14:14+09:00 — Meta-audit checkpoint after `audit_counter=18`:
+  KEEP. Recent contract-package changes are production-consumed schemas, not
+  brittle gates; status claims were checked by push-time `completion-check.sh`;
+  adjacent tests assert schema behavior instead of route internals.
+- 2026-05-27T03:14:14+09:00 — Tier 3#5 shared-api-contracts actor domain
+  complete; `audit_counter=19`. Added `packages/contracts/src/actor.ts`, made
+  actor API request/response DTOs parse through shared schemas, made CLI
+  actor read/edit/archive/create outputs parse shared responses, and made the
+  app actor reader parse the shared list response while preserving its narrower
+  UI summary type. Domains migrated: 4/21. Verification:
+  `pnpm exec vitest run packages/contracts apps/api/tests/unit/http/actor-routes.test.ts apps/api/tests/unit/http/actor-management-routes.test.ts apps/api/tests/e2e/UC-005.test.ts apps/cli/tests/unit/actor-command.test.ts apps/cli/tests/unit/agent-format-write-path.test.ts apps/cli/tests/e2e-cli-honest/UC-005-actor.test.ts apps/cli/tests/e2e-cli-honest/actor-read.test.ts apps/cli/tests/e2e-cli-honest/actor-edit.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts apps/app/tests/unit/data-stub.test.tsx`,
+  `pnpm exec tsc --noEmit`, `pnpm --filter @vooster/app typecheck`,
+  `pnpm --filter @vooster/app test`, targeted eslint, and targeted prettier
+  exited 0.
 
 ---
 

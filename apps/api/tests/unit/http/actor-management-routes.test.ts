@@ -36,6 +36,7 @@ describe("actor management routes", () => {
         aliases: ["customer"],
         description: "Places orders",
         id: "actor-1",
+        is_human: true,
         name: "Buyer",
         type: "PRIMARY"
       }

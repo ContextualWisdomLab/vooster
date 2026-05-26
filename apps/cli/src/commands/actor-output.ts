@@ -1,18 +1,4 @@
-export type ActorSummary = {
-  id: string;
-  name: string;
-  type: string;
-};
-
-export type ActorResponse = {
-  actor: ActorSummary;
-  recommended_next_command: string;
-  revision: { version_number: number };
-};
-
-export type ActorListResponse = {
-  items: ActorSummary[];
-};
+import type { ActorCreateResponse, ActorSummary } from "@vooster/contracts";
 
 export function printActorSummary(
   actor: ActorSummary,
@@ -22,7 +8,7 @@ export function printActorSummary(
 }
 
 export function printActorCreated(
-  body: ActorResponse,
+  body: ActorCreateResponse,
   writeLine: (message: string) => void
 ): void {
   writeLine(`Actor ${body.actor.name} ${body.actor.type}`);

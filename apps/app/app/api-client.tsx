@@ -1,5 +1,9 @@
 import { cookies } from "next/headers";
 
+type ResponseSchema<T> = {
+  parse(value: unknown): T;
+};
+
 function apiUrl(): string {
   return process.env.VSPEC_API_URL ?? "http://127.0.0.1:3000";
 }
@@ -10,7 +14,7 @@ async function sessionCookieHeader(): Promise<string> {
   return session === undefined ? "" : `vspec_session=${session}`;
 }
 
-export async function readApi<T>(path: string): Promise<T> {
+export async function readApi<T>(path: string, schema?: ResponseSchema<T>): Promise<T> {
   const response = await fetch(`${apiUrl()}${path}`, {
     headers: { Cookie: await sessionCookieHeader() },
     cache: "no-store"
@@ -20,7 +24,8 @@ export async function readApi<T>(path: string): Promise<T> {
     throw new Error(`API request failed with ${String(response.status)}`);
   }
 
-  return response.json() as Promise<T>;
+  const body = (await response.json()) as unknown;
+  return schema === undefined ? (body as T) : schema.parse(body);
 }
 
 export type MutateOptions = {

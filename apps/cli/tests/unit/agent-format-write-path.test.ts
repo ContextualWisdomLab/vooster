@@ -11,7 +11,20 @@ afterEach(() => {
 
 describe("--format=agent write-path envelopes", () => {
   test("agent actor create", async () => {
-    stubFetch({ actor: { id: "actor-1", name: "Customer", type: "PRIMARY" } });
+    stubFetch({
+      actor: {
+        aliases: [],
+        archived_at: null,
+        description: "",
+        id: "actor-1",
+        is_human: true,
+        name: "Customer",
+        project_id: "project-1",
+        type: "PRIMARY"
+      },
+      recommended_next_command: "vspec stakeholder create",
+      revision: { version_number: 1 }
+    });
     const lines: string[] = [];
 
     await runActor(

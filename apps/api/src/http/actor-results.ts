@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { actorCreateResponseSchema } from "@vooster/contracts";
 import type { ActorDefinitionResult } from "../application/actors.js";
 import { problem } from "./signup-support.js";
 import type { StoredActor } from "../domain/entities/index.js";
@@ -13,11 +14,13 @@ export function sendActorDefinitionResult(
     case "ARCHIVED_NAME_CONFLICT":
       return archivedNameConflict(reply, result.existingActor);
     case "CREATED":
-      return reply.code(201).send({
-        actor: result.actor,
-        recommended_next_command: result.recommendedNextCommand,
-        revision: result.revision
-      });
+      return reply.code(201).send(
+        actorCreateResponseSchema.parse({
+          actor: result.actor,
+          recommended_next_command: result.recommendedNextCommand,
+          revision: result.revision
+        })
+      );
     case "FORBIDDEN":
       return reply
         .code(403)

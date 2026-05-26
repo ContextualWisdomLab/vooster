@@ -1,17 +1,20 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  actorArchiveResponseSchema,
+  actorCreateResponseSchema,
+  actorListResponseSchema,
+  actorPatchRequestSchema,
+  actorResponseSchema,
+  type ActorCreateResponse,
+  type ActorListResponse
+} from "@vooster/contracts";
 
 import {
   actorCreateFlagsFrom,
   actorPatchFrom,
   type ActorCliFlags
 } from "./actor-flags.js";
-import {
-  printActorCreated,
-  printActorSummary,
-  type ActorListResponse,
-  type ActorResponse,
-  type ActorSummary
-} from "./actor-output.js";
+import { printActorCreated, printActorSummary } from "./actor-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
   commonMutationContextFrom,
@@ -96,11 +99,12 @@ async function showActor(
       headers: authHeaders(flags)
     }
   );
+  const body = actorResponseSchema.parse(response.body);
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
-  printActorSummary((response.body as { actor: ActorSummary }).actor, writeLine);
+  printActorSummary(body.actor, writeLine);
 }
 
 async function archiveActor(
@@ -109,16 +113,11 @@ async function archiveActor(
   writeLine: (message: string) => void
 ): Promise<void> {
   const id = requiredArgument(actorId, "actor id");
-  await deleteJson(actorUrl(flags, id), authHeaders(flags));
+  const response = await deleteJson(actorUrl(flags, id), authHeaders(flags));
+  const body = actorArchiveResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
-    writeLine(
-      JSON.stringify(
-        buildAgentEnvelope({ data: { actor_id: id, archived: true } }),
-        null,
-        2
-      )
-    );
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
 
@@ -130,16 +129,18 @@ async function editActor(
   actorId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
+  const patch = actorPatchRequestSchema.parse(actorPatchFrom(flags));
   const response = await patchJson(
     actorUrl(flags, requiredArgument(actorId, "actor id")),
-    actorPatchFrom(flags),
+    patch,
     authHeaders(flags)
   );
+  const body = actorResponseSchema.parse(response.body);
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
-  printActorSummary((response.body as { actor: ActorSummary }).actor, writeLine);
+  printActorSummary(body.actor, writeLine);
 }
 
 async function createActor(
@@ -147,7 +148,7 @@ async function createActor(
   writeLine: (message: string) => void
 ): Promise<void> {
   const actorFlags = actorCreateFlagsFrom(flags);
-  await runMutationCommand<ActorResponse>(
+  await runMutationCommand<ActorCreateResponse>(
     {
       body: {
         aliases: actorFlags.aliases,
@@ -157,7 +158,8 @@ async function createActor(
         type: actorFlags.type
       },
       method: "POST",
-      path: `/v1/projects/${actorFlags.projectId}/actors`
+      path: `/v1/projects/${actorFlags.projectId}/actors`,
+      selectData: (responseBody) => actorCreateResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(actorFlags),
     { format: flags.format, human: printActorCreated, writeLine }
@@ -171,7 +173,7 @@ async function listActors(
   const response = await fetchJson(actorsUrl(flags), {
     headers: authHeaders(flags)
   });
-  const body = response.body as ActorListResponse;
+  const body: ActorListResponse = actorListResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));

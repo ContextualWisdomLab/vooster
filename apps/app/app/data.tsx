@@ -1,3 +1,7 @@
+import {
+  actorListResponseSchema,
+  type ActorSummary as ContractActorSummary
+} from "@vooster/contracts";
 import { mutateApi, readApi } from "./api-client";
 import {
   isAuthStub,
@@ -28,12 +32,10 @@ export type UsecaseSummary = {
   extension_count: number;
 };
 
-export type ActorSummary = {
-  id: string;
-  name: string;
-  type: string;
-  is_human: boolean;
-};
+export type ActorSummary = Pick<
+  ContractActorSummary,
+  "id" | "is_human" | "name" | "type"
+>;
 
 // Mirrors the API's derived reverse view: each caller use case that invokes
 // this one from a step. Internal scenario ids are dropped — the viewer only
@@ -95,8 +97,9 @@ export async function fetchProjectActors(projectKey: string): Promise<ActorSumma
     return stubActors(projectKey);
   }
 
-  const response = await readApi<{ items: ActorSummary[] }>(
-    `/v1/projects/${projectKey}/actors`
+  const response = await readApi(
+    `/v1/projects/${projectKey}/actors`,
+    actorListResponseSchema
   );
   return response.items;
 }

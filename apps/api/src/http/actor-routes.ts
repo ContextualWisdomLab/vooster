@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  actorCreateRequestSchema,
+  actorProjectParamsSchema,
+  actorTypeSchema
+} from "@vooster/contracts";
 import { defineActor } from "../application/actors.js";
 import {
   archiveActor,
@@ -15,16 +19,6 @@ import type { StoredActor } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
-
-const actorRequestSchema = z.object({
-  aliases: z.array(z.string()).default([]),
-  description: z.string().default(""),
-  is_human: z.boolean(),
-  name: z.string().min(1),
-  type: z.string()
-});
-
-const actorTypes = ["PRIMARY", "SUPPORTING", "OFFSTAGE"] as const;
 
 export function registerActorRoutes(
   app: FastifyInstance,
@@ -59,7 +53,7 @@ async function createActor(
   revisionStore: RevisionStore
 ) {
   const projectId = projectIdFrom(request.params);
-  const parsed = actorRequestSchema.safeParse(request.body);
+  const parsed = actorCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid actor request"));
   }
@@ -67,7 +61,7 @@ async function createActor(
   if (!isActorType(parsed.data.type)) {
     return reply.code(400).send(
       problem(400, "Invalid actor type", {
-        valid_types: [...actorTypes]
+        valid_types: actorTypeSchema.options
       })
     );
   }
@@ -95,11 +89,11 @@ async function createActor(
 }
 
 function isActorType(type: string): type is StoredActor["type"] {
-  return actorTypes.includes(type as StoredActor["type"]);
+  return actorTypeSchema.safeParse(type).success;
 }
 
 function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  return actorProjectParamsSchema.parse(params).projectId;
 }
 
 function dryRunFromQuery(query: unknown): boolean {

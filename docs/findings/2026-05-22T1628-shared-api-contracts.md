@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Actor domain CLOSED on 2026-05-27: create/patch params and list/show/create/
+  archive response schemas moved to `@vooster/contracts`; API, CLI, and the
+  app actor reader now parse through the shared schemas. Domains migrated: 4/21.
   Doctor domain CLOSED on 2026-05-27: query and success diagnostic response
   schemas moved to `@vooster/contracts`; API and CLI now parse through them.
   Domains migrated: 3/21.

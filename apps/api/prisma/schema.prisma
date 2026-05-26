@@ -341,7 +341,7 @@ model Lock {
   session WorkSession? @relation(fields: [held_by_session_id], references: [id])
   user    User         @relation("LockHolder", fields: [held_by_user_id], references: [id])
 
-  @@unique([target_type, target_id, lock_type])
+  @@unique([target_type, target_id, lock_type, held_by_session_id, held_by_user_id])
   @@index([target_type, target_id])
 }
 

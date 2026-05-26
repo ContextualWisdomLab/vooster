@@ -38,7 +38,10 @@ export function createMemoryLockStore(): LockStore {
 
     findLockForUseCase(usecaseId) {
       return Promise.resolve(
-        [...locksById.values()].find((lock) => lock.usecase_id === usecaseId)
+        [...locksById.values()]
+          .filter((lock) => lock.usecase_id === usecaseId)
+          .sort(compareLockStrength)
+          .at(0)
       );
     },
 
@@ -68,4 +71,19 @@ export function createMemoryLockStore(): LockStore {
 
 function lockKey(lock: StoredLock): string {
   return lock.id ?? lock.usecase_id;
+}
+
+function compareLockStrength(left: StoredLock, right: StoredLock): number {
+  return lockRank(left) - lockRank(right);
+}
+
+function lockRank(lock: StoredLock): number {
+  switch (lock.mode) {
+    case "HARD":
+      return 0;
+    case "SEMANTIC":
+      return 1;
+    case "SOFT":
+      return 2;
+  }
 }

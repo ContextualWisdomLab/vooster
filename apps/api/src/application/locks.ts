@@ -17,6 +17,7 @@ export type LockResult =
       lock: StoredLock;
       status: "CREATED" | "RELEASED" | "RENEWED";
       usecase: StoredUseCase;
+      warnings?: LockWarning[];
     }
   | {
       lock: StoredLock;
@@ -24,6 +25,12 @@ export type LockResult =
       usecase: StoredUseCase;
     }
   | { status: "FORBIDDEN" | "LOCK_NOT_FOUND" | "USECASE_NOT_FOUND" };
+
+export type LockWarning = {
+  holders: string[];
+  message: string;
+  type: "SOFT_LOCK_COEXISTS";
+};
 
 export type AcquireLockInput = {
   lockType: StoredLock["mode"];
@@ -57,18 +64,30 @@ export async function acquireLock(
     return found;
   }
 
-  const existing = await deps.lockStore.findLockForUseCase(found.usecase.id);
-  const blockedBy = blockingLock(deps, existing, input.lockType, input.sessionId);
+  const existingLocks = await deps.lockStore.listLocksForUseCase(found.usecase.id);
+  const blockedBy = existingLocks.find((lock) =>
+    blockingLock(deps, lock, input.lockType, input.sessionId)
+  );
   if (blockedBy !== undefined) {
     return { lock: blockedBy, status: "COMPETING_LOCK", usecase: found.usecase };
   }
-  if (existing !== undefined) {
-    await deps.lockStore.deleteLock(existing.id ?? existing.usecase_id);
+
+  const warnings =
+    input.lockType === "SOFT" ? softLockWarnings(deps, existingLocks, input) : [];
+  if (input.lockType !== "SOFT") {
+    for (const existing of existingLocks) {
+      await deps.lockStore.deleteLock(existing.id ?? existing.usecase_id);
+    }
   }
 
   const lock = useCaseLock(deps, input, found.usecase, found.userId);
   await deps.lockStore.saveLock(lock);
-  return { lock, status: "CREATED", usecase: found.usecase };
+  return {
+    lock,
+    status: "CREATED",
+    usecase: found.usecase,
+    ...(warnings.length === 0 ? {} : { warnings })
+  };
 }
 
 export async function renewLock(
@@ -164,6 +183,27 @@ function ownsLock(lock: StoredLock, userId: string, sessionId: null | string) {
   return lock.held_by_session_id === null
     ? lock.held_by_user_id === userId
     : lock.held_by_session_id === sessionId;
+}
+
+function softLockWarnings(
+  deps: LockApplicationDeps,
+  locks: StoredLock[],
+  input: AcquireLockInput
+): LockWarning[] {
+  const holders = locks
+    .filter((lock) => Date.parse(lock.expires_at) > now(deps).getTime())
+    .filter((lock) => lock.held_by_session_id !== input.sessionId)
+    .map((lock) => lock.holder);
+
+  return holders.length === 0
+    ? []
+    : [
+        {
+          holders,
+          message: `SOFT lock coexists with ${holders.join(", ")}`,
+          type: "SOFT_LOCK_COEXISTS"
+        }
+      ];
 }
 
 function useCaseLock(

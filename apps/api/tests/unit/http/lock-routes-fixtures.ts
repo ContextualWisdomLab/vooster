@@ -121,8 +121,11 @@ function lockStore(options: {
       options.deletedLockIds?.push(lockId);
       return Promise.resolve();
     },
+    deleteLockForUseCase: () => Promise.resolve(),
     findLockById: () => Promise.resolve(options.existingLock),
     findLockForUseCase: () => Promise.resolve(undefined),
+    listLocksForUseCase: () => Promise.resolve([]),
+    listLocksHeldBySession: () => Promise.resolve([]),
     saveLock: (newLock: StoredLock) => {
       options.savedLocks?.push(newLock);
       return Promise.resolve();
@@ -131,7 +134,7 @@ function lockStore(options: {
       options.updatedLocks?.push(updatedLock);
       return Promise.resolve();
     }
-  } as unknown as LockStore;
+  };
 }
 
 function membershipStore(): MembershipStore {

@@ -13,6 +13,7 @@ import {
   type SessionCompleteResponse,
   type SessionStartResponse
 } from "../helpers/session-fixtures.js";
+import { whoUseCase, type WhoResponse } from "../helpers/who-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -104,6 +105,69 @@ describe("UC-022 - Lock a use case", () => {
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the lock."
     });
+  });
+
+  test("2a: soft locks coexist and warn about existing holders", async () => {
+    const { setup, usecase } = await projectUseCase(
+      server,
+      "Soft Lock",
+      "soft-lock",
+      "stub-soft-lock"
+    );
+    const first = await lockUseCase(
+      server,
+      setup,
+      usecase.id,
+      {
+        lock_type: "SOFT",
+        reason: "First session is exploring wording."
+      },
+      "session-soft-a"
+    );
+
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as LockCreateResponse;
+    expect(firstBody.warnings).toBeUndefined();
+
+    const second = await lockUseCase(
+      server,
+      setup,
+      usecase.id,
+      {
+        lock_type: "SOFT",
+        reason: "Second session is exploring wording."
+      },
+      "session-soft-b"
+    );
+
+    expect(second.status).toBe(201);
+    const secondBody = (await second.json()) as LockCreateResponse;
+    expect(secondBody.warnings).toContainEqual(
+      expect.objectContaining({
+        holders: ["session-soft-a"],
+        type: "SOFT_LOCK_COEXISTS"
+      })
+    );
+    expect(secondBody.lock.held_by_session_id).toBe("session-soft-b");
+
+    const who = await whoUseCase(server, setup, usecase.id);
+
+    expect(who.status).toBe(200);
+    const whoBody = (await who.json()) as WhoResponse;
+    expect(whoBody.locks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          held_by_session_id: "session-soft-a",
+          id: firstBody.lock.id,
+          lock_type: "SOFT"
+        }),
+        expect.objectContaining({
+          held_by_session_id: "session-soft-b",
+          id: secondBody.lock.id,
+          lock_type: "SOFT"
+        })
+      ])
+    );
   });
 
   test("1a: expired lock renewal is rejected with reacquire guidance", async () => {

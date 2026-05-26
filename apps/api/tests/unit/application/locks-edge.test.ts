@@ -49,23 +49,45 @@ describe("lock application edge cases", () => {
   });
 
   test("replaces non-blocking active locks", async () => {
-    for (const item of [
-      { lockType: "SEMANTIC" as const, mode: "SOFT" as const },
-      { lockType: "SOFT" as const, mode: "SEMANTIC" as const }
-    ]) {
-      const deletedLockIds: string[] = [];
+    const deletedLockIds: string[] = [];
 
-      const result = await acquireLock(
-        depsFor({
-          deletedLockIds,
-          existingLock: lock({ held_by_session_id: "session-other", mode: item.mode })
-        }),
-        lockInput({ lockType: item.lockType })
-      );
+    const result = await acquireLock(
+      depsFor({
+        deletedLockIds,
+        existingLock: lock({ held_by_session_id: "session-other", mode: "SOFT" })
+      }),
+      lockInput({ lockType: "SEMANTIC" })
+    );
 
-      expect(result.status).toBe("CREATED");
-      expect(deletedLockIds).toEqual(["lock-1"]);
-    }
+    expect(result.status).toBe("CREATED");
+    expect(deletedLockIds).toEqual(["lock-1"]);
+  });
+
+  test("soft locks coexist with active locks and warn about holders", async () => {
+    const deletedLockIds: string[] = [];
+
+    const result = await acquireLock(
+      depsFor({
+        deletedLockIds,
+        existingLock: lock({
+          held_by_session_id: "session-other",
+          holder: "session-other",
+          mode: "SEMANTIC"
+        })
+      }),
+      lockInput({ lockType: "SOFT" })
+    );
+
+    expect(result).toMatchObject({
+      status: "CREATED",
+      warnings: [
+        {
+          holders: ["session-other"],
+          type: "SOFT_LOCK_COEXISTS"
+        }
+      ]
+    });
+    expect(deletedLockIds).toEqual([]);
   });
 });
 
@@ -99,7 +121,8 @@ function lockStore(options: {
     deleteLockForUseCase: () => Promise.resolve(),
     findLockById: () => Promise.resolve(options.existingLock),
     findLockForUseCase: () => Promise.resolve(options.existingLock),
-    listLocksForUseCase: () => Promise.resolve([]),
+    listLocksForUseCase: () =>
+      Promise.resolve(options.existingLock === undefined ? [] : [options.existingLock]),
     listLocksHeldBySession: () => Promise.resolve([]),
     saveLock: () => Promise.resolve(),
     updateLock: () => Promise.resolve()

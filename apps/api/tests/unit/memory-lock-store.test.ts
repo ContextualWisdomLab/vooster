@@ -56,6 +56,27 @@ describe("memory lock store", () => {
     expect(await store.listLocksForUseCase("UC-3")).toEqual([]);
     expect(await store.listLocksForUseCase("UC-4")).toEqual([unrelated]);
   });
+
+  test("finds the strongest lock for callers that still read a single lock", async () => {
+    const store = createMemoryLockStore();
+    const soft = storedLock({
+      id: "soft-lock",
+      lock_type: "SOFT",
+      mode: "SOFT",
+      usecase_id: "UC-6"
+    });
+    const hard = storedLock({
+      id: "hard-lock",
+      lock_type: "HARD",
+      mode: "HARD",
+      usecase_id: "UC-6"
+    });
+
+    await store.saveLock(soft);
+    await store.saveLock(hard);
+
+    expect(await store.findLockForUseCase("UC-6")).toEqual(hard);
+  });
 });
 
 function storedLock(

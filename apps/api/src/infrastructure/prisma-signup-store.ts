@@ -305,7 +305,7 @@ class PrismaSignupStore implements SignupStore {
 
   async findLockForUseCase(usecaseId: string): Promise<StoredLock | undefined> {
     const lock = await this.prisma.lock.findFirst({
-      orderBy: { acquired_at: "desc" },
+      orderBy: [{ lock_type: "asc" }, { acquired_at: "desc" }],
       where: { target_id: usecaseId, target_type: "USECASE" }
     });
 

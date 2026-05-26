@@ -15,6 +15,7 @@ export type LockCreateResponse = {
     target_type: string;
   };
   suggested_next_actions: Array<{ command: string; reason: string }>;
+  warnings?: Array<{ holders: string[]; message: string; type: string }>;
 };
 
 export type LockProblemResponse = {

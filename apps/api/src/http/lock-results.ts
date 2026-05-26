@@ -21,7 +21,8 @@ export function sendLockResult(reply: FastifyReply, result: LockResult) {
             command: `vspec lock release ${result.lock.id ?? result.usecase.id}`,
             reason: "Release the lock when the edit is complete."
           }
-        ]
+        ],
+        ...(result.warnings === undefined ? {} : { warnings: result.warnings })
       });
     case "RENEWED":
       return reply.send({ lock: result.lock });

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("home page lists projects in auth stub mode", async ({ page }) => {
   expect("VSPEC_AUTH_STUB").toBe("VSPEC_AUTH_STUB");
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Project specs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "프로젝트 명세" })).toBeVisible();
   await expect(
     page.getByRole("main").getByRole("link", { name: "커머스 체크아웃" })
   ).toBeVisible();
@@ -11,9 +11,10 @@ test("home page lists projects in auth stub mode", async ({ page }) => {
 
 test("login page links to the API GitHub flow", async ({ page }) => {
   await page.goto("/login");
-  await expect(
-    page.getByRole("link", { name: "Continue with GitHub" })
-  ).toHaveAttribute("href", "/v1/auth/github/start");
+  await expect(page.getByRole("link", { name: "GitHub으로 계속하기" })).toHaveAttribute(
+    "href",
+    "/v1/auth/github/start"
+  );
 });
 
 test("project detail lists use cases", async ({ page }) => {
@@ -37,13 +38,13 @@ test("sidebar creates a new project from the Projects header action", async ({
   page
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New project" }).click();
-  await expect(page.getByRole("heading", { name: "Create a project" })).toBeVisible();
+  await page.getByRole("button", { name: "새 프로젝트" }).click();
+  await expect(page.getByRole("heading", { name: "프로젝트 만들기" })).toBeVisible();
 
-  await page.getByLabel("Name", { exact: true }).fill("Payments Squad");
-  await expect(page.getByLabel("Key")).toHaveValue("PAYMENTS");
+  await page.getByLabel("이름", { exact: true }).fill("Payments Squad");
+  await expect(page.getByLabel("키")).toHaveValue("PAYMENTS");
 
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "프로젝트 만들기" }).click();
 
   await expect(
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Payments Squad" })
@@ -52,18 +53,18 @@ test("sidebar creates a new project from the Projects header action", async ({
 
 test("sidebar renames a project via the 3-dot menu", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New project" }).click();
-  await page.getByLabel("Name", { exact: true }).fill("Rename Target");
-  await page.getByLabel("Key").fill("RENAME");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "새 프로젝트" }).click();
+  await page.getByLabel("이름", { exact: true }).fill("Rename Target");
+  await page.getByLabel("키").fill("RENAME");
+  await page.getByRole("button", { name: "프로젝트 만들기" }).click();
   await expect(
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Rename Target" })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Project actions for Rename Target" }).click();
-  await page.getByRole("menuitem", { name: "Rename" }).click();
-  await page.getByLabel("Name", { exact: true }).fill("Renamed Project");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Rename Target 프로젝트 작업" }).click();
+  await page.getByRole("menuitem", { name: "이름 변경" }).click();
+  await page.getByLabel("이름", { exact: true }).fill("Renamed Project");
+  await page.getByRole("button", { name: "저장" }).click();
 
   await expect(
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Renamed Project" })
@@ -72,17 +73,17 @@ test("sidebar renames a project via the 3-dot menu", async ({ page }) => {
 
 test("sidebar deletes a project via the 3-dot menu", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New project" }).click();
-  await page.getByLabel("Name", { exact: true }).fill("Delete Target");
-  await page.getByLabel("Key").fill("DELETE");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "새 프로젝트" }).click();
+  await page.getByLabel("이름", { exact: true }).fill("Delete Target");
+  await page.getByLabel("키").fill("DELETE");
+  await page.getByRole("button", { name: "프로젝트 만들기" }).click();
   await expect(
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Delete Target" })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Project actions for Delete Target" }).click();
-  await page.getByRole("menuitem", { name: "Delete" }).click();
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete Target 프로젝트 작업" }).click();
+  await page.getByRole("menuitem", { name: "삭제" }).click();
+  await page.getByRole("button", { name: "삭제", exact: true }).click();
 
   await expect(
     page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Delete Target" })

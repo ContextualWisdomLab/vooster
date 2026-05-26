@@ -79,7 +79,7 @@ describe("web data auth stub", () => {
       createProjectRequest({ key: "PAY", name: "Duplicate" })
     ).resolves.toEqual({
       ok: false,
-      error: "Project key PAY is already in use."
+      error: "프로젝트 키 PAY는 이미 사용 중입니다."
     });
 
     if (!created.ok) {

@@ -62,11 +62,11 @@ export function NewProjectDialog({
 
     const trimmedName = name.trim();
     if (trimmedName.length === 0) {
-      setError("Name is required.");
+      setError("이름을 입력하세요.");
       return;
     }
     if (!isValidProjectKey(key)) {
-      setError("Key must match ^[A-Z][A-Z0-9]{1,7}$ (e.g. PAY, OPS2026).");
+      setError("키는 ^[A-Z][A-Z0-9]{1,7}$ 형식이어야 합니다 (예: PAY, OPS2026).");
       return;
     }
 
@@ -87,24 +87,24 @@ export function NewProjectDialog({
       <DialogContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Create a project</DialogTitle>
+            <DialogTitle>프로젝트 만들기</DialogTitle>
             <DialogDescription>
-              Group use cases under a project. The key shows in IDs like PAY-001.
+              유스케이스를 프로젝트로 묶습니다. 키는 PAY-001 같은 ID에 표시됩니다.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="new-project-name">Name</Label>
+            <Label htmlFor="new-project-name">이름</Label>
             <Input
               id="new-project-name"
               autoFocus
               value={name}
               onChange={(event) => handleNameChange(event.target.value)}
-              placeholder="Checkout Review"
+              placeholder="체크아웃 리뷰"
               maxLength={120}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="new-project-key">Key</Label>
+            <Label htmlFor="new-project-key">키</Label>
             <Input
               id="new-project-key"
               value={key}
@@ -114,7 +114,7 @@ export function NewProjectDialog({
               aria-describedby="new-project-key-hint"
             />
             <p id="new-project-key-hint" className="text-xs text-muted-foreground">
-              2-8 chars, starts with a letter, A-Z and 0-9 only.
+              2~8자, 영문자로 시작, A-Z와 0-9만 사용.
             </p>
           </div>
           {error ? (
@@ -129,10 +129,10 @@ export function NewProjectDialog({
               onClick={() => handleOpenChange(false)}
               disabled={pending}
             >
-              Cancel
+              취소
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Creating..." : "Create project"}
+              {pending ? "만드는 중..." : "프로젝트 만들기"}
             </Button>
           </DialogFooter>
         </form>

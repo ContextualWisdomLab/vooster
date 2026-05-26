@@ -28,7 +28,7 @@ function buildCrumbs(pathname: string): Crumb[] {
   }
 
   const crumbs: Crumb[] = [
-    { label: "Projects", href: "/" },
+    { label: "프로젝트", href: "/" },
     { label: key, href: `/projects/${key}` }
   ];
   if (group === "usecases" && ucKey) {

@@ -661,7 +661,7 @@ export function stubUsecaseDetail(projectKey: string, ucKey: string): UsecaseDet
 export function stubCreateProject(input: CreateProjectInput): CreateProjectResult {
   const store = demoProjects();
   if (store.some((project) => project.key === input.key)) {
-    return { ok: false, error: `Project key ${input.key} is already in use.` };
+    return { ok: false, error: `프로젝트 키 ${input.key}는 이미 사용 중입니다.` };
   }
   const project: ProjectSummary = {
     id: `${input.key}-${randomSuffix()}`,

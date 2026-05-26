@@ -44,21 +44,18 @@ export function ProjectSidebarRow({
       </SidebarMenuButton>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <SidebarMenuAction
-            showOnHover
-            aria-label={`Project actions for ${project.name}`}
-          >
+          <SidebarMenuAction showOnHover aria-label={`${project.name} 프로젝트 작업`}>
             <MoreHorizontal />
           </SidebarMenuAction>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start">
           <DropdownMenuItem onSelect={() => onRename(project)}>
             <Pencil />
-            Rename
+            이름 변경
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => onDelete(project)}>
             <Trash2 />
-            Delete
+            삭제
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

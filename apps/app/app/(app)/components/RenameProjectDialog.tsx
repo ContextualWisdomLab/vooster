@@ -44,7 +44,7 @@ export function RenameProjectDialog({
     }
     const trimmed = name.trim();
     if (trimmed.length === 0) {
-      setError("Name is required.");
+      setError("이름을 입력하세요.");
       return;
     }
     if (trimmed === project.name) {
@@ -68,13 +68,13 @@ export function RenameProjectDialog({
       <DialogContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Rename project</DialogTitle>
+            <DialogTitle>프로젝트 이름 변경</DialogTitle>
             <DialogDescription>
-              The project key stays the same; only the display name changes.
+              프로젝트 키는 그대로 유지되고 표시 이름만 변경됩니다.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="rename-project-name">Name</Label>
+            <Label htmlFor="rename-project-name">이름</Label>
             <Input
               id="rename-project-name"
               autoFocus
@@ -95,10 +95,10 @@ export function RenameProjectDialog({
               onClick={() => onOpenChange(false)}
               disabled={pending}
             >
-              Cancel
+              취소
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
+              {pending ? "저장 중..." : "저장"}
             </Button>
           </DialogFooter>
         </form>

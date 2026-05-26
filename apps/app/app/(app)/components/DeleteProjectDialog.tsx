@@ -52,11 +52,11 @@ export function DeleteProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete project?</DialogTitle>
+          <DialogTitle>프로젝트를 삭제할까요?</DialogTitle>
           <DialogDescription>
             {project === null
               ? null
-              : `"${project.name}" will be removed. Use cases must already be empty.`}
+              : `"${project.name}" 프로젝트가 삭제됩니다. 유스케이스가 모두 비어 있어야 합니다.`}
           </DialogDescription>
         </DialogHeader>
         {error ? (
@@ -71,7 +71,7 @@ export function DeleteProjectDialog({
             onClick={() => onOpenChange(false)}
             disabled={pending}
           >
-            Cancel
+            취소
           </Button>
           <Button
             type="button"
@@ -79,7 +79,7 @@ export function DeleteProjectDialog({
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting..." : "Delete"}
+            {pending ? "삭제 중..." : "삭제"}
           </Button>
         </DialogFooter>
       </DialogContent>

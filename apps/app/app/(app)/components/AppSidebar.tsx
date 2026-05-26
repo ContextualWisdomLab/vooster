@@ -36,7 +36,7 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
         <SidebarHeader>
           <Link
             href="/"
-            aria-label="Vooster home"
+            aria-label="Vooster 홈"
             className="flex items-center gap-2 px-2 py-1.5 text-sm font-semibold text-foreground hover:no-underline"
           >
             <Image
@@ -59,12 +59,12 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
               >
                 <CollapsibleTrigger>
                   <ChevronRight className="transition-transform group-data-[state=open]/projects:rotate-90" />
-                  Projects
+                  프로젝트
                 </CollapsibleTrigger>
               </SidebarGroupLabel>
               <SidebarGroupAction
-                aria-label="New project"
-                title="New project"
+                aria-label="새 프로젝트"
+                title="새 프로젝트"
                 onClick={() => setNewOpen(true)}
               >
                 <Plus />
@@ -74,7 +74,7 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
                   <SidebarMenu className="pl-5 group-data-[collapsible=icon]:pl-0">
                     {projects.length === 0 ? (
                       <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                        No projects yet
+                        아직 프로젝트가 없습니다
                       </div>
                     ) : (
                       projects.map((project) => (

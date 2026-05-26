@@ -39,10 +39,20 @@ const DEMO_PROJECTS: DemoProject[] = [
       workspace_id: DEMO_WORKSPACE_ID
     },
     actors: [
-      { id: "CHECKOUT-ACTOR-1", name: "고객", type: "PRIMARY" },
-      { id: "CHECKOUT-ACTOR-2", name: "결제 게이트웨이", type: "SUPPORTING" },
-      { id: "CHECKOUT-ACTOR-3", name: "재고 관리 시스템", type: "SUPPORTING" },
-      { id: "CHECKOUT-ACTOR-4", name: "정산 담당자", type: "OFFSTAGE" }
+      { id: "CHECKOUT-ACTOR-1", name: "고객", type: "PRIMARY", is_human: true },
+      {
+        id: "CHECKOUT-ACTOR-2",
+        name: "결제 게이트웨이",
+        type: "SUPPORTING",
+        is_human: false
+      },
+      {
+        id: "CHECKOUT-ACTOR-3",
+        name: "재고 관리 시스템",
+        type: "SUPPORTING",
+        is_human: false
+      },
+      { id: "CHECKOUT-ACTOR-4", name: "정산 담당자", type: "OFFSTAGE", is_human: true }
     ],
     usecases: [
       {
@@ -271,10 +281,25 @@ const DEMO_PROJECTS: DemoProject[] = [
       workspace_id: DEMO_WORKSPACE_ID
     },
     actors: [
-      { id: "ONBOARD-ACTOR-1", name: "신규 멤버", type: "PRIMARY" },
-      { id: "ONBOARD-ACTOR-2", name: "워크스페이스 관리자", type: "PRIMARY" },
-      { id: "ONBOARD-ACTOR-3", name: "이메일 발송 서비스", type: "SUPPORTING" },
-      { id: "ONBOARD-ACTOR-4", name: "보안 감사 로그", type: "OFFSTAGE" }
+      { id: "ONBOARD-ACTOR-1", name: "신규 멤버", type: "PRIMARY", is_human: true },
+      {
+        id: "ONBOARD-ACTOR-2",
+        name: "워크스페이스 관리자",
+        type: "PRIMARY",
+        is_human: true
+      },
+      {
+        id: "ONBOARD-ACTOR-3",
+        name: "이메일 발송 서비스",
+        type: "SUPPORTING",
+        is_human: false
+      },
+      {
+        id: "ONBOARD-ACTOR-4",
+        name: "보안 감사 로그",
+        type: "OFFSTAGE",
+        is_human: false
+      }
     ],
     usecases: [
       {
@@ -456,10 +481,15 @@ const DEMO_PROJECTS: DemoProject[] = [
       workspace_id: DEMO_WORKSPACE_ID
     },
     actors: [
-      { id: "SUPPORT-ACTOR-1", name: "고객", type: "PRIMARY" },
-      { id: "SUPPORT-ACTOR-2", name: "상담원", type: "PRIMARY" },
-      { id: "SUPPORT-ACTOR-3", name: "지식베이스", type: "SUPPORTING" },
-      { id: "SUPPORT-ACTOR-4", name: "알림 봇", type: "SUPPORTING" }
+      { id: "SUPPORT-ACTOR-1", name: "고객", type: "PRIMARY", is_human: true },
+      { id: "SUPPORT-ACTOR-2", name: "상담원", type: "PRIMARY", is_human: true },
+      {
+        id: "SUPPORT-ACTOR-3",
+        name: "지식베이스",
+        type: "SUPPORTING",
+        is_human: false
+      },
+      { id: "SUPPORT-ACTOR-4", name: "알림 봇", type: "SUPPORTING", is_human: false }
     ],
     usecases: [
       {

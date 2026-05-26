@@ -1,10 +1,9 @@
+import { ChevronRight, Users } from "lucide-react";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { levelLabel } from "@/lib/labels";
-import { StatusPill } from "../../../components/StatusPill";
-import { TermLabel } from "../../../components/TermLabel";
-import { fetchProjectActors, fetchProjectUsecases } from "../../../data";
+import { Badge } from "@/components/ui/badge";
+import { visibilityLabel } from "@/lib/labels";
+import { UsecaseTable } from "../../../components/UsecaseTable";
+import { fetchProject, fetchProjectActors, fetchProjectUsecases } from "../../../data";
 
 export default async function ProjectPage({
   params
@@ -12,7 +11,8 @@ export default async function ProjectPage({
   params: Promise<{ key: string }>;
 }) {
   const { key } = await params;
-  const [usecases, actors] = await Promise.all([
+  const [project, usecases, actors] = await Promise.all([
+    fetchProject(key),
     fetchProjectUsecases(key),
     fetchProjectActors(key)
   ]);
@@ -23,46 +23,30 @@ export default async function ProjectPage({
   return (
     <section className="grid gap-6">
       <div className="grid gap-2">
-        <div className="eyebrow">프로젝트 {key}</div>
-        <h1>
-          <TermLabel term="usecase" />
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1>{project?.name ?? key}</h1>
+          {project ? (
+            <Badge variant="outline">{visibilityLabel(project.visibility)}</Badge>
+          ) : null}
+        </div>
         <p className="text-sm text-muted-foreground">
           유스케이스 {usecases.length} · 액터 {actors.length} · 시나리오 {scenarioTotal}
         </p>
       </div>
-      <ul className="grid list-none gap-3 p-0">
-        {usecases.map((usecase) => (
-          <li key={usecase.key}>
-            <Card className="gap-2 py-0 transition-colors hover:border-foreground/20 hover:bg-muted/40">
-              <Link
-                href={`/projects/${key}/usecases/${usecase.key}`}
-                className="flex flex-col gap-1 p-4 no-underline hover:no-underline"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-foreground">{usecase.title}</span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-semibold tracking-wide",
-                        usecase.extension_count > 0
-                          ? "bg-tint-peach text-warning"
-                          : "bg-tint-gray text-muted-foreground"
-                      )}
-                    >
-                      예외 {usecase.extension_count}
-                    </span>
-                    <StatusPill status={usecase.status} />
-                  </div>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {usecase.key} · {levelLabel(usecase.level)} · {usecase.primary_actor}
-                </span>
-              </Link>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <Link
+        href={`/projects/${key}/actors`}
+        className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:bg-muted/40"
+      >
+        <span className="inline-flex items-center gap-2">
+          <Users className="size-4 text-muted-foreground" aria-hidden="true" />
+          액터 {actors.length}명
+        </span>
+        <span className="inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
+          자세히 보기
+          <ChevronRight className="size-3.5" aria-hidden="true" />
+        </span>
+      </Link>
+      <UsecaseTable usecases={usecases} projectKey={key} />
       <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-tint-peach/60 px-4 py-3 text-sm font-medium text-warning">
         <span aria-hidden="true">⚠</span>
         대비된 예외 상황 {extensionTotal}건

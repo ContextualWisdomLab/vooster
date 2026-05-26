@@ -22,6 +22,34 @@ test("project detail lists use cases", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "장바구니 상품을 주문한다" })
   ).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "상태" })).toBeVisible();
+  // Level is no longer a column — rows are grouped by goal level, so it surfaces
+  // as a collapsible group toggle instead of a column header.
+  await expect(page.getByRole("button", { name: "사용자 목표" })).toBeVisible();
+});
+
+test("project overview links to the actor list with a total count", async ({
+  page
+}) => {
+  await page.goto("/projects/CHECKOUT");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "커머스 체크아웃" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /액터/ })
+  ).toHaveAttribute("href", "/projects/CHECKOUT/actors");
+});
+
+test("actor list page groups actors by role with per-actor detail", async ({
+  page
+}) => {
+  await page.goto("/projects/CHECKOUT/actors");
+  await expect(page.getByRole("heading", { level: 1, name: "액터" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "유형" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /주요 액터/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /지원 액터/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /배후 액터/ })).toBeVisible();
+  await expect(page.getByText("결제 게이트웨이")).toBeVisible();
 });
 
 test("use case detail renders Cockburn fields", async ({ page }) => {

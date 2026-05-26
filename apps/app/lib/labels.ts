@@ -37,6 +37,34 @@ export function statusLabel(status: string): string {
   return key in STATUS_LABELS ? STATUS_LABELS[key as Status] : status;
 }
 
+export type Visibility = "PRIVATE" | "INTERNAL";
+
+const VISIBILITY_LABELS: Record<Visibility, string> = {
+  PRIVATE: "비공개",
+  INTERNAL: "내부 공개"
+};
+
+export function visibilityLabel(visibility: string): string {
+  const key = visibility.toUpperCase();
+  return key in VISIBILITY_LABELS ? VISIBILITY_LABELS[key as Visibility] : visibility;
+}
+
+export type ActorType = "PRIMARY" | "SUPPORTING" | "OFFSTAGE";
+
+const ACTOR_TYPE_LABELS: Record<ActorType, string> = {
+  PRIMARY: "주요 액터",
+  SUPPORTING: "지원 액터",
+  OFFSTAGE: "배후 액터"
+};
+
+export function actorTypeLabel(type: string): string {
+  const key = type.toUpperCase();
+  return key in ACTOR_TYPE_LABELS ? ACTOR_TYPE_LABELS[key as ActorType] : type;
+}
+
+// Roster display order: lead the primary role, trail the offstage one.
+export const ACTOR_TYPE_ORDER: ActorType[] = ["PRIMARY", "SUPPORTING", "OFFSTAGE"];
+
 export type GlossaryTerm = {
   label: string;
   description: string;

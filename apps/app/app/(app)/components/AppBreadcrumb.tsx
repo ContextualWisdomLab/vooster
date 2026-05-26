@@ -30,6 +30,8 @@ function buildCrumbs(pathname: string): Crumb[] {
   const crumbs: Crumb[] = [{ label: key, href: `/projects/${key}` }];
   if (group === "usecases" && ucKey) {
     crumbs.push({ label: ucKey, href: `/projects/${key}/usecases/${ucKey}` });
+  } else if (group === "actors") {
+    crumbs.push({ label: "액터", href: `/projects/${key}/actors` });
   }
   return crumbs;
 }

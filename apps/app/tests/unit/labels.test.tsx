@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "vitest";
-import { GLOSSARY, levelLabel, statusLabel } from "../../lib/labels";
+import {
+  actorTypeLabel,
+  GLOSSARY,
+  levelLabel,
+  statusLabel,
+  visibilityLabel
+} from "../../lib/labels";
 
 describe("level labels", () => {
   test("maps every spec level enum value to a Korean label", () => {
@@ -26,6 +32,31 @@ describe("status labels", () => {
   test("is case-insensitive and falls back to the raw value", () => {
     assert.equal(statusLabel("approved"), "확정");
     assert.equal(statusLabel("UNKNOWN"), "UNKNOWN");
+  });
+});
+
+describe("visibility labels", () => {
+  test("maps every project visibility enum value to a Korean label", () => {
+    assert.equal(visibilityLabel("PRIVATE"), "비공개");
+    assert.equal(visibilityLabel("INTERNAL"), "내부 공개");
+  });
+
+  test("is case-insensitive and falls back to the raw value", () => {
+    assert.equal(visibilityLabel("internal"), "내부 공개");
+    assert.equal(visibilityLabel("PUBLIC"), "PUBLIC");
+  });
+});
+
+describe("actor type labels", () => {
+  test("maps every actor type enum value to a Korean label", () => {
+    assert.equal(actorTypeLabel("PRIMARY"), "주요 액터");
+    assert.equal(actorTypeLabel("SUPPORTING"), "지원 액터");
+    assert.equal(actorTypeLabel("OFFSTAGE"), "배후 액터");
+  });
+
+  test("is case-insensitive and falls back to the raw value", () => {
+    assert.equal(actorTypeLabel("supporting"), "지원 액터");
+    assert.equal(actorTypeLabel("BYSTANDER"), "BYSTANDER");
   });
 });
 

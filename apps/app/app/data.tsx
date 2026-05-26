@@ -32,6 +32,7 @@ export type ActorSummary = {
   id: string;
   name: string;
   type: string;
+  is_human: boolean;
 };
 
 export type UsecaseDetail = {
@@ -53,6 +54,15 @@ export async function fetchProjects(): Promise<ProjectSummary[]> {
 
   const response = await readApi<{ items: ProjectSummary[] }>("/v1/projects");
   return response.items;
+}
+
+export async function fetchProject(
+  projectKey: string
+): Promise<ProjectSummary | undefined> {
+  const projects = await fetchProjects();
+  return projects.find(
+    (project) => project.key === projectKey || project.id === projectKey
+  );
 }
 
 export async function fetchProjectUsecases(

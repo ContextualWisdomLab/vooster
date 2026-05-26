@@ -39,7 +39,7 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
               alt=""
               width={24}
               height={24}
-              className="size-6 shrink-0 rounded-sm"
+              className="size-6 max-w-none shrink-0 rounded-sm"
               priority
             />
             <span className="group-data-[collapsible=icon]:hidden">Vooster</span>

@@ -47,10 +47,6 @@ export default async function ProjectPage({
         </span>
       </Link>
       <UsecaseTable usecases={usecases} projectKey={key} />
-      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-tint-peach/60 px-4 py-3 text-sm font-medium text-warning">
-        <span aria-hidden="true">⚠</span>
-        대비된 예외 상황 {extensionTotal}건
-      </div>
     </section>
   );
 }

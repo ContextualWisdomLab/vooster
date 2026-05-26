@@ -540,6 +540,15 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   migrated: 2/21. Verification:
   `pnpm exec vitest run packages/contracts apps/api/tests/e2e/UC-033.test.ts apps/cli/tests/e2e-cli/UC-033.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
+- 2026-05-27T03:02:34+09:00 — Tier 3#5 shared-api-contracts doctor domain
+  complete; `audit_counter=18`. Added `packages/contracts/src/doctor.ts` with
+  query and success response schemas, made the API doctor route parse query and
+  successful diagnostics through the shared schemas, and made the CLI `doctor`
+  command parse the response before human/json/agent rendering. Domains
+  migrated: 3/21. Verification:
+  `pnpm exec vitest run packages/contracts apps/api/tests/unit/http/doctor-routes.test.ts apps/api/tests/integration/http/doctor-route.test.ts apps/cli/tests/unit/doctor-command.test.ts apps/cli/tests/e2e-cli-honest/doctor.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
+  Next step: required meta-system audit checkpoint before the next target.
 
 ---
 

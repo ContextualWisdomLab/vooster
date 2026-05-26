@@ -1,4 +1,5 @@
 import { Command, Flags } from "@oclif/core";
+import { doctorSuccessResponseSchema } from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, resolveContextFlag } from "../flag-values.js";
@@ -58,13 +59,14 @@ export async function runDoctor(
       Cookie: doctorFlags.sessionCookie
     }
   });
+  const body = doctorSuccessResponseSchema.parse(response.body);
 
   if (doctorFlags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
 
-  writeLine(JSON.stringify(response.body, null, 2));
+  writeLine(JSON.stringify(body, null, 2));
 }
 
 function doctorFlagsFrom(flags: DoctorCliFlags): DoctorFlags {

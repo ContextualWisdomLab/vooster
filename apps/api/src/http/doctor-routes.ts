@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { doctorQuerySchema, doctorSuccessResponseSchema } from "@vooster/contracts";
 import {
   diagnoseProject,
   diagnoseUseCase,
@@ -14,11 +14,6 @@ import type { UseCaseStore } from "../ports/usecase-store.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
-
-const doctorQuery = z.object({
-  project_id: z.string().min(1).optional(),
-  usecase: z.string().min(1).optional()
-});
 
 type DoctorRouteDeps = {
   membershipStore: MembershipStore;
@@ -43,7 +38,7 @@ async function diagnose(
   state: SignupState,
   deps: DoctorRouteDeps
 ) {
-  const parsed = doctorQuery.safeParse(request.query);
+  const parsed = doctorQuerySchema.safeParse(request.query);
   if (!parsed.success || bothOrNeither(parsed.data.project_id, parsed.data.usecase)) {
     return reply
       .code(400)
@@ -90,7 +85,7 @@ function sendDoctorResult(reply: FastifyReply, result: DoctorResult) {
     case "usecase_not_found":
       return reply.code(404).send(problem(404, "Use case not found"));
     default:
-      return reply.send(result);
+      return reply.send(doctorSuccessResponseSchema.parse(result));
   }
 }
 

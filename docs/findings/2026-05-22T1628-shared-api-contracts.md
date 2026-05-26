@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Doctor domain CLOSED on 2026-05-27: query and success diagnostic response
+  schemas moved to `@vooster/contracts`; API and CLI now parse through them.
+  Domains migrated: 3/21.
   AI-guide domain CLOSED on 2026-05-27: route query/body and success response
   schemas moved to `@vooster/contracts`; API and CLI now parse through them.
   Domains migrated: 2/21.

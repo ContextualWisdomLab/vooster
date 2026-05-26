@@ -84,8 +84,11 @@ in `docs/decisions/`.
 | Hosting   | Vercel (GitHub-linked)     | Zero-config Next.js deploys + preview URLs per branch.           |
 | E2E       | Playwright (chromium only) | Honest browser-driven tests; gated behind VSPEC_GATES_SKIP_DEEP. |
 
-The web UI is **deliberately small** in MVP — list, view, comment, resolve merge
-conflicts. Editing happens in markdown files via the CLI.
+The web UI is **deliberately small** in MVP and **read-first**: browse projects
+and use cases, plus a fixed allowlist of writes on the management plane (project
+admin) and review plane (comments). Spec-content authoring, branching, merging,
+and conflict resolution happen via the CLI, not the web. See `10-web-app.md` for
+the scope model and write allowlist.
 
 ## Dev Experience
 

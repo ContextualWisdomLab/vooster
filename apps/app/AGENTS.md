@@ -1,9 +1,13 @@
 # AGENTS.md — apps/app
 
-Read-only web viewer (`@vooster/app`, Next.js 15 App Router on Vercel).
-Authenticated users browse projects → use-case list → use-case detail. All
-pages are Server Components; data is fetched server-side from the API with the
-`vspec_session` cookie forwarded. Read-only — no write affordances.
+Read-first product web app (`@vooster/app`, Next.js 15 App Router on Vercel).
+Authenticated users browse projects → use-case list → use-case detail, plus a
+fixed allowlist of writes (management plane: project admin; review plane:
+comments). Spec-content authoring, branch/merge/lock/revert are CLI-only and
+must not be added here. All pages are Server Components; data is fetched
+server-side from the API with the `vspec_session` cookie forwarded. The scope
+model, page map, consumed API, and write allowlist live in
+`docs/10-web-app.md` — keep them in sync with any change here.
 
 ## Boundaries
 

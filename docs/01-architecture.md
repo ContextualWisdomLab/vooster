@@ -151,7 +151,7 @@ For every proposed change, compute:
 ## Deployment (MVP-minimal)
 
 - Single container for API.
-- Single container for the web UI (Next.js or static React; pick in tech-stack).
+- Web UI: Next.js 15 (App Router) deployed on Vercel — `apps/app`. See `10-web-app.md`.
 - Postgres via managed provider (Neon / Supabase / RDS — choice deferred).
 - The CLI ships as an npm package.
 

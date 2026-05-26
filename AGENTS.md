@@ -84,7 +84,7 @@ apps/
       integration/           # Adapter-level (DB, OAuth, filesystem)
       unit/                  # Pure domain and application logic
       fixtures/              # Seed data, factory helpers
-  app/                       # @vooster/app — Next.js 15 product web UI (read-only viewer, on Vercel)
+  app/                       # @vooster/app — Next.js 15 product web UI (read-first; browse + limited writes, on Vercel) — see docs/10-web-app.md
     app/                     # App Router routes — all Server Components
     components/ui/           # shadcn primitives
     lib/                     # server-side data fetchers + label maps

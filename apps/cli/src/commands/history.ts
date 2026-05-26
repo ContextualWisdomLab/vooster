@@ -1,4 +1,9 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  revisionHistoryQuerySchema,
+  revisionHistoryResponseSchema,
+  type RevisionHistoryResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
@@ -16,27 +21,6 @@ type HistoryFlags = {
   limit: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type HistoryResponse = {
-  limit: number;
-  revisions: Array<{
-    author: string;
-    change_summary?: string;
-    entity_id: string;
-    entity_type: string;
-    revision: string;
-    timestamp: string;
-    version_number: number;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  suppressed_count: number;
-  truncated: boolean;
-  usecase: {
-    key: string;
-  };
 };
 
 export class HistoryCommand extends Command {
@@ -70,14 +54,23 @@ export async function runHistory(
     `/v1/usecases/${historyFlags.usecaseId}/revisions`,
     historyFlags.apiUrl
   );
-  setSearchParam(url, "limit", historyFlags.limit);
+  const query = revisionHistoryQuerySchema.parse({
+    ...(historyFlags.limit === undefined ? {} : { limit: historyFlags.limit })
+  });
+  setSearchParam(
+    url,
+    "limit",
+    historyFlags.limit === undefined ? undefined : String(query.limit)
+  );
 
   const response = await fetchJson(url, {
     headers: {
       Cookie: historyFlags.sessionCookie
     }
   });
-  const body = response.body as HistoryResponse;
+  const body: RevisionHistoryResponse = revisionHistoryResponseSchema.parse(
+    response.body
+  );
 
   if (flags.format === "agent") {
     writeLine(

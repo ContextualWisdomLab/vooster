@@ -12,6 +12,7 @@ export * from "./invitation.js";
 export * from "./lock.js";
 export * from "./merge.js";
 export * from "./project.js";
+export * from "./revision.js";
 export * from "./scenario.js";
 export * from "./stakeholder.js";
 export * from "./usecase.js";

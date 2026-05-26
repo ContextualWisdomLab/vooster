@@ -1,4 +1,10 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  revisionDiffQuerySchema,
+  revisionDiffResponseSchema,
+  type RevisionDiffFormat,
+  type RevisionDiffResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
@@ -12,43 +18,11 @@ type DiffCliFlags = {
 
 type DiffFlags = {
   apiUrl: string;
-  format: "agent" | "human" | "json";
+  format: RevisionDiffFormat;
   fromRevision: string;
   sessionCookie: string;
   toRevision: string;
   usecaseId: string;
-};
-
-type DiffResponse = {
-  changes: Array<{
-    change_type: string;
-    entity_type: string;
-    path: string;
-    revision: string;
-    severity: string;
-    source_branch?: string;
-  }>;
-  cross_branch?: boolean;
-  format: string;
-  from_revision: string;
-  note?: string;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  summary: {
-    breaking: number;
-    cosmetic: number;
-    non_breaking: number;
-  };
-  to_revision: string;
-  usecase: {
-    key: string;
-  };
-  warnings?: Array<{
-    from_branch: string;
-    to_branch: string;
-    type: string;
-  }>;
 };
 
 export class DiffCommand extends Command {
@@ -87,17 +61,22 @@ export async function runDiff(
   writeLine: (message: string) => void
 ): Promise<void> {
   const diffFlags = diffFlagsFrom(flags, usecaseId, fromRevision, toRevision);
+  const query = revisionDiffQuerySchema.parse({
+    format: diffFlags.format,
+    from: diffFlags.fromRevision,
+    to: diffFlags.toRevision
+  });
   const url = new URL(`/v1/usecases/${diffFlags.usecaseId}/diff`, diffFlags.apiUrl);
-  url.searchParams.set("from", diffFlags.fromRevision);
-  url.searchParams.set("to", diffFlags.toRevision);
-  url.searchParams.set("format", diffFlags.format);
+  url.searchParams.set("from", query.from);
+  url.searchParams.set("to", query.to);
+  url.searchParams.set("format", query.format);
 
   const response = await fetchJson(url, {
     headers: {
       Cookie: diffFlags.sessionCookie
     }
   });
-  const body = response.body as DiffResponse;
+  const body: RevisionDiffResponse = revisionDiffResponseSchema.parse(response.body);
 
   if (diffFlags.format === "agent") {
     writeLine(
@@ -171,7 +150,7 @@ function diffFlagsFrom(
   };
 }
 
-function diffFormat(rawFormat: string): "agent" | "human" | "json" {
+function diffFormat(rawFormat: string): RevisionDiffFormat {
   const format = rawFormat.toLowerCase();
   if (format === "agent" || format === "human" || format === "json") {
     return format;

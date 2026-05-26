@@ -1,4 +1,9 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  revisionRevertRequestSchema,
+  revisionRevertResponseSchema,
+  type RevisionRevertResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -25,33 +30,6 @@ type RevertFlags = {
   sessionCookie: string;
   summary: string | undefined;
   usecaseId: string;
-};
-
-type RevertResponse = {
-  impact: {
-    affected_branches: string[];
-    affected_sessions: string[];
-    severity: string;
-  };
-  revision: {
-    change_summary: string;
-    id: string;
-    parent_revision_id: string;
-    severity: string;
-    version_number: number;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    current_revision_id: string;
-    id: string;
-    title: string;
-  };
-  warnings?: Array<{
-    message: string;
-    type: string;
-  }>;
 };
 
 export class RevertCommand extends Command {
@@ -83,18 +61,21 @@ export async function runRevert(
   writeLine: (message: string) => void
 ): Promise<void> {
   const revertFlags = revertFlagsFrom(flags, usecaseId);
+  const requestBody = revisionRevertRequestSchema.parse({
+    force: revertFlags.force,
+    revision_id: revertFlags.revisionId,
+    ...(revertFlags.summary === undefined ? {} : { summary: revertFlags.summary })
+  });
   const response = await postJson(
     `${revertFlags.apiUrl}/v1/usecases/${revertFlags.usecaseId}/revert`,
-    {
-      force: revertFlags.force,
-      revision_id: revertFlags.revisionId,
-      ...(revertFlags.summary === undefined ? {} : { summary: revertFlags.summary })
-    },
+    requestBody,
     {
       Cookie: revertFlags.sessionCookie
     }
   );
-  const body = response.body as RevertResponse;
+  const body: RevisionRevertResponse = revisionRevertResponseSchema.parse(
+    response.body
+  );
 
   if (flags.format === "agent") {
     writeLine(

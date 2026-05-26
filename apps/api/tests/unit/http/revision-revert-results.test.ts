@@ -182,9 +182,11 @@ function lock(): StoredLock {
 
 function revision(overrides: Partial<StoredRevision> = {}): StoredRevision {
   return {
+    change_summary: "Revert to revision-1",
     entity_id: "usecase-1",
     entity_type: "USECASE",
     id: "revision-2",
+    parent_revision_id: "revision-1",
     severity: "NON_BREAKING",
     snapshot: usecase(),
     version_number: 2,
@@ -193,5 +195,18 @@ function revision(overrides: Partial<StoredRevision> = {}): StoredRevision {
 }
 
 function usecase(): StoredUseCase {
-  return { id: "usecase-1", key: "PAY-001" } as StoredUseCase;
+  return {
+    archived_at: null,
+    current_revision_id: "revision-2",
+    format: "BRIEF",
+    id: "usecase-1",
+    key: "PAY-001",
+    level: "USER_GOAL",
+    primary_actor_id: "actor-1",
+    priority: "P1",
+    project_id: "project-1",
+    scope: "Payments",
+    status: "DRAFT",
+    title: "Reviews a refund"
+  };
 }

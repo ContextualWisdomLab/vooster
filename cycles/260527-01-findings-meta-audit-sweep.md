@@ -764,6 +764,18 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec vitest run packages/contracts/tests/merge.test.ts apps/api/tests/unit/http/merge-results.test.ts apps/api/tests/unit/http/merge-resolution-results.test.ts apps/cli/tests/unit/merge-open-agent-format.test.ts apps/cli/tests/unit/merge-resolve-agent-format.test.ts apps/cli/tests/e2e-cli-honest/merge-open-agent-format.test.ts apps/cli/tests/e2e-cli/merge-resolve-agent-format.test.ts apps/api/tests/e2e/UC-020.test.ts apps/api/tests/e2e/UC-021.test.ts apps/cli/tests/e2e-cli/UC-020.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T06:01:48+09:00 — Tier 3#5 shared-api-contracts revision domain
+  complete; `audit_counter=36`. Added `packages/contracts/src/revision.ts`,
+  moved revision history/diff/revert params, query/body, and success response
+  DTOs into shared schemas, made API revision routes/results parse through those
+  schemas, made CLI history/diff/revert parse shared request/response shapes
+  before agent/human/json rendering, and tightened revision CLI fixtures to
+  match the production suggested-action contract. Domains migrated: 19/21.
+  Verification:
+  `pnpm exec vitest run packages/contracts/tests/revision.test.ts apps/cli/tests/unit/history-agent-format.test.ts apps/cli/tests/unit/revert-agent-format.test.ts apps/cli/tests/e2e-cli-honest/history-agent-format.test.ts apps/cli/tests/e2e-cli-honest/revert-agent-format.test.ts apps/api/tests/e2e/UC-024.test.ts apps/api/tests/e2e/UC-025.test.ts apps/api/tests/e2e/UC-026.test.ts apps/cli/tests/e2e-cli/UC-024.test.ts apps/cli/tests/e2e-cli/UC-025.test.ts apps/cli/tests/e2e-cli/UC-026.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

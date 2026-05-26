@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { revisionRevertResponseSchema } from "@vooster/contracts";
 import type { RevisionRevertResult } from "../application/revision-revert-types.js";
 import { problem } from "./signup-support.js";
 import type { StoredLock } from "../domain/entities/index.js";
@@ -18,13 +19,15 @@ export function sendRevisionRevertResult(
     case "HARD_LOCKED":
       return reply.code(409).send(hardLockProblem(result.usecase, result.lock));
     case "REVERTED":
-      return reply.code(201).send({
-        impact: result.impact,
-        revision: result.revision,
-        suggested_next_actions: result.suggestedNextActions,
-        usecase: result.usecase,
-        ...(result.warnings === undefined ? {} : { warnings: result.warnings })
-      });
+      return reply.code(201).send(
+        revisionRevertResponseSchema.parse({
+          impact: result.impact,
+          revision: result.revision,
+          suggested_next_actions: result.suggestedNextActions,
+          usecase: result.usecase,
+          ...(result.warnings === undefined ? {} : { warnings: result.warnings })
+        })
+      );
     case "TARGET_REVISION_NOT_FOUND":
       return reply
         .code(404)

@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  revisionDiffQuerySchema,
+  revisionDiffResponseSchema,
+  revisionUsecaseParamsSchema
+} from "@vooster/contracts";
 import {
   compareUseCaseRevisions,
   type CompareUseCaseRevisionsDeps,
@@ -13,12 +17,6 @@ import type { BranchStore } from "../ports/branch-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const diffQuerySchema = z.object({
-  format: z.enum(["agent", "human", "json"]).default("human"),
-  from: z.string().min(1),
-  to: z.string().min(1)
-});
 
 export function registerRevisionDiffRoutes(
   app: FastifyInstance,
@@ -44,8 +42,8 @@ async function compareRevisions(
   state: SignupState,
   deps: CompareUseCaseRevisionsDeps
 ) {
-  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const parsed = diffQuerySchema.safeParse(request.query);
+  const params = revisionUsecaseParamsSchema.parse(request.params);
+  const parsed = revisionDiffQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid diff request"));
   }
@@ -81,7 +79,7 @@ function missingRevisionProblem(usecase: StoredUseCase, revisionId: string) {
 function sendDiffResult(reply: FastifyReply, result: CompareUseCaseRevisionsResult) {
   switch (result.status) {
     case "COMPARED":
-      return reply.send(result.diff);
+      return reply.send(revisionDiffResponseSchema.parse(result.diff));
     case "FORBIDDEN":
       return reply.code(403).send(diffAccessProblem());
     case "MISSING_REVISION":

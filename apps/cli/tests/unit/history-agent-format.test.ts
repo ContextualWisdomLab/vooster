@@ -15,7 +15,7 @@ type HistoryAgentEnvelope = {
     };
   };
   format_version: 1;
-  suggested_next_actions: Array<{ command: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
   warnings: unknown[];
 };
 
@@ -121,7 +121,10 @@ function historyBody() {
       }
     ],
     suggested_next_actions: [
-      { command: "vspec usecase show HIS-001 --revision=revision-2" }
+      {
+        command: "vspec usecase show HIS-001 --revision=revision-2",
+        reason: "Inspect the selected revision."
+      }
     ],
     suppressed_count: 0,
     truncated: false,

@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  revisionRevertRequestSchema,
+  revisionUsecaseParamsSchema
+} from "@vooster/contracts";
 import { revertUseCaseRevision } from "../application/revision-revert.js";
 import { sendRevisionRevertResult } from "./revision-revert-results.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -12,14 +15,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
-
-const revertBodySchema = z.object({
-  force: z.boolean().default(false),
-  revision_id: z.string().min(1),
-  simulate_gherkin_drift: z.boolean().default(false),
-  simulate_write_failure: z.boolean().default(false),
-  summary: z.string().optional()
-});
 
 export function registerRevisionRevertRoutes(
   app: FastifyInstance,
@@ -60,8 +55,8 @@ async function revertUseCase(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
-  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const parsed = revertBodySchema.safeParse(request.body);
+  const params = revisionUsecaseParamsSchema.parse(request.params);
+  const parsed = revisionRevertRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid revert request"));
   }

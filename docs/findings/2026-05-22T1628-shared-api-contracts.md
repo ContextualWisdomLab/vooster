@@ -3,6 +3,10 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Revision domain CLOSED on 2026-05-27: history/diff/revert params, query,
+  bodies, and success response schemas moved to `@vooster/contracts`; API and
+  CLI revision paths now parse through the shared schemas. Domains migrated:
+  19/21.
   Merge domain CLOSED on 2026-05-27: open/resolve request and success response
   schemas moved to `@vooster/contracts`; API and CLI merge paths now parse
   through the shared schemas. Domains migrated: 18/21.

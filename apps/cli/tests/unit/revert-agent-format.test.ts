@@ -16,7 +16,7 @@ type RevertAgentEnvelope = {
     };
   };
   format_version: 1;
-  suggested_next_actions: Array<{ command: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
   warnings: Array<{ message: string; type: string }>;
 };
 
@@ -114,8 +114,14 @@ function revertBody() {
       version_number: 3
     },
     suggested_next_actions: [
-      { command: "vspec history REV-001" },
-      { command: "vspec session list --status=active" }
+      {
+        command: "vspec history REV-001",
+        reason: "Verify the newly created revert revision."
+      },
+      {
+        command: "vspec session list --status=active",
+        reason: "Review active sessions before more changes."
+      }
     ],
     usecase: {
       current_revision_id: "revision-revert",

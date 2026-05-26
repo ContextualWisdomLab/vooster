@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { revisionHistoryResponseSchema } from "@vooster/contracts";
 import type { RevisionHistoryResult } from "../application/revision-history.js";
 import { problem } from "./signup-support.js";
 
@@ -8,7 +9,7 @@ export function sendRevisionHistoryResult(
 ) {
   switch (result.status) {
     case "LISTED":
-      return reply.send(result.history);
+      return reply.send(revisionHistoryResponseSchema.parse(result.history));
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(missingHistoryProblem(result.projectKey));
     case "FORBIDDEN":

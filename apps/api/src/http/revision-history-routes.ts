@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  revisionHistoryQuerySchema,
+  revisionUsecaseParamsSchema
+} from "@vooster/contracts";
 import { listRevisionHistory } from "../application/revision-history.js";
 import { sendRevisionHistoryResult } from "./revision-history-results.js";
 import { authenticatedUserId } from "./session-support.js";
@@ -9,12 +12,6 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const historyQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(200).default(50),
-  project_id: z.string().optional(),
-  simulate_server_error: z.literal("true").optional()
-});
 
 export function registerRevisionHistoryRoutes(
   app: FastifyInstance,
@@ -46,8 +43,8 @@ async function listHistory(
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
-  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const parsed = historyQuerySchema.safeParse(request.query);
+  const params = revisionUsecaseParamsSchema.parse(request.params);
+  const parsed = revisionHistoryQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid history request"));
   }

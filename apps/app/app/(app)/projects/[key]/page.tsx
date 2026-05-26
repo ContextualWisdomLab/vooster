@@ -1,12 +1,4 @@
 import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { levelLabel } from "@/lib/labels";
@@ -30,19 +22,6 @@ export default async function ProjectPage({
 
   return (
     <section className="grid gap-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/">Projects</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{key}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
       <div className="grid gap-2">
         <div className="eyebrow">Project {key}</div>
         <h1>

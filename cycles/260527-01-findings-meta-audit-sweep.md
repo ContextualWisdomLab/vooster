@@ -415,6 +415,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   succeeded. Measured billable minutes: previous 4-shard run `26460651003`
   was 13 minutes (lint 1 + test 3+3+3+3), new 2-shard run `26460852463` was
   9 minutes (lint 1 + test 4+4). Next step: required meta-system audit checkpoint.
+- 2026-05-27T01:28:00+09:00 — Meta-audit checkpoint #2 complete;
+  audit_counter=5. Q1/Q2 on the new CI shard guard found a gameable path:
+  a test job could keep `strategy.matrix.shard` but drop the
+  `--shard=${{ matrix.shard }}/N` argument, duplicating the full suite while
+  still passing the structural checks. RED: added
+  `missing-shard-argument.yml` to `scripts/check-ci.sh` self-test and confirmed
+  `bash scripts/check-ci.sh` failed. GREEN: `check-ci` now requires a test job
+  with `matrix.shard` to carry a matching shard argument and keeps the
+  denominator check. Verification: `bash scripts/check-ci.sh` and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

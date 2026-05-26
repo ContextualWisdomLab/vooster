@@ -77,13 +77,20 @@ ARGV.each do |path|
         shards_ok = false
       end
 
+      has_shard_argument = false
       runs.each do |run|
         next unless run =~ /--shard=\$\{\{\s*matrix\.shard\s*\}\}\/(\d+)/
 
+        has_shard_argument = true
         denominator = Regexp.last_match(1).to_i
         next if denominator == shard_matrix.length
 
         warn "✗ check-ci: #{path} shard denominator /#{denominator} does not match matrix size #{shard_matrix.length}"
+        shards_ok = false
+      end
+
+      if job_runs_test && !has_shard_argument
+        warn "✗ check-ci: #{path} test job declares matrix.shard but no --shard=${{ matrix.shard }}/N argument"
         shards_ok = false
       end
     end
@@ -147,6 +154,23 @@ jobs:
       - run: bash scripts/completion-check.sh
 YML
 
+  cat >"$d/missing-shard-argument.yml" <<'YML'
+name: missing-shard-argument
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2]
+    services:
+      postgres:
+        image: postgres:16-alpine
+    steps:
+      - run: pnpm exec vitest run
+      - run: bash scripts/completion-check.sh
+YML
+
   cat >"$d/comment-only.yml" <<'YML'
 # postgres + completion-check.sh appear only in this comment, never executed
 name: comment-only
@@ -174,10 +198,11 @@ YML
   if VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pass.yml $d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
     && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/comment-only.yml" bash "$0" >/dev/null 2>&1 \
     && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/pg-unused.yml" bash "$0" >/dev/null 2>&1 \
-    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/bad-shards.yml" bash "$0" >/dev/null 2>&1; then
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/bad-shards.yml" bash "$0" >/dev/null 2>&1 \
+    && ! VSPEC_CHECK_CI_SKIP_SELF_TEST=1 VSPEC_CHECK_CI_FILES="$d/missing-shard-argument.yml" bash "$0" >/dev/null 2>&1; then
     :
   else
-    echo "✗ check-ci self-test: structural checks are gameable (comment-only or unused-service workflow not rejected)"
+    echo "✗ check-ci self-test: structural checks are gameable"
     exit 1
   fi
 fi

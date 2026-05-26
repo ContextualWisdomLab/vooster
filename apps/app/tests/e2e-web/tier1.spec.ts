@@ -76,6 +76,13 @@ test("sidebar collapses fully and the header exposes an expand control", async (
   await expect(page.getByRole("button", { name: "사이드바 펼치기" })).toHaveCount(0);
 });
 
+test("sidebar footer links to the account page", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.locator('[data-slot="sidebar"]').getByRole("link", { name: "내 계정" })
+  ).toHaveAttribute("href", "/login");
+});
+
 test("sidebar renames a project via the 3-dot menu", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "새 프로젝트" }).click();

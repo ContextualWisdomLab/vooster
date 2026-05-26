@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, PanelLeftClose, Plus } from "lucide-react";
+import { ChevronRight, CircleUserRound, PanelLeftClose, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -13,12 +13,15 @@ import { IconButton } from "@/components/ui/icon-button";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   useSidebar
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -107,6 +110,18 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
             </SidebarGroup>
           </Collapsible>
         </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/login">
+                  <CircleUserRound />
+                  <span>내 계정</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <NewProjectDialog open={newOpen} onOpenChange={setNewOpen} />
       <RenameProjectDialog

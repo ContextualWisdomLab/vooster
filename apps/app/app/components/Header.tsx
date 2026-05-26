@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 export function Header({ children }: { children?: ReactNode }) {
   return (
     <header className="topbar">
-      <Link href="/" className="brand" aria-label="Vooster home">
+      <Link href="/" className="brand" aria-label="Vooster 홈">
         <Image src="/logo-text.svg" alt="Vooster" width={157} height={32} priority />
       </Link>
       {children}

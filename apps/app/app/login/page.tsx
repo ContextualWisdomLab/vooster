@@ -12,17 +12,17 @@ export default function LoginPage() {
         <div className="flex w-full flex-col gap-6 rounded-xl border border-border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col gap-1.5 px-6 pt-6">
             <h1 className="text-lg font-semibold leading-none tracking-tight text-foreground">
-              Sign in to Vooster
+              Vooster 로그인
             </h1>
             <p className="text-sm text-muted-foreground">
-              Continue with your GitHub account to review use-case specs.
+              GitHub 계정으로 로그인하고 유스케이스 명세를 확인하세요.
             </p>
           </div>
           <div className="px-6 pb-6">
             <Button asChild size="lg" className="w-full">
               <a href={loginPath}>
                 <GithubMark />
-                Continue with GitHub
+                GitHub으로 계속하기
               </a>
             </Button>
           </div>

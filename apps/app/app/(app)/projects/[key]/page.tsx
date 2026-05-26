@@ -23,7 +23,7 @@ export default async function ProjectPage({
   return (
     <section className="grid gap-6">
       <div className="grid gap-2">
-        <div className="eyebrow">Project {key}</div>
+        <div className="eyebrow">프로젝트 {key}</div>
         <h1>
           <TermLabel term="usecase" />
         </h1>
@@ -34,7 +34,7 @@ export default async function ProjectPage({
       <ul className="grid list-none gap-3 p-0">
         {usecases.map((usecase) => (
           <li key={usecase.key}>
-            <Card className="gap-2 py-0 transition-colors hover:border-brand/40 hover:bg-muted/40">
+            <Card className="gap-2 py-0 transition-colors hover:border-foreground/20 hover:bg-muted/40">
               <Link
                 href={`/projects/${key}/usecases/${usecase.key}`}
                 className="flex flex-col gap-1 p-4 no-underline hover:no-underline"

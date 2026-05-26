@@ -96,7 +96,7 @@ body {
 }
 
 a {
-  color: var(--color-brand-strong);
+  color: inherit;
 }
 
 a:hover {
@@ -194,7 +194,7 @@ p {
 }
 
 .eyebrow {
-  color: var(--color-brand);
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
@@ -235,7 +235,7 @@ p {
 }
 
 .scenario {
-  border-left: 3px solid var(--color-brand);
+  border-left: 3px solid var(--border);
   padding-left: 14px;
 }
 

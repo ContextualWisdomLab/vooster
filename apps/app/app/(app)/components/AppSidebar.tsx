@@ -1,9 +1,14 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -46,34 +51,46 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <SidebarGroupAction
-              aria-label="New project"
-              title="New project"
-              onClick={() => setNewOpen(true)}
-            >
-              <Plus />
-            </SidebarGroupAction>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {projects.length === 0 ? (
-                  <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                    No projects yet
-                  </div>
-                ) : (
-                  projects.map((project) => (
-                    <ProjectSidebarRow
-                      key={project.id}
-                      project={project}
-                      onRename={setRenameTarget}
-                      onDelete={setDeleteTarget}
-                    />
-                  ))
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/projects">
+            <SidebarGroup>
+              <SidebarGroupLabel
+                asChild
+                className="cursor-pointer gap-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                <CollapsibleTrigger>
+                  <ChevronRight className="transition-transform group-data-[state=open]/projects:rotate-90" />
+                  Projects
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <SidebarGroupAction
+                aria-label="New project"
+                title="New project"
+                onClick={() => setNewOpen(true)}
+              >
+                <Plus />
+              </SidebarGroupAction>
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <SidebarGroupContent>
+                  <SidebarMenu className="pl-5 group-data-[collapsible=icon]:pl-0">
+                    {projects.length === 0 ? (
+                      <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                        No projects yet
+                      </div>
+                    ) : (
+                      projects.map((project) => (
+                        <ProjectSidebarRow
+                          key={project.id}
+                          project={project}
+                          onRename={setRenameTarget}
+                          onDelete={setDeleteTarget}
+                        />
+                      ))
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         </SidebarContent>
       </Sidebar>
       <NewProjectDialog open={newOpen} onOpenChange={setNewOpen} />

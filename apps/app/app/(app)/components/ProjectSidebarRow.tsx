@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderClosed, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,8 +33,13 @@ export function ProjectSidebarRow({
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} tooltip={project.name}>
         <Link href={href}>
-          <FolderClosed />
-          <span>{project.name}</span>
+          <span
+            aria-hidden
+            className="hidden size-4 shrink-0 items-center justify-center text-[0.7rem] font-semibold group-data-[collapsible=icon]:flex"
+          >
+            {project.name.charAt(0).toUpperCase()}
+          </span>
+          <span className={isActive ? "font-semibold" : undefined}>{project.name}</span>
         </Link>
       </SidebarMenuButton>
       <DropdownMenu>

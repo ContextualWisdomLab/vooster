@@ -16,7 +16,7 @@ export function AppHeader() {
           variant="ghost"
           size="icon-sm"
           onClick={toggleSidebar}
-          aria-label="Toggle Sidebar"
+          aria-label="사이드바 토글"
           className="text-muted-foreground/60 hover:text-muted-foreground"
         >
           <ChevronsLeftIcon />
@@ -27,7 +27,7 @@ export function AppHeader() {
         href="/login"
         className="text-sm text-muted-foreground hover:text-foreground hover:no-underline"
       >
-        Account
+        계정
       </Link>
     </header>
   );

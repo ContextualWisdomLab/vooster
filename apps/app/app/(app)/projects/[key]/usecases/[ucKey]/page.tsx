@@ -55,11 +55,11 @@ export default async function UsecasePage({
           </div>
         </CardContent>
       </Card>
-      <section className="grid gap-3 rounded-lg bg-tint-mint p-5">
+      <section className="grid gap-3 rounded-lg border border-border bg-muted/40 p-5">
         <h2>
           <TermLabel term="main_scenario" />
         </h2>
-        <div className="border-l-[3px] border-brand pl-3.5">
+        <div className="border-l-[3px] border-foreground/20 pl-3.5">
           {main_scenario.steps.map((step) => (
             <p key={step.step_number}>
               {step.step_number}. {step.actor} {step.action}
@@ -67,7 +67,7 @@ export default async function UsecasePage({
           ))}
         </div>
       </section>
-      <section className="grid gap-2 rounded-lg bg-tint-peach p-5">
+      <section className="grid gap-2 rounded-lg border border-border bg-muted/40 p-5">
         <h2>
           <TermLabel term="extensions" />
         </h2>
@@ -77,7 +77,7 @@ export default async function UsecasePage({
           </p>
         ))}
       </section>
-      <section className="grid gap-2 rounded-lg bg-tint-lavender p-5">
+      <section className="grid gap-2 rounded-lg border border-border bg-muted/40 p-5">
         <h2>
           <TermLabel term="stakeholder_interests" />
         </h2>

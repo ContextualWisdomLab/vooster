@@ -15,18 +15,18 @@ export default async function HomePage() {
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <p className="text-sm font-medium uppercase tracking-wide text-brand">
-          Projects
+        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          프로젝트
         </p>
         <h1 className="font-heading text-2xl font-semibold leading-tight">
-          Project specs
+          프로젝트 명세
         </h1>
       </header>
 
       {projects.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            No projects yet
+            아직 프로젝트가 없습니다
           </CardContent>
         </Card>
       ) : (

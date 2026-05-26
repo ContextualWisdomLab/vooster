@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
+import { authSignupResponseSchema } from "@vooster/contracts";
 import type {
   GithubProfile,
   PendingOAuth,
@@ -40,12 +41,12 @@ export function signupResponse(
   workspace: StoredWorkspace,
   membership: StoredMembership
 ) {
-  return {
+  return authSignupResponseSchema.parse({
     user,
     workspace,
     membership,
     recommended_next_command: "vspec project create"
-  };
+  });
 }
 
 export function githubProfile(options: ServerOptions, code: string): GithubProfile {

@@ -1,8 +1,15 @@
 ---
 title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
-resolved: false
+resolved: partial
 status_notes: |
+  Auth domain CLOSED on 2026-05-27: OAuth start/callback and device-token
+  request bodies/query plus login/signup success response schemas moved to
+  `@vooster/contracts`; API and CLI auth paths now parse through the shared
+  schemas. Package-shape domains are complete. Final migrated slice count is
+  22/21 because Doctor was tracked as an additional slice beyond the original
+  package-shape list. Finding remains partial: central typed CLI client
+  extraction and any non-package-shape production surfaces are deferred.
   Session domain CLOSED on 2026-05-27: start/list/watch/complete params,
   query/body, and success response schemas moved to `@vooster/contracts`; API
   and CLI session paths now parse through the shared schemas. Domains migrated:

@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  authCallbackQuerySchema,
+  authStartRequestSchema,
+  authStartResponseSchema
+} from "@vooster/contracts";
 import { completeOAuth, startGithubOAuth } from "../application/signup.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
@@ -17,27 +21,6 @@ import {
   readCookie
 } from "./signup-support.js";
 import type { PendingOAuth, ServerOptions, SignupState } from "./signup-types.js";
-
-const startSignupSchema = z.union([
-  z.object({
-    workspace: z.object({
-      name: z.string().min(1),
-      slug: z.string().min(1)
-    })
-  }),
-  z.object({ flow: z.literal("login") })
-]);
-
-const callbackQuerySchema = z.union([
-  z.object({
-    code: z.string().min(1),
-    state: z.string().min(1)
-  }),
-  z.object({
-    error: z.literal("access_denied"),
-    state: z.string().min(1)
-  })
-]);
 
 export function registerSignupRoutes(
   app: FastifyInstance,
@@ -69,7 +52,7 @@ function startSignup(
   options: ServerOptions,
   state: SignupState
 ) {
-  const parsed = startSignupSchema.safeParse(request.body);
+  const parsed = authStartRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid signup request"));
   }
@@ -82,10 +65,10 @@ function startSignup(
   state.pendingOAuth.set(started.state, started.pending);
   reply.header("set-cookie", cookie("vspec_oauth_state", started.state));
 
-  return {
+  return authStartResponseSchema.parse({
     authorization_url: started.authorizationUrl,
     state: started.state
-  };
+  });
 }
 
 async function completeSignup(
@@ -97,7 +80,7 @@ async function completeSignup(
   userStore: UserStore,
   workspaceStore: WorkspaceStore
 ) {
-  const parsed = callbackQuerySchema.safeParse(request.query);
+  const parsed = authCallbackQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid OAuth callback"));
   }

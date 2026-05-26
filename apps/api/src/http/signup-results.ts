@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { authLoginResponseSchema } from "@vooster/contracts";
 import type { CompleteOAuthResult } from "../application/signup.js";
 import type { PendingOAuth } from "./signup-types.js";
 import { establishSession } from "./session-support.js";
@@ -30,13 +31,15 @@ export function sendCompleteOAuthResult(
   switch (result.status) {
     case "LOGGED_IN":
       establishSession(reply, sessionsByToken, result.user.id);
-      return reply.code(200).send({
-        user: result.user,
-        workspaces: result.workspaces,
-        ...(result.recommendedNextCommand === undefined
-          ? {}
-          : { recommended_next_command: result.recommendedNextCommand })
-      });
+      return reply.code(200).send(
+        authLoginResponseSchema.parse({
+          user: result.user,
+          workspaces: result.workspaces,
+          ...(result.recommendedNextCommand === undefined
+            ? {}
+            : { recommended_next_command: result.recommendedNextCommand })
+        })
+      );
     case "SIGNED_UP":
       establishSession(reply, sessionsByToken, result.user.id);
       return reply

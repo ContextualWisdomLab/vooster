@@ -1,6 +1,7 @@
 export * from "./actor.js";
 export * from "./ai-guide.js";
 export * from "./api-key.js";
+export * from "./auth.js";
 export * from "./branch.js";
 export * from "./change.js";
 export * from "./common.js";

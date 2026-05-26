@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  authDeviceTokenRequestSchema,
+  authLoginResponseSchema
+} from "@vooster/contracts";
 import { completeOAuth, type CompleteOAuthResult } from "../application/signup.js";
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
@@ -12,16 +15,6 @@ import {
   readCookie
 } from "./signup-support.js";
 import type { ServerOptions, SignupState } from "./signup-types.js";
-
-const deviceTokenSchema = z.object({
-  access_token: z.string().min(1),
-  workspace: z
-    .object({
-      name: z.string().min(1),
-      slug: z.string().min(1)
-    })
-    .optional()
-});
 
 export function registerDeviceAuthRoutes(
   app: FastifyInstance,
@@ -61,7 +54,7 @@ async function completeDeviceFlow(
   userStore: UserStore,
   workspaceStore: WorkspaceStore
 ) {
-  const parsed = deviceTokenSchema.safeParse(request.body);
+  const parsed = authDeviceTokenRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid device token request"));
   }
@@ -116,14 +109,16 @@ function sendFallbackSignupAsLogin(
   }
 
   establishSession(reply, sessionsByToken, result.user.id);
-  return reply.code(200).send({
-    user: result.user,
-    workspaces: [
-      {
-        id: result.workspace.id,
-        role: result.membership.role,
-        slug: result.workspace.slug
-      }
-    ]
-  });
+  return reply.code(200).send(
+    authLoginResponseSchema.parse({
+      user: result.user,
+      workspaces: [
+        {
+          id: result.workspace.id,
+          role: result.membership.role,
+          slug: result.workspace.slug
+        }
+      ]
+    })
+  );
 }

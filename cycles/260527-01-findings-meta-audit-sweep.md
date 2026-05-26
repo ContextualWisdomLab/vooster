@@ -807,6 +807,26 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T06:25:51+09:00 — Meta-audit checkpoint after
+  `audit_counter=38`: KEEP. Session shared-contract schemas are
+  production-consumed by API and CLI, contract tests assert HTTP boundary
+  parsing rather than route internals, the internal `__test` heartbeat route
+  correctly remains local, and status_notes explicitly identify the
+  Doctor/auth count mismatch. No work-unit count change.
+- 2026-05-27T06:31:38+09:00 — Tier 3#5 shared-api-contracts auth domain
+  complete; `audit_counter=39`. Added `packages/contracts/src/auth.ts`, moved
+  OAuth start/callback and device-token request/query shapes plus login/signup
+  success response DTOs into shared schemas, made API auth/signup routes and
+  result helpers parse through those schemas, made CLI login parse the shared
+  device-token request and login/signup response shapes before config writes,
+  and marked the finding partial rather than true because the original plan's
+  central typed CLI client extraction and any non-package-shape production
+  surfaces remain deferred. Package-shape domains are complete; final migrated
+  slice count is 22/21 because Doctor was tracked as an additional slice beyond
+  the original package-shape list. Verification:
+  `pnpm exec vitest run packages/contracts/tests/auth.test.ts apps/api/tests/unit/http/signup-routes.test.ts apps/api/tests/unit/http/auth-device-routes.test.ts apps/api/tests/unit/http/signup-support.test.ts apps/api/tests/e2e/UC-001.test.ts apps/api/tests/e2e/UC-002.test.ts apps/cli/tests/e2e-cli/UC-001.test.ts apps/cli/tests/e2e-cli-honest/login-to-usecase.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

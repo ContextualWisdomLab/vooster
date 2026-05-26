@@ -1,4 +1,11 @@
 import { Command, Flags } from "@oclif/core";
+import {
+  authDeviceTokenRequestSchema,
+  authLoginResponseSchema,
+  authSignupResponseSchema,
+  type AuthLoginResponse,
+  type AuthSignupResponse
+} from "@vooster/contracts";
 
 import { writeConfig } from "../config-store.js";
 import { runDeviceFlow } from "../device-flow.js";
@@ -17,29 +24,6 @@ type OAuthFlags = {
 type SignupFlags = {
   workspaceName: string;
   workspaceSlug: string;
-};
-
-type SignupResponse = {
-  recommended_next_command: string;
-  user: {
-    email: string;
-  };
-  workspace: {
-    id: string;
-    slug: string;
-  };
-};
-
-type LoginResponse = {
-  recommended_next_command?: string;
-  user: {
-    github_id: string;
-  };
-  workspaces: Array<{
-    id: string;
-    role: string;
-    slug: string;
-  }>;
 };
 
 export class LoginCommand extends Command {
@@ -69,7 +53,7 @@ export async function runLogin(
     authStub: process.env.VSPEC_AUTH_STUB === "1",
     writeLine
   });
-  const callback = await postJson(`${oauthFlags.apiUrl}/v1/auth/github/token`, {
+  const requestBody = authDeviceTokenRequestSchema.parse({
     access_token: device.accessToken,
     ...(signupFlags === undefined
       ? {}
@@ -80,14 +64,17 @@ export async function runLogin(
           }
         })
   });
+  const callback = await postJson(`${oauthFlags.apiUrl}/v1/auth/github/token`, {
+    ...requestBody
+  });
   if (signupFlags === undefined) {
-    const body = callback.body as LoginResponse;
+    const body: AuthLoginResponse = authLoginResponseSchema.parse(callback.body);
     writeConfig(configPatch(oauthFlags.apiUrl, callback.cookie, firstWorkspace(body)));
     printLogin(body, writeLine);
     return;
   }
 
-  const body = callback.body as SignupResponse;
+  const body: AuthSignupResponse = authSignupResponseSchema.parse(callback.body);
   writeConfig(
     configPatch(oauthFlags.apiUrl, callback.cookie, {
       id: body.workspace.id,
@@ -98,7 +85,7 @@ export async function runLogin(
 }
 
 function printSignup(
-  callbackBody: SignupResponse,
+  callbackBody: AuthSignupResponse,
   writeLine: (message: string) => void
 ): void {
   writeLine(`Signed up ${callbackBody.user.email}`);
@@ -107,7 +94,7 @@ function printSignup(
 }
 
 function printLogin(
-  callbackBody: LoginResponse,
+  callbackBody: AuthLoginResponse,
   writeLine: (message: string) => void
 ): void {
   writeLine(`Logged in ${callbackBody.user.github_id}`);
@@ -161,7 +148,9 @@ function configPatch(
   };
 }
 
-function firstWorkspace(body: LoginResponse): { id: string; slug: string } | undefined {
+function firstWorkspace(
+  body: AuthLoginResponse
+): { id: string; slug: string } | undefined {
   return body.workspaces[0];
 }
 

@@ -41,15 +41,19 @@ Never commit failing tests on a `green:` or `refactor:` commit.
 
 ## Commit boundary: the pre-commit hook
 
-`git commit` is the regression boundary for the goal harness. Install
-the pre-commit hook once per checkout:
+`git commit` is the fast regression boundary for the goal harness. The
+hooks install themselves: `pnpm install` runs the root `prepare` script,
+which points git at the in-repo hooks via `core.hooksPath scripts/hooks`.
+If you installed with scripts disabled, wire them manually:
 
 ```
-ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+git config core.hooksPath scripts/hooks
 ```
 
-From then on, every `git commit` runs `scripts/completion-check.sh` and
-blocks the commit if any prior goal regressed. Use
+From then on, every `git commit` runs `scripts/commit-check.sh` — a fast
+staged-impact check (prettier + eslint on staged files, nearest impacted
+tests/gates, hygiene blockers). The full `scripts/completion-check.sh`
+goal sweep runs on **pre-push**, not on pre-commit. Use
 `git commit --no-verify` only when you knowingly want a broken
 intermediate state on the branch.
 

@@ -84,7 +84,7 @@ bash scripts/active-check.sh          # 활성 goal 만 검사 + rigor sweep
    └─ 활성 goal pass → 자동으로 completion-check.sh 로 exec
         └─ 다음 active goal 결정 + 모든 prior goal 회귀 점검
 
-# 커밋 경계 (.git/hooks/pre-commit 설치된 상태)
+# 커밋 경계 (pre-commit hook 설치된 상태 — pnpm install 시 prepare 가 자동 설치)
 git commit
    └─ pre-commit hook → bash scripts/commit-check.sh
         └─ staged hygiene + impacted tests/gates 만 통과해야 commit 성공

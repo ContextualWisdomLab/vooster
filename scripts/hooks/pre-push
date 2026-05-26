@@ -2,8 +2,9 @@
 # pre-push hook — full regression boundary before sharing a branch.
 #
 # Install:
-#   cd <repo root>
-#   ln -sf ../../scripts/hooks/pre-push .git/hooks/pre-push
+#   Automatic — `pnpm install` runs the root `prepare` script, which sets
+#   `git config core.hooksPath scripts/hooks` (wires both hooks). Run that
+#   command yourself if you installed with scripts disabled.
 
 set -uo pipefail
 

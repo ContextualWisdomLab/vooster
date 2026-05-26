@@ -8,8 +8,9 @@
 #   blockers that should never enter public history.
 #
 # Install:
-#   cd <repo root>
-#   ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+#   Automatic — `pnpm install` runs the root `prepare` script, which sets
+#   `git config core.hooksPath scripts/hooks`. Run that command yourself if
+#   you installed with scripts disabled.
 #
 # Bypass (rare, knowingly broken intermediate state):
 #   git commit --no-verify

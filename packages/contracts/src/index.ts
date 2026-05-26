@@ -11,3 +11,4 @@ export * from "./project.js";
 export * from "./scenario.js";
 export * from "./stakeholder.js";
 export * from "./usecase.js";
+export * from "./who.js";

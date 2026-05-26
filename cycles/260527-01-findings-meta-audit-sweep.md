@@ -701,6 +701,19 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T05:15:50+09:00 — Meta-audit checkpoint after `audit_counter=30`:
+  KEEP. Scenario/step shared-contract schemas are production-consumed by API and
+  CLI, push-time `completion-check.sh` verified the status claim, and the
+  remaining step CLI request assertion checks contract payload behavior rather
+  than exact `fetch(..., RequestInit)` structure. No work-unit count change.
+- 2026-05-27T05:19:00+09:00 — Tier 3#5 shared-api-contracts who domain
+  complete; `audit_counter=31`. Added `packages/contracts/src/who.ts`, moved
+  who request params and success response DTO into shared schemas, made API who
+  route/results parse through those schemas, and made CLI who parse the shared
+  response before agent/human rendering. Domains migrated: 14/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/who.test.ts apps/cli/tests/unit/who-agent-format.test.ts apps/cli/tests/e2e-cli-honest/who-agent-format.test.ts apps/api/tests/e2e/UC-023.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

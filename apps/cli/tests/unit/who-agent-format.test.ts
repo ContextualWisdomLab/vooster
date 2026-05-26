@@ -157,7 +157,9 @@ function activeWhoBody() {
         markers: []
       }
     ],
-    suggested_next_actions: [{ command: "vspec merge show merge-1" }],
+    suggested_next_actions: [
+      { command: "vspec merge show merge-1", reason: "Review it." }
+    ],
     usecase: {
       key: "WHO-001"
     }
@@ -170,7 +172,10 @@ function emptyWhoBody() {
     merge_requests: [],
     sessions: [],
     suggested_next_actions: [
-      { command: 'vspec session start --intent "..." --pin WHO-001' }
+      {
+        command: 'vspec session start --intent "..." --pin WHO-001',
+        reason: "Start a session."
+      }
     ],
     usecase: {
       key: "WHO-001"

@@ -1,4 +1,5 @@
 import { Args, Command, Flags } from "@oclif/core";
+import { whoResponseSchema } from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
@@ -14,34 +15,6 @@ type WhoFlags = {
   apiUrl: string;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type WhoResponse = {
-  locks: Array<{
-    expires_at: string;
-    held_by_session_id: null | string;
-    held_by_user_id: string;
-    id: string;
-    lock_type: string;
-  }>;
-  merge_requests: Array<{
-    conflict_count: number;
-    id: string;
-    source_branch_id: string;
-    status: string;
-  }>;
-  sessions: Array<{
-    agent_type: string;
-    id: string;
-    intent: string;
-    markers?: string[];
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  usecase: {
-    key: string;
-  };
 };
 
 export class WhoCommand extends Command {
@@ -79,7 +52,7 @@ export async function runWho(
       }
     }
   );
-  const body = response.body as WhoResponse;
+  const body = whoResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(
@@ -99,10 +72,10 @@ export async function runWho(
   writeLine(`Sessions ${String(body.sessions.length)}`);
   for (const session of body.sessions) {
     writeLine(`Session ${session.id}`);
-    writeLine(`Agent ${session.agent_type}`);
-    writeLine(`Intent ${session.intent}`);
-    if ((session.markers ?? []).length > 0) {
-      writeLine(`Markers ${(session.markers ?? []).join(", ")}`);
+    writeLine(`Agent ${session.agent_type ?? ""}`);
+    writeLine(`Intent ${session.intent ?? ""}`);
+    if (session.markers.length > 0) {
+      writeLine(`Markers ${session.markers.join(", ")}`);
     }
   }
   writeLine(`Locks ${String(body.locks.length)}`);
@@ -115,7 +88,7 @@ export async function runWho(
   writeLine(`Merge requests ${String(body.merge_requests.length)}`);
   for (const merge of body.merge_requests) {
     writeLine(`Merge request ${merge.id}`);
-    writeLine(`Source branch ${merge.source_branch_id}`);
+    writeLine(`Source branch ${merge.source_branch_id ?? ""}`);
     writeLine(`Status ${merge.status}`);
     writeLine(`Conflicts ${String(merge.conflict_count)}`);
   }

@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { whoParamsSchema } from "@vooster/contracts";
 import { whoIsWorking } from "../application/who-is-working.js";
 import type { BranchStore } from "../ports/branch-store.js";
 import type { LockStore } from "../ports/lock-store.js";
@@ -57,13 +57,9 @@ async function showWho(
       workSessionStore
     },
     {
-      usecaseId: usecaseIdFrom(request.params),
+      usecaseId: whoParamsSchema.parse(request.params).usecaseId,
       userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
     }
   );
   return sendWhoResult(reply, result);
-}
-
-function usecaseIdFrom(params: unknown): string {
-  return z.object({ usecaseId: z.string().min(1) }).parse(params).usecaseId;
 }

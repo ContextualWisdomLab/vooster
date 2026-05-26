@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { whoResponseSchema } from "@vooster/contracts";
 import type { WhoIsWorkingResult } from "../application/who-is-working.js";
 import { problem } from "./signup-support.js";
 
@@ -7,14 +8,16 @@ export function sendWhoResult(reply: FastifyReply, result: WhoIsWorkingResult) {
     case "FORBIDDEN":
       return reply.code(403).send(workspaceMembershipProblem());
     case "FOUND":
-      return reply.send({
-        ...(result.archived === true ? { archived: true } : {}),
-        locks: result.locks,
-        merge_requests: result.mergeRequests,
-        sessions: result.sessions,
-        suggested_next_actions: result.suggestedNextActions,
-        usecase: result.usecase
-      });
+      return reply.send(
+        whoResponseSchema.parse({
+          ...(result.archived === true ? { archived: true } : {}),
+          locks: result.locks,
+          merge_requests: result.mergeRequests,
+          sessions: result.sessions,
+          suggested_next_actions: result.suggestedNextActions,
+          usecase: result.usecase
+        })
+      );
     case "USECASE_NOT_FOUND":
       return reply.code(404).send(missingUseCaseProblem(result.missingUsecaseId));
   }

@@ -1,4 +1,15 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  apiKeyCreateRequestSchema,
+  apiKeyCreateResponseSchema,
+  apiKeyListQuerySchema,
+  apiKeyListResponseSchema,
+  apiKeyRevokeResponseSchema,
+  type ApiKeyCreateResponse,
+  type ApiKeyListResponse,
+  type ApiKeyPublicResponse,
+  type ApiKeyRevokeResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, requiredFlag, resolveContextFlag } from "../flag-values.js";
@@ -28,31 +39,6 @@ type ApiKeyRevokeFlags = {
   apiKeyId: string;
   apiUrl: string;
   sessionCookie: string;
-};
-
-type ApiKey = {
-  id: string;
-  name: string;
-  revoked_at: null | string;
-  scopes: string[];
-};
-
-type SuggestedAction = {
-  command: string;
-};
-
-type ApiKeyCreateResponse = {
-  api_key: ApiKey;
-  plaintext_token: string;
-  suggested_next_actions: SuggestedAction[];
-};
-
-type ApiKeyListResponse = { api_keys: ApiKey[] };
-
-type ApiKeyRevokeResponse = {
-  api_key: ApiKey;
-  idempotent?: boolean;
-  suggested_next_actions: SuggestedAction[];
 };
 
 export class ApiKeyCommand extends Command {
@@ -111,25 +97,24 @@ async function createApiKey(
   writeLine: (message: string) => void
 ): Promise<void> {
   const apiKeyFlags = apiKeyCreateFlagsFrom(flags);
-  const response = await postJson(
-    `${apiKeyFlags.apiUrl}/v1/api-keys`,
-    {
-      name: apiKeyFlags.name,
-      scopes: apiKeyFlags.scopes,
-      workspace_id: apiKeyFlags.workspaceId
-    },
-    {
-      Cookie: apiKeyFlags.sessionCookie
-    }
+  const body = apiKeyCreateRequestSchema.parse({
+    name: apiKeyFlags.name,
+    scopes: apiKeyFlags.scopes,
+    workspace_id: apiKeyFlags.workspaceId
+  });
+  const response = await postJson(`${apiKeyFlags.apiUrl}/v1/api-keys`, body, {
+    Cookie: apiKeyFlags.sessionCookie
+  });
+  const parsedBody: ApiKeyCreateResponse = apiKeyCreateResponseSchema.parse(
+    response.body
   );
-  const body = response.body as ApiKeyCreateResponse;
 
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
         buildAgentEnvelope({
-          data: body,
-          suggested_next_actions: body.suggested_next_actions
+          data: parsedBody,
+          suggested_next_actions: parsedBody.suggested_next_actions
         }),
         null,
         2
@@ -138,10 +123,10 @@ async function createApiKey(
     return;
   }
 
-  printApiKey(body.api_key, writeLine);
-  writeLine(`Token ${body.plaintext_token}`);
+  printApiKey(parsedBody.api_key, writeLine);
+  writeLine(`Token ${parsedBody.plaintext_token}`);
   writeLine("Only shown once");
-  for (const action of body.suggested_next_actions) {
+  for (const action of parsedBody.suggested_next_actions) {
     writeLine(action.command);
   }
 }
@@ -153,12 +138,13 @@ async function listApiKeys(
   const apiKeyFlags = apiKeyWorkspaceFlagsFrom(flags);
   const url = new URL("/v1/api-keys", apiKeyFlags.apiUrl);
   url.searchParams.set("workspace_id", apiKeyFlags.workspaceId);
+  apiKeyListQuerySchema.parse(Object.fromEntries(url.searchParams));
   const response = await fetchJson(url, {
     headers: {
       Cookie: apiKeyFlags.sessionCookie
     }
   });
-  const body = response.body as ApiKeyListResponse;
+  const body: ApiKeyListResponse = apiKeyListResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
@@ -183,7 +169,7 @@ async function revokeApiKey(
       Cookie: apiKeyFlags.sessionCookie
     }
   );
-  const body = response.body as ApiKeyRevokeResponse;
+  const body: ApiKeyRevokeResponse = apiKeyRevokeResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(
@@ -209,7 +195,10 @@ async function revokeApiKey(
   }
 }
 
-function printApiKey(apiKey: ApiKey, writeLine: (message: string) => void): void {
+function printApiKey(
+  apiKey: ApiKeyPublicResponse,
+  writeLine: (message: string) => void
+): void {
   writeLine(`ApiKey ${apiKey.id}`);
   writeLine(`Name ${apiKey.name}`);
   writeLine(`Scopes ${apiKey.scopes.join(", ")}`);

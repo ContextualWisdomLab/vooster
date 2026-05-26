@@ -604,6 +604,17 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run apps/cli/tests/unit/agent-format-write-path.test.ts apps/cli/tests/unit/goal-command.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`,
   targeted eslint/prettier, `bash goals/9-cli-trim.gates.sh`, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T04:04:33+09:00 — Tier 3#5 shared-api-contracts API-key domain
+  complete; `audit_counter=24`. Added `packages/contracts/src/api-key.ts`,
+  moved API-key create/list/revoke request and success response DTOs into shared
+  schemas, made API routes/results parse through those schemas, made the CLI
+  parse shared request/query and response shapes before rendering, and tightened
+  API-key CLI fixtures to match the production response contract. Domains
+  migrated: 7/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/api-key.test.ts apps/api/tests/unit/http/api-key-routes.test.ts apps/api/tests/unit/http/api-key-results.test.ts apps/api/tests/e2e/UC-032.test.ts apps/cli/tests/unit/member-api-key-agent-format.test.ts apps/cli/tests/e2e-cli/UC-032.test.ts apps/cli/tests/e2e-cli-honest/member-api-key-agent-format.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

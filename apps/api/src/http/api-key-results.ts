@@ -1,4 +1,9 @@
 import type { FastifyReply } from "fastify";
+import {
+  apiKeyCreateResponseSchema,
+  apiKeyListResponseSchema,
+  apiKeyRevokeResponseSchema
+} from "@vooster/contracts";
 import type {
   CreateApiKeyResult,
   ListApiKeysResult,
@@ -12,16 +17,7 @@ export function sendCreateApiKeyResult(
 ) {
   switch (result.status) {
     case "CREATED":
-      return reply.code(201).send({
-        api_key: result.apiKey,
-        plaintext_token: result.plaintextToken,
-        suggested_next_actions: [
-          {
-            command: "vspec api-key list",
-            reason: "Confirm the key metadata; the token will not be shown again."
-          }
-        ]
-      });
+      return reply.code(201).send(createApiKeyResponse(result));
     case "TOKEN_NOT_DELIVERED":
       return reply.code(503).send(
         problem(503, "API key token was not delivered", {}, [
@@ -46,7 +42,7 @@ export function sendCreateApiKeyResult(
 export function sendListApiKeysResult(reply: FastifyReply, result: ListApiKeysResult) {
   switch (result.status) {
     case "LISTED":
-      return reply.send({ api_keys: result.apiKeys });
+      return reply.send(apiKeyListResponseSchema.parse({ api_keys: result.apiKeys }));
     case "OWNER_REQUIRED":
       return reply.code(403).send(problem(403, "Workspace owner role required"));
   }
@@ -58,16 +54,7 @@ export function sendRevokeApiKeyResult(
 ) {
   switch (result.status) {
     case "REVOKED":
-      return reply.send({
-        api_key: result.apiKey,
-        ...(result.idempotent ? { idempotent: true } : {}),
-        suggested_next_actions: [
-          {
-            command: "vspec api-key list",
-            reason: "Confirm the key revocation status."
-          }
-        ]
-      });
+      return reply.send(revokeApiKeyResponse(result));
     case "NOT_FOUND":
       return reply.code(404).send(apiKeyNotFoundProblem());
   }
@@ -80,6 +67,36 @@ function ownerRequiredProblem() {
       reason: "Ask a workspace owner to grant OWNER before issuing API keys."
     }
   ]);
+}
+
+function createApiKeyResponse(
+  result: Extract<CreateApiKeyResult, { status: "CREATED" }>
+) {
+  return apiKeyCreateResponseSchema.parse({
+    api_key: result.apiKey,
+    plaintext_token: result.plaintextToken,
+    suggested_next_actions: [
+      {
+        command: "vspec api-key list",
+        reason: "Confirm the key metadata; the token will not be shown again."
+      }
+    ]
+  });
+}
+
+function revokeApiKeyResponse(
+  result: Extract<RevokeApiKeyResult, { status: "REVOKED" }>
+) {
+  return apiKeyRevokeResponseSchema.parse({
+    api_key: result.apiKey,
+    ...(result.idempotent ? { idempotent: true } : {}),
+    suggested_next_actions: [
+      {
+        command: "vspec api-key list",
+        reason: "Confirm the key revocation status."
+      }
+    ]
+  });
 }
 
 function apiKeyNotFoundProblem() {

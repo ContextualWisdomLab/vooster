@@ -3,6 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  API-key domain CLOSED on 2026-05-27: create/list/revoke request and success
+  response schemas moved to `@vooster/contracts`; API and CLI now parse through
+  the shared schemas. Domains migrated: 7/21.
   Goal domain CLOSED on 2026-05-27: create/patch/list params, show/list/
   create/patch/promote response schemas moved to `@vooster/contracts`; API and
   CLI now parse through the shared schemas, and stale route-local validation was

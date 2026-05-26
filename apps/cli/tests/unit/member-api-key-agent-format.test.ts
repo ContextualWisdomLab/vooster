@@ -198,23 +198,37 @@ function apiKeyCreateResponse() {
   return {
     api_key: apiKeyPayload(),
     plaintext_token: "vsp_test_token",
-    suggested_next_actions: [{ command: "vspec api-key list" }]
+    suggested_next_actions: [
+      {
+        command: "vspec api-key list",
+        reason: "Confirm the key metadata; the token will not be shown again."
+      }
+    ]
   };
 }
 
 function apiKeyRevokeResponse() {
   return {
     api_key: apiKeyPayload({ revoked_at: "2026-05-22T00:00:00.000Z" }),
-    suggested_next_actions: [{ command: "vspec api-key list" }]
+    suggested_next_actions: [
+      {
+        command: "vspec api-key list",
+        reason: "Confirm the key revocation status."
+      }
+    ]
   };
 }
 
 function apiKeyPayload(overrides: Partial<{ revoked_at: null | string }> = {}) {
   return {
+    created_at: "2026-05-22T00:00:00.000Z",
+    created_by: "user-1",
     id: "key-1",
     name: "ci pipeline",
     revoked_at: overrides.revoked_at ?? null,
-    scopes: ["read", "write"]
+    scopes: ["read", "write"],
+    token_hash: "$argon2id$hash",
+    workspace_id: "workspace-1"
   };
 }
 

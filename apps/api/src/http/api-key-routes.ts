@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  apiKeyCreateRequestSchema,
+  apiKeyListQuerySchema,
+  apiKeyParamsSchema
+} from "@vooster/contracts";
 import {
   createApiKey as createApiKeyWorkflow,
   listApiKeys as listApiKeysWorkflow,
@@ -15,14 +19,6 @@ import { problem } from "./signup-support.js";
 import type { SignupState } from "./signup-types.js";
 import type { ApiKeyStore } from "../ports/api-key-store.js";
 import type { MembershipStore } from "../ports/membership-store.js";
-
-const createSchema = z.object({
-  name: z.string().min(1),
-  scopes: z.array(z.string()).min(1),
-  simulate_response_drop: z.boolean().optional(),
-  workspace_id: z.string().min(1)
-});
-const listSchema = z.object({ workspace_id: z.string().min(1) });
 
 export function registerApiKeyRoutes(
   app: FastifyInstance,
@@ -48,7 +44,7 @@ async function createApiKey(
   membershipStore: MembershipStore,
   apiKeyStore: ApiKeyStore
 ) {
-  const parsed = createSchema.safeParse(request.body);
+  const parsed = apiKeyCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid API key request"));
   }
@@ -74,7 +70,7 @@ async function listApiKeys(
   membershipStore: MembershipStore,
   apiKeyStore: ApiKeyStore
 ) {
-  const parsed = listSchema.safeParse(request.query);
+  const parsed = apiKeyListQuerySchema.safeParse(request.query);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid API key list request"));
   }
@@ -97,7 +93,7 @@ async function revokeApiKey(
   membershipStore: MembershipStore,
   apiKeyStore: ApiKeyStore
 ) {
-  const id = z.object({ id: z.string().min(1) }).parse(request.params).id;
+  const id = apiKeyParamsSchema.parse(request.params).id;
   return sendRevokeApiKeyResult(
     reply,
     await revokeApiKeyWorkflow(

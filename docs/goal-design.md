@@ -407,7 +407,7 @@ Code에 headless로 위임할 수 있다. goal 의 `.md` 가 `## Delegation` 섹
 ## Delegation
 
 - owner: claude
-- cwd: apps/web
+- cwd: apps/app
 - model: opus
 ```
 

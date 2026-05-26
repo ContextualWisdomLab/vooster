@@ -5,7 +5,7 @@
 // turning use-case enum values into stable Korean labels, plus the glossary of
 // term descriptions surfaced through the `?` popover affordance.
 //
-// 표기 원칙은 apps/web/DESIGN.md, 구체 용어집의 출처는
+// 표기 원칙은 apps/app/DESIGN.md, 구체 용어집의 출처는
 // docs/findings/2026-05-25T1503-web-viewer-de-jargon.md.
 
 export type Level = "SUMMARY" | "USER_GOAL" | "SUBFUNCTION";

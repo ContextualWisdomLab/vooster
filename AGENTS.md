@@ -84,6 +84,11 @@ apps/
       integration/           # Adapter-level (DB, OAuth, filesystem)
       unit/                  # Pure domain and application logic
       fixtures/              # Seed data, factory helpers
+  app/                       # @vooster/app — Next.js 15 product web UI (read-only viewer, on Vercel)
+    app/                     # App Router routes — all Server Components
+    components/ui/           # shadcn primitives
+    lib/                     # server-side data fetchers + label maps
+    tests/e2e-web/           # Playwright black-box specs
   cli/                       # @vooster/cli — oclif CLI (`vspec`)
     bin/run.js
     src/commands/
@@ -125,7 +130,7 @@ commit in a session.
 ## Delegating Presentation Work to Claude
 
 Presentation-layer goals (UI/UX, copywriting, design — typically under
-`apps/web` and `apps/www`) can be delegated to Claude Code headless instead
+`apps/app` and `apps/www`) can be delegated to Claude Code headless instead
 of being built by the looping agent. A goal opts in with a `## Delegation`
 section in its `.md` (`owner: claude`); `scripts/next-task.sh` then routes
 to `scripts/delegate-to-claude.sh`. The contract — marker schema, the

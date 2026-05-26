@@ -11,12 +11,12 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="32-web-viewer-de-jargon"
 GATE_INPUTS=(
-  apps/web/app/components/StatusPill.tsx
-  'apps/web/app/(app)/projects/[key]/page.tsx'
-  'apps/web/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
-  apps/web/lib
-  apps/web/tests/unit
-  apps/web/package.json
+  apps/app/app/components/StatusPill.tsx
+  'apps/app/app/(app)/projects/[key]/page.tsx'
+  'apps/app/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
+  apps/app/lib
+  apps/app/tests/unit
+  apps/app/package.json
   goals/32-web-viewer-de-jargon.md
   goals/32-web-viewer-de-jargon.gates.sh
   scripts/check-gate-rigor.sh
@@ -29,10 +29,10 @@ if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
 fi
 
 PASS=true
-PROJECT_PAGE='apps/web/app/(app)/projects/[key]/page.tsx'
-DETAIL_PAGE='apps/web/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
-STATUS_PILL='apps/web/app/components/StatusPill.tsx'
-LABELS='apps/web/lib/labels.ts'
+PROJECT_PAGE='apps/app/app/(app)/projects/[key]/page.tsx'
+DETAIL_PAGE='apps/app/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx'
+STATUS_PILL='apps/app/app/components/StatusPill.tsx'
+LABELS='apps/app/lib/labels.ts'
 WEB_FILES=("$PROJECT_PAGE" "$DETAIL_PAGE")
 
 echo "[32.A1] raw use-case UI labels are absent from page text"
@@ -148,8 +148,8 @@ else
 fi
 
 echo "[32.D2] pages expose glossary terms with a question-mark affordance"
-if grep -Rqs 'TermLabel' apps/web/app apps/web/components apps/web/lib 2>/dev/null \
-  && grep -Rqs 'CircleHelp\|HelpCircle\|QuestionMarkCircle\|?' apps/web/app apps/web/components apps/web/lib 2>/dev/null; then
+if grep -Rqs 'TermLabel' apps/app/app apps/app/components apps/app/lib 2>/dev/null \
+  && grep -Rqs 'CircleHelp\|HelpCircle\|QuestionMarkCircle\|?' apps/app/app apps/app/components apps/app/lib 2>/dev/null; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail — no TermLabel-style glossary popover affordance found"
@@ -157,7 +157,7 @@ else
 fi
 
 echo "[32.E1] web unit tests pass"
-if pnpm --filter @vooster/web test; then
+if pnpm --filter @vooster/app test; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail"
@@ -165,7 +165,7 @@ else
 fi
 
 echo "[32.E2] web typecheck passes"
-if pnpm --filter @vooster/web typecheck; then
+if pnpm --filter @vooster/app typecheck; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail"

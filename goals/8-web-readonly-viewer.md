@@ -12,7 +12,7 @@
 
 Goal 8 은 그 표면을 만든다. 마치고 나면:
 
-- `apps/web` 이 Next.js 15 App Router 로 존재한다.
+- `apps/app` 이 Next.js 15 App Router 로 존재한다.
 - 인증된 사용자가 프로젝트 → UC 목록 → UC 상세까지 탐색할 수 있다.
 - 모든 페이지가 Server Component 로 동작 (CSR/state library 없음).
 - Playwright (chromium only) 가 핵심 사용자 여정을 honest E2E 로 검증.
@@ -34,21 +34,21 @@ iteration 이 gate 에 있음을 메타-검증한다.
 > `goals/5-monorepo.md:58` — "apps/ contains exactly three
 > subdirectories: api, cli, www."
 
-`apps/web` 추가는 멤버십 셋을 `{api, cli, web, www}` 로 바꾼다. `.md`
+`apps/app` 추가는 멤버십 셋을 `{api, cli, app, www}` 로 바꾼다. `.md`
 본문이 "three" 라는 _count_ 를 명시하므로 단순 path retarget(case a)
 이 아니라 **case (b) loosen invariant** 다 (`.md` 본문도 같은 커밋에서
 업데이트되어야 universal claim ↔ gate 일치 유지).
 
 처리 방침:
 
-1. Goal 8 의 첫 커밋이 `refactor(goal-5): admit apps/web to A3 declared
+1. Goal 8 의 첫 커밋이 `refactor(goal-5): admit apps/app to A3 declared
 set` — `goals/5-monorepo.md` 의 A3 prose 와 디렉토리 enumeration,
    `goals/5-monorepo.gates.sh` 의 expected `ACTUAL_APPS` 셋 양쪽을
-   동시에 `{api, cli, web, www}` 로 수정.
+   동시에 `{api, cli, app, www}` 로 수정.
 2. 같은 커밋에 다른 의도(scaffold 등) 절대 conflate 금지. 다음 커밋부터
-   apps/web 실제 내용물.
+   apps/app 실제 내용물.
 3. Goal 5 의 다른 게이트 (B6 every app declares build/test/typecheck,
-   B7 api build, C1-C5 www) 는 손대지 않음 — `apps/web` 이 들어가면
+   B7 api build, C1-C5 www) 는 손대지 않음 — `apps/app` 이 들어가면
    B6 enumerator 가 자동으로 web 도 보게 되므로, **Goal 8 의 scaffold
    가 그 요건을 만족해야 한다** (build/test/typecheck script 모두 존재).
 
@@ -67,25 +67,25 @@ gate greps that the file mentions `web` alongside `api`, `cli`,
 `www` in the A3 paragraph. (Acceptance criterion for the Goal 5
 loosening commit.)
 
-A2. **`apps/web/package.json` exists with `"name": "@vooster/web"` and
+A2. **`apps/app/package.json` exists with `"name": "@vooster/app"` and
 `"private": true`.** The gate parses the JSON with `node -e`.
 
-A3. **`apps/web/package.json` depends on Next.js 15.** Specifically,
+A3. **`apps/app/package.json` depends on Next.js 15.** Specifically,
 the `next` semver range starts with `15.` or `^15.`. The gate
 parses the manifest and asserts the major.
 
 A4. **Every workspace-config file required by Next.js 15 exists at
-`apps/web/`.** Source of truth: the declared list
+`apps/app/`.** Source of truth: the declared list
 `(tsconfig.json next.config.ts tailwind.config.ts postcss.config.mjs)`.
 The gate iterates and asserts file presence.
 
-A5. **`apps/web` declares `build`, `test`, `typecheck`, and `test:e2e`
+A5. **`apps/app` declares `build`, `test`, `typecheck`, and `test:e2e`
 scripts.** Source of truth: the declared list
 `(build test typecheck test:e2e)`. The gate iterates and asserts
-each script key exists in `apps/web/package.json` (this strengthens
+each script key exists in `apps/app/package.json` (this strengthens
 Goal 5 B6 for the new app — extending the script list).
 
-A6. **`pnpm --filter @vooster/web build` produces `apps/web/.next/`.**
+A6. **`pnpm --filter @vooster/app build` produces `apps/app/.next/`.**
 _(The build command itself is enforced by `goals/_meta.md` M.4 — the
 meta gate enumerates every app under `apps/_`with a`build`script.
     This goal's gate verifies the`.next/`directory is the resulting
@@ -101,7 +101,7 @@ page set
     app/(app)/projects/[key]/page.tsx
     app/(app)/projects/[key]/usecases/[ucKey]/page.tsx
     `
-The gate iterates and asserts each path under `apps/web/` exists.
+The gate iterates and asserts each path under `apps/app/` exists.
 `app/(app)/page.tsx` is the project list (the "home" surface); a
 separate `app/projects/page.tsx` is intentionally absent. The
 `(app)` route group wraps every authenticated surface under one
@@ -117,12 +117,12 @@ of truth: the declared field set
 `(title primary_actor level status main_scenario extensions
       stakeholder_interests)`. The gate iterates and asserts each
 identifier appears at least once in
-`apps/web/app/projects/[key]/usecases/[ucKey]/page.tsx` (or in a
+`apps/app/app/projects/[key]/usecases/[ucKey]/page.tsx` (or in a
 component file imported by it — the gate widens the grep to the
 UC detail subtree).
 
 B4. _Removed 2026-05-23._ The original B4 forbade write API calls under
-`apps/web/app/`. The web app's scope has since expanded beyond
+`apps/app/app/`. The web app's scope has since expanded beyond
 read-only viewer to include project CRUD (`createProject`,
 `renameProject`, `deleteProject`) per commits 840b64f / 6b377a4.
 The "no writes" invariant is therefore deleted outright rather
@@ -133,12 +133,12 @@ write-API discipline (e.g. "all writes route through
 
 ### Tranche C — Auth (session-cookie reuse)
 
-C1. **`apps/web/app/login/page.tsx` links to `/v1/auth/github/start`.**
+C1. **`apps/app/app/login/page.tsx` links to `/v1/auth/github/start`.**
 The gate greps the file for the literal path.
 
-C2. **Server-side fetches in `apps/web/app/` forward the
+C2. **Server-side fetches in `apps/app/app/` forward the
 `vspec_session` cookie.** Source of truth: every `*.tsx` / `*.ts`
-file under `apps/web/app/` that calls `fetch(`. The gate iterates
+file under `apps/app/app/` that calls `fetch(`. The gate iterates
 those files and asserts each fetch invocation is accompanied by a
 `cookies()` call (Next.js 15 async cookies API) within the same
 file. A file with `fetch(` but no `cookies()` fails the gate.
@@ -157,18 +157,18 @@ surface is structurally inside that layout.
 
 ### Tranche D — Playwright E2E (honest)
 
-D1. **`apps/web/playwright.config.ts` declares chromium only.** The
+D1. **`apps/app/playwright.config.ts` declares chromium only.** The
 gate greps for `name: "chromium"` and asserts no `firefox` or
 `webkit` project entry exists.
 
 D2. **Every Tier-1 page has a matching Playwright test.** Source of
 truth: the Tier-1 page set from B1. For each page, the gate
 iterates and asserts at least one `.spec.ts` under
-`apps/web/tests/e2e-web/` contains a `page.goto(...)` whose path
+`apps/app/tests/e2e-web/` contains a `page.goto(...)` whose path
 matches the page's route (e.g., `app/projects/page.tsx` ↔
 `page.goto("/projects")`).
 
-D3. **No Playwright test under `apps/web/tests/e2e-web/` calls
+D3. **No Playwright test under `apps/app/tests/e2e-web/` calls
 `fetch(` directly.** Honest invariant: setup + assertions go
 through the browser (`page.goto`, `page.click`, `expect(page)`).
 The gate iterates every `*.ts` under the directory and fails on
@@ -176,24 +176,24 @@ any `fetch(` match.
 
 D4. **Every Playwright test sets `VSPEC_AUTH_STUB=1` in the launched
 server's env.** The gate iterates `*.spec.ts` files under
-`apps/web/tests/e2e-web/` and asserts each references
+`apps/app/tests/e2e-web/` and asserts each references
 `VSPEC_AUTH_STUB`. (Pattern: set via Playwright `webServer.env`
 in `playwright.config.ts`; tests reference the env or a helper
 that sets it.)
 
-D5. **`pnpm --filter @vooster/web test:e2e` exits 0.** Deep gate;
+D5. **`pnpm --filter @vooster/app test:e2e` exits 0.** Deep gate;
 skipped when `VSPEC_GATES_SKIP_DEEP=1`.
 
 ### Tranche E — Vercel deployment
 
-E1. **`apps/web/vercel.ts` exists and declares
+E1. **`apps/app/vercel.ts` exists and declares
 `framework: "nextjs"`.** The gate greps for the export shape and
 the framework string.
 
 E2. **The Vercel project name `vooster-new-web` is referenced by
-`apps/web/vercel.ts` (or a sibling marker file).** Source of
+`apps/app/vercel.ts` (or a sibling marker file).** Source of
 truth: the gate's `VERCEL_PROJECT_NAME=vooster-new-web` constant.
-The gate greps `apps/web/` for that string.
+The gate greps `apps/app/` for that string.
 
 E3. **The most recent production deployment of `vooster-new-web`
 reports `Ready` status.** The gate runs
@@ -221,14 +221,14 @@ passes.** Every universal claim above is paired with a
 ## Scope Guards (additive to Goals 0–7)
 
 - **No write/edit UI in this goal.** No form submitting POST/PUT/PATCH/
-  DELETE to the API anywhere in `apps/web/`. Comments, locks, branches,
+  DELETE to the API anywhere in `apps/app/`. Comments, locks, branches,
   merges, edit-in-place are Goal 9+.
 - **No client-side state library.** No Redux/Zustand/Jotai/SWR/TanStack
   Query. Server Components + native `fetch` only. The fetch is
   server-side; the cookie is forwarded via Next.js `cookies()`.
 - **No real-time updates / WebSockets.** Polling-only would also be
   out of scope — the read-only viewer is page-load fetch.
-- **No merging `apps/www` and `apps/web`.** They are distinct surfaces
+- **No merging `apps/www` and `apps/app`.** They are distinct surfaces
   (marketing landing vs. authenticated app). Both stay independently
   buildable and independently deployable.
 - **No API deployment in this goal.** The Vercel deploy is web-only.
@@ -285,16 +285,16 @@ bash scripts/diagnose.sh
 1. **Goal 5 retarget commit (A1 prerequisite).** Update
    `goals/5-monorepo.md` A3 prose to declare four apps; update
    `goals/5-monorepo.gates.sh` `ACTUAL_APPS` expected set to
-   `api cli web www`. Commit:
-   `refactor(goal-5): admit apps/web to A3 declared set`.
+   `api cli app www`. Commit:
+   `refactor(goal-5): admit apps/app to A3 declared set`.
 
-2. **Workspace scaffold (A2-A6).** Create `apps/web/` with
+2. **Workspace scaffold (A2-A6).** Create `apps/app/` with
    `package.json` (Next.js 15 dep, build/test/typecheck/test:e2e
    scripts), `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`,
    `postcss.config.mjs`, minimal `app/layout.tsx` + `app/page.tsx`,
    `playwright.config.ts` (chromium only), `tests/e2e-web/` with a
    smoke test, and `vercel.ts`. Verify
-   `pnpm --filter @vooster/web build` passes locally.
+   `pnpm --filter @vooster/app build` passes locally.
 
 3. **Tier-1 pages (B1-B3).** Author each page in the declared set.
    UC detail page renders all fields from B3. Use Server Components
@@ -309,7 +309,7 @@ bash scripts/diagnose.sh
 
 6. **Vercel project (E1-E4).** Create the `vooster-new-web` project
    via `vercel link` (or via the Vercel dashboard linking the GitHub
-   repo); commit `apps/web/vercel.ts`; push to GitHub; verify
+   repo); commit `apps/app/vercel.ts`; push to GitHub; verify
    `vercel inspect` reports `Ready` on the latest production
    deployment.
 
@@ -324,7 +324,7 @@ bash scripts/diagnose.sh
 Same red → green → refactor as prior goals. Reusable scopes:
 
 - `refactor(goal-5): <description>` — A1 retarget commit only
-- `feat(web): <description>` — apps/web scaffold, pages, auth
+- `feat(web): <description>` — apps/app scaffold, pages, auth
 - `test(web-e2e): <description>` — Playwright specs
 - `chore(web): <description>` — config files, vercel.ts
 - `chore(deploy): <description>` — Vercel project setup notes
@@ -336,9 +336,9 @@ Same red → green → refactor as prior goals. Reusable scopes:
   Component.
 - Calling `fetch(` from a Playwright test file. The honest invariant
   is that the test drives the browser, not the API.
-- Adding a write-side API call from `apps/web/`. Read-only is the
+- Adding a write-side API call from `apps/app/`. Read-only is the
   whole point of Goal 8.
-- Conflating the Goal 5 retarget commit with apps/web scaffold work.
+- Conflating the Goal 5 retarget commit with apps/app scaffold work.
   Two separate commits, retarget first.
 - Touching `apps/www`. The Korean landing is a separate surface and
   is owned by Goals 4/5.

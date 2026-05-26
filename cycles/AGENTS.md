@@ -119,7 +119,7 @@ status: draft
   (a) gate 로 검증 가능한 universal invariant, (b) multi-step
   RED/GREEN, (c) prior goal 과 의미적으로 별개. 최소 gate 규칙은
   `docs/goal-design.md §1.5` 와 `gates-over-coupling` finding 참조.
-- **Presentation 작업 위임.** UI/UX·카피·디자인 (주로 `apps/web`,
+- **Presentation 작업 위임.** UI/UX·카피·디자인 (주로 `apps/app`,
   `apps/www`)은 claude-owned 위임 goal 로 — `## Delegation`
   (owner: claude). 계약: `docs/claude/delegation.md`.
 - **무인(overnight) 실행 설계.** 깊고 안전한 큐(대량 per-file 작업)는

@@ -20,7 +20,7 @@ storage contract instead of the product vocabulary.
 ## Delegation
 
 - owner: claude
-- cwd: apps/web
+- cwd: apps/app
 - model: opus
 
 ## Completion Conditions
@@ -33,7 +33,7 @@ storage contract instead of the product vocabulary.
    values directly.
 4. `StatusPill` covers every spec status enum value:
    `DRAFT`, `IN_REVIEW`, `APPROVED`, and `DEPRECATED`.
-5. `apps/web/lib/labels.ts` exhaustively maps level and status enum values to
+5. `apps/app/lib/labels.ts` exhaustively maps level and status enum values to
    stable Korean labels.
 6. The glossary contains descriptions for actor, level, main scenario,
    extension, and stakeholder interest terms, and the pages expose those terms
@@ -43,17 +43,17 @@ storage contract instead of the product vocabulary.
 ## Sources Of Truth
 
 - `docs/findings/2026-05-25T1503-web-viewer-de-jargon.md`
-- `apps/web/DESIGN.md`
-- `apps/web/app/(app)/projects/[key]/page.tsx`
-- `apps/web/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx`
-- `apps/web/app/components/StatusPill.tsx`
-- `apps/web/lib/labels.ts`
+- `apps/app/DESIGN.md`
+- `apps/app/app/(app)/projects/[key]/page.tsx`
+- `apps/app/app/(app)/projects/[key]/usecases/[ucKey]/page.tsx`
+- `apps/app/app/components/StatusPill.tsx`
+- `apps/app/lib/labels.ts`
 
 ## Verification
 
 ```
-pnpm --filter @vooster/web test
-pnpm --filter @vooster/web typecheck
+pnpm --filter @vooster/app test
+pnpm --filter @vooster/app typecheck
 bash goals/32-web-viewer-de-jargon.gates.sh
 bash scripts/completion-check.sh
 ```

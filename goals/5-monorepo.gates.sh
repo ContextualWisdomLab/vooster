@@ -39,7 +39,7 @@ GATE_INPUTS=(
   apps/cli/package.json
   apps/cli/bin
   apps/cli/src
-  apps/web/package.json
+  apps/app/package.json
   apps/www/package.json
   apps/www/astro.config.mjs
   apps/www/astro.config.ts
@@ -59,7 +59,7 @@ fi
 PASS=true
 
 # ─── Sources of truth ────────────────────────────────────────────────────
-REQUIRED_APPS=(api cli web www)
+REQUIRED_APPS=(api cli app www)
 REQUIRED_API_LAYERS=(domain ports application infrastructure http)
 REQUIRED_SCRIPTS=(build test typecheck)
 LEGACY_ROOT_DIRS=(src bin prisma tests)
@@ -88,7 +88,7 @@ else
   PASS=false
 fi
 
-echo "[5.A3] apps/ contains exactly {api, cli, web, www}"
+echo "[5.A3] apps/ contains exactly {api, cli, app, www}"
 if [ -d apps ]; then
   ACTUAL_APPS=$(find apps -maxdepth 1 -mindepth 1 -type d 2>/dev/null \
                   | awk -F/ '{print $NF}' | sort | tr '\n' ' ' | sed 's/ $//')

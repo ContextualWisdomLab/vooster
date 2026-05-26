@@ -30,7 +30,7 @@
    zero warnings (`pnpm exec eslint . --max-warnings 0`).
 3. **Every vitest test** in the suite passes, and the coverage thresholds
    declared in `vitest.config.ts` are met (`pnpm exec vitest run --coverage`).
-4. **Every app under `apps/*` that declares a `build` script** (api, cli, web,
+4. **Every app under `apps/*` that declares a `build` script** (api, cli, app,
    www) builds successfully (`pnpm --filter @vooster/<app> build`).
 5. **CLI in-process unit source coverage** passes on the dedicated surface
    declared in `vitest.cli-unit.config.ts` (`pnpm --filter @vooster/cli
@@ -93,7 +93,7 @@ launch** 한다. 이렇게 하면:
 | `goals/3-managed-db.gates.sh` — `vitest run apps/cli/tests/e2e-cli`, matrix files | M.3                 |
 | `goals/4-honest-boundaries.gates.sh` — `pnpm exec eslint . --max-warnings 0`      | M.2                 |
 | `goals/5-monorepo.gates.sh` — `pnpm --filter @vooster/{api,cli,www} build`        | M.4                 |
-| `goals/8-web-readonly-viewer.gates.sh` — `pnpm --filter @vooster/web build`, e2e  | M.4                 |
+| `goals/8-web-readonly-viewer.gates.sh` — `pnpm --filter @vooster/app build`, e2e  | M.4                 |
 
 각 numeric goal 의 `.md` 본문에서 cross-cutting 부분은 "see goals/\_meta.md"
 포인터로 대체되었고, 자신의 goal-specific universal claim 만 남았다.

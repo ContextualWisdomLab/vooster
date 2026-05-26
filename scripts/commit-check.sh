@@ -212,7 +212,7 @@ classify_source() {
       test_if_present "apps/cli/tests/unit/${base}-command.test.ts" || mark_unknown "$file"
       return
       ;;
-    apps/web/*|apps/web/**/*)
+    apps/app/*|apps/app/**/*)
       mark_unknown "$file"
       return
       ;;

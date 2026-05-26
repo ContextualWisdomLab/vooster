@@ -63,14 +63,6 @@ else
   PASS=false
 fi
 
-echo "[34.C1] auth-stub detail fixture exposes invocation examples"
-if grep -q "invokes" "$STUB" && grep -q "invoked_by" "$STUB"; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail — $STUB has no inspectable invocation example"
-  PASS=false
-fi
-
 echo "[34.D1] web unit tests pass"
 if pnpm --filter @vooster/app test; then
   echo "    ✓ pass"

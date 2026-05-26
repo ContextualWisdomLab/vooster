@@ -477,6 +477,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   the project overview prepared-exception block, and Goal 33/34 gates now both
   exit 0. Next step: required meta-system audit checkpoint before
   invocation-links Stage 2.
+- 2026-05-27T02:24:05+09:00 — Meta-audit checkpoint #5 complete;
+  `audit_counter=11`. Q1/Q2 on Goal 34 found that the auth-stub invocation
+  example was enforced by grep in `goals/34-web-invocation-links.gates.sh`
+  instead of by a behavior test. RED: extended
+  `apps/app/tests/unit/data-stub.test.tsx` to require normalized `invokes`
+  arrays and a concrete `invoked_by` example. GREEN: `stubUsecaseDetail`
+  now normalizes missing invocation links to empty arrays, and the redundant
+  stub grep gate was removed. Verification: `pnpm --filter @vooster/app test`,
+  `pnpm --filter @vooster/app typecheck`, and
+  `bash goals/34-web-invocation-links.gates.sh` exited 0.
 
 ---
 

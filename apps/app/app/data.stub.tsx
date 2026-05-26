@@ -666,7 +666,7 @@ function toUsecaseSummary(usecase: DemoUsecase): UsecaseSummary {
 }
 
 function placeholderDetail(ucKey: string): UsecaseDetail {
-  return {
+  return withInvocationDefaults({
     title: `${ucKey} 명세`,
     primary_actor: { name: "미지정" },
     level: "USER_GOAL",
@@ -674,6 +674,19 @@ function placeholderDetail(ucKey: string): UsecaseDetail {
     main_scenario: { steps: [] },
     extensions: [],
     stakeholder_interests: []
+  });
+}
+
+function withInvocationDefaults(detail: UsecaseDetail): UsecaseDetail {
+  return {
+    ...detail,
+    invoked_by: detail.invoked_by ?? [],
+    main_scenario: {
+      steps: detail.main_scenario.steps.map((step) => ({
+        ...step,
+        invokes: step.invokes ?? []
+      }))
+    }
   };
 }
 
@@ -693,7 +706,9 @@ export function stubUsecaseDetail(projectKey: string, ucKey: string): UsecaseDet
   const match =
     findDemoProject(projectKey)?.usecases.find((uc) => uc.key === ucKey) ??
     DEMO_PROJECTS.flatMap((project) => project.usecases).find((uc) => uc.key === ucKey);
-  return match === undefined ? placeholderDetail(ucKey) : { ...match.detail };
+  return match === undefined
+    ? placeholderDetail(ucKey)
+    : withInvocationDefaults(match.detail);
 }
 
 export function stubCreateProject(input: CreateProjectInput): CreateProjectResult {

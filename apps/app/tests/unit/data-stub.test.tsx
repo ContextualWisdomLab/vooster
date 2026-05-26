@@ -58,8 +58,25 @@ describe("web data auth stub", () => {
       status: "IN_REVIEW"
     });
     expect(detail.main_scenario.steps).toHaveLength(6);
+    expect(detail.main_scenario.steps[3]?.invokes).toEqual(["CHECKOUT-002"]);
+    expect(
+      detail.main_scenario.steps.every((step) => Array.isArray(step.invokes))
+    ).toBe(true);
+    expect(detail.invoked_by).toEqual([]);
     expect(detail.extensions).toHaveLength(3);
     expect(detail.stakeholder_interests.length).toBeGreaterThan(0);
+
+    await expect(fetchUsecaseDetail("CHECKOUT", "CHECKOUT-002")).resolves.toMatchObject(
+      {
+        invoked_by: [
+          {
+            key: "CHECKOUT-001",
+            step_number: 4,
+            title: "장바구니 상품을 주문한다"
+          }
+        ]
+      }
+    );
   });
 
   test("creates, rejects duplicates, renames, and deletes stub projects", async () => {

@@ -373,6 +373,22 @@ HONEST_UC_SET 변경은 sanctioned case (b).
 
 ---
 
+## Progress log
+
+- 2026-05-27T01:03:00+09:00 — Tier 0 honesty pass complete; audit_counter=1.
+  Rechecked unresolved `OPEN`/`open` status_notes against source-of-truth
+  commands and found no stale closure claims to correct:
+  `goals/7-cli-spec-parity.gates.sh` still hardcodes `HONEST_UC_SET`;
+  `apps/cli/tests/e2e-cli/UC-021.test.ts` still relies on
+  `/__test/.../revisions` for merge-resolve conflict setup; `packages/` is
+  absent; `apps/api/tests/unit/http/*-routes.test.ts` count is still 37;
+  UC-022 Gap B remains open because `SOFT` acquisition can replace/delete an
+  existing non-blocking lock instead of preserving it with a warning; CI still
+  declares shard `[1, 2, 3, 4]`; `apps/api/src/http/actor-results.ts` still
+  emits `vspec actor restore`.
+
+---
+
 ## 검증 — 진짜 끝났는지
 
 종료 직전:

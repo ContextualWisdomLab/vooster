@@ -1,4 +1,4 @@
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, TriangleAlert, Users } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { visibilityLabel } from "@/lib/labels";
@@ -47,6 +47,12 @@ export default async function ProjectPage({
         </span>
       </Link>
       <UsecaseTable usecases={usecases} projectKey={key} />
+      {extensionTotal > 0 ? (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-tint-yellow px-4 py-3 text-sm font-medium text-foreground">
+          <TriangleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+          대비된 예외 상황 {extensionTotal}건
+        </div>
+      ) : null}
     </section>
   );
 }

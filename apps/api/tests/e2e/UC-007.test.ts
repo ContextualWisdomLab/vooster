@@ -69,6 +69,31 @@ describe("UC-007 - Manage the actor-goal list", () => {
     ]);
   });
 
+  test("MAIN: create goal by actor name (consistent with usecase authoring)", async () => {
+    const setup = await createProject(
+      server,
+      "Named Goal Project",
+      "named-goal-project",
+      "stub-named-goal-owner"
+    );
+    const actor = await createActor(server, setup, "Customer");
+
+    const created = await createGoal(server, setup, {
+      actor: "Customer",
+      description: "Places an order",
+      level: "USER_GOAL",
+      priority: "P1"
+    });
+
+    expect(created.status).toBe(201);
+    const body = (await created.json()) as GoalResponse;
+    expect(body.goal).toMatchObject({
+      actor_id: actor.id,
+      description: "Places an order",
+      status: "IDENTIFIED"
+    });
+  });
+
   test("3a: missing actor returns actor selection guidance", async () => {
     const setup = await createProject(
       server,

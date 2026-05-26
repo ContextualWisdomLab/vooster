@@ -103,7 +103,13 @@ export async function createActor(
 export async function createGoal(
   server: TestServer,
   setup: ProjectSetup,
-  body: { actor_id: string; description: string; level: string; priority: string }
+  body: {
+    actor?: string;
+    actor_id?: string;
+    description: string;
+    level: string;
+    priority: string;
+  }
 ) {
   return server.fetch(`/v1/projects/${setup.projectId}/goals`, {
     method: "POST",

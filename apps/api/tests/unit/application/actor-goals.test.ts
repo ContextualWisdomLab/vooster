@@ -61,6 +61,46 @@ describe("actor goal application", () => {
     expect(savedRevisions).toEqual([result.revision]);
   });
 
+  test("creates a goal by resolving the actor name", async () => {
+    const savedGoals: StoredGoal[] = [];
+    const savedRevisions: StoredRevision[] = [];
+
+    const result = await createGoal(depsFor({ savedGoals, savedRevisions }), {
+      actorName: "Customer",
+      description: "Place an order",
+      level: "USER_GOAL",
+      priority: "P1",
+      projectId: "project-1",
+      userId: "user-1"
+    });
+
+    expect(result.status).toBe("CREATED");
+    if (result.status !== "CREATED") {
+      throw new Error("expected goal to be created");
+    }
+    expect(result.goal.actor_id).toBe("actor-1");
+    expect(savedGoals).toEqual([result.goal]);
+  });
+
+  test("rejects an unknown actor name without writing", async () => {
+    const savedGoals: StoredGoal[] = [];
+
+    const result = await createGoal(depsFor({ savedGoals }), {
+      actorName: "Unknown Actor",
+      description: "Reviews checkout exceptions",
+      level: "USER_GOAL",
+      priority: "P2",
+      projectId: "project-1",
+      userId: "user-1"
+    });
+
+    expect(result).toEqual({
+      actorId: "Unknown Actor",
+      status: "ACTOR_UNAVAILABLE"
+    });
+    expect(savedGoals).toEqual([]);
+  });
+
   test("rejects unavailable actors without writing goal or revision", async () => {
     const savedGoals: StoredGoal[] = [];
     const savedRevisions: StoredRevision[] = [];
@@ -275,7 +315,8 @@ function actorStore(
   return {
     archiveActor: () => Promise.resolve(false),
     findActorById: () => Promise.resolve(availableActor),
-    findActorByName: () => Promise.resolve(undefined),
+    findActorByName: (_projectId, name) =>
+      Promise.resolve(availableActor?.name === name ? availableActor : undefined),
     listActors: () =>
       Promise.resolve(
         actorsOverride ?? (availableActor === undefined ? [] : [availableActor])

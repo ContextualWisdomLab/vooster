@@ -30,6 +30,7 @@ export class GoalCommand extends Command {
   };
 
   static override flags = {
+    actor: Flags.string(),
     "actor-id": Flags.string(),
     "api-url": Flags.string(),
     branch: Flags.string(),
@@ -133,7 +134,8 @@ async function createGoal(
   await runMutationCommand<GoalResponse>(
     {
       body: {
-        actor_id: goalFlags.actorId,
+        ...(goalFlags.actor === undefined ? {} : { actor: goalFlags.actor }),
+        ...(goalFlags.actorId === undefined ? {} : { actor_id: goalFlags.actorId }),
         description: goalFlags.description,
         level: goalFlags.level,
         priority: goalFlags.priority

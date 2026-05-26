@@ -6,6 +6,7 @@ import {
 } from "../flag-values.js";
 
 export type GoalCliFlags = {
+  actor?: string;
   "actor-id"?: string;
   "api-url"?: string;
   branch?: string;
@@ -20,7 +21,8 @@ export type GoalCliFlags = {
 };
 
 export type GoalCreateFlags = {
-  actorId: string;
+  actor?: string;
+  actorId?: string;
   apiUrl: string;
   branch: string;
   description: string;
@@ -46,8 +48,14 @@ export type GoalIdFlags = {
 };
 
 export function goalCreateFlagsFrom(flags: GoalCliFlags): GoalCreateFlags {
+  const actor = optionalFlag(flags, "actor");
+  const actorId = optionalFlag(flags, "actor-id");
+  if (actor === undefined && actorId === undefined) {
+    throw new Error("Provide --actor <name> or --actor-id <id>.");
+  }
   return {
-    actorId: requiredFlag(flags, "actor-id"),
+    actor,
+    actorId,
     apiUrl: resolveContextFlag(flags, "api-url"),
     branch: flags.branch ?? "main",
     description: requiredFlag(flags, "description"),

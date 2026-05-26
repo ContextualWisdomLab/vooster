@@ -28,7 +28,8 @@ export type ActorGoalsDeps = {
 };
 
 export type CreateGoalInput = {
-  actorId: string;
+  actorId?: string;
+  actorName?: string;
   description: string;
   dryRun?: boolean;
   level: StoredGoal["level"];
@@ -77,9 +78,12 @@ export async function createGoal(
     return { status: access };
   }
 
-  const actor = await deps.actorStore.findActorById(input.projectId, input.actorId);
+  const actor = await resolveActor(deps.actorStore, input);
   if (actor === undefined || actor.archived_at !== null) {
-    return { actorId: input.actorId, status: "ACTOR_UNAVAILABLE" };
+    return {
+      actorId: input.actorName ?? input.actorId ?? "",
+      status: "ACTOR_UNAVAILABLE"
+    };
   }
 
   const goal = {
@@ -162,6 +166,19 @@ export async function listGoals(
     })),
     status: "LISTED"
   };
+}
+
+async function resolveActor(
+  actorStore: ActorStore,
+  input: CreateGoalInput
+): Promise<StoredActor | undefined> {
+  if (input.actorName !== undefined) {
+    return actorStore.findActorByName(input.projectId, input.actorName);
+  }
+  if (input.actorId !== undefined) {
+    return actorStore.findActorById(input.projectId, input.actorId);
+  }
+  return undefined;
 }
 
 function canTransition(from: StoredGoal["status"], to: StoredGoal["status"]): boolean {

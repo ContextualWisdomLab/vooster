@@ -82,6 +82,38 @@ describe("UC-007 CLI - Manage the actor-goal list", () => {
       await server.stop();
     }
   });
+
+  test("MAIN: member creates a goal by actor name with --actor", async () => {
+    const server = await startNetworkServer("vspec-cli-uc007-name-");
+    try {
+      const setup = await createProjectWithActor(server.apiUrl);
+      const created = await runCli([
+        "goal",
+        "create",
+        "--project-id",
+        setup.projectId,
+        "--actor",
+        "Customer",
+        "--description",
+        "Places an order",
+        "--level",
+        "USER_GOAL",
+        "--priority",
+        "P1",
+        "--session-cookie",
+        setup.cookie,
+        "--api-url",
+        server.apiUrl
+      ]);
+
+      expect(created.stderr).toBe("");
+      expect(created.status).toBe(0);
+      expect(created.stdout).toContain("Places an order");
+      expect(created.stdout).toContain("IDENTIFIED");
+    } finally {
+      await server.stop();
+    }
+  });
 });
 
 async function createProjectWithActor(apiUrl: string) {

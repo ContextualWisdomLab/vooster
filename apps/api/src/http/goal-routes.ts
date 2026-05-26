@@ -91,6 +91,7 @@ async function createGoal(
 
   const result = await createGoalUseCase(deps, {
     actorId: parsed.data.actor_id,
+    actorName: parsed.data.actor,
     description: parsed.data.description,
     dryRun: dryRunFromQuery(request.query),
     level: parsed.data.level,

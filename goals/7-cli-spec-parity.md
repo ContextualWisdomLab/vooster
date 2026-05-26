@@ -131,13 +131,14 @@ the file for the export and for `fetch(` (the latter fails the
 gate if present).
 
 C2. **Every use case in the honest-required set has a matching honest
-test file.** Source of truth: the literal array `HONEST_UC_SET` in
-`goals/7-cli-spec-parity.gates.sh` enumerating the core write-path
-UCs (UC-004 project, UC-005 actor, UC-006 stakeholder, UC-007 goal,
-UC-009 usecase, UC-011 main scenario, UC-013 edit step, UC-016
-start session, UC-019 create branch, UC-022 lock). For each UC in
-the list, the gate asserts `apps/cli/tests/e2e-cli-honest/UC-NNN-*.test.ts`
-exists. A missing file fails the gate.
+test file.** Source of truth: `docs/usecases/UC-*.md` minus the explicit
+`HONEST_UC_ALLOWLIST` in `goals/7-cli-spec-parity.gates.sh`. The
+allow-list names legacy/planned UCs intentionally outside this goal's
+honest-flow surface; any new `docs/usecases/UC-*.md` is included by
+default unless it is deliberately added to the allow-list with a
+finding. For each derived UC, the gate asserts
+`apps/cli/tests/e2e-cli-honest/UC-NNN-*.test.ts` exists. A missing file
+fails the gate.
 
 C3. **Zero `fetch(` calls under `apps/cli/tests/e2e-cli-honest/`.** The
 gate iterates every `*.ts` in that directory; a single match fails.
@@ -164,15 +165,15 @@ iteration in `goals/7-cli-spec-parity.gates.sh`.
   `explain`, `watch`, `help workflows`, `help concepts` stay queued in
   `docs/findings-cli-ux-debt-followups.md` (created on first hit). A
   follow-up goal enumerates them.
-- **No widening `HONEST_UC_SET` beyond the 10 listed UCs in this goal.**
-  Migrating all 35 UCs to honest mode is a separate effort; the 10
-  here cover the core write-path verbs that exercise distinct CLI
-  surfaces. Adding the rest is a follow-up.
+- **No widening by hand-maintained positive list.** Goal 7 derives the
+  honest set from `docs/usecases/UC-*.md`; the only manual list is
+  `HONEST_UC_ALLOWLIST`, which must name intentionally deferred UCs.
+  Migrating the allow-listed UCs to honest mode is a separate effort.
 - **Migrations under Tranche C must not introduce new CLI verbs.** If
   a UC's honest test reveals a missing or broken CLI command (e.g.
   `vspec scenario add` cannot be invoked from a script), file the gap
-  in `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and **skip** that UC from
-  `HONEST_UC_SET` for this goal — do not silently add the verb. The
+  in `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and add that UC to
+  `HONEST_UC_ALLOWLIST` for this goal — do not silently add the verb. The
   finding doc is the queue for the next CLI goal.
 - **No `--format=agent` shape divergence per command.** Every command
   routes through `buildAgentEnvelope`. A command that wants a custom
@@ -213,7 +214,7 @@ bash scripts/diagnose.sh
    - Tranche B: `apps/cli/src/config-store.ts` for the read/write API.
    - Tranche C: `apps/cli/tests/e2e-cli-honest/login-to-usecase.test.ts`
      for the established pattern; `apps/cli/tests/e2e-cli/UC-NNN.test.ts`
-     for each UC in `HONEST_UC_SET` to understand what each must seed.
+     for each derived honest UC to understand what each must seed.
 
 ## Recommended Order of Attack
 
@@ -238,12 +239,13 @@ bash scripts/diagnose.sh
    existing `login-to-usecase.test.ts` so every new UC test can call
    `seedViaCli(...)` and add only its scenario-specific assertions.
 
-5. **Per-UC honest tests (C2).** For each UC in `HONEST_UC_SET`,
+5. **Per-UC honest tests (C2).** For each UC derived from
+   `docs/usecases/UC-*.md` minus `HONEST_UC_ALLOWLIST`,
    author `apps/cli/tests/e2e-cli-honest/UC-NNN-<slug>.test.ts`. Each
    test reuses `cli-setup.ts` for shared seed; UC-specific seed steps
    are also CLI calls. If a UC reveals a CLI gap, log to
-   `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and remove it from `HONEST_UC_SET`
-   in the same commit.
+   `docs/findings/2026-05-21T1856-cli-spec-gaps.md` and add it to
+   `HONEST_UC_ALLOWLIST` in the same commit.
 
 6. **Re-run `scripts/check-honest-cli-e2e.sh` (C5).** Confirm the
    expanded set passes.

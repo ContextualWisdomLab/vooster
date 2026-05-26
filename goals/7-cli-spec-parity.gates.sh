@@ -4,8 +4,8 @@
 # Anti-cheat principle: every "every X" claim in goals/7-cli-spec-parity.md
 # enumerates from a source of truth — every command file that branches on
 # format=agent (A3-A5), every command file under commands/ (B5), every UC
-# in HONEST_UC_SET (C2), every *.ts under e2e-cli-honest/ (C3, C4). A single
-# hand-fix does not pass.
+# under docs/usecases minus HONEST_UC_ALLOWLIST (C2), every *.ts under
+# e2e-cli-honest/ (C3, C4). A single hand-fix does not pass.
 
 set -uo pipefail
 
@@ -32,6 +32,7 @@ GATE_INPUTS=(
   apps/cli/tests/unit
   apps/cli/bin
   apps/cli/package.json
+  docs/usecases
   scripts/check-gate-rigor.sh
   scripts/check-honest-cli-e2e.sh
   goals/7-cli-spec-parity.gates.sh
@@ -127,20 +128,55 @@ stop_init_fixture() {
   fi
 }
 
-# Honest-flow UC set (Tranche C scope). Adding to this list expands the
-# gate; removing requires a finding doc explaining why.
-HONEST_UC_SET=(
-  UC-004
-  UC-005
-  UC-006
-  UC-007
-  UC-009
-  UC-011
-  UC-013
-  UC-016
-  UC-019
-  UC-022
+# Use cases intentionally outside Goal 7's honest-flow scope. Every new
+# docs/usecases/UC-*.md is included by default unless it is added here with a
+# finding explaining the deferral.
+HONEST_UC_ALLOWLIST=(
+  UC-001
+  UC-002
+  UC-003
+  UC-008
+  UC-010
+  UC-012
+  UC-014
+  UC-015
+  UC-017
+  UC-018
+  UC-020
+  UC-021
+  UC-023
+  UC-024
+  UC-025
+  UC-026
+  UC-027
+  UC-028
+  UC-029
+  UC-030
+  UC-031
+  UC-032
+  UC-033
+  UC-034
+  UC-035
 )
+HONEST_UC_SET=(
+)
+
+derive_honest_uc_set() {
+  local allowed=" ${HONEST_UC_ALLOWLIST[*]} "
+  local uc
+  while IFS= read -r uc; do
+    if [[ "$allowed" == *" $uc "* ]]; then
+      continue
+    fi
+    HONEST_UC_SET+=("$uc")
+  done < <(
+    find docs/usecases -name 'UC-*.md' -type f 2>/dev/null \
+      | sed -E 's#.*/(UC-[0-9]+).*#\1#' \
+      | sort
+  )
+}
+
+derive_honest_uc_set
 
 # ─── Tranche A — Envelope module + standardization ───────────────────────
 
@@ -483,7 +519,7 @@ else
   PASS=false
 fi
 
-echo "[7.C2 every UC in HONEST_UC_SET has a matching honest test]"
+echo "[7.C2 every derived honest UC has a matching honest test]"
 C2_MISSING=()
 for uc in "${HONEST_UC_SET[@]}"; do
   if ! find "$HONEST_DIR" -maxdepth 1 -name "${uc}-*.test.ts" -type f \

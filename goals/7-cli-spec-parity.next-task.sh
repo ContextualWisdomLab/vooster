@@ -21,18 +21,52 @@ CLI_BIN=apps/cli/bin/run.js
 
 ENVELOPE_KEYS=(data context suggested_next_actions warnings format_version)
 
-HONEST_UC_SET=(
-  UC-004
-  UC-005
-  UC-006
-  UC-007
-  UC-009
-  UC-011
-  UC-013
-  UC-016
-  UC-019
-  UC-022
+HONEST_UC_ALLOWLIST=(
+  UC-001
+  UC-002
+  UC-003
+  UC-008
+  UC-010
+  UC-012
+  UC-014
+  UC-015
+  UC-017
+  UC-018
+  UC-020
+  UC-021
+  UC-023
+  UC-024
+  UC-025
+  UC-026
+  UC-027
+  UC-028
+  UC-029
+  UC-030
+  UC-031
+  UC-032
+  UC-033
+  UC-034
+  UC-035
 )
+HONEST_UC_SET=(
+)
+
+derive_honest_uc_set() {
+  local allowed=" ${HONEST_UC_ALLOWLIST[*]} "
+  local uc
+  while IFS= read -r uc; do
+    if [[ "$allowed" == *" $uc "* ]]; then
+      continue
+    fi
+    HONEST_UC_SET+=("$uc")
+  done < <(
+    find docs/usecases -name 'UC-*.md' -type f 2>/dev/null \
+      | sed -E 's#.*/(UC-[0-9]+).*#\1#' \
+      | sort
+  )
+}
+
+derive_honest_uc_set
 
 # ─── A1: envelope module exists ──────────────────────────────────────────
 if [ ! -f "$ENVELOPE_MODULE" ] \
@@ -466,7 +500,7 @@ EOF
   exit 0
 fi
 
-# ─── C2: every UC in HONEST_UC_SET has a matching test ───────────────────
+# ─── C2: every derived honest UC has a matching test ─────────────────────
 C2_MISSING=()
 for uc in "${HONEST_UC_SET[@]}"; do
   if ! find "$HONEST_DIR" -maxdepth 1 -name "${uc}-*.test.ts" -type f \
@@ -515,7 +549,7 @@ EOF
   IF you discover the CLI cannot drive this UC end-to-end:
     1. Append a row to docs/findings/2026-05-21T1856-cli-spec-gaps.md describing the
        missing/broken verb (create the file if absent).
-    2. Remove ${NEXT_UC} from HONEST_UC_SET in BOTH
+    2. Add ${NEXT_UC} to HONEST_UC_ALLOWLIST in BOTH
        goals/7-cli-spec-parity.gates.sh and .next-task.sh.
     3. Commit with chore(goal-7): defer ${NEXT_UC} per CLI gap.
     DO NOT add new CLI verbs in this goal.
@@ -598,7 +632,7 @@ TASK: scripts/check-honest-cli-e2e.sh must pass on the expanded set
 
   Investigate the output. Likely causes:
     - A new honest test fails functionally (the CLI does not do what
-      the test asserts → finding doc + remove UC from HONEST_UC_SET).
+      the test asserts → finding doc + add UC to HONEST_UC_ALLOWLIST).
     - A test sets up state the API does not accept (use seedViaCli
       consistently).
 

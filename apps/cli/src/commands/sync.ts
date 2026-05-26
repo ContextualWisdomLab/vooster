@@ -1,5 +1,14 @@
 import { resolve } from "node:path";
 import { Command, Flags } from "@oclif/core";
+import {
+  syncPullRequestSchema,
+  syncPullResponseSchema,
+  syncPushRequestSchema,
+  syncPushResponseSchema,
+  type SyncPullResponse,
+  type SyncPushFile,
+  type SyncPushResponse
+} from "@vooster/contracts";
 
 import { applySyncResults, localSyncFiles, writeSyncFile } from "./sync-files.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
@@ -9,7 +18,7 @@ import { postJson } from "../http-client.js";
 type SyncCliFlags = {
   "api-url"?: string;
   branch?: string;
-  "dry-run"?: boolean;
+  "dry-run"?: boolean | string;
   format?: string;
   "project-id"?: string;
   root?: string;
@@ -25,40 +34,7 @@ type SyncFlags = {
   sessionCookie: string;
 };
 
-type SyncPullResponse = {
-  cursor: string;
-  files: Array<{
-    content: string;
-    path: string;
-    revision: string;
-  }>;
-};
-
-export type SyncPushFile = {
-  base_revision: string;
-  content: string;
-  path: string;
-};
-
-export type SyncPushResponse = {
-  cache: {
-    entries: Array<{
-      path: string;
-      revision: string;
-      status: string;
-    }>;
-  };
-  results: Array<{
-    conflict_content?: string;
-    current_revision: string;
-    dry_run?: boolean;
-    path: string;
-    status: string;
-  }>;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
+export type { SyncPushFile, SyncPushResponse };
 
 export class SyncCommand extends Command {
   static override description = "Synchronize local spec files.";
@@ -98,14 +74,15 @@ async function pullFiles(
   writeLine: (message: string) => void
 ): Promise<void> {
   const syncFlags = syncFlagsFrom(flags);
+  const requestBody = syncPullRequestSchema.parse({ branch: syncFlags.branch });
   const response = await postJson(
     `${syncFlags.apiUrl}/v1/projects/${syncFlags.projectId}/sync/pull`,
-    { branch: syncFlags.branch },
+    requestBody,
     {
       Cookie: syncFlags.sessionCookie
     }
   );
-  const body = response.body as SyncPullResponse;
+  const body: SyncPullResponse = syncPullResponseSchema.parse(response.body);
 
   for (const file of body.files) {
     await writeSyncFile(syncFlags.root, file.path, file.content);
@@ -129,18 +106,19 @@ async function pushFiles(
 ): Promise<void> {
   const syncFlags = syncFlagsFrom(flags);
   const files = await localSyncFiles(syncFlags.root);
+  const requestBody = syncPushRequestSchema.parse({
+    branch: syncFlags.branch,
+    dry_run: syncFlags.dryRun,
+    files
+  });
   const response = await postJson(
     `${syncFlags.apiUrl}/v1/projects/${syncFlags.projectId}/sync/push`,
-    {
-      branch: syncFlags.branch,
-      dry_run: syncFlags.dryRun,
-      files
-    },
+    requestBody,
     {
       Cookie: syncFlags.sessionCookie
     }
   );
-  const body = response.body as SyncPushResponse;
+  const body: SyncPushResponse = syncPushResponseSchema.parse(response.body);
 
   await applySyncResults(syncFlags.root, files, body.results, syncFlags.dryRun);
   if (flags.format === "agent") {
@@ -178,7 +156,7 @@ function syncFlagsFrom(flags: SyncCliFlags): SyncFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
     branch: flags.branch ?? "main",
-    dryRun: flags["dry-run"] ?? false,
+    dryRun: flags["dry-run"] === true || flags["dry-run"] === "true",
     projectId: resolveContextFlag(flags, "project-id"),
     root: resolve(flags.root ?? process.cwd()),
     sessionCookie: resolveContextFlag(flags, "session-cookie")

@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { syncPullResponseSchema } from "@vooster/contracts";
 import { pullSyncFiles, pushSyncFiles } from "../application/sync-files.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
@@ -99,7 +100,9 @@ async function pullFiles(
   );
   return result.status === "FORBIDDEN"
     ? reply.code(403).send(syncAccessProblem())
-    : reply.send({ cursor: result.cursor, files: result.files });
+    : reply.send(
+        syncPullResponseSchema.parse({ cursor: result.cursor, files: result.files })
+      );
 }
 
 async function pushFiles(

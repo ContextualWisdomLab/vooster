@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { syncPushResponseSchema } from "@vooster/contracts";
 import type { SyncPushResult } from "../application/sync-files.js";
 import { problem } from "./signup-support.js";
 import { networkFailureProblem } from "./sync-result-support.js";
@@ -10,11 +11,13 @@ export function sendSyncPushResult(reply: FastifyReply, result: SyncPushResult) 
     case "NETWORK_FAILURE":
       return reply.code(503).send(networkFailureProblem(result.files));
     case "PUSHED":
-      return reply.send({
-        cache: { entries: result.cacheEntries },
-        results: result.results,
-        suggested_next_actions: result.suggestedNextActions
-      });
+      return reply.send(
+        syncPushResponseSchema.parse({
+          cache: { entries: result.cacheEntries },
+          results: result.results,
+          suggested_next_actions: result.suggestedNextActions
+        })
+      );
   }
 }
 

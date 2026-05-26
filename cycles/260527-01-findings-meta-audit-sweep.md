@@ -776,6 +776,22 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T06:08:22+09:00 — Meta-audit checkpoint after
+  `audit_counter=36`: KEEP. Revision shared-contract schemas are
+  production-consumed by API and CLI, the contract tests assert HTTP boundary
+  parsing rather than route internals, status_notes are backed by focused
+  revision tests plus `completion-check.sh`, and the push hook re-ran the full
+  completion gate. No work-unit count change.
+- 2026-05-27T06:15:13+09:00 — Tier 3#5 shared-api-contracts sync domain
+  complete; `audit_counter=37`. Added `packages/contracts/src/sync.ts`, moved
+  sync pull/push project params, request bodies, and success response DTOs into
+  shared schemas, made API sync routes/results parse through those schemas, made
+  CLI pull/sync/push parse shared request/response shapes before filesystem
+  writes and agent/human rendering, and tightened push CLI fixtures to match the
+  production suggested-action contract. Domains migrated: 20/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/sync.test.ts apps/api/tests/unit/http/sync-routes.test.ts apps/api/tests/unit/http/sync-result-support.test.ts apps/api/tests/integration/http/sync-route.test.ts apps/cli/tests/unit/pull-sync-agent-format.test.ts apps/cli/tests/unit/push-agent-format.test.ts apps/cli/tests/e2e-cli-honest/pull-sync-agent-format.test.ts apps/cli/tests/e2e-cli-honest/push-agent-format.test.ts apps/api/tests/e2e/UC-029.test.ts apps/cli/tests/e2e-cli/UC-029.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

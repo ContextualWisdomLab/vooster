@@ -15,7 +15,7 @@ type AgentEnvelope<TData> = {
   };
   data: TData;
   format_version: 1;
-  suggested_next_actions: Array<{ command: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
   warnings: unknown[];
 };
 
@@ -33,7 +33,7 @@ type PushData = {
     path: string;
     status: string;
   }>;
-  suggested_next_actions: Array<{ command: string }>;
+  suggested_next_actions: Array<{ command: string; reason: string }>;
 };
 
 const tempRoots: string[] = [];
@@ -59,7 +59,12 @@ describe("push --format=agent", () => {
     expect(envelope.context).toEqual(defaultContext());
     expect(envelope.data.results.at(0)?.current_revision).toBe("rev-2");
     expect(envelope.data.cache.entries.at(0)?.status).toBe("SYNCED");
-    expect(envelope.data.suggested_next_actions).toEqual([{ command: "vspec pull" }]);
+    expect(envelope.data.suggested_next_actions).toEqual([
+      {
+        command: "vspec pull",
+        reason: "Refresh local files after successful push."
+      }
+    ]);
     expect(envelope.suggested_next_actions).toEqual(
       envelope.data.suggested_next_actions
     );
@@ -183,7 +188,12 @@ function pushResponse(
         status: "OK"
       }
     ],
-    suggested_next_actions: [{ command: "vspec pull" }]
+    suggested_next_actions: [
+      {
+        command: "vspec pull",
+        reason: "Refresh local files after successful push."
+      }
+    ]
   };
 }
 

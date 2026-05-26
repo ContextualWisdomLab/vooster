@@ -487,6 +487,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   stub grep gate was removed. Verification: `pnpm --filter @vooster/app test`,
   `pnpm --filter @vooster/app typecheck`, and
   `bash goals/34-web-invocation-links.gates.sh` exited 0.
+- 2026-05-27T02:29:40+09:00 — Tier 2#4 invocation-links Stage 2 local
+  severity complete; `audit_counter=12`. RED: impact preview tests required
+  caller revision diffs to classify invocation add/remove/retarget edits.
+  GREEN: `impact-analysis.ts` now compares parent/current
+  `main_success.steps[].invokes`, keeps active-session BREAKING escalation,
+  and combines invocation-derived severity with the revision's own severity.
+  `docs/05-data-model.md` now lists the three invocation severity rules.
+  Verification: focused impact-analysis test, API typecheck, targeted eslint,
+  and targeted prettier exited 0. Next step: required meta-system audit
+  checkpoint before invocation-links Stage 3.
 
 ---
 

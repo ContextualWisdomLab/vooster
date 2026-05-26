@@ -312,12 +312,15 @@ Used by impact analysis. Given a Revision diff:
 | -------------------------------------------------------- | ------------ |
 | Typo / whitespace fix in `notes`, `description`.         | COSMETIC     |
 | Add `Step` after the last existing step.                 | NON_BREAKING |
+| Add invocation to a `Step.invokes`.                      | NON_BREAKING |
 | Add a new `Extension` scenario.                          | NON_BREAKING |
 | Add a new `StakeholderInterest`.                         | NON_BREAKING |
 | Strengthen `success_guarantee` (longer/more conditions). | NON_BREAKING |
 | Change `Step.action` (semantic edit).                    | BREAKING     |
 | Delete a `Step`.                                         | BREAKING     |
 | Change `Step.actor_id`.                                  | BREAKING     |
+| Remove invocation from `Step.invokes`.                   | BREAKING     |
+| Retarget invocation in `Step.invokes`.                   | BREAKING     |
 | Change `Scenario.outcome`.                               | BREAKING     |
 | Change `condition` of an existing extension.             | BREAKING     |
 | Remove an extension.                                     | BREAKING     |

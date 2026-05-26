@@ -73,6 +73,53 @@ describe("impact analysis application", () => {
     ]);
   });
 
+  test.each([
+    {
+      expectedSeverity: "NON_BREAKING",
+      fromInvokes: [],
+      name: "added invocation",
+      toInvokes: ["PAY-001"]
+    },
+    {
+      expectedSeverity: "BREAKING",
+      fromInvokes: ["PAY-001"],
+      name: "removed invocation",
+      toInvokes: []
+    },
+    {
+      expectedSeverity: "BREAKING",
+      fromInvokes: ["PAY-001"],
+      name: "retargeted invocation",
+      toInvokes: ["PAY-002"]
+    }
+  ] as const)(
+    "classifies $name severity from the caller revision diff",
+    async ({ expectedSeverity, fromInvokes, toInvokes }) => {
+      const result = await previewImpact(
+        depsFor({
+          revisions: [
+            revision("revision-parent", "COSMETIC", {
+              snapshot: usecaseSnapshot({ invokes: fromInvokes }),
+              version_number: 1
+            }),
+            revision("revision-current", "COSMETIC", {
+              parent_revision_id: "revision-parent",
+              snapshot: usecaseSnapshot({ invokes: toInvokes }),
+              version_number: 2
+            })
+          ]
+        }),
+        input({ baseRevision: "revision-current" })
+      );
+
+      expect(result.status).toBe("PREVIEWED");
+      if (result.status !== "PREVIEWED") {
+        throw new Error("expected preview result");
+      }
+      expect(result.impact.severity).toBe(expectedSeverity);
+    }
+  );
+
   test("returns failure statuses before computing impact", async () => {
     await expect(
       previewImpact(depsFor({ found: undefined }), input())
@@ -109,6 +156,7 @@ function depsFor(
     cache?: Map<string, unknown>;
     found?: { projectId: string; usecase: StoredUseCase };
     membership?: StoredMembership;
+    revisions?: StoredRevision[];
     sessions?: StoredWorkSession[];
   } = {}
 ) {
@@ -119,7 +167,7 @@ function depsFor(
     membershipStore: membershipStore(
       "membership" in options ? options.membership : membership()
     ),
-    revisionStore: revisionStore(),
+    revisionStore: revisionStore(options.revisions),
     useCaseStore: useCaseStore(
       "found" in options
         ? options.found
@@ -150,16 +198,18 @@ function membershipStore(value: StoredMembership | undefined): MembershipStore {
   };
 }
 
-function revisionStore(): RevisionStore {
+function revisionStore(revisions?: StoredRevision[]): RevisionStore {
   return {
     findRevisionById: () => Promise.resolve(undefined),
     latestRevision: () => Promise.resolve(undefined),
     listRevisions: () =>
-      Promise.resolve([
-        revision("revision-current", "NON_BREAKING"),
-        revision("revision-non-breaking", "NON_BREAKING"),
-        revision("revision-breaking", "BREAKING")
-      ]),
+      Promise.resolve(
+        revisions ?? [
+          revision("revision-current", "NON_BREAKING"),
+          revision("revision-non-breaking", "NON_BREAKING"),
+          revision("revision-breaking", "BREAKING")
+        ]
+      ),
     nextVersionNumber: () => Promise.resolve(1),
     saveRevision: () => Promise.resolve()
   };
@@ -199,7 +249,8 @@ function membership(): StoredMembership {
 
 function revision(
   id: string,
-  severity: NonNullable<StoredRevision["severity"]>
+  severity: NonNullable<StoredRevision["severity"]>,
+  overrides: Partial<StoredRevision> = {}
 ): StoredRevision {
   return {
     entity_id: "usecase-1",
@@ -207,7 +258,8 @@ function revision(
     id,
     severity,
     snapshot: usecase(),
-    version_number: 1
+    version_number: 1,
+    ...overrides
   };
 }
 
@@ -237,4 +289,23 @@ function usecase(): StoredUseCase {
     status: "DRAFT",
     title: "Reviews a refund"
   };
+}
+
+function usecaseSnapshot(options: {
+  invokes: readonly string[];
+}): StoredRevision["snapshot"] {
+  return {
+    ...usecase(),
+    main_success: {
+      steps: [
+        {
+          action: "Pays for the order",
+          actor_id: "actor-1",
+          id: "step-1",
+          invokes: [...options.invokes],
+          step_number: 1
+        }
+      ]
+    }
+  } as StoredRevision["snapshot"];
 }

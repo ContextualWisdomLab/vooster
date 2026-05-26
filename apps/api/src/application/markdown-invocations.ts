@@ -24,3 +24,7 @@ export function parseStepAction(raw: string): ParsedStepAction {
 export function invocationAnnotation(invokes: string[]): string {
   return invokes.length === 0 ? "" : ` _(includes: ${invokes.join(", ")})_`;
 }
+
+export function serializeStepAction(parsed: ParsedStepAction): string {
+  return `${parsed.action}${invocationAnnotation(parsed.invokes)}`;
+}

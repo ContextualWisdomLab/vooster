@@ -1,5 +1,8 @@
 import { problem } from "./signup-support.js";
-export { parseStepAction } from "../application/markdown-invocations.js";
+export {
+  parseStepAction,
+  serializeStepAction
+} from "../application/markdown-invocations.js";
 
 export type SyncFile = {
   content: string;

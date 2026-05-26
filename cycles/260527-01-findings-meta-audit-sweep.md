@@ -448,14 +448,23 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
   eslint, and `bash scripts/completion-check.sh` exited 0.
 - 2026-05-27T01:59:20+09:00 — Tier 2#4 invocation-links Stage 1a backend
-  complete; audit*counter=8. RED covered markdown `*(includes: ...)`parsing
-and rendering, use-case read`invokes`/derived `invoked_by`, and doctor
-warnings for dangling/self/cyclic links. GREEN added `Step.invokes`,
-parse/render helpers, Prisma/domain mapper support, reverse-edge scanning,
-and doctor warning checks. Verification: focused invocation tests,
-`pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
-eslint, and `bash scripts/check-db-consistency.sh` exited 0. Next step:
+  complete; `audit_counter=8`. RED covered markdown `_(includes: ...)` parsing
+  and rendering, use-case read `invokes`/derived `invoked_by`, and doctor
+  warnings for dangling/self/cyclic links. GREEN added `Step.invokes`,
+  parse/render helpers, Prisma/domain mapper support, reverse-edge scanning,
+  and doctor warning checks. Verification: focused invocation tests,
+  `pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
+  eslint, and `bash scripts/check-db-consistency.sh` exited 0. Next step:
   required meta-system audit checkpoint before Stage 1b delegation.
+- 2026-05-27T02:03:40+09:00 — Meta-audit checkpoint #4 complete;
+  `audit_counter=9`. Q6 against the invocation-links acceptance signal found
+  that parse and render were tested separately, but the promised
+  `serialize(parse(F)) === F` markdown round-trip was not directly pinned. RED:
+  added a sync markdown helper test that called missing `serializeStepAction`.
+  GREEN: exposed `serializeStepAction` next to `parseStepAction` and reused the
+  same invocation annotation serializer. Verification:
+  `pnpm exec vitest run apps/api/tests/unit/http/sync-markdown.test.ts`,
+  `pnpm exec tsc --noEmit`, and focused eslint exited 0.
 
 ---
 

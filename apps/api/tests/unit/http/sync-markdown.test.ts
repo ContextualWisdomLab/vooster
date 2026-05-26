@@ -4,6 +4,7 @@ import {
   parseStepAction,
   parseFileErrors,
   parseFilesProblem,
+  serializeStepAction,
   titleFrom,
   usecasePath
 } from "../../../src/http/sync-markdown.js";
@@ -66,6 +67,15 @@ describe("sync markdown helpers", () => {
       action: "Mentions _(includes: PAY-001)_ in the middle.",
       invokes: []
     });
+  });
+
+  test("round-trips includes annotations through step action parse and serialize", () => {
+    const line = "Validates the cart. _(includes: CHECKOUT-006, CHECKOUT-007)_";
+
+    expect(serializeStepAction(parseStepAction(line))).toBe(line);
+    expect(serializeStepAction(parseStepAction("Validates the cart."))).toBe(
+      "Validates the cart."
+    );
   });
 
   test("renders use case paths", () => {

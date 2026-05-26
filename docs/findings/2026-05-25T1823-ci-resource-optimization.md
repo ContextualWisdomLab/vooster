@@ -1,21 +1,27 @@
 ---
 title: CI runs full lint/typecheck/test matrix on code-free pushes
 created_at: 2026-05-25T18:23:52Z
-resolved: partial
+resolved: true
 priority: P2
 resolved_by:
   - 508c6c2
+  - 20f8dd4
 status_notes: |
   Path-filter on CI (.github/workflows/ci.yml) — CLOSED on 2026-05-25.
     Skips the lint+typecheck+4-shard test matrix when a push/PR touches only
     proven-non-code paths. Measured to drop 36.6% of pushes with zero
     false-skips of a code change.
-  Test-job overhead (build run 4x, ~50% of each shard is fixed setup) — OPEN,
-    decision LOCKED 2026-05-27: reduce the test matrix shard [1,2,3,4] → [1,2]
-    (option a, the boring win). Picked up by cycle 260527-01. See "Build spec".
+  Test-job overhead (build now runs 2x instead of 4x) — CLOSED on 2026-05-27
+    by 20f8dd4. The test matrix is shard [1,2] with --shard=i/2, and
+    scripts/check-ci.sh now rejects ci.yml matrices above 2 shards plus shard
+    denominator drift. Observed CI after the change:
+    run 26460852463 (20f8dd4) succeeded with lint-typecheck 41s, test (1) 3m36s,
+    and test (2) 3m26s = 9 billable minutes. Previous comparable run
+    26460651003 (011c5f2) had lint-typecheck 46s plus four test jobs
+    (2m25s, 2m08s, 2m18s, 2m37s) = 13 billable minutes.
   (Priority lowered P1→P2: the P1 driver was the branch-protection/post-hoc-CI
     process item, removed 2026-05-27 — see note below. The remaining shard
-    item is P2 pure-meta-speed.)
+    item is now closed.)
 related:
   - .github/workflows/ci.yml
   - .github/workflows/verify.yml
@@ -79,13 +85,13 @@ Why not a required-check stub: `main` has **no branch protection / required
 checks** (`gh api …/branches/main/protection` → 404), so a skipped CI never
 blocks a merge — no stub job needed.
 
-## Open items / recommendations (data-backed, not yet done)
+## Resolved items / recommendations (data-backed)
 
-1. **Test-job overhead (P2, ~9 CI-h/week)**. ~50% of each test shard is fixed
+1. **Test-job overhead (P2, ~9 CI-h/week)**. ~50% of each test shard was fixed
    setup, and `pnpm -r build` (38s) runs **4×** when 1 build would do. Options
    were (a) drop the matrix `shard: [1,2,3,4]` → `[1,2]`; (b) build once in a
    setup job, upload `dist` artifact, download per shard. **Decision LOCKED
-   2026-05-27 → option (a)**, the boring/reversible win. See "Build spec".
+   2026-05-27 → option (a)**, the boring/reversible win. Shipped in `20f8dd4`.
 
 > **Removed 2026-05-27 — branch-protection / post-hoc-CI process item.** A
 > prior revision raised "route the autonomous agent through PRs + branch
@@ -122,6 +128,16 @@ Decision-free; an overnight agent can execute mechanically.
 - Shipped item: push a `docs/state/`-only change to `main`; **no CI run**
   appears for that SHA (`gh run list --workflow=ci.yml`), while a sibling
   `apps/**` push still triggers all 5 jobs.
-- Open item 1: after the shard change, the `test` job runs **2** parallel jobs
+- Resolved item 1: after the shard change, the `test` job runs **2** parallel jobs
   (not 4), every test still executes (no count drop vs. the 4-shard run), and
   billable minutes for the `test` job drop from ~12 to ≤8 on a code push.
+
+## Resolution
+
+- `508c6c2` added fail-safe `paths-ignore` coverage for code-free pushes.
+- `20f8dd4` reduced the CI test matrix from 4 shards to 2, updated the
+  `--shard` denominator, and extended `scripts/check-ci.sh` so future drift is
+  rejected. Acceptance evidence: `bash scripts/check-ci.sh`,
+  `bash scripts/completion-check.sh`, and GitHub Actions run `26460852463`
+  all exited successfully. Observed billable minutes moved from 13
+  (run `26460651003`) to 9 (run `26460852463`).

@@ -405,6 +405,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   helper behavior with a fixture. Verification: focused vitest, `tsc --noEmit`,
   eslint on the test, `VSPEC_GATES_SKIP_DEEP=1 bash goals/7-cli-spec-parity.gates.sh`,
   and `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T01:25:41+09:00 — Tier 1#2 CI shard reduction complete;
+  audit_counter=4. Commit `20f8dd4` reduced `.github/workflows/ci.yml` from
+  `shard: [1, 2, 3, 4]` to `[1, 2]`, updated the test command to
+  `--shard=${{ matrix.shard }}/2`, and extended `scripts/check-ci.sh` so CI
+  rejects a `ci.yml` test matrix above 2 shards plus shard denominator drift.
+  Verification: `bash scripts/check-ci.sh`, `rg -n 'shard|/4|1, 2, 3, 4|1,2,3,4' .github/workflows scripts`,
+  and `bash scripts/completion-check.sh` exited 0; pushed run `26460852463`
+  succeeded. Measured billable minutes: previous 4-shard run `26460651003`
+  was 13 minutes (lint 1 + test 3+3+3+3), new 2-shard run `26460852463` was
+  9 minutes (lint 1 + test 4+4). Next step: required meta-system audit checkpoint.
 
 ---
 

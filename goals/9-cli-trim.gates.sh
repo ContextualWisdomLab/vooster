@@ -385,12 +385,22 @@ for f in "${USER_FACING_AGENT_FILES[@]}"; do
     E1_OFFENDERS+=("$f (missing)")
     continue
   fi
-  if ! grep -E 'format === "agent"' "$f" >/dev/null 2>&1; then
-    E1_OFFENDERS+=("$f (no format===agent branch)")
-    continue
+  stem="${f%.ts}"
+  wiring_targets=("$f")
+  if [ -f "${stem}-output.ts" ]; then
+    wiring_targets+=("${stem}-output.ts")
   fi
-  if ! grep -E "from ['\"][./a-zA-Z0-9_-]*agent-envelope" "$f" >/dev/null 2>&1; then
-    E1_OFFENDERS+=("$f (no agent-envelope import)")
+
+  wired=false
+  for target in "${wiring_targets[@]}"; do
+    if grep -E 'format === "agent"' "$target" >/dev/null 2>&1 \
+        && grep -E "from ['\"][./a-zA-Z0-9_-]*agent-envelope" "$target" >/dev/null 2>&1; then
+      wired=true
+      break
+    fi
+  done
+  if [ "$wired" = false ]; then
+    E1_OFFENDERS+=("$f (no command/sibling output envelope wiring)")
   fi
 done
 if [ "${#E1_OFFENDERS[@]}" -eq 0 ]; then

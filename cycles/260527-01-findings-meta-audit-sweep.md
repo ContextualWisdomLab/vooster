@@ -593,6 +593,17 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `bash goals/9-cli-trim.gates.sh`, and `bash scripts/completion-check.sh`
   exited 0. Next step: required meta-system audit checkpoint before the next
   target.
+- 2026-05-27T03:57:03+09:00 — Meta-audit checkpoint after `audit_counter=22`
+  found Goal 9's agent-envelope gate over-coupled to command-file layout: moving
+  goal agent rendering into `goal-output.ts` was behavior-preserving and covered
+  by unit/honest E2E envelope tests, but the gate failed because `goal.ts` no
+  longer contained the literal branch. Improvement: `goals/9-cli-trim.gates.sh`
+  now accepts command-file or sibling `*-output.ts` envelope wiring, and the
+  goal text states that case-(b) transfer explicitly; `audit_counter=23`.
+  Verification: RED `bash goals/9-cli-trim.gates.sh`, then
+  `pnpm exec vitest run apps/cli/tests/unit/agent-format-write-path.test.ts apps/cli/tests/unit/goal-command.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`,
+  targeted eslint/prettier, `bash goals/9-cli-trim.gates.sh`, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

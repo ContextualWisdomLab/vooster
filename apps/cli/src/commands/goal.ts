@@ -17,8 +17,12 @@ import {
   goalListFlagsFrom,
   type GoalCliFlags
 } from "./goal-flags.js";
-import { printGoalList, printGoalPromotion, printGoalResponse } from "./goal-output.js";
-import { buildAgentEnvelope } from "../agent-envelope.js";
+import {
+  printGoalCommandBody,
+  printGoalList,
+  printGoalPromotion,
+  printGoalResponse
+} from "./goal-output.js";
 import {
   commonMutationContextFrom,
   runMutationCommand
@@ -72,19 +76,6 @@ export async function runGoal(
   if (action === "show") return showGoal(flags, goalId, writeLine);
   if (action === "reject") return rejectGoal(flags, goalId, writeLine);
   throw new Error("Missing goal action.");
-}
-
-function printGoalCommandBody<T>(
-  format: string | undefined,
-  data: T,
-  human: (body: T, writeLine: (message: string) => void) => void,
-  writeLine: (message: string) => void
-): void {
-  if (format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data }), null, 2));
-    return;
-  }
-  human(data, writeLine);
 }
 
 async function rejectGoal(

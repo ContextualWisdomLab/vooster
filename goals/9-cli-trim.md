@@ -208,8 +208,9 @@ Goal 9 requires here.
 
 ### Tranche E — Agent envelope rollout to user-facing files
 
-E1. **Every file in the declared `USER_FACING_AGENT_FILES` set has a
-`format === "agent"` branch routed through `buildAgentEnvelope`.**
+E1. **Every file in the declared `USER_FACING_AGENT_FILES` set has
+`format === "agent"` output routed through `buildAgentEnvelope` in the command
+file or its sibling `*-output.ts` renderer.**
 Source of truth: the literal array
 `     USER_FACING_AGENT_FILES=(
       apps/cli/src/commands/project.ts
@@ -219,10 +220,10 @@ Source of truth: the literal array
       apps/cli/src/commands/doctor.ts
     )
     `
-The gate iterates and asserts each file contains both
-`format === "agent"` and an import from `../agent-envelope`. (Goal
-7 A3 strengthens this further: once the branch exists, the
-envelope routing is auto-enforced.)
+The gate iterates and asserts each file or its sibling output renderer contains
+both `format === "agent"` and an import from `../agent-envelope`. (Goal 7 A3
+strengthens this further: once the branch exists, the envelope routing is
+auto-enforced.)
 
 E2. **Every file in the declared `EXCLUDED_AGENT_FILES` set does NOT
 have a `format === "agent"` branch.** Source of truth:
@@ -322,8 +323,8 @@ bash scripts/diagnose.sh
    using `seedViaCli`. Commit family: `test(cli-honest):`.
 5. **Tranche E — envelope rollout.** For each file in
    `USER_FACING_AGENT_FILES`, add the `format === "agent"` branch +
-   `buildAgentEnvelope` import. Goal 7 A3 will start enforcing
-   routing the moment the branch exists. Commit family:
+   `buildAgentEnvelope` import in the command file or sibling output renderer.
+   Goal 7 A3 will start enforcing routing the moment the branch exists. Commit family:
    `refactor(cli): route <topic> agent output through buildAgentEnvelope`.
 6. **Rigor sweep (F1).** Run
    `bash scripts/check-gate-rigor.sh goals/9-cli-trim.md`.

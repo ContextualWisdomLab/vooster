@@ -3,6 +3,20 @@ import type {
   GoalPromotionResponse,
   GoalResponse
 } from "@vooster/contracts";
+import { buildAgentEnvelope } from "../agent-envelope.js";
+
+export function printGoalCommandBody<T>(
+  format: string | undefined,
+  data: T,
+  human: (body: T, writeLine: (message: string) => void) => void,
+  writeLine: (message: string) => void
+): void {
+  if (format === "agent") {
+    writeLine(JSON.stringify(buildAgentEnvelope({ data }), null, 2));
+    return;
+  }
+  human(data, writeLine);
+}
 
 export function printGoalResponse(
   body: GoalResponse,

@@ -50,7 +50,7 @@ describe("UC-004 CLI - Create a project", () => {
       expect(result.stdout).toContain("Payments");
       expect(result.stdout).toContain("PAY");
       expect(result.stdout).toContain("main");
-      expect(result.stdout).toContain("vspec actor define");
+      expect(result.stdout).toContain("vspec actor create");
     } finally {
       await server.stop();
     }

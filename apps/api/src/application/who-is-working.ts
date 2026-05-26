@@ -86,7 +86,6 @@ export async function whoIsWorking(
     sessions,
     status: "FOUND",
     suggestedNextActions: nextActions(
-      locks,
       mergeRequests,
       found.usecase,
       hasActiveWork,
@@ -152,7 +151,6 @@ function mergeRow(merge: StoredMergeRequest): WhoMergeRow {
 }
 
 function nextActions(
-  locks: WhoLockRow[],
   merges: WhoMergeRow[],
   usecase: StoredUseCase,
   hasActiveWork: boolean,
@@ -175,11 +173,6 @@ function nextActions(
           }
         ]
       : []),
-    ...(locks.length === 0
-      ? []
-      : [
-          { command: "vspec lock list", reason: "Review active locks before editing." }
-        ]),
     ...merges.map((merge) => ({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the open merge request touching this use case."

@@ -75,7 +75,7 @@ describe("honest CLI project create --format=agent", () => {
     expect(createEnvelope.data.project.id.length).toBeGreaterThan(0);
     expect(createEnvelope.data.project.key).toBe(createdKey);
     expect(createEnvelope.data.default_branch.name).toBe("main");
-    expect(createEnvelope.data.recommended_next_command).toBe("vspec actor define");
+    expect(createEnvelope.data.recommended_next_command).toBe("vspec actor create");
 
     const status = await expectOk(runCli(["status", "--format=agent"], seed.env));
     const statusEnvelope = expectAgentEnvelope<StatusData>(status.stdout);

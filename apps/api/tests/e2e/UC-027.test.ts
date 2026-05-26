@@ -77,7 +77,7 @@ describe("UC-027 - Analyze the impact of a proposed change", () => {
       reason: "Coordinate with affected active sessions."
     });
     expect(body.suggested_next_actions).toContainEqual({
-      command: `vspec changes commit ${body.preview_id}`,
+      command: `vspec change commit --preview-id ${body.preview_id}`,
       reason: "Commit the previewed change after review."
     });
 

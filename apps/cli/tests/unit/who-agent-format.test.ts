@@ -61,7 +61,9 @@ describe("who --format=agent", () => {
     expect(envelope.data.locks.at(0)?.id).toBe("lock-1");
     expect(envelope.data.merge_requests.at(0)?.id).toBe("merge-1");
     expect(envelope.context).toEqual(defaultContext());
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec lock list");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe(
+      "vspec merge show merge-1"
+    );
     expect(envelope.warnings).toEqual([]);
   });
 
@@ -103,7 +105,7 @@ describe("who --format=agent", () => {
     expect(lines).toContain("Source branch branch-1");
     expect(lines).toContain("Status OPEN");
     expect(lines).toContain("Conflicts 2");
-    expect(lines).toContain("vspec lock list");
+    expect(lines).toContain("vspec merge show merge-1");
   });
 });
 
@@ -155,10 +157,7 @@ function activeWhoBody() {
         markers: []
       }
     ],
-    suggested_next_actions: [
-      { command: "vspec lock list" },
-      { command: "vspec merge show merge-1" }
-    ],
+    suggested_next_actions: [{ command: "vspec merge show merge-1" }],
     usecase: {
       key: "WHO-001"
     }

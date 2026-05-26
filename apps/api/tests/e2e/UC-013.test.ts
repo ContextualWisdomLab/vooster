@@ -267,8 +267,8 @@ describe("UC-013 - Edit a use case step", () => {
     expect(problem.lock_reason).toBe("Release freeze.");
     expect(problem.expires_at).toBe(expiresAt);
     expect(problem.suggested_next_actions).toContainEqual({
-      command: "vspec unlock",
-      reason: "Unlock the use case or contact the lock holder before editing."
+      command: `vspec who ${usecase.key}`,
+      reason: "Identify the lock holder before editing."
     });
   });
 });

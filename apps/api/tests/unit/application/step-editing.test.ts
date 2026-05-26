@@ -132,7 +132,11 @@ describe("step editing application", () => {
     });
     await expect(
       editStep(depsFor({ lock: lock({ mode: "HARD" }) }), input({ notes: "Blocked." }))
-    ).resolves.toEqual({ lock: lock({ mode: "HARD" }), status: "HARD_LOCKED" });
+    ).resolves.toEqual({
+      lock: lock({ mode: "HARD" }),
+      usecase: usecase(),
+      status: "HARD_LOCKED"
+    });
     await expect(
       editStep(
         depsFor({ lock: lock({ mode: "SEMANTIC" }) }),
@@ -140,6 +144,7 @@ describe("step editing application", () => {
       )
     ).resolves.toEqual({
       lock: lock({ mode: "SEMANTIC" }),
+      usecase: usecase(),
       status: "SEMANTIC_LOCKED"
     });
     await expect(
@@ -149,6 +154,7 @@ describe("step editing application", () => {
       )
     ).resolves.toEqual({
       lock: lock({ mode: "SEMANTIC" }),
+      usecase: usecase(),
       status: "SEMANTIC_LOCKED"
     });
   });

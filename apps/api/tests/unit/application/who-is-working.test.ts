@@ -60,10 +60,6 @@ describe("who is working application", () => {
       }
     ]);
     expect(result.suggestedNextActions).toContainEqual({
-      command: "vspec lock list",
-      reason: "Review active locks before editing."
-    });
-    expect(result.suggestedNextActions).toContainEqual({
       command: "vspec merge show merge-1",
       reason: "Review the open merge request touching this use case."
     });

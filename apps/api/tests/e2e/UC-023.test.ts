@@ -94,10 +94,6 @@ describe("UC-023 - See who is working on a use case", () => {
       status: "OPEN"
     });
     expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec lock list",
-      reason: "Review active locks before editing."
-    });
-    expect(body.suggested_next_actions).toContainEqual({
       command: `vspec merge show ${merge.id}`,
       reason: "Review the open merge request touching this use case."
     });

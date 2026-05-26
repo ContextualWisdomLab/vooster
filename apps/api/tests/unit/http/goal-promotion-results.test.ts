@@ -95,7 +95,7 @@ describe("goal promotion result responses", () => {
       revision: { id: "revision-1" },
       suggested_next_actions: [
         { command: "vspec usecase add-stakeholder" },
-        { command: "vspec scenario main" }
+        { command: "vspec scenario add PAY-001 --type main-success" }
       ],
       usecase: { key: "PAY-001" }
     });
@@ -113,7 +113,7 @@ describe("goal promotion result responses", () => {
     expect(warned.body).toMatchObject({
       suggested_next_actions: [
         { command: "vspec usecase add-stakeholder" },
-        { command: "vspec scenario main" },
+        { command: "vspec scenario add PAY-001 --type main-success" },
         { command: "vspec usecase set PAY-001 --field title" }
       ],
       warnings: [{ field: "title", message: "Use a verb phrase." }]

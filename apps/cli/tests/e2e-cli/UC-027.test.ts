@@ -42,7 +42,7 @@ describe("UC-027 CLI - Analyze proposed change impact", () => {
       expect(result.stdout).toContain("Input hash ");
       expect(result.stdout).toContain(`vspec lock ${setup.usecaseKey}`);
       expect(result.stdout).toContain("vspec session list --status=active");
-      expect(result.stdout).toContain("vspec changes commit");
+      expect(result.stdout).toContain("vspec change commit --preview-id");
     } finally {
       await server.stop();
     }

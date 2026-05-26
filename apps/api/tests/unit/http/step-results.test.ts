@@ -79,20 +79,28 @@ describe("step editing result responses", () => {
     const hard = reply();
     sendStepEditingResult(hard.fastifyReply, {
       lock: lock({ mode: "HARD" }),
+      usecase: usecase(),
       status: "HARD_LOCKED"
     });
 
     expect(hard.statusCode).toBe(409);
-    expect(hard.body).toMatchObject({ title: "Use case has a hard lock" });
+    expect(hard.body).toMatchObject({
+      suggested_next_actions: [{ command: "vspec who PAY-001" }],
+      title: "Use case has a hard lock"
+    });
 
     const semantic = reply();
     sendStepEditingResult(semantic.fastifyReply, {
       lock: lock({ mode: "SEMANTIC" }),
+      usecase: usecase(),
       status: "SEMANTIC_LOCKED"
     });
 
     expect(semantic.statusCode).toBe(409);
-    expect(semantic.body).toMatchObject({ title: "Use case has a semantic lock" });
+    expect(semantic.body).toMatchObject({
+      suggested_next_actions: [{ command: "vspec who PAY-001" }],
+      title: "Use case has a semantic lock"
+    });
   });
 
   test("serializes updated steps", () => {

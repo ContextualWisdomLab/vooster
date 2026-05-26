@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { problem } from "./signup-support.js";
-import type { StoredLock } from "../domain/entities/index.js";
+import type { StoredLock, StoredUseCase } from "../domain/entities/index.js";
 import type { LockStore } from "../ports/lock-store.js";
 
 const lockBodySchema = z.object({
@@ -26,7 +26,7 @@ export function createTestLock(
   return lockStore.saveLock(lock).then(() => reply.code(201).send({ lock }));
 }
 
-export function semanticLockProblem(lock: StoredLock) {
+export function semanticLockProblem(usecase: StoredUseCase, lock: StoredLock) {
   return problem(
     409,
     "Use case has a semantic lock",
@@ -37,14 +37,14 @@ export function semanticLockProblem(lock: StoredLock) {
     },
     [
       {
-        command: "vspec unlock",
-        reason: "Coordinate with the lock holder before changing semantic fields."
+        command: `vspec who ${usecase.key}`,
+        reason: "Identify the lock holder before changing semantic fields."
       }
     ]
   );
 }
 
-export function hardLockProblem(lock: StoredLock) {
+export function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
   return problem(
     409,
     "Use case has a hard lock",
@@ -55,8 +55,8 @@ export function hardLockProblem(lock: StoredLock) {
     },
     [
       {
-        command: "vspec unlock",
-        reason: "Unlock the use case or contact the lock holder before editing."
+        command: `vspec who ${usecase.key}`,
+        reason: "Identify the lock holder before editing."
       }
     ]
   );

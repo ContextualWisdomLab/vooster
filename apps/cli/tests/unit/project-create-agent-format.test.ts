@@ -58,8 +58,8 @@ describe("project create --format=agent", () => {
     expect(envelope.data.project.id).toBe("project-1");
     expect(envelope.data.project.key).toBe("PAY");
     expect(envelope.data.default_branch.name).toBe("main");
-    expect(envelope.data.recommended_next_command).toBe("vspec actor define");
-    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec actor define");
+    expect(envelope.data.recommended_next_command).toBe("vspec actor create");
+    expect(envelope.suggested_next_actions.at(0)?.command).toBe("vspec actor create");
     expect(envelope.warnings).toEqual([]);
     expect(readConfig().current_project_id).toBe("project-1");
     expect(readConfig().current_project_key).toBe("PAY");
@@ -75,7 +75,7 @@ describe("project create --format=agent", () => {
     expect(lines).toEqual([
       "Project Payments PAY project-1",
       "Branch main",
-      "vspec actor define"
+      "vspec actor create"
     ]);
     expect(readConfig().current_project_id).toBe("project-1");
     expect(readConfig().current_project_key).toBe("PAY");
@@ -127,7 +127,7 @@ function projectCreateResponse(): ProjectCreateData {
       key: "PAY",
       name: "Payments"
     },
-    recommended_next_command: "vspec actor define"
+    recommended_next_command: "vspec actor create"
   };
 }
 

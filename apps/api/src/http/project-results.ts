@@ -16,7 +16,7 @@ export function sendProjectCreationResult(
       return reply.code(201).send({
         default_branch: result.defaultBranch,
         project: result.project,
-        recommended_next_command: "vspec actor define"
+        recommended_next_command: "vspec actor create"
       });
     case "FORBIDDEN":
       return reply.code(403).send(

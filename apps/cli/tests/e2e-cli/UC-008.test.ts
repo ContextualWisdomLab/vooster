@@ -56,7 +56,7 @@ describe("UC-008 CLI - Promote a goal to a use case", () => {
       expect(result.stdout).toContain("version 1");
       expect(result.stdout).toContain("Goal PROMOTED");
       expect(result.stdout).toContain("vspec usecase add-stakeholder");
-      expect(result.stdout).toContain("vspec scenario main");
+      expect(result.stdout).toContain("vspec scenario add GOL-001 --type main-success");
     } finally {
       await server.stop();
     }

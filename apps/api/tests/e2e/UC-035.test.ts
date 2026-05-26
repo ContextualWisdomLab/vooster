@@ -279,9 +279,5 @@ describe("UC-035 - Propose a spec change (AI agent)", () => {
       command: `vspec who ${usecase.key}`,
       reason: "Inspect the session holding the lock."
     });
-    expect(problem.suggested_next_actions).toContainEqual({
-      command: `vspec unlock ${usecase.key}`,
-      reason: "Owners can release the lock when appropriate."
-    });
   });
 });

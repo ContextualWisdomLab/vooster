@@ -23,7 +23,7 @@ describe("project result responses", () => {
     expect(created.body).toMatchObject({
       default_branch: { id: "branch-1" },
       project: { key: "PAY" },
-      recommended_next_command: "vspec actor define"
+      recommended_next_command: "vspec actor create"
     });
 
     const cases = [

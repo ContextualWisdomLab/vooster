@@ -44,10 +44,6 @@ export function hardLockProblem(usecase: StoredUseCase, lock: StoredLock) {
       {
         command: `vspec who ${usecase.key}`,
         reason: "Inspect the session holding the lock."
-      },
-      {
-        command: `vspec unlock ${usecase.key}`,
-        reason: "Owners can release the lock when appropriate."
       }
     ]
   );

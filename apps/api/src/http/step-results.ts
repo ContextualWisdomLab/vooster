@@ -28,9 +28,9 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
     case "PASSIVE_ACTION":
       return reply.code(422).send(passiveStepEditProblem(result.action));
     case "HARD_LOCKED":
-      return reply.code(409).send(hardLockProblem(result.lock));
+      return reply.code(409).send(hardLockProblem(result.usecase, result.lock));
     case "SEMANTIC_LOCKED":
-      return reply.code(409).send(semanticLockProblem(result.lock));
+      return reply.code(409).send(semanticLockProblem(result.usecase, result.lock));
     case "UPDATED":
       return reply.send({
         affected_sessions: result.affectedSessions,

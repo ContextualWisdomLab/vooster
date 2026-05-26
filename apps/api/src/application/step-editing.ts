@@ -49,8 +49,8 @@ export type StepEditingResult =
   | { status: "EMPTY_ACTION" }
   | { knownActors: string[]; status: "UNKNOWN_ACTOR" }
   | { action: string; status: "PASSIVE_ACTION" }
-  | { lock: StoredLock; status: "HARD_LOCKED" }
-  | { lock: StoredLock; status: "SEMANTIC_LOCKED" }
+  | { lock: StoredLock; usecase: StoredUseCase; status: "HARD_LOCKED" }
+  | { lock: StoredLock; usecase: StoredUseCase; status: "SEMANTIC_LOCKED" }
   | {
       affectedSessions: string[];
       revision: StoredRevision;
@@ -97,13 +97,13 @@ export async function editStep(
 
   const lock = await deps.lockStore.findLockForUseCase(found.usecase.id);
   if (lock?.mode === "HARD") {
-    return { lock, status: "HARD_LOCKED" };
+    return { lock, usecase: found.usecase, status: "HARD_LOCKED" };
   }
   if (
     lock?.mode === "SEMANTIC" &&
     (input.action !== undefined || actor.actor !== undefined)
   ) {
-    return { lock, status: "SEMANTIC_LOCKED" };
+    return { lock, usecase: found.usecase, status: "SEMANTIC_LOCKED" };
   }
 
   const updated = {

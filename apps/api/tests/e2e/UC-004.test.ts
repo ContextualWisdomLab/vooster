@@ -65,7 +65,7 @@ describe("UC-004 - Create a project", () => {
     });
     expect(body.project.default_branch_id).toBe(body.default_branch.id);
     expect(body.default_branch.owner_id).toBe(signedUp.userId);
-    expect(body.recommended_next_command).toBe("vspec actor define");
+    expect(body.recommended_next_command).toBe("vspec actor create");
   });
 
   test("MAIN: signed-in member lists their projects for the web viewer", async () => {

@@ -60,7 +60,10 @@ function suggestedNextActions(
       command: "vspec usecase add-stakeholder",
       reason: "Attach stakeholders and interests."
     },
-    { command: "vspec scenario main", reason: "Write the main success scenario." },
+    {
+      command: `vspec scenario add ${result.usecase.key} --type main-success`,
+      reason: "Write the main success scenario."
+    },
     ...(result.titleWarning === undefined
       ? []
       : [

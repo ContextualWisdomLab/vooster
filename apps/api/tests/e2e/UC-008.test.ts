@@ -89,7 +89,7 @@ describe("UC-008 - Promote a goal to a use case", () => {
       reason: "Attach stakeholders and interests."
     });
     expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec scenario main",
+      command: `vspec scenario add ${body.usecase.key} --type main-success`,
       reason: "Write the main success scenario."
     });
   });

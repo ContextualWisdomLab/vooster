@@ -81,7 +81,6 @@ describe("UC-023 CLI - See who is working on a use case", () => {
       expect(result.stdout).toContain(`Merge request ${setup.mergeId}`);
       expect(result.stdout).toContain(`Source branch ${setup.branchId}`);
       expect(result.stdout).toContain(`Conflicts ${String(setup.conflictCount)}`);
-      expect(result.stdout).toContain("vspec lock list");
       expect(result.stdout).toContain(`vspec merge show ${setup.mergeId}`);
     } finally {
       await server.stop();

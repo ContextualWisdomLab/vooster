@@ -174,7 +174,7 @@ function nextActions(usecase: StoredUseCase, previewId: string) {
       reason: "Coordinate with affected active sessions."
     },
     {
-      command: `vspec changes commit ${previewId}`,
+      command: `vspec change commit --preview-id ${previewId}`,
       reason: "Commit the previewed change after review."
     }
   ];

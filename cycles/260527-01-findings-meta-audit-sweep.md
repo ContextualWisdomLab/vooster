@@ -714,6 +714,16 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec vitest run packages/contracts/tests/who.test.ts apps/cli/tests/unit/who-agent-format.test.ts apps/cli/tests/e2e-cli-honest/who-agent-format.test.ts apps/api/tests/e2e/UC-023.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T05:28:01+09:00 — Tier 3#5 shared-api-contracts invitation domain
+  complete; `audit_counter=32`. Added `packages/contracts/src/invitation.ts`,
+  moved invitation create/accept params, request bodies, and success response
+  DTOs into shared schemas, made API invitation routes/results parse through
+  those schemas, and made CLI member invite parse shared request/response shapes
+  before agent/human rendering. Domains migrated: 15/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/invitation.test.ts apps/cli/tests/unit/member-api-key-agent-format.test.ts apps/api/tests/e2e/UC-003.test.ts apps/api/tests/e2e/UC-032.test.ts apps/api/tests/unit/http/invitation-results.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

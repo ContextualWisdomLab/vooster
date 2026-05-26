@@ -187,10 +187,21 @@ function apiKeyFlags(overrides: Record<string, string> = {}): Record<string, str
 function memberInviteResponse() {
   return {
     invitation: {
+      accepted_at: null,
+      delivery_status: "SENT",
       email: "teammate@example.test",
-      role: "EDITOR"
+      expires_at: "2026-05-29T00:00:00.000Z",
+      id: "invitation-1",
+      role: "EDITOR",
+      token: "token-1",
+      workspace_id: "workspace-1"
     },
-    suggested_next_actions: [{ command: "vspec member list" }]
+    suggested_next_actions: [
+      {
+        command: "vspec member list",
+        reason: "Review pending and active workspace members."
+      }
+    ]
   };
 }
 

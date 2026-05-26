@@ -6,6 +6,7 @@ export * from "./common.js";
 export * from "./comment.js";
 export * from "./doctor.js";
 export * from "./goal.js";
+export * from "./invitation.js";
 export * from "./lock.js";
 export * from "./project.js";
 export * from "./scenario.js";

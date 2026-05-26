@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { invitationCreateResponseSchema } from "@vooster/contracts";
 import type { CreateInvitationResult } from "../application/invitations.js";
 import type { StoredInvitation } from "../domain/entities/index.js";
 import {
@@ -26,7 +27,7 @@ export function sendCreateInvitationResult(
 }
 
 function invitationResponse(invitation: StoredInvitation, includeResend = false) {
-  return {
+  return invitationCreateResponseSchema.parse({
     invitation,
     suggested_next_actions: [
       {
@@ -50,5 +51,5 @@ function invitationResponse(invitation: StoredInvitation, includeResend = false)
           ]
         : [])
     ]
-  };
+  });
 }

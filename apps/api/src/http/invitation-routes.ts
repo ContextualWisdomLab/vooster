@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  invitationAcceptParamsSchema,
+  invitationAcceptRequestSchema,
+  invitationAcceptResponseSchema,
+  invitationCreateParamsSchema,
+  invitationCreateRequestSchema
+} from "@vooster/contracts";
 import {
   emailMismatchProblem,
   invitationExpiredProblem
@@ -15,13 +21,6 @@ import { createInvitation as createInvitationWorkflow } from "../application/inv
 import type { MembershipStore } from "../ports/membership-store.js";
 import type { UserStore } from "../ports/user-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-const inviteSchema = z.object({
-  email: z.email(),
-  role: z.enum(["EDITOR", "OWNER"]),
-  simulate_delivery_failure: z.boolean().optional(),
-  simulate_expired: z.boolean().optional()
-});
-const acceptSchema = z.object({ code: z.string().min(1) });
 
 export function registerInvitationRoutes(
   app: FastifyInstance,
@@ -47,8 +46,8 @@ async function createInvitation(
   userStore: UserStore,
   workspaceStore: WorkspaceStore
 ) {
-  const params = z.object({ workspaceId: z.string().min(1) }).parse(request.params);
-  const parsed = inviteSchema.safeParse(request.body);
+  const params = invitationCreateParamsSchema.parse(request.params);
+  const parsed = invitationCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid invitation request"));
   }
@@ -81,8 +80,8 @@ async function acceptInvitation(
   membershipStore: MembershipStore,
   userStore: UserStore
 ) {
-  const token = z.object({ token: z.string().min(1) }).parse(request.params).token;
-  const parsed = acceptSchema.safeParse(request.body);
+  const token = invitationAcceptParamsSchema.parse(request.params).token;
+  const parsed = invitationAcceptRequestSchema.safeParse(request.body);
   const invitation = invitations(state).get(token);
   if (!parsed.success || invitation === undefined) {
     return reply.code(404).send(problem(404, "Invitation not found"));
@@ -104,7 +103,9 @@ async function acceptInvitation(
   invitation.accepted_at = new Date().toISOString();
   await membershipStore.saveMembership(membership);
   establishSession(reply, state.sessionsByToken, user.id);
-  return reply.send({ invitation, membership, user });
+  return reply.send(
+    invitationAcceptResponseSchema.parse({ invitation, membership, user })
+  );
 }
 
 async function userForProfile(

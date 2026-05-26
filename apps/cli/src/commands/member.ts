@@ -1,4 +1,10 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  invitationCreateRequestSchema,
+  invitationCreateResponseSchema,
+  type InvitationCreateResponse,
+  type InvitationRole
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredFlag, resolveContextFlag } from "../flag-values.js";
@@ -16,19 +22,9 @@ type MemberFlags = {
 type InviteFlags = {
   apiUrl: string;
   email: string;
-  role: "EDITOR" | "OWNER";
+  role: InvitationRole;
   sessionCookie: string;
   workspaceId: string;
-};
-
-type InvitationResponse = {
-  invitation: {
-    email: string;
-    role: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
 };
 
 export class MemberCommand extends Command {
@@ -72,17 +68,20 @@ async function inviteMember(
   writeLine: (message: string) => void
 ): Promise<void> {
   const inviteFlags = inviteFlagsFrom(flags);
+  const requestBody = invitationCreateRequestSchema.parse({
+    email: inviteFlags.email,
+    role: inviteFlags.role
+  });
   const response = await postJson(
     `${inviteFlags.apiUrl}/v1/workspaces/${inviteFlags.workspaceId}/invitations`,
-    {
-      email: inviteFlags.email,
-      role: inviteFlags.role
-    },
+    requestBody,
     {
       Cookie: inviteFlags.sessionCookie
     }
   );
-  const body = response.body as InvitationResponse;
+  const body: InvitationCreateResponse = invitationCreateResponseSchema.parse(
+    response.body
+  );
 
   if (flags.format === "agent") {
     writeLine(
@@ -115,7 +114,7 @@ function inviteFlagsFrom(flags: MemberFlags): InviteFlags {
   };
 }
 
-function invitationRole(rawRole: string): "EDITOR" | "OWNER" {
+function invitationRole(rawRole: string): InvitationRole {
   const role = rawRole.toUpperCase();
   if (role === "EDITOR" || role === "OWNER") {
     return role;

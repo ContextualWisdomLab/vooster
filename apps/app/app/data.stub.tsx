@@ -82,7 +82,8 @@ const DEMO_PROJECTS: DemoProject[] = [
               {
                 step_number: 4,
                 actor: "고객",
-                action: "결제 수단을 선택하고 결제를 요청한다."
+                action: "결제 수단을 선택하고 결제를 요청한다.",
+                invokes: ["CHECKOUT-002"]
               },
               { step_number: 5, actor: "결제 게이트웨이", action: "결제를 승인한다." },
               {
@@ -148,6 +149,13 @@ const DEMO_PROJECTS: DemoProject[] = [
             {
               stakeholder: "마케팅 담당자",
               interest: "프로모션이 의도한 조건대로만 적용된다."
+            }
+          ],
+          invoked_by: [
+            {
+              key: "CHECKOUT-001",
+              step_number: 4,
+              title: "장바구니 상품을 주문한다"
             }
           ]
         }

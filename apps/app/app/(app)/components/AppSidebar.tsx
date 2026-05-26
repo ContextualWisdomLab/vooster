@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, CircleUserRound, PanelLeftClose, Plus } from "lucide-react";
+import { ChevronRight, ChevronsLeft, CircleUserRound, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -61,7 +61,7 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
             onClick={toggleSidebar}
             className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
           >
-            <PanelLeftClose />
+            <ChevronsLeft />
           </IconButton>
         </SidebarHeader>
         <SidebarContent>

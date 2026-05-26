@@ -516,6 +516,13 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   now resolved. Verification: focused impact/route tests, API typecheck,
   targeted eslint/prettier, and `pnpm --filter @vooster/api test` exited 0.
   Next step: required meta-system audit checkpoint before the next target.
+- 2026-05-27T02:45:50+09:00 — Tier 3#5 shared-api-contracts scaffold
+  complete; `audit_counter=15`. Added `packages/contracts` as
+  `@vooster/contracts`, wired `packages/*` into pnpm and TypeScript, added the
+  workspace dependency to API/CLI/Web packages, and pinned a smoke Zod schema
+  parse test. Domains migrated: 0/21. Verification:
+  `pnpm exec vitest run packages/contracts`, `pnpm exec tsc --noEmit`,
+  targeted eslint, targeted prettier, and `pnpm install` exited 0.
 
 ---
 

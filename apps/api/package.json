@@ -7,5 +7,8 @@
     "build": "cd ../.. && tsc -p tsconfig.json",
     "test": "cd ../.. && vitest run apps/api/tests",
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vooster/contracts": "workspace:*"
   }
 }

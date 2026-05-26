@@ -13,5 +13,8 @@
     "test:unit": "cd ../.. && vitest run apps/cli/tests/unit",
     "test:coverage": "cd ../.. && vitest run --config vitest.cli-unit.config.ts --coverage",
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vooster/contracts": "workspace:*"
   }
 }

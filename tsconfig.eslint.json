@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "apps/**/*.ts",
+    "packages/**/*.ts",
     "scripts/**/*.ts",
     "vitest*.config.ts",
     "eslint.config.js"

@@ -3,7 +3,9 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
-  Not started. packages/ workspace directory does not exist yet.
+  Scaffold CLOSED on 2026-05-27: `packages/contracts` exists, workspace package
+  wiring is in place, and the smoke schema parse test is green. Domains
+  migrated: 0/21.
   2026-05-27: web app paths corrected apps/web → apps/app (@vooster/app); the
   product UI package is @vooster/app. Picked up by cycle 260527-01 as an XL,
   chain-green-per-commit, partial-OK block — see "Unattended execution" below.

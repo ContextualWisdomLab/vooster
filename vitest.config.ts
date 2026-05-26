@@ -19,7 +19,7 @@ export default defineConfig({
       "**/node_modules/**",
       "**/dist/**",
       "apps/api/tests/e2e/_template.test.ts",
-      "apps/web/tests/e2e-web/**"
+      "apps/app/tests/e2e-web/**"
     ],
     globals: true,
     maxWorkers: Number.parseInt(process.env.VSPEC_VITEST_MAX_WORKERS ?? "2", 10),

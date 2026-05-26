@@ -16,19 +16,19 @@ This promotes the frontend slice of
 slice is already present: `GET /v1/projects/:projectId/usecases` returns
 `scenario_count` and `extension_count` per item, and the existing actors
 endpoint can supply actor count. The remaining work is presentation-layer
-rendering in `apps/web`.
+rendering in `apps/app`.
 
 ## Delegation
 
 - owner: claude
-- cwd: apps/web
+- cwd: apps/app
 - model: opus
 
 ## Completion Conditions
 
-1. `apps/web/app/data.tsx` models `scenario_count` and `extension_count` on
+1. `apps/app/app/data.tsx` models `scenario_count` and `extension_count` on
    every `UsecaseSummary`.
-2. `apps/web/app/data.tsx` exposes a project actors fetcher so the overview can
+2. `apps/app/app/data.tsx` exposes a project actors fetcher so the overview can
    show actor count without adding a new API endpoint.
 3. The project overview renders a substance count line containing
    `유스케이스`, `액터`, and `시나리오`.
@@ -42,16 +42,16 @@ rendering in `apps/web`.
 
 - `docs/findings/2026-05-25T1511-project-overview-blueprint.md`
 - `docs/findings/2026-05-25T1503-web-viewer-de-jargon.md`
-- `apps/web/app/data.tsx`
-- `apps/web/app/(app)/projects/[key]/page.tsx`
-- `apps/web/tests/unit/`
-- `apps/web/tests/e2e-web/tier1.spec.ts`
+- `apps/app/app/data.tsx`
+- `apps/app/app/(app)/projects/[key]/page.tsx`
+- `apps/app/tests/unit/`
+- `apps/app/tests/e2e-web/tier1.spec.ts`
 
 ## Verification
 
 ```
-pnpm --filter @vooster/web test
-pnpm --filter @vooster/web typecheck
+pnpm --filter @vooster/app test
+pnpm --filter @vooster/app typecheck
 bash goals/33-project-overview-blueprint.gates.sh
 bash scripts/completion-check.sh
 ```

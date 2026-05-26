@@ -89,9 +89,7 @@ importers:
 
   apps/api: {}
 
-  apps/cli: {}
-
-  apps/web:
+  apps/app:
     dependencies:
       class-variance-authority:
         specifier: ^0.7.1
@@ -145,6 +143,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  apps/cli: {}
 
   apps/www:
     dependencies:

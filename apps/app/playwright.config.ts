@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e-web",
   webServer: {
-    command: "pnpm --filter @vooster/web dev --hostname 127.0.0.1 --port 3108",
+    command: "pnpm --filter @vooster/app dev --hostname 127.0.0.1 --port 3108",
     env: {
       VSPEC_AUTH_STUB: "1"
     },

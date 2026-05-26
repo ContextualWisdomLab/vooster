@@ -11,7 +11,7 @@ page (and for future shared packages) the codebase moves to a
 - `apps/api` — Fastify HTTP server + the inner layers
   (`domain`, `ports`, `application`, `infrastructure`, `http`) + Prisma
 - `apps/cli` — the `vspec` oclif CLI (current `src/cli/` + `bin/run.js`)
-- `apps/web` — a Next.js authenticated product UI for reading specs
+- `apps/app` — a Next.js authenticated product UI for reading specs
 - `apps/www` — a new Astro site that hosts the Korean landing page,
   modeled after https://www.conductor.build/ (hero → social-proof
   logos → features → workflow → showcase → pricing/CTA → footer)
@@ -98,7 +98,7 @@ copied but not deleted.
 
 B6. **Every app declares standard scripts** — `build`, `test`,
 `typecheck`. The gate iterates the cartesian product of
-`(api, cli, web, www) × (build, test, typecheck)` and reads each
+`(api, cli, app, www) × (build, test, typecheck)` and reads each
 `package.json` with `node -e`.
 
 B7. **`pnpm --filter @vooster/api build` exits 0.** _(Enforced by

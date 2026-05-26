@@ -23,15 +23,15 @@ GOAL_NAME="8-web-readonly-viewer"
 # app routes, e2e specs, playwright + vercel config. The .next/ build
 # artifact is checked separately and lives outside this fingerprint.
 GATE_INPUTS=(
-  apps/web/package.json
-  apps/web/tsconfig.json
-  apps/web/next.config.ts
-  apps/web/tailwind.config.ts
-  apps/web/postcss.config.mjs
-  apps/web/app
-  apps/web/tests/e2e-web
-  apps/web/playwright.config.ts
-  apps/web/vercel.ts
+  apps/app/package.json
+  apps/app/tsconfig.json
+  apps/app/next.config.ts
+  apps/app/tailwind.config.ts
+  apps/app/postcss.config.mjs
+  apps/app/app
+  apps/app/tests/e2e-web
+  apps/app/playwright.config.ts
+  apps/app/vercel.ts
   goals/5-monorepo.md
   goals/5-monorepo.gates.sh
   goals/8-web-readonly-viewer.gates.sh
@@ -49,12 +49,12 @@ fi
 PASS=true
 
 # ─── Sources of truth ────────────────────────────────────────────────────
-WEB_DIR=apps/web
-WEB_PKG=apps/web/package.json
-WEB_APP_DIR=apps/web/app
-WEB_TESTS_DIR=apps/web/tests/e2e-web
-WEB_PLAYWRIGHT_CONFIG=apps/web/playwright.config.ts
-WEB_VERCEL_CONFIG=apps/web/vercel.ts
+WEB_DIR=apps/app
+WEB_PKG=apps/app/package.json
+WEB_APP_DIR=apps/app/app
+WEB_TESTS_DIR=apps/app/tests/e2e-web
+WEB_PLAYWRIGHT_CONFIG=apps/app/playwright.config.ts
+WEB_VERCEL_CONFIG=apps/app/vercel.ts
 GOAL5_MD=goals/5-monorepo.md
 VERCEL_PROJECT_NAME=vooster-new-web
 
@@ -94,9 +94,9 @@ UC_FIELDS=(
 
 # ─── Tranche A — Workspace integration ───────────────────────────────────
 
-echo "[8.A1 goal 5 A3 prose admits web alongside api/cli/www]"
+echo "[8.A1 goal 5 A3 prose admits app alongside api/cli/www]"
 A1_MISSING=()
-for app in api cli web www; do
+for app in api cli app www; do
   # Look in the A3 paragraph specifically — between the "A3." marker
   # and the next blank line, or use a wide grep over the .md file.
   if ! grep -qE "\\b${app}\\b" "$GOAL5_MD"; then
@@ -120,12 +120,12 @@ else
   PASS=false
 fi
 
-echo "[8.A2 apps/web/package.json declares @vooster/web]"
+echo "[8.A2 apps/app/package.json declares @vooster/app]"
 A2_OK=false
 if [ -f "$WEB_PKG" ]; then
   if node -e "
     const m = require('./$WEB_PKG');
-    if (m.name !== '@vooster/web') { process.exit(1); }
+    if (m.name !== '@vooster/app') { process.exit(1); }
     if (m.private !== true) { process.exit(2); }
   " 2>/dev/null; then
     A2_OK=true
@@ -134,11 +134,11 @@ fi
 if [ "$A2_OK" = true ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $WEB_PKG missing or name != '@vooster/web' or not private"
+  echo "    ✗ fail — $WEB_PKG missing or name != '@vooster/app' or not private"
   PASS=false
 fi
 
-echo "[8.A3 apps/web depends on Next.js 15]"
+echo "[8.A3 apps/app depends on Next.js 15]"
 A3_OK=false
 if [ -f "$WEB_PKG" ]; then
   if node -e "
@@ -156,7 +156,7 @@ else
   PASS=false
 fi
 
-echo "[8.A4 every Next.js config file is present at apps/web/]"
+echo "[8.A4 every Next.js config file is present at apps/app/]"
 A4_MISSING=()
 for cfg in "${CONFIG_FILES[@]}"; do
   if [ ! -f "$WEB_DIR/$cfg" ]; then
@@ -170,7 +170,7 @@ else
   PASS=false
 fi
 
-echo "[8.A5 every required script declared in apps/web/package.json]"
+echo "[8.A5 every required script declared in apps/app/package.json]"
 A5_MISSING=()
 if [ -f "$WEB_PKG" ]; then
   for script in "${PKG_SCRIPTS[@]}"; do
@@ -191,7 +191,7 @@ else
   PASS=false
 fi
 
-echo "[8.A6 apps/web/.next/ exists (build artifact)]"
+echo "[8.A6 apps/app/.next/ exists (build artifact)]"
 # The build command is enforced by goals/_meta.gates.sh (M.4); this gate
 # only verifies the resulting .next/ directory. In CI where _meta is
 # skipped, the workflow's explicit build step produces .next/ for this
@@ -202,7 +202,7 @@ if [ ! -f "$WEB_PKG" ]; then
 elif [ -d "$WEB_DIR/.next" ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $WEB_DIR/.next/ missing (run pnpm --filter @vooster/web build)"
+  echo "    ✗ fail — $WEB_DIR/.next/ missing (run pnpm --filter @vooster/app build)"
   PASS=false
 fi
 
@@ -263,7 +263,7 @@ else
   PASS=false
 fi
 
-# [8.B4 no write API call in apps/web/app/] — REMOVED 2026-05-23.
+# [8.B4 no write API call in apps/app/app/] — REMOVED 2026-05-23.
 # The web app's scope expanded beyond read-only viewer to include
 # project CRUD per commits 840b64f / 6b377a4. The "no writes" invariant
 # is deleted (not replaced). See goals/8-web-readonly-viewer.md § B4
@@ -422,24 +422,24 @@ else
   PASS=false
 fi
 
-echo "[8.D5 pnpm --filter @vooster/web test:e2e exits 0]"
+echo "[8.D5 pnpm --filter @vooster/app test:e2e exits 0]"
 if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
   echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
 elif [ ! -f "$WEB_PLAYWRIGHT_CONFIG" ]; then
   echo "    ✗ fail — preconditions unmet (no $WEB_PLAYWRIGHT_CONFIG)"
   PASS=false
 else
-  if pnpm --filter @vooster/web test:e2e >/dev/null 2>&1; then
+  if pnpm --filter @vooster/app test:e2e >/dev/null 2>&1; then
     echo "    ✓ pass"
   else
-    echo "    ✗ fail — pnpm --filter @vooster/web test:e2e exits non-zero"
+    echo "    ✗ fail — pnpm --filter @vooster/app test:e2e exits non-zero"
     PASS=false
   fi
 fi
 
 # ─── Tranche E — Vercel deployment ───────────────────────────────────────
 
-echo "[8.E1 apps/web/vercel.ts exists with framework: nextjs]"
+echo "[8.E1 apps/app/vercel.ts exists with framework: nextjs]"
 if [ -f "$WEB_VERCEL_CONFIG" ] \
     && grep -qE 'framework:[[:space:]]*["'\''"]nextjs["'\''"]' \
          "$WEB_VERCEL_CONFIG"; then
@@ -449,7 +449,7 @@ else
   PASS=false
 fi
 
-echo "[8.E2 Vercel project name $VERCEL_PROJECT_NAME is recorded in apps/web/]"
+echo "[8.E2 Vercel project name $VERCEL_PROJECT_NAME is recorded in apps/app/]"
 if grep -rqE "${VERCEL_PROJECT_NAME}" "$WEB_DIR" 2>/dev/null; then
   echo "    ✓ pass"
 else

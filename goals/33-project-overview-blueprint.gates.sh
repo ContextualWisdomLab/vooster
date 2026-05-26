@@ -11,11 +11,11 @@ source "$ROOT/scripts/_gate-cache.sh"
 
 GOAL_NAME="33-project-overview-blueprint"
 GATE_INPUTS=(
-  apps/web/app/data.tsx
-  'apps/web/app/(app)/projects/[key]/page.tsx'
-  apps/web/tests/unit
-  apps/web/tests/e2e-web
-  apps/web/package.json
+  apps/app/app/data.tsx
+  'apps/app/app/(app)/projects/[key]/page.tsx'
+  apps/app/tests/unit
+  apps/app/tests/e2e-web
+  apps/app/package.json
   goals/33-project-overview-blueprint.md
   goals/33-project-overview-blueprint.gates.sh
   scripts/check-gate-rigor.sh
@@ -28,8 +28,8 @@ if gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
 fi
 
 PASS=true
-DATA='apps/web/app/data.tsx'
-PAGE='apps/web/app/(app)/projects/[key]/page.tsx'
+DATA='apps/app/app/data.tsx'
+PAGE='apps/app/app/(app)/projects/[key]/page.tsx'
 
 echo "[33.A1] UsecaseSummary carries scenario and extension counts"
 if grep -q "scenario_count" "$DATA" && grep -q "extension_count" "$DATA"; then
@@ -78,7 +78,7 @@ else
 fi
 
 echo "[33.C1] web unit tests pass"
-if pnpm --filter @vooster/web test; then
+if pnpm --filter @vooster/app test; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail"
@@ -86,7 +86,7 @@ else
 fi
 
 echo "[33.C2] web typecheck passes"
-if pnpm --filter @vooster/web typecheck; then
+if pnpm --filter @vooster/app typecheck; then
   echo "    ✓ pass"
 else
   echo "    ✗ fail"

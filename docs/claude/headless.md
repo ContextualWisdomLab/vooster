@@ -214,7 +214,7 @@ codex → Claude **작업 위임 루프**(`docs/claude/delegation.md`)에서는 
 보완 통제를 쓴다: **cwd 를 goal 이 선언한 앱 디렉토리로 고정**한다.
 
 ```bash
-cd apps/web && claude --dangerously-skip-permissions \
+cd apps/app && claude --dangerously-skip-permissions \
   --model opus --output-format json --max-budget-usd 2.00 \
   --append-system-prompt "이 디렉토리 밖은 손대지 말 것" \
   -p "<goal.md + 현재 step>"

@@ -3,7 +3,7 @@
 웹 뷰어가 도메인 개념을 화면에 **어떻게 표기/설명하는지**의 원칙. 구체적인
 용어→라벨→설명 목록은 finding F1
 (`docs/findings/2026-05-25T1503-web-viewer-de-jargon.md`)에 있고, 구현은
-`apps/web/lib/labels.ts`(+ `TermLabel`)가 맡는다.
+`apps/app/lib/labels.ts`(+ `TermLabel`)가 맡는다.
 
 ## 원칙
 

@@ -6,14 +6,14 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 GATE="goals/33-project-overview-blueprint.gates.sh"
-DATA='apps/web/app/data.tsx'
-PAGE='apps/web/app/(app)/projects/[key]/page.tsx'
+DATA='apps/app/app/data.tsx'
+PAGE='apps/app/app/(app)/projects/[key]/page.tsx'
 
 if bash "$ROOT/$GATE" >/dev/null 2>&1; then
   cat <<'MSG'
 TASK: Goal 33 is green.
-  - Run pnpm --filter @vooster/web test.
-  - Run pnpm --filter @vooster/web typecheck.
+  - Run pnpm --filter @vooster/app test.
+  - Run pnpm --filter @vooster/app typecheck.
   - Run bash scripts/completion-check.sh.
   - Update docs/findings/2026-05-25T1511-project-overview-blueprint.md.
 MSG

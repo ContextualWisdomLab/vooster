@@ -11,12 +11,12 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-WEB_DIR=apps/web
-WEB_PKG=apps/web/package.json
-WEB_APP_DIR=apps/web/app
-WEB_TESTS_DIR=apps/web/tests/e2e-web
-WEB_PLAYWRIGHT_CONFIG=apps/web/playwright.config.ts
-WEB_VERCEL_CONFIG=apps/web/vercel.ts
+WEB_DIR=apps/app
+WEB_PKG=apps/app/package.json
+WEB_APP_DIR=apps/app/app
+WEB_TESTS_DIR=apps/app/tests/e2e-web
+WEB_PLAYWRIGHT_CONFIG=apps/app/playwright.config.ts
+WEB_VERCEL_CONFIG=apps/app/vercel.ts
 GOAL5_MD=goals/5-monorepo.md
 GOAL5_GATES=goals/5-monorepo.gates.sh
 VERCEL_PROJECT_NAME=vooster-new-web
@@ -63,7 +63,7 @@ TASK: Goal 5 retarget commit (gate 8.A1, prerequisite to everything else).
 
   This is a CASE (b) change per docs/goal-design.md §5: Goal 5's A3
   invariant text says "exactly three subdirectories" and lists three
-  app names. Adding apps/web changes the declared set, so both the
+  app names. Adding apps/app changes the declared set, so both the
   prior .md text AND the gate enumeration must move together in a
   single scoped commit.
 
@@ -77,21 +77,21 @@ TASK: Goal 5 retarget commit (gate 8.A1, prerequisite to everything else).
     - Find the ACTUAL_APPS comparison block
     - Update the expected sorted set from "api cli www" to "api cli web www"
 
-  DO NOT mix any apps/web scaffold work into this commit. The
+  DO NOT mix any apps/app scaffold work into this commit. The
   retarget is its own atomic change.
 
   Commit:
-    refactor(goal-5): admit apps/web to A3 declared set
+    refactor(goal-5): admit apps/app to A3 declared set
 EOF
   exit 0
 fi
 
-# ─── A2: apps/web/package.json + name ────────────────────────────────────
+# ─── A2: apps/app/package.json + name ────────────────────────────────────
 A2_OK=false
 if [ -f "$WEB_PKG" ]; then
   if node -e "
     const m = require('./$WEB_PKG');
-    if (m.name !== '@vooster/web') process.exit(1);
+    if (m.name !== '@vooster/app') process.exit(1);
     if (m.private !== true) process.exit(2);
   " 2>/dev/null; then
     A2_OK=true
@@ -99,12 +99,12 @@ if [ -f "$WEB_PKG" ]; then
 fi
 if [ "$A2_OK" = false ]; then
   cat <<'EOF'
-TASK: Scaffold apps/web with a Next.js 15 manifest (gate 8.A2).
+TASK: Scaffold apps/app with a Next.js 15 manifest (gate 8.A2).
 
-  Create apps/web/package.json:
+  Create apps/app/package.json:
 
     {
-      "name": "@vooster/web",
+      "name": "@vooster/app",
       "version": "0.0.0",
       "private": true,
       "scripts": {
@@ -136,7 +136,7 @@ TASK: Scaffold apps/web with a Next.js 15 manifest (gate 8.A2).
   Then: pnpm install
 
   Commit:
-    chore(web): scaffold @vooster/web workspace
+    chore(web): scaffold @vooster/app workspace
 EOF
   exit 0
 fi
@@ -150,7 +150,7 @@ if ! node -e "
   cat <<'EOF'
 TASK: Pin next@^15.x (gate 8.A3).
 
-  apps/web/package.json must declare next at a major-15 version.
+  apps/app/package.json must declare next at a major-15 version.
   Update the dependency entry and re-run pnpm install.
 
   Commit:
@@ -214,7 +214,7 @@ for script in "${PKG_SCRIPTS[@]}"; do
 done
 if [ "${#A5_MISSING[@]}" -gt 0 ]; then
   cat <<EOF
-TASK: Declare every required script in apps/web/package.json (gate 8.A5).
+TASK: Declare every required script in apps/app/package.json (gate 8.A5).
 
   Missing scripts: ${A5_MISSING[*]}
 
@@ -230,17 +230,17 @@ fi
 
 # ─── A6: build succeeds (deep) ───────────────────────────────────────────
 if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
-  if ! pnpm --filter @vooster/web build >/dev/null 2>&1 \
+  if ! pnpm --filter @vooster/app build >/dev/null 2>&1 \
       || [ ! -d "$WEB_DIR/.next" ]; then
     cat <<'EOF'
-TASK: pnpm --filter @vooster/web build must produce .next/ (gate 8.A6).
+TASK: pnpm --filter @vooster/app build must produce .next/ (gate 8.A6).
 
   Run:
-    pnpm --filter @vooster/web build
+    pnpm --filter @vooster/app build
 
   Investigate the build error. Likely causes:
     - app/layout.tsx missing (Next.js App Router requires it)
-    - Type errors (run pnpm --filter @vooster/web typecheck)
+    - Type errors (run pnpm --filter @vooster/app typecheck)
     - Missing dependency
 
   Minimal app/layout.tsx:
@@ -498,7 +498,7 @@ if [ "$D1_OK" = false ]; then
   cat <<'EOF'
 TASK: Configure Playwright with chromium only (gate 8.D1).
 
-  Create apps/web/playwright.config.ts:
+  Create apps/app/playwright.config.ts:
 
     import { defineConfig } from "@playwright/test";
 
@@ -522,7 +522,7 @@ TASK: Configure Playwright with chromium only (gate 8.D1).
     });
 
   Install playwright browsers:
-    pnpm --filter @vooster/web exec playwright install chromium
+    pnpm --filter @vooster/app exec playwright install chromium
 
   Commit:
     chore(web): playwright config (chromium only)
@@ -627,7 +627,7 @@ if [ "$CONFIG_SETS_STUB" = false ] && [ "${#D4_OFFENDERS[@]}" -gt 0 ]; then
   cat <<'EOF'
 TASK: Set VSPEC_AUTH_STUB=1 in Playwright config (gate 8.D4).
 
-  In apps/web/playwright.config.ts inside webServer.env, add:
+  In apps/app/playwright.config.ts inside webServer.env, add:
     VSPEC_AUTH_STUB: "1"
 
   Setting it once in the config covers every spec via the launched
@@ -642,16 +642,16 @@ fi
 
 # ─── D5: playwright run passes (deep) ────────────────────────────────────
 if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
-  if ! pnpm --filter @vooster/web test:e2e >/dev/null 2>&1; then
+  if ! pnpm --filter @vooster/app test:e2e >/dev/null 2>&1; then
     cat <<'EOF'
-TASK: pnpm --filter @vooster/web test:e2e must pass (gate 8.D5).
+TASK: pnpm --filter @vooster/app test:e2e must pass (gate 8.D5).
 
   Run:
-    pnpm --filter @vooster/web test:e2e
+    pnpm --filter @vooster/app test:e2e
 
   Diagnose the failures one by one. Likely causes:
     - playwright browsers not installed:
-        pnpm --filter @vooster/web exec playwright install chromium
+        pnpm --filter @vooster/app exec playwright install chromium
     - dev server fails to start (check that the API is reachable
       from the dev server, or that pages handle API_URL absence
       gracefully)
@@ -669,7 +669,7 @@ if [ ! -f "$WEB_VERCEL_CONFIG" ] \
     || ! grep -qE 'framework:[[:space:]]*["'\''"]nextjs["'\''"]' \
          "$WEB_VERCEL_CONFIG"; then
   cat <<'EOF'
-TASK: Create apps/web/vercel.ts (gate 8.E1).
+TASK: Create apps/app/vercel.ts (gate 8.E1).
 
   Per the latest Vercel guidance, prefer vercel.ts over vercel.json:
 
@@ -677,14 +677,14 @@ TASK: Create apps/web/vercel.ts (gate 8.E1).
 
     export const config: VercelConfig = {
       framework: "nextjs",
-      buildCommand: "pnpm --filter @vooster/web build",
+      buildCommand: "pnpm --filter @vooster/app build",
       installCommand: "pnpm install --frozen-lockfile",
       // The Vercel project is `vooster-new-web`. Linking happens via
       // `vercel link` in this directory (or the dashboard).
     };
 
   Install the type package:
-    pnpm --filter @vooster/web add -D @vercel/config
+    pnpm --filter @vooster/app add -D @vercel/config
 
   Commit:
     chore(web): vercel.ts config (next.js framework)
@@ -695,16 +695,16 @@ fi
 # ─── E2: project name marker ─────────────────────────────────────────────
 if ! grep -rqE "${VERCEL_PROJECT_NAME}" "$WEB_DIR" 2>/dev/null; then
   cat <<EOF
-TASK: Record the Vercel project name in apps/web/ (gate 8.E2).
+TASK: Record the Vercel project name in apps/app/ (gate 8.E2).
 
-  Add a comment or constant in apps/web/vercel.ts (or a sibling
+  Add a comment or constant in apps/app/vercel.ts (or a sibling
   README) referencing $VERCEL_PROJECT_NAME, so the gate has a
   committed marker for the project it must inspect.
 
   Example, inside vercel.ts:
 
     // Vercel project: $VERCEL_PROJECT_NAME
-    // Link with: cd apps/web && vercel link --project $VERCEL_PROJECT_NAME
+    // Link with: cd apps/app && vercel link --project $VERCEL_PROJECT_NAME
 
   Commit:
     chore(web): record vercel project name
@@ -751,13 +751,13 @@ EOF
 TASK: Create the Vercel project and produce a Ready deployment (gate 8.E3).
 
   Steps:
-    1. cd apps/web
+    1. cd apps/app
     2. vercel link
        - Scope: sumin-chois-projects (or your scope)
        - Project: $VERCEL_PROJECT_NAME (create if absent)
        - Connect to this GitHub repo (the link wizard prompts).
     3. Push to the linked branch (Vercel auto-deploys), or run
-       'vercel --prod' from apps/web to trigger a deployment.
+       'vercel --prod' from apps/app to trigger a deployment.
     4. Verify:
          vercel ls $VERCEL_PROJECT_NAME
        The first row's Status column should show '● Ready'.
@@ -766,7 +766,7 @@ TASK: Create the Vercel project and produce a Ready deployment (gate 8.E3).
     - Inspect the build log: vercel inspect --logs <deployment-url>
     - Common failure: monorepo install. Make sure vercel.ts
       installCommand and Vercel project's "Root Directory" setting
-      agree (Root Directory should be apps/web; install runs from
+      agree (Root Directory should be apps/app; install runs from
       the repo root via pnpm workspaces).
 
   No commit yet — this is platform state. Re-run the gate once

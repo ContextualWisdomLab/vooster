@@ -11,7 +11,7 @@ export default tseslint.config(
       "coverage/**",
       "dist/**",
       "node_modules/**",
-      "apps/web/next-env.d.ts",
+      "apps/app/next-env.d.ts",
       "apps/api/tests/e2e/_template.test.ts"
     ]
   },

@@ -29,7 +29,7 @@ goal의 `.md`가 다음 섹션을 선언하면 그 goal은 **claude-owned**다:
 ## Delegation
 
 - owner: claude
-- cwd: apps/web
+- cwd: apps/app
 - model: opus
 ```
 
@@ -186,7 +186,7 @@ goal일수록 `DESIGN.md`가 더 중요해진다.
 
 - **슬라이스-레벨 위임**: 현재는 whole-goal 위임만 구현. 혼합 goal에서
   presentation 슬라이스만 위임하는 경로는 미정.
-- **claude-측 가드레일 강화**: `apps/web|www/CLAUDE.md`에 디자인 시스템
+- **claude-측 가드레일 강화**: `apps/app|www/CLAUDE.md`에 디자인 시스템
   제약·손대면 안 되는 경계를 더 두껍게 명시할지(현재는 커밋 컨벤션 +
   경계 최소분만).
 - **읽기 전용 추가 디렉토리**: viewer가 `docs/06-api-contract.md` 등

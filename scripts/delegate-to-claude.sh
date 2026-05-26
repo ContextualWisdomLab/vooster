@@ -91,14 +91,14 @@ if [ "${1:-}" = "--self-test" ]; then
 # Goal X
 ## Delegation
 - owner: claude
-- cwd: apps/web
+- cwd: apps/app
 - model: opus
 ## The Goal
 every page renders.
 EOF
   fail=0
   [ "$(delegation_field "$tmp" owner)" = "claude" ]   || { echo "✗ owner parse"; fail=1; }
-  [ "$(delegation_field "$tmp" cwd)" = "apps/web" ]   || { echo "✗ cwd parse"; fail=1; }
+  [ "$(delegation_field "$tmp" cwd)" = "apps/app" ]   || { echo "✗ cwd parse"; fail=1; }
   [ "$(delegation_field "$tmp" model)" = "opus" ]     || { echo "✗ model parse"; fail=1; }
   is_delegated "$tmp"                                 || { echo "✗ is_delegated should be true"; fail=1; }
   cat >"$tmp" <<'EOF'

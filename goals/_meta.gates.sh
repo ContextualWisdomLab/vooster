@@ -48,7 +48,7 @@ GATE_INPUTS=(
   apps/cli/bin
   apps/cli/package.json
   apps/cli/tsconfig.json
-  apps/web
+  apps/app
   apps/www
   package.json
   pnpm-lock.yaml

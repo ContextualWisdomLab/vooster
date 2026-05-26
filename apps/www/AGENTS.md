@@ -32,7 +32,7 @@ When you are invoked headless as a delegated build (the goal's `.md` has a
 - **Commit your step**: one commit per step, Conventional Commits format (e.g.
   `feat(www): hero copy revision`), then stop. Follow the root `/commit` skill
   for message format and the pre-commit boundary.
-- **Stay inside `apps/www`.** Never edit `apps/api`, `apps/web`, `domain`,
+- **Stay inside `apps/www`.** Never edit `apps/api`, `apps/app`, `domain`,
   `scripts/`, or `goals/` — they are off-limits for this app's delegation.
 - Design/copy consistency across separate invocations comes from this file
   plus the section copy; keep tone and positioning aligned with the above.

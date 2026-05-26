@@ -5,7 +5,7 @@ test("home page lists projects in auth stub mode", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Project specs" })).toBeVisible();
   await expect(
-    page.getByRole("main").getByRole("link", { name: "Checkout Review" })
+    page.getByRole("main").getByRole("link", { name: "커머스 체크아웃" })
   ).toBeVisible();
 });
 
@@ -17,16 +17,20 @@ test("login page links to the API GitHub flow", async ({ page }) => {
 });
 
 test("project detail lists use cases", async ({ page }) => {
-  await page.goto("/projects/DEMO");
-  await expect(page.getByRole("link", { name: "Places an order" })).toBeVisible();
+  await page.goto("/projects/CHECKOUT");
+  await expect(
+    page.getByRole("link", { name: "장바구니 상품을 주문한다" })
+  ).toBeVisible();
 });
 
 test("use case detail renders Cockburn fields", async ({ page }) => {
-  await page.goto("/projects/DEMO/usecases/DEMO-001");
-  await expect(page.getByRole("heading", { name: "Places an order" })).toBeVisible();
-  await expect(page.getByText("primary_actor")).toBeVisible();
-  await expect(page.getByText("main_scenario")).toBeVisible();
-  await expect(page.getByText("stakeholder_interests")).toBeVisible();
+  await page.goto("/projects/CHECKOUT/usecases/CHECKOUT-001");
+  await expect(
+    page.getByRole("heading", { name: "장바구니 상품을 주문한다" })
+  ).toBeVisible();
+  await expect(page.getByText("주요 액터")).toBeVisible();
+  await expect(page.getByText("메인 시나리오")).toBeVisible();
+  await expect(page.getByText("이해관계자 관심사")).toBeVisible();
 });
 
 test("sidebar creates a new project from the Projects header action", async ({

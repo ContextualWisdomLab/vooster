@@ -1,5 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  projectCreateQuerySchema,
+  projectCreateRequestSchema,
+  projectParamsSchema,
+  projectRenameRequestSchema,
+  projectWorkspaceParamsSchema
+} from "@vooster/contracts";
 import {
   createProject as createProjectWorkflow,
   createProjectInDefaultWorkspace,
@@ -21,15 +27,6 @@ import type { SignupStore } from "../ports/signup-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
 
 const KEY_PATTERN = /^[A-Z][A-Z0-9]{1,7}$/;
-
-const projectRequestSchema = z.object({
-  name: z.string().min(1),
-  key: z.string(),
-  simulate_branch_insert_failure: z.boolean().optional(),
-  visibility: z.enum(["PRIVATE", "INTERNAL"]).default("PRIVATE")
-});
-
-const projectRenameSchema = z.object({ name: z.string().min(1).max(120) });
 
 export type ProjectRouteDeps = {
   branchStore: BranchStore;
@@ -81,7 +78,7 @@ export async function handleCreateProject(
   deps: ProjectRouteDeps
 ) {
   const workspaceId = workspaceIdFrom(request.params);
-  const parsed = projectRequestSchema.safeParse(request.body);
+  const parsed = projectCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid project request"));
   }
@@ -100,7 +97,7 @@ export async function handleCreateProject(
         workspaceStore: deps.workspaceStore
       },
       {
-        dryRun: dryRunFromQuery(request.query),
+        dryRun: projectCreateQuerySchema.parse(request.query),
         key: parsed.data.key,
         name: parsed.data.name,
         simulateBranchInsertFailure:
@@ -126,7 +123,7 @@ export async function handleCreateProjectDefaultWorkspace(
     return reply.code(401).send(problem(401, "Sign in to create a project"));
   }
 
-  const parsed = projectRequestSchema.safeParse(request.body);
+  const parsed = projectCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid project request"));
   }
@@ -145,7 +142,7 @@ export async function handleCreateProjectDefaultWorkspace(
         workspaceStore: deps.workspaceStore
       },
       {
-        dryRun: dryRunFromQuery(request.query),
+        dryRun: projectCreateQuerySchema.parse(request.query),
         key: parsed.data.key,
         name: parsed.data.name,
         simulateBranchInsertFailure:
@@ -174,7 +171,7 @@ export async function handleRenameProject(
   }
 
   const projectId = projectIdFrom(request.params);
-  const parsed = projectRenameSchema.safeParse(request.body);
+  const parsed = projectRenameRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid rename request"));
   }
@@ -235,13 +232,6 @@ export async function handleArchiveWorkspace(
   return reply.send({ archived: true });
 }
 
-function dryRunFromQuery(query: unknown): boolean {
-  if (typeof query !== "object" || query === null) {
-    return false;
-  }
-  return (query as { dry_run?: unknown }).dry_run === "true";
-}
-
 function invalidKeyProblem() {
   return problem(400, "Invalid project key", {
     key_pattern: "^[A-Z][A-Z0-9]{1,7}$",
@@ -250,9 +240,9 @@ function invalidKeyProblem() {
 }
 
 function workspaceIdFrom(params: unknown): string {
-  return z.object({ workspaceId: z.string().min(1) }).parse(params).workspaceId;
+  return projectWorkspaceParamsSchema.parse(params).workspaceId;
 }
 
 function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  return projectParamsSchema.parse(params).projectId;
 }

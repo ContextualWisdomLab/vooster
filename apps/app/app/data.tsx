@@ -1,6 +1,12 @@
 import {
   actorListResponseSchema,
-  type ActorSummary as ContractActorSummary
+  projectCreateRequestSchema,
+  projectCreateResponseSchema,
+  projectListResponseSchema,
+  projectRenameRequestSchema,
+  projectRenameResponseSchema,
+  type ActorSummary as ContractActorSummary,
+  type ProjectListItem
 } from "@vooster/contracts";
 import { mutateApi, readApi } from "./api-client";
 import {
@@ -14,13 +20,7 @@ import {
   stubUsecases
 } from "./data.stub";
 
-export type ProjectSummary = {
-  id: string;
-  key: string;
-  name: string;
-  visibility: string;
-  workspace_id: string;
-};
+export type ProjectSummary = ProjectListItem;
 
 export type UsecaseSummary = {
   key: string;
@@ -69,7 +69,7 @@ export async function fetchProjects(): Promise<ProjectSummary[]> {
     return stubProjects();
   }
 
-  const response = await readApi<{ items: ProjectSummary[] }>("/v1/projects");
+  const response = await readApi("/v1/projects", projectListResponseSchema);
   return response.items;
 }
 
@@ -134,18 +134,18 @@ export async function createProjectRequest(
 
   const response = await mutateApi("/v1/projects", {
     method: "POST",
-    body: {
+    body: projectCreateRequestSchema.parse({
       name: input.name,
       key: input.key,
       visibility: input.visibility ?? "PRIVATE"
-    }
+    })
   });
 
   if (!response.ok) {
     return { ok: false, error: response.error };
   }
 
-  const body = response.body as { project: ProjectSummary };
+  const body = projectCreateResponseSchema.parse(response.body);
   return { ok: true, project: body.project };
 }
 
@@ -163,14 +163,14 @@ export async function renameProjectRequest(
 
   const response = await mutateApi(`/v1/projects/${projectId}`, {
     method: "PATCH",
-    body: { name }
+    body: projectRenameRequestSchema.parse({ name })
   });
 
   if (!response.ok) {
     return { ok: false, error: response.error };
   }
 
-  const body = response.body as { project: ProjectSummary };
+  const body = projectRenameResponseSchema.parse(response.body);
   return { ok: true, project: body.project };
 }
 

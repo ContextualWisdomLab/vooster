@@ -21,12 +21,20 @@ type AgentEnvelope<TData> = {
 
 type ProjectCreateData = {
   default_branch: {
+    base_branch_id: null | string;
+    id: string;
     name: string;
+    owner_id: string;
+    owner_type: string;
+    project_id: string;
   };
   project: {
+    default_branch_id: string;
     id: string;
     key: string;
     name: string;
+    visibility: string;
+    workspace_id: string;
   };
   recommended_next_command: string;
 };
@@ -120,12 +128,20 @@ function projectCreateFlags(
 function projectCreateResponse(): ProjectCreateData {
   return {
     default_branch: {
-      name: "main"
+      base_branch_id: null,
+      id: "branch-1",
+      name: "main",
+      owner_id: "user-1",
+      owner_type: "HUMAN",
+      project_id: "project-1"
     },
     project: {
+      default_branch_id: "branch-1",
       id: "project-1",
       key: "PAY",
-      name: "Payments"
+      name: "Payments",
+      visibility: "PRIVATE",
+      workspace_id: "workspace-1"
     },
     recommended_next_command: "vspec actor create"
   };

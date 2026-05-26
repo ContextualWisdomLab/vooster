@@ -656,6 +656,20 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   production response contract. Domains migrated: 10/21. Verification:
   `pnpm exec vitest run packages/contracts/tests/comment.test.ts apps/api/tests/unit/http/comment-routes.test.ts apps/api/tests/unit/http/comment-results.test.ts apps/cli/tests/unit/comment-agent-format.test.ts apps/cli/tests/e2e-cli-honest/comment-agent-format.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
+- 2026-05-27T04:42:28+09:00 — Tier 3#5 shared-api-contracts project domain
+  complete; `audit_counter=28`. Added `packages/contracts/src/project.ts`, moved
+  project create/list/rename/delete params, request bodies, dry-run query, and
+  success response DTOs into shared schemas, made API project handlers/results
+  parse through those schemas, made CLI project create/list/switch lookup parse
+  shared request and response shapes, made app project readers/mutations parse
+  through the shared schemas, and relaxed the project-list CLI unit test off
+  exact `fetch(..., RequestInit)` equality. Domains migrated: 11/21.
+  Verification:
+  `pnpm exec vitest run packages/contracts/tests/project.test.ts apps/api/tests/unit/http/project-routes.test.ts apps/api/tests/unit/http/project-results.test.ts apps/cli/tests/unit/project-create-agent-format.test.ts apps/cli/tests/unit/project-command.test.ts apps/cli/tests/e2e-cli-honest/project-create-agent-format.test.ts apps/cli/tests/e2e-cli-honest/project-read.test.ts apps/app/tests/unit/data-stub.test.tsx`,
+  `pnpm exec tsc --noEmit`, `pnpm --filter @vooster/app typecheck`,
+  `pnpm --filter @vooster/app test`, targeted eslint, and targeted prettier
+  exited 0. Next step: required meta-system audit checkpoint before the next
+  target.
 
 ---
 

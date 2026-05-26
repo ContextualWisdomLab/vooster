@@ -1,4 +1,11 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  projectCreateRequestSchema,
+  projectCreateResponseSchema,
+  projectListResponseSchema,
+  type ProjectCreateResponse,
+  type ProjectListResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -33,26 +40,6 @@ type ProjectFlags = {
   sessionCookie: string;
   visibility: "INTERNAL" | "PRIVATE";
   workspaceId: string;
-};
-
-type ProjectResponse = {
-  default_branch: {
-    name: string;
-  };
-  project: {
-    id: string;
-    key: string;
-    name: string;
-  };
-  recommended_next_command: string;
-};
-
-type ProjectListResponse = {
-  items: Array<{
-    id: string;
-    key: string;
-    name: string;
-  }>;
 };
 
 export class ProjectCommand extends Command {
@@ -109,15 +96,17 @@ async function createProject(
   writeLine: (message: string) => void
 ): Promise<void> {
   const projectFlags = projectFlagsFrom(flags);
-  await runMutationCommand<ProjectResponse>(
+  const body = projectCreateRequestSchema.parse({
+    key: projectFlags.key,
+    name: projectFlags.name,
+    visibility: projectFlags.visibility
+  });
+  await runMutationCommand<ProjectCreateResponse>(
     {
-      body: {
-        key: projectFlags.key,
-        name: projectFlags.name,
-        visibility: projectFlags.visibility
-      },
+      body,
       method: "POST",
       path: `/v1/workspaces/${projectFlags.workspaceId}/projects`,
+      selectData: (responseBody) => projectCreateResponseSchema.parse(responseBody),
       successHints: (data) => {
         if (!projectFlags.dryRun) {
           writeConfig({
@@ -153,7 +142,7 @@ async function listProjects(
       }
     }
   );
-  const body = response.body as ProjectListResponse;
+  const body = projectListResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
@@ -214,7 +203,7 @@ async function findProjectByKey(
   const response = await fetchJson(`${context.apiUrl}/v1/projects`, {
     headers: { Cookie: context.sessionCookie }
   });
-  const body = response.body as ProjectListResponse;
+  const body = projectListResponseSchema.parse(response.body);
   const project = body.items.find((item) => item.key === projectKey);
   if (project === undefined) {
     throw new Error(`Project ${projectKey} was not found in the current workspace.`);

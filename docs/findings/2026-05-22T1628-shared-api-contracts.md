@@ -3,6 +3,10 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Project domain CLOSED on 2026-05-27: create/list/rename/delete params,
+  bodies, query, and success response schemas moved to `@vooster/contracts`;
+  API, CLI, and app project readers/mutations now parse through the shared
+  schemas. Domains migrated: 11/21.
   Comment domain CLOSED on 2026-05-27: add/list/edit/resolve/delete params,
   bodies, query, and success response schemas moved to `@vooster/contracts`;
   API and CLI now parse through the shared schemas. Domains migrated: 10/21.

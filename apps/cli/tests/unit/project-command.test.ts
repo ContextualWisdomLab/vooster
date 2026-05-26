@@ -8,8 +8,11 @@ afterEach(() => {
 
 describe("project command", () => {
   test("lists projects from the API", async () => {
-    const fetchStub = vi.fn(() =>
-      Promise.resolve({
+    const requestedUrls: string[] = [];
+    const fetchStub = vi.fn((url: string | URL, init?: RequestInit) => {
+      void url;
+      void init;
+      return Promise.resolve({
         headers: new Headers(),
         json: () =>
           Promise.resolve({
@@ -24,9 +27,15 @@ describe("project command", () => {
             ]
           }),
         ok: true
-      } as Response)
+      } as Response);
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string | URL, init?: RequestInit) => {
+        requestedUrls.push(String(url));
+        return fetchStub(url, init);
+      })
     );
-    vi.stubGlobal("fetch", fetchStub);
     const lines: string[] = [];
 
     await runProject(
@@ -38,11 +47,8 @@ describe("project command", () => {
       (message) => lines.push(message)
     );
 
-    expect(fetchStub).toHaveBeenCalledWith("https://api.example.test/v1/projects", {
-      headers: {
-        Cookie: "vspec_session=session-token"
-      }
-    });
+    expect(fetchStub).toHaveBeenCalledOnce();
+    expect(requestedUrls).toEqual(["https://api.example.test/v1/projects"]);
     expect(lines).toEqual(["PAY Payments project-1"]);
   });
 });

@@ -1,4 +1,8 @@
 import type { FastifyReply } from "fastify";
+import {
+  projectCreateResponseSchema,
+  projectRenameResponseSchema
+} from "@vooster/contracts";
 import type {
   DefaultWorkspaceProjectResult,
   ProjectCreationResult,
@@ -13,11 +17,13 @@ export function sendProjectCreationResult(
 ) {
   switch (result.status) {
     case "CREATED":
-      return reply.code(201).send({
-        default_branch: result.defaultBranch,
-        project: result.project,
-        recommended_next_command: "vspec actor create"
-      });
+      return reply.code(201).send(
+        projectCreateResponseSchema.parse({
+          default_branch: result.defaultBranch,
+          project: result.project,
+          recommended_next_command: "vspec actor create"
+        })
+      );
     case "FORBIDDEN":
       return reply.code(403).send(
         problem(403, "Request an invitation to this workspace", {}, [
@@ -73,7 +79,7 @@ export function sendProjectRenameResult(
 ) {
   switch (result.status) {
     case "RENAMED":
-      return reply.send({ project: result.project });
+      return reply.send(projectRenameResponseSchema.parse({ project: result.project }));
     case "FORBIDDEN":
       return reply.code(403).send(problem(403, "Not a member of this workspace"));
     case "NOT_FOUND":

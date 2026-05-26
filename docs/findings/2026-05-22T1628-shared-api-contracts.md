@@ -3,6 +3,10 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: false
 status_notes: |
+  Scenario/step domain CLOSED on 2026-05-27: scenario create, step add, and
+  step edit params, query/body, and success response schemas moved to
+  `@vooster/contracts`; API and CLI now parse through the shared schemas.
+  Domains migrated: 13/21.
   Usecase domain CLOSED on 2026-05-27: create/list/show/update/archive/restore
   params, query/body, and success response schemas moved to `@vooster/contracts`;
   API, CLI, and app usecase readers now parse through the shared schemas.

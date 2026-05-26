@@ -1,4 +1,9 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  scenarioCreateRequestSchema,
+  scenarioCreateResponseSchema,
+  type ScenarioCreateResponse as ScenarioResponse
+} from "@vooster/contracts";
 
 import {
   commonMutationContextFrom,
@@ -37,22 +42,6 @@ type ScenarioCreateFlags = {
   sessionCookie: string;
   type: "EXTENSION" | "MAIN_SUCCESS";
   usecaseId: string;
-};
-
-type ScenarioResponse = {
-  revision: {
-    id: string;
-    severity: string;
-    version_number: number;
-  };
-  scenario: {
-    condition: string | null;
-    extension_point: string | null;
-    id: string;
-    outcome: string;
-    type: string;
-  };
-  steps?: unknown[];
 };
 
 export class ScenarioCommand extends Command {
@@ -109,17 +98,19 @@ async function addScenario(
   writeLine: (message: string) => void
 ): Promise<void> {
   const s = scenarioCreateFlagsFrom(flags, usecaseId);
+  const body = scenarioCreateRequestSchema.parse({
+    condition: s.condition,
+    extension_point: s.extensionPoint,
+    outcome: s.outcome,
+    type: s.type
+  });
   await runMutationCommand<ScenarioResponse>(
     {
-      body: {
-        condition: s.condition,
-        extension_point: s.extensionPoint,
-        outcome: s.outcome,
-        type: s.type
-      },
-      context: (data) => ({ revision: data.revision.id }),
+      body,
+      context: (data) => ({ revision: data.revision.id ?? null }),
       method: "POST",
-      path: `/v1/usecases/${s.usecaseId}/scenarios`
+      path: `/v1/usecases/${s.usecaseId}/scenarios`,
+      selectData: (responseBody) => scenarioCreateResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(s),
     { format: flags.format, human: printScenario, writeLine }
@@ -131,16 +122,16 @@ function printScenario(
   writeLine: (message: string) => void
 ): void {
   writeLine(`Scenario ${body.scenario.id}`);
-  writeLine(`Type ${body.scenario.type}`);
-  if (body.scenario.extension_point !== null) {
+  writeLine(`Type ${body.scenario.type ?? ""}`);
+  if (body.scenario.extension_point != null) {
     writeLine(`At ${body.scenario.extension_point}`);
   }
-  if (body.scenario.condition !== null) {
+  if (body.scenario.condition != null) {
     writeLine(`Condition ${body.scenario.condition}`);
   }
-  writeLine(`Outcome ${body.scenario.outcome}`);
+  writeLine(`Outcome ${body.scenario.outcome ?? ""}`);
   writeLine(
-    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+    `Revision ${body.revision.severity ?? ""} version ${String(body.revision.version_number)}`
   );
 }
 

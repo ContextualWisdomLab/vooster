@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { stepParamsSchema, stepPatchRequestSchema } from "@vooster/contracts";
 import { editStep } from "../application/step-editing.js";
 import { createTestLock } from "./step-lock-support.js";
 import { createTestWorkSession } from "./step-session-support.js";
@@ -15,14 +15,6 @@ import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
-
-const stepPatchSchema = z.object({
-  action: z.string().optional(),
-  actor: z.string().optional(),
-  base_revision: z.string().min(1),
-  force: z.boolean().default(false),
-  notes: z.string().optional()
-});
 
 export function registerStepRoutes(
   app: FastifyInstance,
@@ -72,7 +64,7 @@ async function patchStep(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = stepPatchSchema.safeParse(request.body);
+  const parsed = stepPatchRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step update"));
   }
@@ -95,13 +87,9 @@ async function patchStep(
         baseRevision: parsed.data.base_revision,
         force: parsed.data.force,
         notes: parsed.data.notes,
-        stepId: stepIdFrom(request.params),
+        stepId: stepParamsSchema.parse(request.params).stepId,
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
       }
     )
   );
-}
-
-function stepIdFrom(params: unknown): string {
-  return z.object({ stepId: z.string().min(1) }).parse(params).stepId;
 }

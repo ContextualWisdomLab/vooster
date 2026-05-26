@@ -1,4 +1,8 @@
 import type { FastifyReply } from "fastify";
+import {
+  scenarioCreateResponseSchema,
+  scenarioStepCreateResponseSchema
+} from "@vooster/contracts";
 import type {
   AddScenarioStepResult,
   CreateScenarioResult
@@ -15,12 +19,14 @@ export function sendCreateScenarioResult(
 ) {
   switch (result.status) {
     case "CREATED":
-      return reply.code(201).send({
-        revision: result.revision,
-        scenario: result.scenario,
-        steps: result.steps,
-        ...(result.defaultOutcome === true ? defaultOutcomeWarning() : {})
-      });
+      return reply.code(201).send(
+        scenarioCreateResponseSchema.parse({
+          revision: result.revision,
+          scenario: result.scenario,
+          steps: result.steps,
+          ...(result.defaultOutcome === true ? defaultOutcomeWarning() : {})
+        })
+      );
     case "DUPLICATE_EXTENSION_POINT":
       return reply.code(409).send(
         problem(409, "Extension point is already taken", {
@@ -61,12 +67,14 @@ export function sendAddScenarioStepResult(
     case "SCENARIO_NOT_FOUND":
       return reply.code(404).send(problem(404, "Scenario not found"));
     case "STEP_ADDED":
-      return reply.code(201).send({
-        revision: result.revision,
-        scenario_steps: result.scenarioSteps,
-        step: result.step,
-        ...(result.overNineSteps ? overNineStepsWarning() : {})
-      });
+      return reply.code(201).send(
+        scenarioStepCreateResponseSchema.parse({
+          revision: result.revision,
+          scenario_steps: result.scenarioSteps,
+          step: result.step,
+          ...(result.overNineSteps ? overNineStepsWarning() : {})
+        })
+      );
     case "UNKNOWN_STEP_ACTOR":
       return reply.code(422).send(unknownStepActorProblem(result.knownActors));
   }

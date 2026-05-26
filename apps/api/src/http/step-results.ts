@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { stepUpdateResponseSchema } from "@vooster/contracts";
 import { activeRewrite, type StepEditingResult } from "../application/step-editing.js";
 import { hardLockProblem, semanticLockProblem } from "./step-lock-support.js";
 import { problem } from "./signup-support.js";
@@ -32,11 +33,13 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
     case "SEMANTIC_LOCKED":
       return reply.code(409).send(semanticLockProblem(result.usecase, result.lock));
     case "UPDATED":
-      return reply.send({
-        affected_sessions: result.affectedSessions,
-        revision: result.revision,
-        step: result.step
-      });
+      return reply.send(
+        stepUpdateResponseSchema.parse({
+          affected_sessions: result.affectedSessions,
+          revision: result.revision,
+          step: result.step
+        })
+      );
   }
 }
 

@@ -1,5 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  scenarioCreateRequestSchema,
+  scenarioDryRunQuerySchema,
+  scenarioParamsSchema,
+  scenarioStepCreateRequestSchema,
+  scenarioStepParamsSchema
+} from "@vooster/contracts";
 import {
   addScenarioStep as addScenarioStepUseCase,
   createScenario as createScenarioUseCase,
@@ -19,18 +25,6 @@ import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const scenarioRequestSchema = z.object({
-  condition: z.string().optional(),
-  extension_point: z.string().optional(),
-  outcome: z.enum(["FAILURE", "PARTIAL", "SUCCESS"]).optional(),
-  type: z.enum(["EXTENSION", "MAIN_SUCCESS"])
-});
-const stepRequestSchema = z.object({
-  action: z.string(),
-  actor: z.string().min(1),
-  force: z.boolean().default(false)
-});
 
 export function registerScenarioRoutes(
   app: FastifyInstance,
@@ -66,8 +60,8 @@ async function createScenario(
   state: SignupState,
   deps: ScenarioAuthoringDeps
 ) {
-  const usecaseId = usecaseIdFrom(request.params);
-  const parsed = scenarioRequestSchema.safeParse(request.body);
+  const usecaseId = scenarioParamsSchema.parse(request.params).usecaseId;
+  const parsed = scenarioCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid scenario request"));
   }
@@ -77,7 +71,7 @@ async function createScenario(
     parsed.data.type === "EXTENSION"
       ? {
           condition: parsed.data.condition,
-          dryRun: dryRunFromQuery(request.query),
+          dryRun: scenarioDryRunQuerySchema.parse(request.query),
           extensionPoint: parsed.data.extension_point,
           outcome: parsed.data.outcome,
           type: "EXTENSION",
@@ -85,7 +79,7 @@ async function createScenario(
           userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
         }
       : {
-          dryRun: dryRunFromQuery(request.query),
+          dryRun: scenarioDryRunQuerySchema.parse(request.query),
           type: "MAIN_SUCCESS",
           usecaseId,
           userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
@@ -101,8 +95,8 @@ async function addStep(
   state: SignupState,
   deps: ScenarioAuthoringDeps
 ) {
-  const scenarioId = scenarioIdFrom(request.params);
-  const parsed = stepRequestSchema.safeParse(request.body);
+  const scenarioId = scenarioStepParamsSchema.parse(request.params).scenarioId;
+  const parsed = scenarioStepCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid step request"));
   }
@@ -113,26 +107,11 @@ async function addStep(
   const result = await addScenarioStepUseCase(deps, {
     action: parsed.data.action,
     actorName: parsed.data.actor,
-    dryRun: dryRunFromQuery(request.query),
+    dryRun: scenarioDryRunQuerySchema.parse(request.query),
     force: parsed.data.force,
     scenarioId,
     userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
   });
 
   return sendAddScenarioStepResult(reply, result);
-}
-
-function usecaseIdFrom(params: unknown): string {
-  return z.object({ usecaseId: z.string().min(1) }).parse(params).usecaseId;
-}
-
-function scenarioIdFrom(params: unknown): string {
-  return z.object({ scenarioId: z.string().min(1) }).parse(params).scenarioId;
-}
-
-function dryRunFromQuery(query: unknown): boolean {
-  if (typeof query !== "object" || query === null) {
-    return false;
-  }
-  return (query as { dry_run?: unknown }).dry_run === "true";
 }

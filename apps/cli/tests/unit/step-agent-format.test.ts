@@ -92,7 +92,8 @@ describe("step --format=agent", () => {
       {
         body: {
           actor: "Support Agent",
-          base_revision: "revision-1"
+          base_revision: "revision-1",
+          force: false
         },
         url: "https://api.example.test/v1/steps/step-1"
       }

@@ -689,6 +689,18 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec tsc --noEmit`, `pnpm --filter @vooster/app typecheck`,
   `pnpm --filter @vooster/app test`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T05:13:40+09:00 — Tier 3#5 shared-api-contracts scenario/step
+  domain complete; `audit_counter=30`. Added
+  `packages/contracts/src/scenario.ts`, moved scenario create, step add, and step
+  edit params, request bodies, dry-run query, and success response DTOs into
+  shared schemas, made API scenario/step routes and result senders parse through
+  those schemas, and made CLI scenario/step write paths parse shared request and
+  response shapes before agent/human rendering. Domains migrated: 13/21.
+  Verification:
+  `pnpm exec vitest run packages/contracts/tests/scenario.test.ts apps/api/tests/unit/http/scenario-routes.test.ts apps/api/tests/unit/http/scenario-results.test.ts apps/api/tests/unit/http/scenario-support.test.ts apps/api/tests/unit/http/step-routes.test.ts apps/api/tests/unit/http/step-results.test.ts apps/cli/tests/unit/scenario-agent-format.test.ts apps/cli/tests/unit/step-agent-format.test.ts apps/cli/tests/e2e-cli-honest/scenario-agent-format.test.ts apps/cli/tests/e2e-cli-honest/step-agent-format.test.ts apps/cli/tests/e2e-cli-honest/UC-011-main-scenario.test.ts apps/cli/tests/e2e-cli-honest/UC-012-extension.test.ts apps/cli/tests/e2e-cli-honest/UC-013-step-edit.test.ts apps/api/tests/e2e/UC-011.test.ts apps/api/tests/e2e/UC-012.test.ts apps/api/tests/e2e/UC-013.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
+  audit checkpoint before the next target.
 
 ---
 

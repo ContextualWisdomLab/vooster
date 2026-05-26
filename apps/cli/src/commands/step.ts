@@ -1,4 +1,11 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  scenarioStepCreateRequestSchema,
+  scenarioStepCreateResponseSchema,
+  stepPatchRequestSchema,
+  stepUpdateResponseSchema,
+  type ScenarioStepCreateResponse as StepResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -45,35 +52,6 @@ type StepEditFlags = {
   baseRevision: string;
   sessionCookie: string;
   stepId: string;
-};
-
-type StepResponse = {
-  revision: {
-    id: string;
-    severity: string;
-    version_number: number;
-  };
-  scenario_steps: Array<{
-    action: string;
-    step_number: number;
-  }>;
-  step: {
-    action: string;
-    id: string;
-    step_number: number;
-  };
-};
-
-type StepEditResponse = {
-  affected_sessions: string[];
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  step: {
-    action: string;
-    id: string;
-  };
 };
 
 export class StepCommand extends Command {
@@ -134,15 +112,17 @@ async function addStep(
 ): Promise<void> {
   const s = stepCreateFlagsFrom(flags, scenarioId);
   const actor = s.actor;
+  const body = scenarioStepCreateRequestSchema.parse({
+    action: s.action,
+    actor: s.actor
+  });
   await runMutationCommand<StepResponse>(
     {
-      body: {
-        action: s.action,
-        actor: s.actor
-      },
-      context: (data) => ({ revision: data.revision.id }),
+      body,
+      context: (data) => ({ revision: data.revision.id ?? null }),
       method: "POST",
-      path: `/v1/scenarios/${s.scenarioId}/steps`
+      path: `/v1/scenarios/${s.scenarioId}/steps`,
+      selectData: (responseBody) => scenarioStepCreateResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(s),
     {
@@ -160,14 +140,14 @@ function printStepAdd(
   actor: string,
   writeLine: (message: string) => void
 ): void {
-  writeLine(`Step ${body.step.id}`);
-  writeLine(`${String(body.step.step_number)}. ${actor} ${body.step.action}`);
-  writeLine(`Revision id ${body.revision.id}`);
+  writeLine(`Step ${body.step.id ?? ""}`);
+  writeLine(`${String(body.step.step_number)}. ${actor} ${body.step.action ?? ""}`);
+  writeLine(`Revision id ${body.revision.id ?? ""}`);
   writeLine(
-    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+    `Revision ${body.revision.severity ?? ""} version ${String(body.revision.version_number)}`
   );
   for (const step of body.scenario_steps) {
-    writeLine(`${String(step.step_number)}. ${step.action}`);
+    writeLine(`${String(step.step_number)}. ${step.action ?? ""}`);
   }
 }
 
@@ -179,26 +159,26 @@ async function editStep(
   const stepFlags = stepEditFlagsFrom(flags, stepId);
   const response = await patchJson(
     `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
-    {
+    stepPatchRequestSchema.parse({
       action: stepFlags.action,
       actor: stepFlags.actor,
       base_revision: stepFlags.baseRevision
-    },
+    }),
     {
       Cookie: stepFlags.sessionCookie
     }
   );
-  const body = response.body as StepEditResponse;
+  const body = stepUpdateResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
 
-  writeLine(`Step ${body.step.id}`);
-  writeLine(`Action ${body.step.action}`);
+  writeLine(`Step ${body.step.id ?? ""}`);
+  writeLine(`Action ${body.step.action ?? ""}`);
   writeLine(
-    `Revision ${body.revision.severity} version ${String(body.revision.version_number)}`
+    `Revision ${body.revision.severity ?? ""} version ${String(body.revision.version_number)}`
   );
   writeLine(`Affected sessions ${body.affected_sessions.join(", ") || "none"}`);
 }

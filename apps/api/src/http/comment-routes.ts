@@ -1,5 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  commentAddQuerySchema,
+  commentBodySchema,
+  commentIdParamsSchema,
+  commentPatchSchema,
+  usecaseCommentParamsSchema
+} from "@vooster/contracts";
 import {
   addComment as addUseCaseComment,
   deleteComment as deleteUseCaseComment,
@@ -11,7 +17,6 @@ import type { MembershipStore } from "../ports/membership-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
 import { emptyBodyProblem } from "./comment-problems.js";
 import { sendCommentResult } from "./comment-results.js";
-import { commentBodySchema, commentPatchSchema } from "./comment-validation.js";
 import { authenticatedUserId } from "./session-support.js";
 import type { SignupState } from "./signup-types.js";
 
@@ -52,7 +57,7 @@ async function addComment(
     reply,
     await addUseCaseComment(deps(commentStore, membershipStore, useCaseStore), {
       body: parsed.data.body,
-      dryRun: dryRunFromQuery(request.query),
+      dryRun: commentAddQuerySchema.parse(request.query),
       simulateWriteFailure: parsed.data.simulate_write_failure,
       usecaseId: usecaseId(request),
       userId: userId(request, state)
@@ -126,20 +131,13 @@ function deps(
 }
 
 function usecaseId(request: FastifyRequest) {
-  return z.object({ usecaseId: z.string().min(1) }).parse(request.params).usecaseId;
+  return usecaseCommentParamsSchema.parse(request.params).usecaseId;
 }
 
 function commentId(request: FastifyRequest) {
-  return z.object({ commentId: z.string().min(1) }).parse(request.params).commentId;
+  return commentIdParamsSchema.parse(request.params).commentId;
 }
 
 function userId(request: FastifyRequest, state: SignupState) {
   return authenticatedUserId(request.headers.cookie, state.sessionsByToken);
-}
-
-function dryRunFromQuery(query: unknown): boolean {
-  if (typeof query !== "object" || query === null) {
-    return false;
-  }
-  return (query as { dry_run?: unknown }).dry_run === "true";
 }

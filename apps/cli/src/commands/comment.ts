@@ -1,11 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
-
 import {
-  printComment,
-  printCommentResponse,
-  type CommentListResponse,
+  commentBodySchema,
+  commentListResponseSchema,
+  commentPatchSchema,
+  commentResponseSchema,
   type CommentResponse
-} from "./comment-output.js";
+} from "@vooster/contracts";
+
+import { printComment, printCommentResponse } from "./comment-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
   commonMutationContextFrom,
@@ -113,11 +115,13 @@ async function addComment(
   writeLine: (message: string) => void
 ): Promise<void> {
   const c = commentAddFlagsFrom(flags, targetId);
+  const body = commentBodySchema.parse({ body: c.body });
   await runMutationCommand<CommentResponse>(
     {
-      body: { body: c.body },
+      body,
       method: "POST",
-      path: `/v1/usecases/${c.targetId}/comments`
+      path: `/v1/usecases/${c.targetId}/comments`,
+      selectData: (responseBody) => commentResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(c),
     { format: flags.format, human: printCommentResponse, writeLine }
@@ -138,7 +142,7 @@ async function listComments(
       }
     }
   );
-  const body = response.body as CommentListResponse;
+  const body = commentListResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
@@ -157,14 +161,15 @@ async function editComment(
   writeLine: (message: string) => void
 ): Promise<void> {
   const commentFlags = commentBodyFlagsFrom(flags, targetId, "comment-id");
+  const requestBody = commentPatchSchema.parse({ body: commentFlags.body });
   const response = await patchJson(
     `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
-    { body: commentFlags.body },
+    requestBody,
     {
       Cookie: commentFlags.sessionCookie
     }
   );
-  const body = response.body as CommentResponse;
+  const body = commentResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
@@ -188,14 +193,15 @@ async function resolveComment(
   writeLine: (message: string) => void
 ): Promise<void> {
   const commentFlags = commentTargetFlagsFrom(flags, targetId, "comment-id");
+  const requestBody = commentPatchSchema.parse({ resolved: true });
   const response = await patchJson(
     `${commentFlags.apiUrl}/v1/comments/${commentFlags.targetId}`,
-    { resolved: true },
+    requestBody,
     {
       Cookie: commentFlags.sessionCookie
     }
   );
-  const body = response.body as CommentResponse;
+  const body = commentResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
@@ -225,7 +231,7 @@ async function deleteComment(
       Cookie: commentFlags.sessionCookie
     }
   );
-  const body = response.body as CommentResponse;
+  const body = commentResponseSchema.parse(response.body);
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(

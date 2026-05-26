@@ -641,6 +641,21 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T04:31:10+09:00 — Meta-audit checkpoint after `audit_counter=26`:
+  KEEP. Lock shared-contract schemas are production-consumed by API and CLI, the
+  pushed `completion-check.sh` run verified the status claim, and the remaining
+  lock request payload assertions are contract-surface checks explicitly owned by
+  the shared-contracts migration rather than meta-audit trim work. No work-unit
+  count change.
+- 2026-05-27T04:33:49+09:00 — Tier 3#5 shared-api-contracts comment domain
+  complete; `audit_counter=27`. Added `packages/contracts/src/comment.ts`, moved
+  comment add/list/edit/resolve/delete params, request bodies, dry-run query,
+  and success response DTOs into shared schemas, made API comment routes/results
+  parse through those schemas, made CLI comment read/write paths parse shared
+  request and response shapes, and tightened comment CLI fixtures to match the
+  production response contract. Domains migrated: 10/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/comment.test.ts apps/api/tests/unit/http/comment-routes.test.ts apps/api/tests/unit/http/comment-results.test.ts apps/cli/tests/unit/comment-agent-format.test.ts apps/cli/tests/e2e-cli-honest/comment-agent-format.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
 
 ---
 

@@ -190,8 +190,14 @@ function commentResponse(
   return {
     comment: commentPayload(body, overrides),
     suggested_next_actions: [
-      { command: "vspec comment list CMT-001" },
-      { command: "vspec usecase show CMT-001" }
+      {
+        command: "vspec comment list CMT-001",
+        reason: "Review open comments for this use case."
+      },
+      {
+        command: "vspec usecase show CMT-001",
+        reason: "Open the commented use case."
+      }
     ]
   };
 }

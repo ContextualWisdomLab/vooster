@@ -1,25 +1,4 @@
-export type CommentPayload = {
-  author_id: string;
-  body: string;
-  created_at: string;
-  id: string;
-  resolved: boolean;
-  resolved_at: null | string;
-  target_id: string;
-  target_type: string;
-  updated_at: null | string;
-};
-
-export type CommentResponse = {
-  comment: CommentPayload;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-};
-
-export type CommentListResponse = {
-  comments: CommentPayload[];
-};
+import type { CommentPayload, CommentResponse } from "@vooster/contracts";
 
 export function printCommentResponse(
   body: CommentResponse,

@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { commentListResponseSchema, commentResponseSchema } from "@vooster/contracts";
 import type { CommentCommandResult } from "../application/comments.js";
 import type { StoredComment } from "../domain/entities/index.js";
 import {
@@ -26,7 +27,7 @@ export function sendCommentResult(reply: FastifyReply, result: CommentCommandRes
         .code(403)
         .send(problem(403, "Contact the workspace owner for access"));
     case "LISTED":
-      return reply.send({ comments: result.comments });
+      return reply.send(commentListResponseSchema.parse({ comments: result.comments }));
     case "NOT_OWNER":
       return reply.code(403).send(notOwnerProblem());
     case "USECASE_NOT_FOUND":
@@ -37,7 +38,7 @@ export function sendCommentResult(reply: FastifyReply, result: CommentCommandRes
 }
 
 function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
-  return {
+  return commentResponseSchema.parse({
     comment,
     suggested_next_actions: [
       {
@@ -49,5 +50,5 @@ function commentResponse(comment: StoredComment, usecase: StoredUseCase) {
         reason: "Open the commented use case."
       }
     ]
-  };
+  });
 }

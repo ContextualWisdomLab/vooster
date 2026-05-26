@@ -3,6 +3,7 @@ export * from "./ai-guide.js";
 export * from "./api-key.js";
 export * from "./branch.js";
 export * from "./common.js";
+export * from "./comment.js";
 export * from "./doctor.js";
 export * from "./goal.js";
 export * from "./lock.js";

@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { healthResponseSchema } from "@vooster/contracts";
 import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
 import { createMemoryBranchStore } from "../infrastructure/memory-branch-store.js";
@@ -90,7 +91,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   if (serverOptions.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
   }
-  app.get("/healthz", () => ({ status: "ok" }));
+  app.get("/healthz", () => healthResponseSchema.parse({ status: "ok" }));
   if (serverOptions.signupStore !== undefined) {
     app.addHook("onClose", async () => {
       await serverOptions.signupStore?.close();

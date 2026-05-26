@@ -107,6 +107,8 @@ function reply() {
 function branch(): StoredSpecBranch {
   return {
     base_branch_id: "branch-main",
+    base_revision_ids: {},
+    head_revision_ids: {},
     id: "branch-1",
     name: "feature/payments",
     owner_id: "user-1",

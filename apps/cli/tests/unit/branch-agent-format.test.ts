@@ -81,14 +81,22 @@ function branchFlags(overrides: Record<string, string> = {}): Record<string, str
 function branchBody() {
   return {
     branch: {
+      base_branch_id: "branch-main",
       base_revision_ids: {},
       head_revision_ids: {},
       id: "branch-1",
       name: "feature/agent-branch",
+      owner_id: "user-1",
       owner_type: "HUMAN",
+      project_id: "project-1",
       status: "ACTIVE"
     },
-    suggested_next_actions: [{ command: "vspec branch diff feature/agent-branch" }]
+    suggested_next_actions: [
+      {
+        command: "vspec branch diff feature/agent-branch",
+        reason: "Inspect branch changes."
+      }
+    ]
   };
 }
 

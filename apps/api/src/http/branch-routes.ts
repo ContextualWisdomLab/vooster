@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  branchCreateRequestSchema,
+  branchProjectParamsSchema
+} from "@vooster/contracts";
 import { createBranch as createBranchWorkflow } from "../application/branches.js";
 import { sendCreateBranchResult } from "./branch-results.js";
 import { isReadOnlyMembership } from "./membership-support.js";
@@ -12,12 +15,6 @@ import type { MergeRequestStore } from "../ports/merge-request-store.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const branchCreateSchema = z.object({
-  from: z.string().default("main"),
-  name: z.string().min(1),
-  simulate_snapshot_failure: z.boolean().default(false)
-});
 
 export function registerBranchRoutes(
   app: FastifyInstance,
@@ -55,7 +52,7 @@ async function createBranch(
   revisionStore: RevisionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = branchCreateSchema.safeParse(request.body);
+  const parsed = branchCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid branch request"));
   }
@@ -83,5 +80,5 @@ async function createBranch(
 }
 
 function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  return branchProjectParamsSchema.parse(params).projectId;
 }

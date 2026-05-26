@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { branchCreateResponseSchema } from "@vooster/contracts";
 import type { CreateBranchResult } from "../application/branches.js";
 import { problem } from "./signup-support.js";
 
@@ -55,10 +56,16 @@ export function sendCreateBranchResult(
         ])
       );
     case "CREATED":
-      return reply.code(201).send({
-        branch: result.branch,
-        ...(result.warnings.length === 0 ? {} : { warnings: result.warnings }),
-        suggested_next_actions: result.suggestedNextActions
-      });
+      return reply.code(201).send(branchCreateResponse(result));
   }
+}
+
+function branchCreateResponse(
+  result: Extract<CreateBranchResult, { status: "CREATED" }>
+) {
+  return branchCreateResponseSchema.parse({
+    branch: result.branch,
+    ...(result.warnings.length === 0 ? {} : { warnings: result.warnings }),
+    suggested_next_actions: result.suggestedNextActions
+  });
 }

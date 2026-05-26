@@ -1,4 +1,9 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  branchCreateRequestSchema,
+  branchCreateResponseSchema,
+  type BranchCreateResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
@@ -18,24 +23,6 @@ type BranchCreateFlags = {
   name: string;
   projectId: string;
   sessionCookie: string;
-};
-
-type BranchCreateResponse = {
-  branch: {
-    base_revision_ids: Record<string, string>;
-    head_revision_ids: Record<string, string>;
-    id: string;
-    name: string;
-    owner_type: string;
-    status: string;
-  };
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
-  warnings?: Array<{
-    merge_request_id: string;
-    type: string;
-  }>;
 };
 
 export class BranchCommand extends Command {
@@ -86,24 +73,27 @@ async function createBranch(
   writeLine: (message: string) => void
 ): Promise<void> {
   const branchFlags = branchCreateFlagsFrom(flags, name);
+  const body = branchCreateRequestSchema.parse({
+    from: branchFlags.from,
+    name: branchFlags.name
+  });
   const response = await postJson(
     `${branchFlags.apiUrl}/v1/projects/${branchFlags.projectId}/branches`,
-    {
-      from: branchFlags.from,
-      name: branchFlags.name
-    },
+    body,
     {
       Cookie: branchFlags.sessionCookie
     }
   );
-  const body = response.body as BranchCreateResponse;
+  const parsedBody: BranchCreateResponse = branchCreateResponseSchema.parse(
+    response.body
+  );
 
   if (flags.format === "agent") {
     writeLine(
       JSON.stringify(
         buildAgentEnvelope({
-          data: body,
-          context: { branch: body.branch.name }
+          data: parsedBody,
+          context: { branch: parsedBody.branch.name }
         }),
         null,
         2
@@ -112,20 +102,20 @@ async function createBranch(
     return;
   }
 
-  writeLine(`Branch ${body.branch.id}`);
-  writeLine(`Name ${body.branch.name}`);
-  writeLine(`Status ${body.branch.status}`);
-  writeLine(`Owner ${body.branch.owner_type}`);
+  writeLine(`Branch ${parsedBody.branch.id}`);
+  writeLine(`Name ${parsedBody.branch.name}`);
+  writeLine(`Status ${parsedBody.branch.status}`);
+  writeLine(`Owner ${parsedBody.branch.owner_type}`);
   writeLine(
-    `Base revisions ${String(Object.keys(body.branch.base_revision_ids).length)}`
+    `Base revisions ${String(Object.keys(parsedBody.branch.base_revision_ids).length)}`
   );
   writeLine(
-    `Head revisions ${String(Object.keys(body.branch.head_revision_ids).length)}`
+    `Head revisions ${String(Object.keys(parsedBody.branch.head_revision_ids).length)}`
   );
-  for (const warning of body.warnings ?? []) {
+  for (const warning of parsedBody.warnings ?? []) {
     writeLine(`Warning ${warning.type} ${warning.merge_request_id}`);
   }
-  for (const action of body.suggested_next_actions) {
+  for (const action of parsedBody.suggested_next_actions) {
     writeLine(action.command);
   }
 }

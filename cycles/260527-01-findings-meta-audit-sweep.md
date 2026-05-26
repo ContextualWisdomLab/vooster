@@ -615,6 +615,21 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0. Next step: required meta-system
   audit checkpoint before the next target.
+- 2026-05-27T04:05:58+09:00 — Meta-audit checkpoint after `audit_counter=24`:
+  KEEP. API-key shared-contract changes were backed by contract tests plus
+  API/CLI unit and e2e behavior, no exact `RequestInit` assertions remained,
+  completion was re-run, and the adjacent Goal 9 agent-output gate had already
+  been relaxed to allow renderer extraction. No work-unit count change.
+- 2026-05-27T04:11:24+09:00 — Tier 3#5 shared-api-contracts branch domain
+  complete; `audit_counter=25`. Added `packages/contracts/src/branch.ts`, moved
+  branch project params, create request, and success response DTOs into shared
+  schemas, made API branch routes/results parse through those schemas, made CLI
+  branch create parse shared request/response shapes before rendering, and
+  tightened branch CLI fixtures to match the production response contract.
+  Domains migrated: 8/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/branch.test.ts apps/cli/tests/unit/branch-agent-format.test.ts apps/cli/tests/e2e-cli-honest/branch-agent-format.test.ts apps/cli/tests/e2e-cli-honest/UC-019-create-branch.test.ts apps/api/tests/e2e/UC-019.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
+  `bash scripts/completion-check.sh` exited 0.
 
 ---
 

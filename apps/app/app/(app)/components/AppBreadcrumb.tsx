@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
@@ -11,15 +12,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Crumb = { label: string; href: string };
 
 /**
- * Derives the breadcrumb trail from the current route. Labels are the raw URL
- * segments (project / use-case keys), matching what the pages displayed before
- * the breadcrumb moved into the header. Returns `[]` for routes without a
- * trail (e.g. the home page), so the header renders nothing.
+ * Derives the breadcrumb trail from the current route, excluding the home root.
+ * Labels are the raw URL segments (project / use-case keys). Returns `[]` on the
+ * home page.
  */
 function buildCrumbs(pathname: string): Crumb[] {
   const [root, key, group, ucKey] = pathname.split("/").filter(Boolean);
@@ -27,10 +27,7 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [];
   }
 
-  const crumbs: Crumb[] = [
-    { label: "프로젝트", href: "/" },
-    { label: key, href: `/projects/${key}` }
-  ];
+  const crumbs: Crumb[] = [{ label: key, href: `/projects/${key}` }];
   if (group === "usecases" && ucKey) {
     crumbs.push({ label: ucKey, href: `/projects/${key}/usecases/${ucKey}` });
   }
@@ -39,36 +36,51 @@ function buildCrumbs(pathname: string): Crumb[] {
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
+  const { state } = useSidebar();
   const crumbs = buildCrumbs(pathname);
 
-  if (crumbs.length === 0) {
-    return null;
-  }
+  // When the sidebar is expanded it already shows the logo; the breadcrumb only
+  // carries the leading home logo once the sidebar is collapsed (hidden).
+  const showLogo = state === "collapsed";
 
   return (
-    <>
-      <Separator orientation="vertical" className="h-4" />
-      <Breadcrumb>
-        <BreadcrumbList>
-          {crumbs.map((crumb, index) => {
-            const isLast = index === crumbs.length - 1;
-            return (
-              <Fragment key={crumb.href}>
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link href={crumb.href}>{crumb.label}</Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-                {!isLast && <BreadcrumbSeparator />}
-              </Fragment>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
-    </>
+    <Breadcrumb>
+      <BreadcrumbList>
+        {showLogo && (
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/" aria-label="Vooster 홈" className="hover:no-underline">
+                <Image
+                  src="/logo.png"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="size-6 max-w-none shrink-0 rounded-sm"
+                  priority
+                />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        )}
+        {crumbs.map((crumb, index) => {
+          const isLast = index === crumbs.length - 1;
+          const showSeparator = showLogo || index > 0;
+          return (
+            <Fragment key={crumb.href}>
+              {showSeparator && <BreadcrumbSeparator />}
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={crumb.href}>{crumb.label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }

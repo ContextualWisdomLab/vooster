@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, PanelLeftClose, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from "@/components/ui/collapsible";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Sidebar,
   SidebarContent,
@@ -17,8 +18,10 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu
+  SidebarMenu,
+  useSidebar
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ProjectSummary } from "../../data";
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
 import { NewProjectDialog } from "./NewProjectDialog";
@@ -26,14 +29,15 @@ import { ProjectSidebarRow } from "./ProjectSidebarRow";
 import { RenameProjectDialog } from "./RenameProjectDialog";
 
 export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
+  const { toggleSidebar } = useSidebar();
   const [newOpen, setNewOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ProjectSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectSummary | null>(null);
 
   return (
     <>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
+      <Sidebar collapsible="offcanvas">
+        <SidebarHeader className="flex-row items-center justify-between">
           <Link
             href="/"
             aria-label="Vooster 홈"
@@ -47,8 +51,15 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
               className="size-6 max-w-none shrink-0 rounded-sm"
               priority
             />
-            <span className="group-data-[collapsible=icon]:hidden">Vooster</span>
+            <span>Vooster</span>
           </Link>
+          <IconButton
+            label="사이드바 접기"
+            onClick={toggleSidebar}
+            className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            <PanelLeftClose />
+          </IconButton>
         </SidebarHeader>
         <SidebarContent>
           <Collapsible defaultOpen className="group/projects">
@@ -62,13 +73,17 @@ export function AppSidebar({ projects }: { projects: ProjectSummary[] }) {
                   프로젝트
                 </CollapsibleTrigger>
               </SidebarGroupLabel>
-              <SidebarGroupAction
-                aria-label="새 프로젝트"
-                title="새 프로젝트"
-                onClick={() => setNewOpen(true)}
-              >
-                <Plus />
-              </SidebarGroupAction>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarGroupAction
+                    aria-label="새 프로젝트"
+                    onClick={() => setNewOpen(true)}
+                  >
+                    <Plus />
+                  </SidebarGroupAction>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">새 프로젝트</TooltipContent>
+              </Tooltip>
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                 <SidebarGroupContent>
                   <SidebarMenu className="pl-5 group-data-[collapsible=icon]:pl-0">

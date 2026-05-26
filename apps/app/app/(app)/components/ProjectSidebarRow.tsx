@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ProjectSummary } from "../../data";
 
 export function ProjectSidebarRow({
@@ -31,23 +32,25 @@ export function ProjectSidebarRow({
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} tooltip={project.name}>
+      <SidebarMenuButton asChild isActive={isActive}>
         <Link href={href}>
-          <span
-            aria-hidden
-            className="hidden size-4 shrink-0 items-center justify-center text-[0.7rem] font-semibold group-data-[collapsible=icon]:flex"
-          >
-            {project.name.charAt(0).toUpperCase()}
-          </span>
           <span className={isActive ? "font-semibold" : undefined}>{project.name}</span>
         </Link>
       </SidebarMenuButton>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction showOnHover aria-label={`${project.name} 프로젝트 작업`}>
-            <MoreHorizontal />
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuAction
+                showOnHover
+                aria-label={`${project.name} 프로젝트 작업`}
+              >
+                <MoreHorizontal />
+              </SidebarMenuAction>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">프로젝트 작업</TooltipContent>
+        </Tooltip>
         <DropdownMenuContent side="right" align="start">
           <DropdownMenuItem onSelect={() => onRename(project)}>
             <Pencil />

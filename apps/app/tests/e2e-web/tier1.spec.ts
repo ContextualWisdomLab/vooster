@@ -51,6 +51,31 @@ test("sidebar creates a new project from the Projects header action", async ({
   ).toBeVisible();
 });
 
+test("sidebar collapses fully and the header exposes an expand control", async ({
+  page
+}) => {
+  await page.goto("/projects/CHECKOUT");
+
+  const breadcrumb = page.getByRole("navigation", { name: "breadcrumb" });
+
+  // Expanded: the sidebar carries the logo, so the header shows neither the
+  // expand control nor a breadcrumb home logo.
+  await expect(page.getByRole("button", { name: "사이드바 펼치기" })).toHaveCount(0);
+  await expect(breadcrumb.getByRole("link", { name: "Vooster 홈" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "사이드바 접기" }).click();
+
+  // Collapsed: the header gains the expand control with the home logo to its right.
+  await expect(page.getByRole("button", { name: "사이드바 펼치기" })).toBeVisible();
+  await expect(breadcrumb.getByRole("link", { name: "Vooster 홈" })).toHaveAttribute(
+    "href",
+    "/"
+  );
+
+  await page.getByRole("button", { name: "사이드바 펼치기" }).click();
+  await expect(page.getByRole("button", { name: "사이드바 펼치기" })).toHaveCount(0);
+});
+
 test("sidebar renames a project via the 3-dot menu", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "새 프로젝트" }).click();

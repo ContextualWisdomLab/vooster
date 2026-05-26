@@ -6,12 +6,17 @@ priority: P2
 resolved_by:
   - 8d27157
   - 5ce7ea5
+  - 73dca0f
 status_notes: |
   Suggested-command corrections — CLOSED 2026-05-26 (commit 8d27157).
   Goal create `--actor` name alignment — CLOSED 2026-05-26 (commit 5ce7ea5);
     closes audit §A2 "Goals: requires --actor-id not --actor".
   Agent envelope `format_version` split (1 read / 2 mutation) — OPEN (P2).
-  API suggests unimplemented `member set-role` / `member list` — OPEN (P2).
+  Unroutable-suggestion follow-up sweep — `vspec workspace create` →
+    `vspec login --workspace-name …` and `vspec api-key refresh` →
+    `vspec api-key create` corrected this pass (commit 73dca0f).
+  API suggests no-equivalent commands — `member set-role`/`member list`,
+    `actor restore` (cut), `workspace list` (reason-only) — OPEN (P2).
 related:
   - docs/findings/2026-05-24T1100-spec-impl-audit.md
   - docs/06-api-contract.md
@@ -24,9 +29,13 @@ related:
 
 A focused pass over the **agent-facing contract** (the `suggested_next_actions`
 commands the API hands back, and the goal-create actor field) on top of the
-2026-05-24 spec↔impl audit. Two agent-breaking issues are now **fixed**; two
-contract-shape items are **deferred to post-beta** and recorded here. Domain
-model / endpoint-shape drift is **not** re-litigated here — it lives in
+2026-05-24 spec↔impl audit. Every suggested command was swept against the CLI
+dispatcher: the **agent-breaking** ones with a runnable equivalent are now
+**fixed** (item 1 + the follow-up sweep: goal `--actor`, `workspace create`,
+`api-key refresh`); the ones with **no** runnable equivalent (`member
+set-role`/`list`, `actor restore`, `workspace list`) and the envelope-version
+split are **deferred / cut** and recorded here. Domain model / endpoint-shape
+drift is **not** re-litigated here — it lives in
 `docs/findings/2026-05-24T1100-spec-impl-audit.md` (§A1, §A5).
 
 ## Closed in this pass
@@ -45,6 +54,17 @@ place by tests asserting the wrong string).
 - Dropped redundant/false `vspec lock list` from `who` output (`apps/api/src/application/who-is-working.ts`) — the response already lists the locks.
 
 Acceptance signal: `grep -rn "actor define\|scenario main\|changes commit\|vspec unlock\|vspec lock list" apps/api/src apps/cli/src apps/api/tests apps/cli/tests` returns nothing. Full suite green (952 → see commit).
+
+**Follow-up sweep (2026-05-26, this pass).** Item 1's grep was scoped to those
+five strings and missed two more suggestions that also pointed at unroutable
+commands but had a runnable equivalent to redirect to. Both corrected here
+(commit `73dca0f`):
+
+- `vspec workspace create` → `vspec login --workspace-name <name> --workspace-slug <slug>` (`apps/api/src/http/project-results.ts:62`, `apps/api/src/application/signup.ts:46,128`; tests `apps/api/tests/e2e/UC-002.test.ts:118`, `apps/api/tests/unit/application/signup.test.ts:168`). Workspace creation already exists via the login signup flags (`apps/cli/src/commands/login.ts:50,134`) — there is no separate `workspace create` command.
+- `vspec api-key refresh` → `vspec api-key create` (`apps/api/src/http/sync-results.ts:28`; fixture `apps/api/tests/helpers/sync-fixtures.ts:195`, exercised by `apps/api/tests/e2e/UC-029.test.ts`). `api-key` routes only `create`/`list`/`revoke` — rotation is a fresh `create`.
+
+The remaining unroutable suggestions have **no** runnable equivalent and stay
+open — see item 4.
 
 ### 2. Goal create `--actor` by name — CLOSED (commit `5ce7ea5`)
 
@@ -79,9 +99,13 @@ versions. Touches every mutation command + tests, so defer until after beta.
 
 **Acceptance signal:** `grep -rn "ENVELOPE_VERSION_V2\|format_version: 2\|: 2 as const" apps/cli/src` returns nothing, and both read and mutation agent output carry `format_version: 1`.
 
-### 4. API suggests unimplemented `member` commands — P2
+### 4. API suggests commands with no runnable equivalent — P2
 
-The API hands back `vspec member set-role` / `vspec member list` as
+The same sweep found three more unroutable-command classes that — unlike
+workspace-create / api-key-refresh above — have **no** correct command to swap
+in, so they cannot be mechanically fixed and are deferred.
+
+**4a. `member set-role` / `member list`.** The API hands these back as
 `suggested_next_actions` in permission-denied (403) contexts, but only
 `member invite` is implemented (`apps/cli/src/commands/member.ts`; the audit
 §07 lists `member list/set-role/remove` as 🔵 Planned). Sites:
@@ -101,21 +125,46 @@ point at _planned_ commands (not typos of existing ones), and they are pinned
 by ~10 test assertions (e.g. `apps/api/tests/e2e/UC-009.test.ts:214`,
 `UC-027.test.ts:224`, `apps/cli/tests/unit/member-api-key-agent-format.test.ts:64`).
 
-**Options:**
+**4b. `vspec actor restore`** (`apps/api/src/http/actor-results.ts:55`, test
+`apps/api/tests/e2e/UC-005.test.ts:124`) — emitted on a 409 archived-name
+collision (UC-005 ext 3b), but actors have no restore/un-archive command or
+route (`actor` routes only create/list/show/edit/archive). **Decision: cut, not
+build.** Actor `archive` earns its place — it removes an actor from the
+primary-actor / step-doer pool (`apps/api/src/application/usecases.ts:98`,
+`apps/api/src/application/scenario-authoring.ts:119`) while preserving
+referential integrity for use cases that already reference it. But `restore`
+exists only to reclaim an archived name, which "use a different name" already
+solves. Resolution: drop the suggestion and reword UC-005 3b2 to recommend a
+different name.
+
+**4c. `vspec workspace list`** (`apps/api/src/http/who-results.ts:35`,
+`apps/api/src/http/session-list-results.ts:22`; tests
+`apps/api/tests/e2e/UC-023.test.ts:240`, `apps/api/tests/e2e/UC-017.test.ts:214`)
+— no `workspace list` command (`workspace` only routes `switch`). The
+accessible workspaces are already returned by the login / session responses, so
+this should be reason-only, not a command.
+
+**Options (4a `member` commands):**
 
 - (a) Implement `member list` / `member set-role` (post-MVP feature; carries authz design).
 - (b) Strip the `command` field and make these reason-only advisory. Requires making `command` optional in `SuggestedNextAction` (`apps/cli/src/domain/envelope.ts:11`, `apps/cli/src/agent-envelope.ts:11`) and updating the asserting tests.
 
-**Recommendation:** (b) after beta — a 403 advisory should not advertise a
-command the caller cannot run. Pre-MVP, leave as-is (no new command surface).
+**Recommendation:** (b) after beta for 4a and 4c — a 403 advisory should not
+advertise a command the caller cannot run; make them reason-only via the same
+optional-`command` change. 4b (`actor restore`) is a clean cut (one site + one
+test + a UC-005 wording tweak) and can land pre-beta. Pre-MVP, leave 4a/4c
+as-is (no new command surface, no envelope change yet).
 
 **Acceptance signal:** no `suggested_next_actions` entry carries a `command`
 that the CLI dispatcher (`apps/cli/src/index.ts`) cannot route.
 
 ## Decisions on file (sync-check triage, 2026-05-26)
 
-1. **Untruthful suggestions** → correct to existing commands / remove; do not
-   build new commands pre-MVP (item 1 done; item 4 deferred).
+1. **Untruthful suggestions** → correct to a runnable equivalent where one
+   exists; otherwise reason-only or cut. Do not build new commands pre-MVP
+   (item 1 done; follow-up sweep `workspace create` / `api-key refresh` done;
+   item 4 `member`/`workspace list` reason-only and `actor restore` cut, all
+   deferred except the cheap `actor restore` cut).
 2. **name vs id** → name-based is canonical; goal aligned to accept `--actor`
    while keeping `--actor-id` (item 2 done).
 3. **Envelope v2** → document as-built now; consolidate to a single additive

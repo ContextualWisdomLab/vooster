@@ -1,14 +1,18 @@
 ---
 title: Spec ↔ implementation audit (docs vs apps)
 created_at: 2026-05-24T11:00:00Z
-resolved: partial
+resolved: true
 priority: high
 kind: snapshot
+resolved_by:
+  - 0ab6b0d
+  - 632df72
+  - 968b142
 status_notes: |
   Gap A — CLOSED 2026-05-24 (commit `0ab6b0d`): UC-013 step edit now supports actor changes, rejects unknown actors, marks actor changes BREAKING, and wires CLI `--actor`; verified by `apps/api/tests/e2e/UC-013.test.ts`, `apps/cli/tests/unit/step-agent-format.test.ts`, `pnpm exec vitest run apps/api/tests`, and `bash scripts/completion-check.sh`.
   Gap C — CLOSED 2026-05-24 (commit `632df72`): UC-016 auto-branch sessions now create one session-held SEMANTIC lock per pinned use case; verified by `apps/api/tests/e2e/UC-016.test.ts`, `pnpm exec vitest run apps/api/tests`, and `bash scripts/completion-check.sh`.
   Cross-cutting reference docs (06/07/08/09) annotated with 🔵 Planned markers on 2026-05-24 — drift between target design and MVP surface is now explicit in-doc.
-  Gap B — OPEN (deferred — see cycles/260524-01-post-review-findings-closure.md Out of scope).
+  Gap B — CLOSED 2026-05-27 (commit `968b142`): UC-022 SOFT lock acquisition now preserves existing locks, emits a SOFT_LOCK_COEXISTS warning naming active holders, allows multiple session-held SOFT locks to appear in `who`, and keeps single-lock callers pointed at the strongest lock. Verified by `apps/api/tests/e2e/UC-022.test.ts`, `apps/api/tests/unit/application/locks-edge.test.ts`, `apps/api/tests/unit/memory-lock-store.test.ts`, `pnpm exec vitest run apps/api/tests`, `bash scripts/check-db-consistency.sh`, `bash scripts/check-persistence.sh`, and `bash scripts/completion-check.sh`.
 related:
   - docs/06-api-contract.md
   - docs/07-cli-spec.md
@@ -82,10 +86,10 @@ documented and server-simulated in tests, but not wired into the actual CLI.**
 - Deliberate MVP pattern: Prisma stores all `Json`/`String[]`/enum as `String` (schema.prisma:18) — not noted in spec.
 - Domain-type drift worth tracking: `Revision.entity_type` enum 4 of 7 values (`apps/api/src/domain/entities/revision.ts:8`, missing SCENARIO/STEP/STAKEHOLDER_INTEREST), missing `content_hash`/`author_id`; `MergeRequest.status` introduces `CLOSED`, drops APPROVED/REJECTED/ABORTED; `Lock.target_type` 1 of 3 values + duplicate `holder`/`mode`/`usecase_id`. Undocumented entities `ApiKey`, `Invitation`.
 
-## Code gaps (genuine, spec-worthy) — OPEN
+## Code gaps (genuine, spec-worthy) — CLOSED
 
-These three are real behavior gaps where the spec is right and the code is
-incomplete. Sizing for the "fix now vs defer" decision:
+These three were real behavior gaps where the spec was right and the code was
+incomplete at audit time; all are now closed.
 
 **A — UC-013 step `actor_id` editing — MEDIUM.**
 `stepPatchSchema` accepts only `action/base_revision/force/notes`
@@ -96,7 +100,7 @@ into `editStep` to resolve actor name → id (mirror the step-add path), adds an
 `UNKNOWN_ACTOR` result, sets BREAKING severity on actor change, wires the CLI
 body, and adds tests. ~4 source files + 2 test files; localized.
 
-**B — UC-022 SOFT lock semantics — MEDIUM (decision LOCKED 2026-05-27).**
+**B — UC-022 SOFT lock semantics — CLOSED 2026-05-27 (commit `968b142`).**
 Spec: "SOFT always succeeds but emits a warning if any other lock exists."
 `blockingLock` already never blocks SOFT (`locks.ts:121`), but `acquireLock`
 deletes any existing lock before saving (`locks.ts:~55-66`), so a SOFT acquire
@@ -160,7 +164,17 @@ tests.
 - Docs: `grep -c '🔵 Planned' docs/06-api-contract.md docs/07-cli-spec.md docs/08-file-format.md docs/09-bootstrap.md` is non-zero for each.
 - Gap A: a UC-013 e2e case asserting an actor change produces a BREAKING revision and rejects an unknown actor.
 - Gap C: a UC-016 e2e case asserting `--auto-branch` over N pins creates N SEMANTIC locks held by the session.
-- Gap B: closed by a future goal; this finding flips `resolved` only when A, B, and C are all green.
+- Gap B: a UC-022 e2e case asserts SOFT locks coexist, the second acquire warns about the first holder, and `who` reports both SOFT holders.
+
+## Resolution
+
+- `0ab6b0d` closed Gap A: UC-013 step actor editing.
+- `632df72` closed Gap C: UC-016 auto-branch SEMANTIC locks.
+- `968b142` closed Gap B: UC-022 SOFT lock coexistence and warning semantics.
+  The implementation uses `listLocksForUseCase` on acquire, preserves existing
+  SOFT locks, emits `SOFT_LOCK_COEXISTS`, updates the Prisma uniqueness key to
+  include the session/user holder columns, and makes single-lock store lookups
+  prefer stronger locks so legacy callers do not miss HARD/SEMANTIC blockers.
 
 ---
 

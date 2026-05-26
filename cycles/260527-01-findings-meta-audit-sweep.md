@@ -425,6 +425,17 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   with `matrix.shard` to carry a matching shard argument and keeps the
   denominator check. Verification: `bash scripts/check-ci.sh` and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27T01:41:25+09:00 — Tier 2#3 spec-impl-audit Gap B complete;
+  audit_counter=6. Commit `968b142` made UC-022 SOFT lock acquisition use
+  `listLocksForUseCase`, preserve existing locks, emit `SOFT_LOCK_COEXISTS`
+  warnings naming active holders, allow `who` to report both session-held SOFT
+  locks, and keep single-lock callers pointed at the strongest lock so
+  HARD/SEMANTIC blockers are not hidden by SOFT coexistence. Schema uniqueness
+  now includes the session/user holder columns. Verification:
+  `pnpm exec vitest run apps/api/tests`, focused lock tests, `pnpm exec tsc --noEmit`,
+  focused eslint, `bash scripts/check-db-consistency.sh`,
+  `bash scripts/check-persistence.sh`, and `bash scripts/completion-check.sh`
+  exited 0. Next step: required meta-system audit checkpoint.
 
 ---
 

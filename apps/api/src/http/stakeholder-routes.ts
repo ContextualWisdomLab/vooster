@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  stakeholderCreateRequestSchema,
+  stakeholderProjectParamsSchema
+} from "@vooster/contracts";
 import { membershipForProject } from "./membership-support.js";
 import {
   archiveStakeholder,
@@ -16,13 +19,6 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { WorkspaceStore } from "../ports/workspace-store.js";
-
-const stakeholderRequestSchema = z.object({
-  attach_to_step: z.boolean().optional(),
-  description: z.string().default(""),
-  name: z.string().min(1),
-  type: z.string()
-});
 
 export function registerStakeholderRoutes(
   app: FastifyInstance,
@@ -77,7 +73,7 @@ async function createStakeholder(
     return reply.code(403).send(problem(403, "Contact the workspace owner for access"));
   }
 
-  const parsed = stakeholderRequestSchema.safeParse(request.body);
+  const parsed = stakeholderCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder request"));
   }
@@ -103,7 +99,7 @@ async function createStakeholder(
 }
 
 function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+  return stakeholderProjectParamsSchema.parse(params).projectId;
 }
 
 function dryRunFromQuery(query: unknown): boolean {

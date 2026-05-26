@@ -1,4 +1,5 @@
 import type { FastifyReply } from "fastify";
+import { stakeholderCreateResponseSchema } from "@vooster/contracts";
 import type { CreateStakeholderResult } from "../application/stakeholders.js";
 import { problem } from "./signup-support.js";
 
@@ -8,11 +9,13 @@ export function sendCreateStakeholderResult(
 ) {
   switch (result.status) {
     case "CREATED":
-      return reply.code(201).send({
-        revision: result.revision,
-        stakeholder: result.stakeholder,
-        recommended_next_command: "vspec usecase add-stakeholder"
-      });
+      return reply.code(201).send(
+        stakeholderCreateResponseSchema.parse({
+          revision: result.revision,
+          stakeholder: result.stakeholder,
+          recommended_next_command: "vspec usecase add-stakeholder"
+        })
+      );
     case "WORKSPACE_ARCHIVED":
       return reply.code(409).send(problem(409, "Workspace has been archived"));
     case "ACTOR_REQUIRED_FOR_STEPS":

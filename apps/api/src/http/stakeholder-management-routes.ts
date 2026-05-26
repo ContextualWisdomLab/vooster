@@ -1,27 +1,33 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  stakeholderArchiveResponseSchema,
+  stakeholderListResponseSchema,
+  stakeholderParamsSchema,
+  stakeholderPatchRequestSchema,
+  stakeholderProjectParamsSchema,
+  stakeholderResponseSchema,
+  stakeholderTypeSchema,
+  type StakeholderPatchRequest
+} from "@vooster/contracts";
 
 import { problem } from "./signup-support.js";
 import type { StoredStakeholder } from "../domain/entities/index.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
-
-const stakeholderPatchSchema = z.object({
-  description: z.string().optional(),
-  name: z.string().min(1).optional(),
-  type: z.string().optional()
-});
-const stakeholderTypes = ["EXTERNAL", "INTERNAL", "REGULATORY"] as const;
 
 export async function listStakeholders(
   request: FastifyRequest,
   reply: FastifyReply,
   stakeholderStore: StakeholderStore
 ) {
-  const projectId = projectIdFrom(request.params);
+  const projectId = stakeholderProjectParamsSchema.parse(request.params).projectId;
   const stakeholders = (await stakeholderStore.listStakeholders(projectId)).filter(
     (stakeholder) => stakeholder.archived_at === null
   );
-  return reply.send({ items: stakeholders.map(stakeholderResponse) });
+  return reply.send(
+    stakeholderListResponseSchema.parse({
+      items: stakeholders.map(stakeholderResponse)
+    })
+  );
 }
 
 export async function showStakeholder(
@@ -37,7 +43,9 @@ export async function showStakeholder(
   if (stakeholder === undefined) {
     return reply.code(404).send(problem(404, "Stakeholder not found"));
   }
-  return reply.send({ stakeholder: stakeholderResponse(stakeholder) });
+  return reply.send(
+    stakeholderResponseSchema.parse({ stakeholder: stakeholderResponse(stakeholder) })
+  );
 }
 
 export async function patchStakeholder(
@@ -46,7 +54,7 @@ export async function patchStakeholder(
   stakeholderStore: StakeholderStore
 ) {
   const params = stakeholderParamsFrom(request.params);
-  const parsed = stakeholderPatchSchema.safeParse(request.body);
+  const parsed = stakeholderPatchRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder update"));
   }
@@ -56,7 +64,9 @@ export async function patchStakeholder(
   }
   const updated = { ...stakeholder, ...stakeholderPatchFrom(stakeholder, parsed.data) };
   await stakeholderStore.updateStakeholder(updated);
-  return reply.send({ stakeholder: stakeholderResponse(updated) });
+  return reply.send(
+    stakeholderResponseSchema.parse({ stakeholder: stakeholderResponse(updated) })
+  );
 }
 
 export async function archiveStakeholder(
@@ -73,7 +83,12 @@ export async function archiveStakeholder(
     ...stakeholder,
     archived_at: new Date().toISOString()
   });
-  return reply.send({ archived: true, stakeholder: { id: params.stakeholderId } });
+  return reply.send(
+    stakeholderArchiveResponseSchema.parse({
+      archived: true,
+      stakeholder: { id: params.stakeholderId }
+    })
+  );
 }
 
 async function stakeholderFor(
@@ -98,7 +113,7 @@ async function stakeholderFor(
 
 function stakeholderPatchFrom(
   stakeholder: StoredStakeholder,
-  patch: z.infer<typeof stakeholderPatchSchema>
+  patch: StakeholderPatchRequest
 ): Partial<StoredStakeholder> {
   return {
     description: patch.description ?? stakeholder.description,
@@ -107,28 +122,15 @@ function stakeholderPatchFrom(
   };
 }
 
-function isStakeholderType(type: string): type is (typeof stakeholderTypes)[number] {
-  return stakeholderTypes.includes(type as (typeof stakeholderTypes)[number]);
-}
-
-function stakeholderTypeFrom(type: string): (typeof stakeholderTypes)[number] {
-  if (isStakeholderType(type)) {
-    return type;
-  }
-  throw new Error("Invalid stakeholder type.");
-}
-
-function projectIdFrom(params: unknown): string {
-  return z.object({ projectId: z.string().min(1) }).parse(params).projectId;
+function stakeholderTypeFrom(type: string): StoredStakeholder["type"] {
+  return stakeholderTypeSchema.parse(type);
 }
 
 function stakeholderParamsFrom(params: unknown): {
   projectId: string;
   stakeholderId: string;
 } {
-  return z
-    .object({ projectId: z.string().min(1), stakeholderId: z.string().min(1) })
-    .parse(params);
+  return stakeholderParamsSchema.parse(params);
 }
 
 function stakeholderResponse(stakeholder: StoredStakeholder) {

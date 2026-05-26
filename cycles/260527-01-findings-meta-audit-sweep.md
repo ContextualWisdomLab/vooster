@@ -563,6 +563,16 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   `pnpm exec tsc --noEmit`, `pnpm --filter @vooster/app typecheck`,
   `pnpm --filter @vooster/app test`, targeted eslint, and targeted prettier
   exited 0.
+- 2026-05-27T03:21:29+09:00 — Tier 3#5 shared-api-contracts stakeholder
+  domain complete; `audit_counter=20`. Added
+  `packages/contracts/src/stakeholder.ts`, made stakeholder API request/
+  response DTOs parse through shared schemas, and made CLI stakeholder
+  read/edit/archive/create outputs parse shared responses. Domains migrated:
+  5/21. Verification:
+  `pnpm exec vitest run packages/contracts/tests/stakeholder.test.ts apps/api/tests/unit/http/stakeholder-routes.test.ts apps/api/tests/unit/http/stakeholder-management-routes.test.ts apps/cli/tests/unit/stakeholder-command.test.ts apps/cli/tests/unit/agent-format-write-path.test.ts`,
+  `pnpm exec vitest run apps/api/tests/e2e/UC-006.test.ts apps/cli/tests/e2e-cli-honest/UC-006-stakeholder.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-read.test.ts apps/cli/tests/e2e-cli-honest/stakeholder-edit.test.ts apps/cli/tests/e2e-cli-honest/agent-format-write-path.test.ts`,
+  `pnpm exec tsc --noEmit`, targeted eslint, and targeted prettier exited 0.
+  Next step: required meta-system audit checkpoint before the next target.
 
 ---
 

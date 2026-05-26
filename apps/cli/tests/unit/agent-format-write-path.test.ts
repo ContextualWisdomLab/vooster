@@ -39,7 +39,16 @@ describe("--format=agent write-path envelopes", () => {
 
   test("agent stakeholder create", async () => {
     stubFetch({
-      stakeholder: { id: "stakeholder-1", name: "Sponsor", type: "INTERNAL" }
+      recommended_next_command: "vspec usecase add-stakeholder",
+      revision: { version_number: 1 },
+      stakeholder: {
+        archived_at: null,
+        description: "",
+        id: "stakeholder-1",
+        name: "Sponsor",
+        project_id: "project-1",
+        type: "INTERNAL"
+      }
     });
     const lines: string[] = [];
 

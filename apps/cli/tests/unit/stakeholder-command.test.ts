@@ -13,13 +13,7 @@ describe("stakeholder command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            items: [
-              {
-                id: "stakeholder-1",
-                name: "Customer",
-                type: "EXTERNAL"
-              }
-            ]
+            items: [stakeholderBody({ name: "Customer" })]
           }),
         ok: true
       } as Response)
@@ -55,11 +49,7 @@ describe("stakeholder command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            stakeholder: {
-              id: "stakeholder-1",
-              name: "Customer",
-              type: "EXTERNAL"
-            }
+            stakeholder: stakeholderBody({ name: "Customer" })
           }),
         ok: true
       } as Response)
@@ -95,11 +85,7 @@ describe("stakeholder command", () => {
         headers: new Headers(),
         json: () =>
           Promise.resolve({
-            stakeholder: {
-              id: "stakeholder-1",
-              name: "Buyer",
-              type: "EXTERNAL"
-            }
+            stakeholder: stakeholderBody({ name: "Buyer" })
           }),
         ok: true
       } as Response)
@@ -137,7 +123,11 @@ describe("stakeholder command", () => {
     const fetchStub = vi.fn(() =>
       Promise.resolve({
         headers: new Headers(),
-        json: () => Promise.resolve({ archived: true }),
+        json: () =>
+          Promise.resolve({
+            archived: true,
+            stakeholder: { id: "stakeholder-1" }
+          }),
         ok: true
       } as Response)
     );
@@ -167,3 +157,12 @@ describe("stakeholder command", () => {
     expect(lines).toEqual(["Archived stakeholder-1"]);
   });
 });
+
+function stakeholderBody(overrides: { name: string }) {
+  return {
+    description: "",
+    id: "stakeholder-1",
+    name: overrides.name,
+    type: "EXTERNAL"
+  };
+}

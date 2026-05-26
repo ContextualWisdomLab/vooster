@@ -1,18 +1,4 @@
-export type StakeholderSummary = {
-  id: string;
-  name: string;
-  type: string;
-};
-
-export type StakeholderResponse = {
-  recommended_next_command: string;
-  revision: { version_number: number };
-  stakeholder: StakeholderSummary;
-};
-
-export type StakeholderListResponse = {
-  items: StakeholderSummary[];
-};
+import type { StakeholderCreateResponse, StakeholderSummary } from "@vooster/contracts";
 
 export function printStakeholderSummary(
   stakeholder: StakeholderSummary,
@@ -22,7 +8,7 @@ export function printStakeholderSummary(
 }
 
 export function printStakeholderCreated(
-  body: StakeholderResponse,
+  body: StakeholderCreateResponse,
   writeLine: (message: string) => void
 ): void {
   writeLine(`Stakeholder ${body.stakeholder.name} ${body.stakeholder.type}`);

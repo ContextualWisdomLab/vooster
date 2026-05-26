@@ -1,4 +1,13 @@
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  stakeholderArchiveResponseSchema,
+  stakeholderCreateResponseSchema,
+  stakeholderListResponseSchema,
+  stakeholderPatchRequestSchema,
+  stakeholderResponseSchema,
+  type StakeholderCreateResponse,
+  type StakeholderListResponse
+} from "@vooster/contracts";
 
 import {
   stakeholderCreateFlagsFrom,
@@ -7,10 +16,7 @@ import {
 } from "./stakeholder-flags.js";
 import {
   printStakeholderCreated,
-  printStakeholderSummary,
-  type StakeholderListResponse,
-  type StakeholderResponse,
-  type StakeholderSummary
+  printStakeholderSummary
 } from "./stakeholder-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -89,16 +95,11 @@ async function archiveStakeholder(
   writeLine: (message: string) => void
 ): Promise<void> {
   const id = requiredArgument(stakeholderId, "stakeholder id");
-  await deleteJson(stakeholderUrl(flags, id), authHeaders(flags));
+  const response = await deleteJson(stakeholderUrl(flags, id), authHeaders(flags));
+  const body = stakeholderArchiveResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
-    writeLine(
-      JSON.stringify(
-        buildAgentEnvelope({ data: { archived: true, stakeholder_id: id } }),
-        null,
-        2
-      )
-    );
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
 
@@ -110,19 +111,18 @@ async function editStakeholder(
   stakeholderId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
+  const patch = stakeholderPatchRequestSchema.parse(stakeholderPatchFrom(flags));
   const response = await patchJson(
     stakeholderUrl(flags, requiredArgument(stakeholderId, "stakeholder id")),
-    stakeholderPatchFrom(flags),
+    patch,
     authHeaders(flags)
   );
+  const body = stakeholderResponseSchema.parse(response.body);
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
-  printStakeholderSummary(
-    (response.body as { stakeholder: StakeholderSummary }).stakeholder,
-    writeLine
-  );
+  printStakeholderSummary(body.stakeholder, writeLine);
 }
 
 async function showStakeholder(
@@ -134,14 +134,12 @@ async function showStakeholder(
     stakeholderUrl(flags, requiredArgument(stakeholderId, "stakeholder id")),
     { headers: authHeaders(flags) }
   );
+  const body = stakeholderResponseSchema.parse(response.body);
   if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: response.body }), null, 2));
+    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
     return;
   }
-  printStakeholderSummary(
-    (response.body as { stakeholder: StakeholderSummary }).stakeholder,
-    writeLine
-  );
+  printStakeholderSummary(body.stakeholder, writeLine);
 }
 
 async function createStakeholder(
@@ -149,7 +147,7 @@ async function createStakeholder(
   writeLine: (message: string) => void
 ): Promise<void> {
   const stakeholderFlags = stakeholderCreateFlagsFrom(flags);
-  await runMutationCommand<StakeholderResponse>(
+  await runMutationCommand<StakeholderCreateResponse>(
     {
       body: {
         description: stakeholderFlags.description,
@@ -157,7 +155,8 @@ async function createStakeholder(
         type: stakeholderFlags.type
       },
       method: "POST",
-      path: `/v1/projects/${stakeholderFlags.projectId}/stakeholders`
+      path: `/v1/projects/${stakeholderFlags.projectId}/stakeholders`,
+      selectData: (responseBody) => stakeholderCreateResponseSchema.parse(responseBody)
     },
     commonMutationContextFrom(stakeholderFlags),
     { format: flags.format, human: printStakeholderCreated, writeLine }
@@ -171,7 +170,9 @@ async function listStakeholders(
   const response = await fetchJson(stakeholdersUrl(flags), {
     headers: authHeaders(flags)
   });
-  const body = response.body as StakeholderListResponse;
+  const body: StakeholderListResponse = stakeholderListResponseSchema.parse(
+    response.body
+  );
 
   if (flags.format === "agent") {
     writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));

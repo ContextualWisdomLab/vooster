@@ -4,9 +4,10 @@ created_at: 2026-05-26T15:04:22Z
 resolved: false
 priority: P2
 status_notes: |
+  Stage 1b — CLOSED on 2026-05-27: delegated web rendering goal 34 is green
+  (commits cb8ebff, eb58bb6, 8d4a549). Stage 2 and Stage 3 remain open.
   Stage 1a — CLOSED on 2026-05-27: backend schema/domain `Step.invokes`, markdown
   includes parse/render, doctor warnings, and derived API `invoked_by` are green.
-  Stage 1b, Stage 2, and Stage 3 remain open.
 related:
   - docs/03-cockburn-method.md
   - docs/05-data-model.md

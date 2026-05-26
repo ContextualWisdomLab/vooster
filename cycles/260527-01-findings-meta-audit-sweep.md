@@ -465,6 +465,18 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   same invocation annotation serializer. Verification:
   `pnpm exec vitest run apps/api/tests/unit/http/sync-markdown.test.ts`,
   `pnpm exec tsc --noEmit`, and focused eslint exited 0.
+- 2026-05-27T02:16:20+09:00 — Tier 2#4 invocation-links Stage 1b web
+  rendering complete; `audit_counter=10`. Created claude-owned Goal 34 and
+  delegated to Claude Code in `apps/app`. Claude landed commits `cb8ebff`
+  (detail data model), `eb58bb6` (auth-stub invocation examples), and
+  `8d4a549` (detail page "호출 / 호출됨" rendering). Verification:
+  `bash goals/34-web-invocation-links.gates.sh`,
+  `pnpm --filter @vooster/app test`, and
+  `pnpm --filter @vooster/app typecheck` exited 0. Full chain verification
+  uncached a stale Goal 33 failure; delegated repair commit `476f51e` restored
+  the project overview prepared-exception block, and Goal 33/34 gates now both
+  exit 0. Next step: required meta-system audit checkpoint before
+  invocation-links Stage 2.
 
 ---
 

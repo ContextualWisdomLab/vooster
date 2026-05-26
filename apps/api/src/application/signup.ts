@@ -43,7 +43,7 @@ export type CompleteOAuthResult =
       workspace: StoredWorkspace;
     }
   | {
-      recommendedNextCommand?: "vspec workspace create";
+      recommendedNextCommand?: "vspec login --workspace-name <name> --workspace-slug <slug>";
       status: "LOGGED_IN";
       user: StoredUser;
       workspaces: WorkspaceSummary[];
@@ -125,7 +125,10 @@ async function completeLogin(
 
   return {
     ...(workspaces.length === 0
-      ? { recommendedNextCommand: "vspec workspace create" as const }
+      ? {
+          recommendedNextCommand:
+            "vspec login --workspace-name <name> --workspace-slug <slug>" as const
+        }
       : {}),
     status: "LOGGED_IN",
     user,

@@ -59,7 +59,7 @@ export function sendProjectCreationResult(
       return reply.code(409).send(
         problem(409, "No workspace available", {}, [
           {
-            command: "vspec workspace create",
+            command: "vspec login --workspace-name <name> --workspace-slug <slug>",
             reason: "Create a workspace before creating a project."
           }
         ])

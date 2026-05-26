@@ -165,7 +165,9 @@ describe("signup application", () => {
       throw new Error("expected login to complete");
     }
     expect(result.workspaces).toEqual([]);
-    expect(result.recommendedNextCommand).toBe("vspec workspace create");
+    expect(result.recommendedNextCommand).toBe(
+      "vspec login --workspace-name <name> --workspace-slug <slug>"
+    );
   });
 
   test("rejects unverified profiles and unknown login identities", async () => {

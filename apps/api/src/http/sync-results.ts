@@ -25,8 +25,8 @@ export function syncAccessProblem() {
       reason: "Authenticate before syncing files."
     },
     {
-      command: "vspec api-key refresh",
-      reason: "Refresh the agent API key if non-interactive auth failed."
+      command: "vspec api-key create",
+      reason: "Issue a new agent API key if non-interactive auth failed."
     }
   ]);
 }

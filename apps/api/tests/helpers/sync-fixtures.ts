@@ -192,8 +192,8 @@ export async function expectUnauthorizedSyncPush(server: TestServer) {
     reason: "Authenticate before syncing files."
   });
   expect(problem.suggested_next_actions).toContainEqual({
-    command: "vspec api-key refresh",
-    reason: "Refresh the agent API key if non-interactive auth failed."
+    command: "vspec api-key create",
+    reason: "Issue a new agent API key if non-interactive auth failed."
   });
   await expectHistoryRevisions(server, setup.cookie, usecase.id, [
     usecase.current_revision_id

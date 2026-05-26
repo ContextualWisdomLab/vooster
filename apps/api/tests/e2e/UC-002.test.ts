@@ -115,7 +115,9 @@ describe("UC-002 - Log in", () => {
     const body = (await login.json()) as LoginResponse;
     expect(body.user.github_id).toBe("stub-zero-workspace-user");
     expect(body.workspaces).toEqual([]);
-    expect(body.recommended_next_command).toBe("vspec workspace create");
+    expect(body.recommended_next_command).toBe(
+      "vspec login --workspace-name <name> --workspace-slug <slug>"
+    );
   });
 
   test("2a: known user cannot sign up again with a workspace block", async () => {

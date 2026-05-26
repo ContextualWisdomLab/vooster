@@ -105,9 +105,7 @@ export async function fetchProjectUsecases(
   return readApi<UsecaseSummary[]>(`/v1/projects/${projectKey}/usecases`);
 }
 
-export async function fetchProjectActors(
-  projectKey: string
-): Promise<ActorSummary[]> {
+export async function fetchProjectActors(projectKey: string): Promise<ActorSummary[]> {
   if (isAuthStub()) {
     return [...demoActors];
   }

@@ -436,6 +436,17 @@ HONEST_UC_SET 변경은 sanctioned case (b).
   focused eslint, `bash scripts/check-db-consistency.sh`,
   `bash scripts/check-persistence.sh`, and `bash scripts/completion-check.sh`
   exited 0. Next step: required meta-system audit checkpoint.
+- 2026-05-27T01:45:30+09:00 — Meta-audit checkpoint #3 complete;
+  audit_counter=7. Q1/Q6 on the SOFT coexistence change found that
+  sessionless user-held SOFT reacquire could create duplicate locks because the
+  Prisma holder key includes nullable `held_by_session_id`. RED: added
+  `apps/api/tests/unit/application/locks-edge.test.ts` coverage requiring a
+  same-user/no-session SOFT reacquire to update the existing lock without
+  delete/save duplication. GREEN: `acquireLock` now updates an active owned
+  SOFT lock in place while preserving the no-delete rule and warning behavior
+  for other holders. Verification: focused lock tests,
+  `pnpm exec vitest run apps/api/tests`, `pnpm exec tsc --noEmit`, focused
+  eslint, and `bash scripts/completion-check.sh` exited 0.
 
 ---
 

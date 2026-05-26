@@ -81,6 +81,31 @@ export async function acquireLock(
   }
 
   const lock = useCaseLock(deps, input, found.usecase, found.userId);
+  const existingSoftLock =
+    input.lockType === "SOFT"
+      ? existingLocks.find(
+          (existing) =>
+            existing.mode === "SOFT" &&
+            ownsLock(existing, found.userId, input.sessionId) &&
+            Date.parse(existing.expires_at) > now(deps).getTime()
+        )
+      : undefined;
+  if (existingSoftLock !== undefined) {
+    const updated = {
+      ...existingSoftLock,
+      auto_release: lock.auto_release,
+      expires_at: lock.expires_at,
+      reason: lock.reason
+    };
+    await deps.lockStore.updateLock(updated);
+    return {
+      lock: updated,
+      status: "CREATED",
+      usecase: found.usecase,
+      ...(warnings.length === 0 ? {} : { warnings })
+    };
+  }
+
   await deps.lockStore.saveLock(lock);
   return {
     lock,

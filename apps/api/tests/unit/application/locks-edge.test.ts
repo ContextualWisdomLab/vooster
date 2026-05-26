@@ -89,6 +89,35 @@ describe("lock application edge cases", () => {
     });
     expect(deletedLockIds).toEqual([]);
   });
+
+  test("soft reacquire by the same user holder updates without duplicating", async () => {
+    const deletedLockIds: string[] = [];
+    const savedLocks: StoredLock[] = [];
+    const updatedLocks: StoredLock[] = [];
+
+    const result = await acquireLock(
+      depsFor({
+        deletedLockIds,
+        existingLock: lock({
+          held_by_session_id: null,
+          held_by_user_id: "user-1",
+          holder: "user-1",
+          mode: "SOFT"
+        }),
+        savedLocks,
+        updatedLocks
+      }),
+      lockInput({ lockType: "SOFT", sessionId: null })
+    );
+
+    expect(result).toMatchObject({
+      lock: { id: "lock-1", reason: "Agent is rewriting the success scenario." },
+      status: "CREATED"
+    });
+    expect(deletedLockIds).toEqual([]);
+    expect(savedLocks).toEqual([]);
+    expect(updatedLocks).toHaveLength(1);
+  });
 });
 
 function depsFor(
@@ -96,6 +125,8 @@ function depsFor(
     deletedLockIds?: string[];
     existingLock?: StoredLock;
     membership?: StoredMembership | null;
+    savedLocks?: StoredLock[];
+    updatedLocks?: StoredLock[];
   } = {}
 ) {
   return {
@@ -112,6 +143,8 @@ function depsFor(
 function lockStore(options: {
   deletedLockIds?: string[];
   existingLock?: StoredLock;
+  savedLocks?: StoredLock[];
+  updatedLocks?: StoredLock[];
 }): LockStore {
   return {
     deleteLock: (lockId) => {
@@ -124,8 +157,14 @@ function lockStore(options: {
     listLocksForUseCase: () =>
       Promise.resolve(options.existingLock === undefined ? [] : [options.existingLock]),
     listLocksHeldBySession: () => Promise.resolve([]),
-    saveLock: () => Promise.resolve(),
-    updateLock: () => Promise.resolve()
+    saveLock: (newLock) => {
+      options.savedLocks?.push(newLock);
+      return Promise.resolve();
+    },
+    updateLock: (updatedLock) => {
+      options.updatedLocks?.push(updatedLock);
+      return Promise.resolve();
+    }
   };
 }
 
@@ -150,11 +189,13 @@ function useCaseStore(): UseCaseStore {
   };
 }
 
-function lockInput(overrides: { lockType?: StoredLock["mode"] } = {}) {
+function lockInput(
+  overrides: { lockType?: StoredLock["mode"]; sessionId?: null | string } = {}
+) {
   return {
     lockType: overrides.lockType ?? "SEMANTIC",
     reason: "Agent is rewriting the success scenario.",
-    sessionId: "session-1",
+    sessionId: overrides.sessionId === undefined ? "session-1" : overrides.sessionId,
     targetId: "usecase-1",
     targetType: "USECASE" as const,
     ttlMinutes: 30,

@@ -37,8 +37,8 @@ check_hook_installation() {
   [ -n "$hook_path" ] || return 0
 
   if [ ! -e "$hook_path" ]; then
-    echo "⚠ pre-commit hook is not installed; run:"
-    echo "  ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit"
+    echo "⚠ pre-commit hook is not installed; run 'pnpm install' (its prepare"
+    echo "  script wires hooks) or: git config core.hooksPath scripts/hooks"
     return 0
   fi
 

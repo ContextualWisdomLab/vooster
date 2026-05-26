@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "../../../api/src/http/server.js";
 import { createPrismaSignupStore } from "../../../api/src/infrastructure/prisma-signup-store.js";
@@ -10,6 +12,15 @@ type RunCliOptions = {
 
 export function cleanupCliE2e() {
   return undefined;
+}
+
+// Commands that persist auth/project state (login, project create) write to the
+// global config. config-store.ts refuses to touch ~/.vspec during tests, so any
+// e2e test that triggers a write must point VSPEC_CONFIG_PATH at an isolated
+// temp file. Returns one path so callers can share it across runCli calls in the
+// same test (e.g. login then a follow-up that reads the session).
+export function freshConfigPath(prefix = "vspec-cli-e2e-"): string {
+  return join(mkdtempSync(join(tmpdir(), prefix)), "config.json");
 }
 
 export async function startNetworkServer(prefix: string) {

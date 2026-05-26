@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
+import {
+  cleanupCliE2e,
+  freshConfigPath,
+  runCli,
+  startNetworkServer
+} from "./helpers.js";
 
 type SignupResponse = {
   workspace: {
@@ -20,22 +25,25 @@ describe("UC-004 CLI - Create a project", () => {
     const server = await startNetworkServer("vspec-cli-uc004-");
     try {
       const signedUp = await signup(server.apiUrl);
-      const result = await runCli([
-        "project",
-        "create",
-        "--workspace-id",
-        signedUp.workspaceId,
-        "--name",
-        "Payments",
-        "--key",
-        "PAY",
-        "--visibility",
-        "INTERNAL",
-        "--session-cookie",
-        signedUp.cookie,
-        "--api-url",
-        server.apiUrl
-      ]);
+      const result = await runCli(
+        [
+          "project",
+          "create",
+          "--workspace-id",
+          signedUp.workspaceId,
+          "--name",
+          "Payments",
+          "--key",
+          "PAY",
+          "--visibility",
+          "INTERNAL",
+          "--session-cookie",
+          signedUp.cookie,
+          "--api-url",
+          server.apiUrl
+        ],
+        { VSPEC_CONFIG_PATH: freshConfigPath("vspec-cli-uc004-") }
+      );
 
       expect(result.stderr).toBe("");
       expect(result.status).toBe(0);

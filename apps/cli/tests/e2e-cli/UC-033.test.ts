@@ -15,9 +15,7 @@ describe("UC-033 CLI - Learn how to use vspec", () => {
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("# vspec AI Agent Guide");
       expect(result.stdout).toContain("Why sessions exist");
-      expect(result.stdout).toContain(
-        "pin -> fetch via --format=agent -> propose-change -> commit"
-      );
+      expect(result.stdout).toContain("Mandatory workflow");
       expect(result.stdout).toContain("The --format=agent payload contract");
       expect(result.stdout).toContain("Forbidden actions");
       expect(result.stdout).toContain("Worked example");

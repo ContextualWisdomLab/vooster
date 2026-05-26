@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { cleanupCliE2e, runCli, startNetworkServer } from "./helpers.js";
+import {
+  cleanupCliE2e,
+  freshConfigPath,
+  runCli,
+  startNetworkServer
+} from "./helpers.js";
 
 afterEach(() => {
   cleanupCliE2e();
@@ -21,7 +26,8 @@ describe("UC-001 CLI - Sign up for a workspace", () => {
         ],
         {
           VSPEC_AUTH_STUB: "1",
-          VSPEC_AUTH_STUB_ID: "stub-cli-user"
+          VSPEC_AUTH_STUB_ID: "stub-cli-user",
+          VSPEC_CONFIG_PATH: freshConfigPath("vspec-cli-uc001-")
         }
       );
 

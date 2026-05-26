@@ -35,16 +35,31 @@ export type ActorSummary = {
   is_human: boolean;
 };
 
+// Mirrors the API's derived reverse view: each caller use case that invokes
+// this one from a step. Internal scenario ids are dropped — the viewer only
+// needs the human key, title, and the calling step number.
+export type UsecaseInvokedBy = {
+  key: string;
+  step_number: number;
+  title: string;
+};
+
 export type UsecaseDetail = {
   title: string;
   primary_actor: { name: string };
   level: string;
   status: string;
   main_scenario: {
-    steps: Array<{ action: string; actor: string; step_number: number }>;
+    steps: Array<{
+      action: string;
+      actor: string;
+      invokes?: string[];
+      step_number: number;
+    }>;
   };
   extensions: Array<{ condition: string; outcome: string }>;
   stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
+  invoked_by?: UsecaseInvokedBy[];
 };
 
 export async function fetchProjects(): Promise<ProjectSummary[]> {

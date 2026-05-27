@@ -7,6 +7,7 @@ resolved_by:
   - 8d27157
   - 5ce7ea5
   - 73dca0f
+  - 97b766d
 status_notes: |
   Suggested-command corrections — CLOSED 2026-05-26 (commit 8d27157).
   Goal create `--actor` name alignment — CLOSED 2026-05-26 (commit 5ce7ea5);
@@ -15,7 +16,7 @@ status_notes: |
   Unroutable-suggestion follow-up sweep — `vspec workspace create` →
     `vspec login --workspace-name …` and `vspec api-key refresh` →
     `vspec api-key create` corrected this pass (commit 73dca0f).
-  API suggests no-equivalent commands — `actor restore` cut pre-beta;
+  API suggests no-equivalent commands — `actor restore` cut pre-beta by 97b766d;
     `member set-role`/`member list` and `workspace list` remain OPEN (P2).
 related:
   - docs/findings/2026-05-24T1100-spec-impl-audit.md

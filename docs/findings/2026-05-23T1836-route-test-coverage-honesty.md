@@ -5,9 +5,10 @@ priority: P2
 resolved: partial
 resolved_by:
   - 629c842
+  - 97b766d
 status_notes: |
   Phase 1 is closed: the route integration pattern is documented below, and three app.inject exemplars now live under apps/api/tests/integration/http/.
-  Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27 after the post-completion correction: 36 *-routes.test.ts files remain; doctor-routes was migrated to apps/api/tests/integration/http/doctor-route.test.ts and the mocked unit file was removed. Progress: 1/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
+  Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27 after the post-completion correction commit 97b766d: 36 *-routes.test.ts files remain; doctor-routes was migrated to apps/api/tests/integration/http/doctor-route.test.ts and the mocked unit file was removed. Progress: 1/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
 related:
   - docs/findings/2026-05-23T1730-coverage-diagnosis.md
   - apps/api/tests/unit/http

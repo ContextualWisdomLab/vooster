@@ -49,17 +49,16 @@ function activeNameConflict(
 }
 
 function archivedNameConflict(reply: FastifyReply, existingActor: StoredActor) {
-  return reply.code(409).send(
-    problem(
-      409,
-      "Name is held by an archived actor",
-      { existing_actor_id: existingActor.id },
-      [
-        { command: "vspec actor restore", reason: "Restore the archived actor." },
-        { command: "vspec actor create", reason: "Choose a different name." }
-      ]
-    )
-  );
+  return reply
+    .code(409)
+    .send(
+      problem(
+        409,
+        "Name is held by an archived actor",
+        { existing_actor_id: existingActor.id },
+        [{ command: "vspec actor create", reason: "Choose a different name." }]
+      )
+    );
 }
 
 function readOnly(reply: FastifyReply) {

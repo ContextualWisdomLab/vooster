@@ -54,7 +54,7 @@ The user invokes `vspec actor create --name <n> --type <t> [--human]` or submits
 ### 3b. Actor name collides with an archived actor
 
 - 3b1. **System** returns 409 explaining the name is held by an archived actor.
-- 3b2. **System** suggests `vspec actor restore` or a different name.
+- 3b2. **System** suggests choosing a different actor name with `vspec actor create`.
 - (Outcome: FAILURE — use case ends.)
 
 ### 4a. Type value is not in the enum

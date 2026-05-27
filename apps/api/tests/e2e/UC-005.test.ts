@@ -98,7 +98,7 @@ describe("UC-005 - Define an actor", () => {
     });
   });
 
-  test("3b: duplicate archived actor name suggests restore or rename", async () => {
+  test("3b: duplicate archived actor name suggests a different name", async () => {
     const setup = await createProject(
       "Archived Actor",
       "archived-actor",
@@ -120,9 +120,12 @@ describe("UC-005 - Define an actor", () => {
     const body = (await duplicate.json()) as ProblemResponse;
     expect(body.title).toMatch(/archived actor/i);
     expect(body.existing_actor_id).toBe(createdBody.actor.id);
+    expect(body.suggested_next_actions).not.toContainEqual(
+      expect.objectContaining({ command: "vspec actor restore" })
+    );
     expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec actor restore",
-      reason: "Restore the archived actor."
+      command: "vspec actor create",
+      reason: "Choose a different name."
     });
   });
 

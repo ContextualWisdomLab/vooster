@@ -3,6 +3,15 @@ title: "Use-case invocation links (invokes / invoked-by)"
 created_at: 2026-05-26T15:04:22Z
 resolved: true
 priority: P2
+resolved_by:
+  - 0851de7
+  - a774b6a
+  - cb8ebff
+  - eb58bb6
+  - 8d4a549
+  - b7f7026
+  - c4c2153
+  - a74b57c
 status_notes: |
   Stage 3 — CLOSED on 2026-05-27: contract-surface callee changes now walk
   reverse `invokes` edges transitively/cycle-safely and add caller sessions with
@@ -295,3 +304,12 @@ rendering = claude-owned delegate goal** (cwd `apps/app`, per
 **Guard**: Stages depend in order (1a → 1b → 2 → 3). If any stage hits 3
 RED→GREEN cycles without progress, mark this finding `partial` with a
 status_notes line naming the last green stage, and move on — partial is fine.
+
+## Resolution
+
+Closed on 2026-05-27. Backend schema/domain, markdown parse/render, doctor
+warnings, and derived `invoked_by` landed in `0851de7`; round-trip serialization
+coverage landed in `a774b6a`; web rendering landed through Goal 34 commits
+`cb8ebff`, `eb58bb6`, and `8d4a549`; local invocation severity landed in
+`b7f7026`; the data model was clarified in `c4c2153`; transitive caller impact
+landed in `a74b57c`.

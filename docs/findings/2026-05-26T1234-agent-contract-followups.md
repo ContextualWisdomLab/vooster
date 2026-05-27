@@ -15,8 +15,8 @@ status_notes: |
   Unroutable-suggestion follow-up sweep — `vspec workspace create` →
     `vspec login --workspace-name …` and `vspec api-key refresh` →
     `vspec api-key create` corrected this pass (commit 73dca0f).
-  API suggests no-equivalent commands — `member set-role`/`member list`,
-    `actor restore` (cut), `workspace list` (reason-only) — OPEN (P2).
+  API suggests no-equivalent commands — `actor restore` cut pre-beta;
+    `member set-role`/`member list` and `workspace list` remain OPEN (P2).
 related:
   - docs/findings/2026-05-24T1100-spec-impl-audit.md
   - docs/06-api-contract.md
@@ -32,9 +32,10 @@ commands the API hands back, and the goal-create actor field) on top of the
 2026-05-24 spec↔impl audit. Every suggested command was swept against the CLI
 dispatcher: the **agent-breaking** ones with a runnable equivalent are now
 **fixed** (item 1 + the follow-up sweep: goal `--actor`, `workspace create`,
-`api-key refresh`); the ones with **no** runnable equivalent (`member
-set-role`/`list`, `actor restore`, `workspace list`) and the envelope-version
-split are **deferred / cut** and recorded here. Domain model / endpoint-shape
+`api-key refresh`); the remaining ones with **no** runnable equivalent (`member
+set-role`/`list`, `workspace list`) and the envelope-version split are
+**deferred** and recorded here. `actor restore` was cut because the existing
+`actor create` suggestion gives agents a runnable recovery path. Domain model / endpoint-shape
 drift is **not** re-litigated here — it lives in
 `docs/findings/2026-05-24T1100-spec-impl-audit.md` (§A1, §A5).
 
@@ -125,7 +126,7 @@ point at _planned_ commands (not typos of existing ones), and they are pinned
 by ~10 test assertions (e.g. `apps/api/tests/e2e/UC-009.test.ts:214`,
 `UC-027.test.ts:224`, `apps/cli/tests/unit/member-api-key-agent-format.test.ts:64`).
 
-**4b. `vspec actor restore`** (`apps/api/src/http/actor-results.ts:55`, test
+**4b. `vspec actor restore` — CLOSED** (`apps/api/src/http/actor-results.ts:55`, test
 `apps/api/tests/e2e/UC-005.test.ts:124`) — emitted on a 409 archived-name
 collision (UC-005 ext 3b), but actors have no restore/un-archive command or
 route (`actor` routes only create/list/show/edit/archive). **Decision: cut, not
@@ -134,8 +135,8 @@ primary-actor / step-doer pool (`apps/api/src/application/usecases.ts:98`,
 `apps/api/src/application/scenario-authoring.ts:119`) while preserving
 referential integrity for use cases that already reference it. But `restore`
 exists only to reclaim an archived name, which "use a different name" already
-solves. Resolution: drop the suggestion and reword UC-005 3b2 to recommend a
-different name.
+solves. Resolution: the API no longer suggests `vspec actor restore`, and
+UC-005 3b2 now recommends choosing a different name with `vspec actor create`.
 
 **4c. `vspec workspace list`** (`apps/api/src/http/who-results.ts:35`,
 `apps/api/src/http/session-list-results.ts:22`; tests
@@ -151,9 +152,9 @@ this should be reason-only, not a command.
 
 **Recommendation:** (b) after beta for 4a and 4c — a 403 advisory should not
 advertise a command the caller cannot run; make them reason-only via the same
-optional-`command` change. 4b (`actor restore`) is a clean cut (one site + one
-test + a UC-005 wording tweak) and can land pre-beta. Pre-MVP, leave 4a/4c
-as-is (no new command surface, no envelope change yet).
+optional-`command` change. 4b (`actor restore`) is closed pre-beta with no new
+command surface. Pre-MVP, leave 4a/4c as-is (no new command surface, no
+envelope change yet).
 
 **Acceptance signal:** no `suggested_next_actions` entry carries a `command`
 that the CLI dispatcher (`apps/cli/src/index.ts`) cannot route.
@@ -163,8 +164,7 @@ that the CLI dispatcher (`apps/cli/src/index.ts`) cannot route.
 1. **Untruthful suggestions** → correct to a runnable equivalent where one
    exists; otherwise reason-only or cut. Do not build new commands pre-MVP
    (item 1 done; follow-up sweep `workspace create` / `api-key refresh` done;
-   item 4 `member`/`workspace list` reason-only and `actor restore` cut, all
-   deferred except the cheap `actor restore` cut).
+   item 4 `member`/`workspace list` reason-only deferred; `actor restore` cut).
 2. **name vs id** → name-based is canonical; goal aligned to accept `--actor`
    while keeping `--actor-id` (item 2 done).
 3. **Envelope v2** → document as-built now; consolidate to a single additive

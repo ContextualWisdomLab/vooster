@@ -7,7 +7,7 @@ resolved_by:
   - 629c842
 status_notes: |
   Phase 1 is closed: the route integration pattern is documented below, and three app.inject exemplars now live under apps/api/tests/integration/http/.
-  Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27: 37 *-routes.test.ts files remain (33 pure-mock, 4 partial app.inject) — 0/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
+  Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27 after the post-completion correction: 36 *-routes.test.ts files remain; doctor-routes was migrated to apps/api/tests/integration/http/doctor-route.test.ts and the mocked unit file was removed. Progress: 1/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
 related:
   - docs/findings/2026-05-23T1730-coverage-diagnosis.md
   - apps/api/tests/unit/http
@@ -144,11 +144,11 @@ becomes a clean negative grep gate.
 
 ## Migration plan (Phase 2 queue, ordered by risk)
 
-1. `doctor-routes` (newest, smallest blast radius)
+1. `doctor-routes` — migrated 2026-05-27 to the app.inject integration pattern.
 2. `sync-routes` (data integrity — already a P0 elsewhere)
 3. `signup-routes` (auth surface)
 4. `lock-routes`, `session-routes` (concurrency-sensitive)
-5. Remaining ~75 in alphabetical order
+5. Remaining 32 route-unit files in alphabetical order
 
 Stop point per cycle: any cycle that hits 3 RED→GREEN sub-finding
 closures is a good cycle. Do not block on the full sweep.

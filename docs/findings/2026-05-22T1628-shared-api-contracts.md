@@ -6,15 +6,15 @@ status_notes: |
   Auth domain CLOSED on 2026-05-27: OAuth start/callback and device-token
   request bodies/query plus login/signup success response schemas moved to
   `@vooster/contracts`; API and CLI auth paths now parse through the shared
-  schemas. Package-shape domains are complete. Final migrated slice count is
-  22/21 because Doctor was tracked as an additional slice beyond the original
-  package-shape list. Finding remains partial: central typed CLI client
-  extraction and any non-package-shape production surfaces are deferred.
+  schemas. Package-shape extraction is complete: 21 planned package domains plus
+  the separately tracked Doctor slice were migrated. Finding remains partial:
+  central typed CLI client extraction and any non-package-shape production
+  surfaces are deferred.
   Session domain CLOSED on 2026-05-27: start/list/watch/complete params,
   query/body, and success response schemas moved to `@vooster/contracts`; API
   and CLI session paths now parse through the shared schemas. Domains migrated:
-  21/21 ledgered slices; auth remains open because Doctor was counted as an
-  additional slice beyond the original package-shape list.
+  21/21 planned package slices; auth remained as the final planned slice, with
+  Doctor already tracked separately.
   Sync domain CLOSED on 2026-05-27: pull/push project params, request bodies,
   and success response schemas moved to `@vooster/contracts`; API and CLI sync
   paths now parse through the shared schemas. Domains migrated: 20/21.

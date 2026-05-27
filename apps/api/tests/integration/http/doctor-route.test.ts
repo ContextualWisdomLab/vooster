@@ -32,4 +32,37 @@ describe("GET /v1/doctor integration", () => {
       title: "Not authorized to run doctor"
     });
   });
+
+  test("validates diagnostic scope through real routing", async () => {
+    for (const query of ["", `?project_id=${setup.projectId}&usecase=missing`]) {
+      const response = await server.fetch(`/v1/doctor${query}`, {
+        headers: { Cookie: setup.cookie }
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        title: "Provide exactly one of project_id or usecase"
+      });
+    }
+  });
+
+  test("returns project diagnostics for members through real routing", async () => {
+    const response = await server.fetch(`/v1/doctor?project_id=${setup.projectId}`, {
+      headers: { Cookie: setup.cookie }
+    });
+
+    const body = (await response.json()) as DoctorBody;
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("ok");
+    expect(body.scope.project_id).toBe(setup.projectId);
+    expect(body.checks).toContainEqual(
+      expect.objectContaining({ id: "project.usecases.visible", status: "pass" })
+    );
+  });
 });
+
+type DoctorBody = {
+  checks: Array<{ id: string; status: string }>;
+  scope: { project_id: string };
+  status: string;
+};

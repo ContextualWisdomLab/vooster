@@ -827,6 +827,16 @@ RequestInit)` equality while still asserting URL/method/payload.
   `pnpm exec vitest run packages/contracts/tests/auth.test.ts apps/api/tests/unit/http/signup-routes.test.ts apps/api/tests/unit/http/auth-device-routes.test.ts apps/api/tests/unit/http/signup-support.test.ts apps/api/tests/e2e/UC-001.test.ts apps/api/tests/e2e/UC-002.test.ts apps/cli/tests/e2e-cli/UC-001.test.ts apps/cli/tests/e2e-cli-honest/login-to-usecase.test.ts`,
   `pnpm exec tsc --noEmit`, targeted eslint, targeted prettier, and
   `bash scripts/completion-check.sh` exited 0.
+- 2026-05-27 post-completion audit correction — Tier 5 optional item 4b was
+  still open after the original `complete` marker. Closed the cheap
+  `vspec actor restore` cut by removing the unroutable suggestion from
+  archived-actor-name conflicts, updating UC-005 3b2, and marking the
+  agent-contract finding accordingly. Also clarified shared-contracts ledger
+  wording: the run migrated 21 planned package slices plus Doctor as a
+  separately tracked slice, not a literal `22/21` target. Route-test Phase 2
+  now has its first migrated file: `doctor-routes` moved from mocked unit route
+  tests to `apps/api/tests/integration/http/doctor-route.test.ts`, leaving
+  36/37 route-unit files in the back catalog.
 
 ---
 
@@ -843,6 +853,7 @@ for f in \
   docs/findings/2026-05-26T1504-usecase-invocation-links.md \
   docs/findings/2026-05-22T1628-shared-api-contracts.md \
   docs/findings/2026-05-23T1836-route-test-coverage-honesty.md \
+  docs/findings/2026-05-26T1234-agent-contract-followups.md \
 ; do
   awk '/^---$/{c++; if(c==2)exit} /^resolved:/{print FILENAME": "$0}' "$f"
 done
@@ -853,7 +864,8 @@ done
 #   spec-impl-audit (Gap B)    → true (A·B·C green) 또는 partial
 #   usecase-invocation-links   → true 또는 partial (마지막 green 단계 표기)
 #   shared-api-contracts       → partial ("N/21 domains") — XL, partial 정상
-#   route-test-coverage-honesty→ partial ("Phase 2: N/37 migrated")
+#   route-test-coverage-honesty→ partial ("Phase 2: 1/37 migrated")
+#   agent-contract-followups   → partial (4b closed; 3/4a/4c deferred)
 
 # 2. chain green
 bash scripts/completion-check.sh; echo "exit: $?"   # 0

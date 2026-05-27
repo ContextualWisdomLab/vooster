@@ -41,6 +41,7 @@
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^20.19.41",
     "@vitest/coverage-v8": "^4.1.6",
+    "@vooster/contracts": "workspace:*",
     "eslint": "^10.4.0",
     "eslint-plugin-boundaries": "^6.0.2",
     "prettier": "^3.8.3",

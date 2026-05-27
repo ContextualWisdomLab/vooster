@@ -10,6 +10,7 @@ export default tseslint.config(
       "**/.state/**",
       "coverage/**",
       "dist/**",
+      "**/dist/**",
       "node_modules/**",
       "apps/app/next-env.d.ts",
       "apps/api/tests/e2e/_template.test.ts"

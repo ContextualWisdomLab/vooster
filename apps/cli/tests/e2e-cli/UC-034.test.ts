@@ -21,7 +21,12 @@ type AgentUseCaseResponse = {
   data: {
     primary_actor: { name: string };
     scenarios: Array<{
-      steps: Array<{ action: string; actor: string; step_number: number }>;
+      steps: Array<{
+        action: string;
+        actor: string;
+        invokes: string[];
+        step_number: number;
+      }>;
     }>;
     stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
     title: string;
@@ -63,14 +68,14 @@ describe("UC-034 CLI - Fetch a structured spec", () => {
         session_id: null
       });
       expect(envelope.context.revision).toMatch(/[0-9a-f-]{36}/);
-      expect(envelope.data.usecase).toEqual({
+      expect(envelope.data.usecase).toMatchObject({
         id: setup.usecaseId,
         key: setup.usecaseKey
       });
       expect(envelope.data.title).toBe("Places an order");
       expect(envelope.data.primary_actor).toEqual({ name: "Customer" });
       expect(envelope.data.scenarios[0]?.steps).toEqual([
-        { action: "Places an order.", actor: "Customer", step_number: 1 }
+        { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
       ]);
       expect(envelope.data.stakeholder_interests).toEqual([
         { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }

@@ -9,6 +9,7 @@ form-data/
 
 # Builds
 dist/
+**/dist/
 build/
 .next/
 *.tsbuildinfo

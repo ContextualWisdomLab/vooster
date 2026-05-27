@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cd ../.. && tsc -p tsconfig.json",
+    "build": "pnpm --filter @vooster/contracts build && cd ../.. && tsc -p tsconfig.json",
     "test": "cd ../.. && vitest run apps/api/tests",
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
   },

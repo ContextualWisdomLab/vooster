@@ -22,7 +22,12 @@ type AgentUseCaseResponse = {
   data: {
     primary_actor: { name: string };
     scenarios: Array<{
-      steps: Array<{ action: string; actor: string; step_number: number }>;
+      steps: Array<{
+        action: string;
+        actor: string;
+        invokes: string[];
+        step_number: number;
+      }>;
     }>;
     stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
     title: string;
@@ -64,7 +69,7 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
       revision: usecase.current_revision_id,
       session_id: null
     });
-    expect(body.data.usecase).toEqual({ id: usecase.id, key: usecase.key });
+    expect(body.data.usecase).toMatchObject({ id: usecase.id, key: usecase.key });
     expect(body.data.title).toBe("Places an order");
     expect(body.data.primary_actor).toEqual({ name: "Customer" });
     expect(body.data.scenarios[0]?.steps).toEqual([

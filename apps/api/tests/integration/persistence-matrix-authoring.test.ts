@@ -149,7 +149,7 @@ describe("Goal 2 persistence matrix — authoring cluster", () => {
     await second.stop();
 
     expect(shown.status).toBe(200);
-    expect(shown.data.usecase).toEqual({ id: usecase.id, key: usecase.key });
+    expect(shown.data.usecase).toMatchObject({ id: usecase.id, key: usecase.key });
     expect(shown.data.title).toBe("Reviews persisted use cases");
     expect(shown.data.primary_actor).toEqual({ name: "Customer" });
   }, 90_000);

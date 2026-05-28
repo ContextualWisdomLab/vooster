@@ -366,7 +366,9 @@ else
 fi
 
 echo "[6.E3] scripts/check-honest-cli-e2e.sh exists and exits 0"
-if [ -x scripts/check-honest-cli-e2e.sh ] || [ -f scripts/check-honest-cli-e2e.sh ]; then
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1) — enforced by _meta M.3 on full run"
+elif [ -x scripts/check-honest-cli-e2e.sh ] || [ -f scripts/check-honest-cli-e2e.sh ]; then
   if bash scripts/check-honest-cli-e2e.sh >/dev/null 2>&1; then
     echo "    ✓ pass"
   else

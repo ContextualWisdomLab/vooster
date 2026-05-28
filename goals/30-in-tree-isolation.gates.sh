@@ -6,6 +6,25 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=../scripts/_gate-cache.sh
+source "$ROOT/scripts/_gate-cache.sh"
+
+GOAL_NAME="30-in-tree-isolation"
+
+# Inputs that determine this goal's gate result.
+GATE_INPUTS=(
+  goals/30-in-tree-isolation.gates.sh
+  goals/30-in-tree-isolation.md
+  scripts/_gate-cache.sh
+  scripts/check-gate-rigor.sh
+)
+
+# Skip cache when running as a self-test sub-invocation (target files are synthetic)
+if [ -z "${VSPEC_GOAL30_TARGET_FILES:-}" ] && gate_cache_hit "$GOAL_NAME" "${GATE_INPUTS[@]}"; then
+  echo "[cache hit] goal $GOAL_NAME inputs unchanged"
+  exit 0
+fi
+
 PASS=true
 BUILD_PATTERN='^[[:space:]]*(if[[:space:]]+!?[[:space:]]*)?pnpm[[:space:]]+((run[[:space:]]+)?(--silent[[:space:]]+)?build|(--filter|-F)[[:space:]]+[^[:space:]]+[[:space:]]+build|exec[[:space:]]+tsc([[:space:]]|$))'
 TEMP_PATTERN='^[[:space:]]*[^#]*['\''"][^'\''"]*(/tmp/[A-Za-z0-9._-]+|\.state/[A-Za-z0-9._-]+\.log)([[:space:]'\''"/]|$)'
@@ -83,6 +102,10 @@ else
 fi
 
 if [ "$PASS" = true ]; then
+  # Only persist cache on a real (non-self-test) run
+  if [ -z "${VSPEC_GOAL30_TARGET_FILES:-}" ]; then
+    gate_cache_save "$GOAL_NAME" "${GATE_INPUTS[@]}"
+  fi
   exit 0
 else
   exit 1

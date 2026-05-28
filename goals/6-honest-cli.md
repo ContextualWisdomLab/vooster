@@ -134,6 +134,9 @@ greps. A single match fails the gate.
 
 E3. **`scripts/check-honest-cli-e2e.sh` exists and exits 0.** It
 enforces E1 and E2 and runs `vitest` on the honest directory.
+When `VSPEC_GATES_SKIP_DEEP=1` this sub-check is skipped in
+`6-honest-cli.gates.sh`; the invariant is still enforced by
+`_meta M.3` on every full (non-shallow) run.
 
 E4. **The honest-flow scenario covers `login → project create → actor
     create → usecase create`, end-to-end, with only `runCli`

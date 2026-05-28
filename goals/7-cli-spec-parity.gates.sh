@@ -556,7 +556,9 @@ else
 fi
 
 echo "[7.C5 scripts/check-honest-cli-e2e.sh exits 0 on expanded set]"
-if [ -f scripts/check-honest-cli-e2e.sh ]; then
+if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
+  echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1) — enforced by _meta M.3 on full run"
+elif [ -f scripts/check-honest-cli-e2e.sh ]; then
   if bash scripts/check-honest-cli-e2e.sh >/dev/null 2>&1; then
     echo "    ✓ pass"
   else

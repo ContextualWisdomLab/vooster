@@ -151,7 +151,9 @@ the expanded set.)
 
 C5. **`scripts/check-honest-cli-e2e.sh` exits 0 on the expanded set.**
 The existing script already enforces C1-C4 invariants; the gate
-re-invokes it after the new files land.
+re-invokes it after the new files land. When `VSPEC_GATES_SKIP_DEEP=1`
+this sub-check is skipped in `7-cli-spec-parity.gates.sh`; the
+invariant is still enforced by `_meta M.3` on every full run.
 
 ### Tranche D — Meta: rigor
 

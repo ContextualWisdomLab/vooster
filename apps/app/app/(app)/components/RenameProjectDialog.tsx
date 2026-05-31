@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import {
@@ -98,7 +99,14 @@ export function RenameProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "저장 중..." : "저장"}
+              {pending ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  저장 중...
+                </>
+              ) : (
+                "저장"
+              )}
             </Button>
           </DialogFooter>
         </form>

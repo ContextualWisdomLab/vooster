@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import {
@@ -132,7 +133,14 @@ export function NewProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "만드는 중..." : "프로젝트 만들기"}
+              {pending ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  만드는 중...
+                </>
+              ) : (
+                "프로젝트 만들기"
+              )}
             </Button>
           </DialogFooter>
         </form>

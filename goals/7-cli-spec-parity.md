@@ -51,12 +51,17 @@ object whose top-level keys are exactly
 The gate greps for `export function buildAgentEnvelope` and asserts
 every key appears.
 
-A2. **Legacy agent `format_version` is the integer literal `1`, sourced
-only from `agent-envelope.ts`; mutation agent `format_version` is
-the integer literal `2`, sourced only from
-`apps/cli/src/domain/envelope.ts`.** Any other source file
-containing the string `format_version` fails the gate, unless it is
-a test asserting an envelope contract.
+A2. **Agent `format_version` is the integer literal `1` for both the read
+envelope (`agent-envelope.ts`) and the mutation envelope
+(`apps/cli/src/domain/envelope.ts`); those two modules are the only
+non-test sources of `format_version`.** The mutation envelope carries its
+richer fields (`status`, `error`, `affected_files`, `dry_run`) as additive
+optional members of the same `format_version: 1` schema rather than a
+separate version. Any other source file containing the string
+`format_version` fails the gate, unless it is a test asserting an envelope
+contract. (Consolidated from the earlier read=1 / mutation=2 split per
+`docs/findings/2026-05-26T1234-agent-contract-followups.md` §3: the version
+field denotes schema evolution, not a read-vs-write distinction.)
 
 A3. **Every command file that branches on `format === "agent"` routes
 that branch through `buildAgentEnvelope`.** Source of truth:

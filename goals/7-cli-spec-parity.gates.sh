@@ -204,13 +204,13 @@ if [ -f "$ENVELOPE_MODULE" ] \
     && grep -qE 'format_version[[:space:]]*:[[:space:]]*1\b' "$ENVELOPE_MODULE"; then
   A2_LITERAL_OK=true
 fi
-V2_LITERAL_OK=false
+MUTATION_LITERAL_OK=false
 if [ -f "$MUTATION_ENVELOPE_MODULE" ] \
-    && grep -qE 'ENVELOPE_VERSION_V2[[:space:]]*=[[:space:]]*2[[:space:]]+as[[:space:]]+const' "$MUTATION_ENVELOPE_MODULE" \
+    && grep -qE 'ENVELOPE_FORMAT_VERSION[[:space:]]*=[[:space:]]*1[[:space:]]+as[[:space:]]+const' "$MUTATION_ENVELOPE_MODULE" \
     && grep -qE '\bformat_version\b' "$MUTATION_ENVELOPE_MODULE"; then
-  V2_LITERAL_OK=true
+  MUTATION_LITERAL_OK=true
 fi
-if [ "${#A2_OFFENDERS[@]}" -eq 0 ] && [ "$A2_LITERAL_OK" = true ] && [ "$V2_LITERAL_OK" = true ]; then
+if [ "${#A2_OFFENDERS[@]}" -eq 0 ] && [ "$A2_LITERAL_OK" = true ] && [ "$MUTATION_LITERAL_OK" = true ]; then
   echo "    ✓ pass"
 else
   if [ "${#A2_OFFENDERS[@]}" -gt 0 ]; then
@@ -218,10 +218,10 @@ else
     printf '        %s\n' "${A2_OFFENDERS[@]}"
   fi
   if [ "$A2_LITERAL_OK" = false ]; then
-    echo "    ✗ fail — envelope module does not emit format_version: 1"
+    echo "    ✗ fail — read envelope module does not emit format_version: 1"
   fi
-  if [ "$V2_LITERAL_OK" = false ]; then
-    echo "    ✗ fail — mutation envelope module does not emit format_version: 2"
+  if [ "$MUTATION_LITERAL_OK" = false ]; then
+    echo "    ✗ fail — mutation envelope module does not emit format_version: 1"
   fi
   PASS=false
 fi

@@ -11,7 +11,7 @@ type CommentAgentEnvelope<TData> = {
     session_id: null | string;
   };
   data: TData;
-  format_version: 1 | 2;
+  format_version: 1;
   suggested_next_actions: Array<{ command: string }>;
   warnings: unknown[];
 };
@@ -118,7 +118,7 @@ describe("honest CLI comment --format=agent", () => {
 
 function expectAgentEnvelope<TData>(stdout: string): CommentAgentEnvelope<TData> {
   const envelope = JSON.parse(stdout) as unknown as CommentAgentEnvelope<TData>;
-  expect([1, 2]).toContain(envelope.format_version);
+  expect(envelope.format_version).toBe(1);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

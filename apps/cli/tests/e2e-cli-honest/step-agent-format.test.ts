@@ -32,7 +32,7 @@ type StepAgentEnvelope = {
     };
   };
   dry_run?: boolean;
-  format_version: 1 | 2;
+  format_version: 1;
   status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
@@ -114,7 +114,7 @@ function testSeed(projectKey: string): Promise<CliSeed> {
 
 function expectAgentEnvelope(stdout: string): StepAgentEnvelope {
   const envelope = JSON.parse(stdout) as unknown as StepAgentEnvelope;
-  expect([1, 2]).toContain(envelope.format_version);
+  expect(envelope.format_version).toBe(1);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

@@ -1,4 +1,4 @@
-export const ENVELOPE_VERSION_V2 = 2 as const;
+export const ENVELOPE_FORMAT_VERSION = 1 as const;
 
 export type EnvelopeContext = {
   project_key: string | null;
@@ -28,7 +28,7 @@ export type EnvelopeError = {
 };
 
 export type AgentEnvelopeV2<TData> = {
-  format_version: typeof ENVELOPE_VERSION_V2;
+  format_version: typeof ENVELOPE_FORMAT_VERSION;
   status: "ok" | "error";
   data: TData | null;
   error?: EnvelopeError;
@@ -48,7 +48,7 @@ export function buildOkEnvelope<TData>(input: {
   warnings?: Warning[];
 }): AgentEnvelopeV2<TData> {
   return {
-    format_version: ENVELOPE_VERSION_V2,
+    format_version: ENVELOPE_FORMAT_VERSION,
     status: "ok",
     data: input.data,
     context: normalizeContext(input.context),
@@ -66,7 +66,7 @@ export function buildErrorEnvelope(input: {
   warnings?: Warning[];
 }): AgentEnvelopeV2<null> {
   return {
-    format_version: ENVELOPE_VERSION_V2,
+    format_version: ENVELOPE_FORMAT_VERSION,
     status: "error",
     data: null,
     error: input.error,

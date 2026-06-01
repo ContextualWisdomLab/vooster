@@ -12,7 +12,15 @@ status_notes: |
   Suggested-command corrections — CLOSED 2026-05-26 (commit 8d27157).
   Goal create `--actor` name alignment — CLOSED 2026-05-26 (commit 5ce7ea5);
     closes audit §A2 "Goals: requires --actor-id not --actor".
-  Agent envelope `format_version` split (1 read / 2 mutation) — OPEN (P2).
+  Agent envelope `format_version` split (1 read / 2 mutation) — CLOSED
+    2026-06-02 (cycle 260602-01): consolidated to a single `format_version: 1`.
+    The mutation envelope (`apps/cli/src/domain/envelope.ts`) keeps its richer
+    fields (status/error/affected_files/dry_run) as additive optional members
+    of the v1 schema; `ENVELOPE_VERSION_V2` const removed. Acceptance signal met:
+    `grep -rn "ENVELOPE_VERSION_V2\|format_version: 2\|: 2 as const" apps/cli/src`
+    returns nothing. Gate `7.A2` updated (goal-design §5 case (b): invariant
+    changed from read=1/mutation=2 to single v1, goal-7.md prose re-aligned in
+    the same commit) and tests tightened to `format_version === 1`.
   Unroutable-suggestion follow-up sweep — `vspec workspace create` →
     `vspec login --workspace-name …` and `vspec api-key refresh` →
     `vspec api-key create` corrected this pass (commit 73dca0f).

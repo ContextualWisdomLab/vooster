@@ -21,7 +21,7 @@ type ScenarioAgentEnvelope = {
     steps?: unknown[];
   };
   dry_run?: boolean;
-  format_version: 1 | 2;
+  format_version: 1;
   status?: "ok" | "error";
   suggested_next_actions: unknown[];
   warnings: unknown[];
@@ -106,7 +106,7 @@ function scenarioBody() {
 
 function expectAgentEnvelope(stdout: string): ScenarioAgentEnvelope {
   const envelope = JSON.parse(stdout) as unknown as ScenarioAgentEnvelope;
-  expect([1, 2]).toContain(envelope.format_version);
+  expect(envelope.format_version).toBe(1);
   expect(envelope).toHaveProperty("data");
   expect(envelope).toHaveProperty("context");
   expect(envelope).toHaveProperty("suggested_next_actions");

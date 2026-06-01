@@ -67,7 +67,7 @@ describe("vspec usecase create --format=agent — auto-export & error envelope &
       expect(envelope.status).toBe("ok");
       expect(envelope.error).toBeUndefined();
       expect(envelope.dry_run).toBe(false);
-      expect(envelope.format_version).toBeGreaterThanOrEqual(2);
+      expect(envelope.format_version).toBe(1);
       expect(envelope.data?.usecase.id).toBeTruthy();
 
       expect(envelope.affected_files.length).toBeGreaterThan(0);

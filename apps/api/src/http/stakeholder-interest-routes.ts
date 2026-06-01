@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import {
+  stakeholderInterestDeleteParamsSchema,
+  stakeholderInterestRequestSchema,
+  stakeholderInterestUsecaseParamsSchema
+} from "@vooster/contracts";
 import {
   addStakeholderInterest as addStakeholderInterestUseCase,
   removeStakeholderInterest as removeStakeholderInterestUseCase,
@@ -17,12 +21,6 @@ import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-
-const interestRequestSchema = z.object({
-  interest: z.string().min(1),
-  protection_mechanism: z.string().default(""),
-  stakeholder: z.string().min(1)
-});
 
 export function registerStakeholderInterestRoutes(
   app: FastifyInstance,
@@ -61,8 +59,8 @@ async function addStakeholderInterest(
   state: SignupState,
   deps: StakeholderInterestDeps
 ) {
-  const params = z.object({ usecaseId: z.string().min(1) }).parse(request.params);
-  const parsed = interestRequestSchema.safeParse(request.body);
+  const params = stakeholderInterestUsecaseParamsSchema.parse(request.params);
+  const parsed = stakeholderInterestRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid stakeholder interest request"));
   }
@@ -84,12 +82,7 @@ async function removeStakeholderInterest(
   state: SignupState,
   deps: StakeholderInterestDeps
 ) {
-  const params = z
-    .object({
-      stakeholderInterestId: z.string().min(1),
-      usecaseId: z.string().min(1)
-    })
-    .parse(request.params);
+  const params = stakeholderInterestDeleteParamsSchema.parse(request.params);
 
   const result = await removeStakeholderInterestUseCase(deps, {
     stakeholderInterestId: params.stakeholderInterestId,

@@ -9,6 +9,8 @@ import {
   usecaseRestoreResponseSchema,
   usecaseShowResponseSchema,
   usecaseUpdateResponseSchema,
+  stakeholderInterestAddResponseSchema,
+  stakeholderInterestRequestSchema,
   type UsecaseCreateResponse
 } from "@vooster/contracts";
 
@@ -28,8 +30,7 @@ import {
   printUsecaseList,
   printUsecaseRestore,
   printUsecaseShow,
-  printUsecaseUpdate,
-  type StakeholderInterestResponse
+  printUsecaseUpdate
 } from "./usecase-output.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
@@ -190,19 +191,23 @@ async function addStakeholderInterest(
   writeLine: (message: string) => void
 ): Promise<void> {
   const interestFlags = stakeholderInterestFlagsFrom(flags, usecaseId);
+  const body = stakeholderInterestRequestSchema.parse({
+    interest: interestFlags.interest,
+    protection_mechanism: interestFlags.protectionMechanism,
+    stakeholder: interestFlags.stakeholder
+  });
   const response = await postJson(
     `${interestFlags.apiUrl}/v1/usecases/${interestFlags.usecaseId}/stakeholder-interests`,
-    {
-      interest: interestFlags.interest,
-      protection_mechanism: interestFlags.protectionMechanism,
-      stakeholder: interestFlags.stakeholder
-    },
+    body,
     {
       Cookie: interestFlags.sessionCookie
     }
   );
 
-  printStakeholderInterest(response.body as StakeholderInterestResponse, writeLine);
+  printStakeholderInterest(
+    stakeholderInterestAddResponseSchema.parse(response.body),
+    writeLine
+  );
 }
 
 async function listUsecases(

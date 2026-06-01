@@ -17,6 +17,7 @@ export * from "./revision.js";
 export * from "./scenario.js";
 export * from "./session.js";
 export * from "./stakeholder.js";
+export * from "./stakeholder-interest.js";
 export * from "./sync.js";
 export * from "./usecase.js";
 export * from "./who.js";

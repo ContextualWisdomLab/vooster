@@ -3,6 +3,14 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: partial
 status_notes: |
+  Stakeholder-interest domain CLOSED on 2026-06-02 (cycle 260602-01): add/delete
+  request, params, and add/remove success response schemas moved to
+  `@vooster/contracts` (`packages/contracts/src/stakeholder-interest.ts`); API
+  `stakeholder-interest-routes.ts` and CLI `usecase.ts` now parse through the
+  shared schemas, route-local `interestRequestSchema` removed, and the CLI's
+  hand-rolled `StakeholderInterestResponse` type now aliases the contract type.
+  This was one of the previously-deferred "non-package-shape production
+  surfaces". Still partial: impact route + central typed CLI client remain.
   Auth domain CLOSED on 2026-05-27: OAuth start/callback and device-token
   request bodies/query plus login/signup success response schemas moved to
   `@vooster/contracts`; API and CLI auth paths now parse through the shared

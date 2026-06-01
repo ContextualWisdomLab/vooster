@@ -1,4 +1,5 @@
 import type {
+  StakeholderInterestAddResponse,
   UsecaseArchiveResponse,
   UsecaseCreateResponse as ContractUsecaseResponse,
   UsecaseListResponse,
@@ -16,25 +17,7 @@ export type {
 };
 export type UsecaseResponse = ContractUsecaseResponse;
 
-export type StakeholderInterestResponse = {
-  next_missing_role_hint: string;
-  revision: {
-    severity: string;
-    version_number: number;
-  };
-  stakeholder_interest: {
-    interest: string;
-    protection_mechanism: string;
-  };
-  stakeholder_interests: Array<{
-    interest: {
-      interest: string;
-    };
-    stakeholder: {
-      name: string;
-    };
-  }>;
-};
+export type StakeholderInterestResponse = StakeholderInterestAddResponse;
 
 export function printUsecase(
   body: UsecaseResponse,

@@ -11,6 +11,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createProjectAction } from "../../actions";
@@ -132,6 +133,7 @@ export function NewProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending && <Spinner aria-hidden="true" />}
               {pending ? "만드는 중..." : "프로젝트 만들기"}
             </Button>
           </DialogFooter>

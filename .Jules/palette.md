@@ -1,0 +1,3 @@
+## 2024-06-01 - Add loading spinner to async submit button
+**Learning:** Adding a small `Spinner` component next to the text on buttons representing async actions makes the application feel more responsive without changing the layout. It's important to hide decorative spinners from screen readers with `aria-hidden="true"`, as the changing text on the button itself (e.g. from "Delete" to "Deleting...") provides the necessary context for non-sighted users.
+**Action:** When adding async states, introduce a `Spinner` to the button and set `aria-hidden="true"`, relying on the button's text to convey state.

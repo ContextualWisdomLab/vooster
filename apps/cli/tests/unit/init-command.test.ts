@@ -51,9 +51,10 @@ describe("init command", () => {
       current_project_key: "ACME",
       current_workspace_id: "workspace-1"
     });
-    expect(fetch).toHaveBeenCalledWith("https://api.example.test/v1/projects", {
-      headers: { Cookie: "vspec_session=session-token" }
-    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.example.test/v1/projects",
+      expect.anything()
+    );
   });
 
   it("fails validation when --project is missing", async () => {

@@ -122,7 +122,12 @@ function impactResponse() {
       severity: "NON_BREAKING"
     },
     preview_id: "preview-1",
-    suggested_next_actions: [{ command: "vspec lock IMP-001" }]
+    suggested_next_actions: [
+      {
+        command: "vspec lock IMP-001",
+        reason: "Lock the use case before applying a risky change."
+      }
+    ]
   };
 }
 

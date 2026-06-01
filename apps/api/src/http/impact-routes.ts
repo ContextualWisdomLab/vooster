@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { impactPreviewRequestSchema } from "@vooster/contracts";
 import {
   previewImpact as previewImpactWorkflow,
   type ImpactPayload
@@ -18,13 +18,6 @@ import type { UseCaseStore } from "../ports/usecase-store.js";
 import type { WorkSessionStore } from "../ports/work-session-store.js";
 
 const impactCaches = new WeakMap<SignupState, Map<string, ImpactPayload>>();
-const previewSchema = z.object({
-  base_revision: z.string().min(1),
-  entity_id: z.string().min(1),
-  entity_type: z.literal("USECASE"),
-  proposed_change_content: z.string().optional(),
-  proposed_change_path: z.string().optional()
-});
 
 export function registerImpactRoutes(
   app: FastifyInstance,
@@ -77,7 +70,7 @@ async function previewImpact(
   workSessionStore: WorkSessionStore,
   useCaseStore: UseCaseStore
 ) {
-  const parsed = previewSchema.safeParse(request.body);
+  const parsed = impactPreviewRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.code(400).send(problem(400, "Invalid impact preview request"));
   }

@@ -3,6 +3,15 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: partial
 status_notes: |
+  Impact domain CLOSED on 2026-06-02 (cycle 260602-01): the file-based impact
+  variant of `POST /v1/changes/preview` got its own
+  `packages/contracts/src/impact.ts` (request + preview response schemas,
+  reusing common `suggestedNextActionSchema`) rather than polluting change.ts;
+  API `impact-routes.ts` parses the request and CLI `impact.ts` parses the
+  response through the shared schemas, dropping both route-local `previewSchema`
+  and the CLI's hand-rolled `ImpactResponse`. Strict CLI parsing also surfaced a
+  unit-mock that omitted the always-present `reason` on suggested actions; mock
+  corrected. Still partial: central typed CLI client remains deferred.
   Stakeholder-interest domain CLOSED on 2026-06-02 (cycle 260602-01): add/delete
   request, params, and add/remove success response schemas moved to
   `@vooster/contracts` (`packages/contracts/src/stakeholder-interest.ts`); API

@@ -1,5 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { Args, Command, Flags } from "@oclif/core";
+import {
+  impactPreviewRequestSchema,
+  impactPreviewResponseSchema,
+  type ImpactPreviewResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { optionalFlag, requiredArgument, resolveContextFlag } from "../flag-values.js";
@@ -17,27 +22,6 @@ type ImpactFlags = {
   proposedChangePath: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type ImpactResponse = {
-  cached: boolean;
-  impact: {
-    affected_branches: string[];
-    affected_sessions: Array<{
-      agent_type: string;
-      id: string;
-      owner: string;
-      pinned_revision: string;
-    }>;
-    affected_tests: string[];
-    confidence: number;
-    input_hash: string;
-    severity: string;
-  };
-  preview_id: string;
-  suggested_next_actions: Array<{
-    command: string;
-  }>;
 };
 
 type RevisionListResponse = {
@@ -75,19 +59,20 @@ export async function runImpact(
   const impactFlags = impactFlagsFrom(flags, usecaseId);
   const history = await latestUseCaseRevision(impactFlags);
   const proposedChange = await proposedChangePayload(impactFlags.proposedChangePath);
+  const requestBody = impactPreviewRequestSchema.parse({
+    base_revision: history.revision,
+    entity_id: impactFlags.usecaseId,
+    entity_type: "USECASE",
+    ...proposedChange
+  });
   const response = await postJson(
     `${impactFlags.apiUrl}/v1/changes/preview`,
-    {
-      base_revision: history.revision,
-      entity_id: impactFlags.usecaseId,
-      entity_type: "USECASE",
-      ...proposedChange
-    },
+    requestBody,
     {
       Cookie: impactFlags.sessionCookie
     }
   );
-  const body = response.body as ImpactResponse;
+  const body = impactPreviewResponseSchema.parse(response.body);
 
   if (flags.format === "agent") {
     writeLine(
@@ -166,7 +151,7 @@ async function proposedChangePayload(
 }
 
 function formatAffectedSessions(
-  sessions: ImpactResponse["impact"]["affected_sessions"]
+  sessions: ImpactPreviewResponse["impact"]["affected_sessions"]
 ): string {
   if (sessions.length === 0) {
     return "none";
@@ -175,7 +160,7 @@ function formatAffectedSessions(
   return sessions
     .map(
       (session) =>
-        `${session.id} ${session.agent_type} ${session.owner} ${session.pinned_revision}`
+        `${session.id} ${session.agent_type} ${session.owner ?? ""} ${session.pinned_revision ?? ""}`
     )
     .join(", ");
 }

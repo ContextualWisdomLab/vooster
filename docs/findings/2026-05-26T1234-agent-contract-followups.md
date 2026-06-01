@@ -26,6 +26,18 @@ status_notes: |
     `vspec api-key create` corrected this pass (commit 73dca0f).
   API suggests no-equivalent commands — `actor restore` cut pre-beta by 97b766d;
     `member set-role`/`member list` and `workspace list` remain OPEN (P2).
+    2026-06-02 (cycle 260602-01) — measured blast radius before attempting
+    option (b) "reason-only" and DEFERRED it (finding already says "after
+    beta"): making `command` optional is not local. `suggestedNextActionSchema`
+    (command required) is reused by 17 contract response schemas
+    (`packages/contracts/src/{impact,doctor,usecase,invitation,branch,lock,
+    change,common,api-key,goal,who,session,revision,comment,ai-guide,sync,
+    merge}.ts`), and many CLI printers (ai-guide.ts:57, api-key.ts:130/194,
+    change-output.ts:24, …) read `action.command` unconditionally — so option
+    (b) is a contract-wide loosening + per-printer null-safety sweep + ~10 API
+    sites + ~10 test updates, not the small change first estimated. Left OPEN/
+    deferred: too cross-cutting to land safely in an unattended run; do it as a
+    dedicated reviewed slice.
 related:
   - docs/findings/2026-05-24T1100-spec-impl-audit.md
   - docs/06-api-contract.md

@@ -273,6 +273,13 @@ route-test backstop 이 남아 있는 한 할 일은 항상 있다.
   `vspec commit` verb 를 둘지. 무인 실행이 임의로 결정하면 안 됨. 그대로 partial.
 - **`dogfood-followups` A14 (planned verbs)** — 어떤 verb 를 MVP/beta 에 넣을지는
   **제품 스코프 결정**(multi-sprint). 그대로 queued.
+- **T1-4 unroutable suggestions (option b)** — DEFERRED after measurement
+  (2026-06-02): 본래 S 로 추정했으나, `command` optional 화는
+  `suggestedNextActionSchema` 를 쓰는 **17개 contract 스키마 + 다수 CLI printer
+  (`action.command` 무조건 접근) + API problem 타입 + ~10 테스트**에 걸치는
+  contract-wide loosening 임이 확인됨. finding 도 "after beta" 로 명시. 무인
+  실행으로 안전히 못 닫음 → 별도 리뷰 슬라이스로 미룸. agent-contract-followups
+  는 format_version 만 닫고 partial 유지.
 - **`persona-dogfood-harness` (F3)** — 하니스 골격은 자율 가능하나 의미있는 종료가
   human-vetted 페르소나 + 임계값 + 해석 + PII 제한 `form-data/` 에 의존. 무인 루프로
   못 닫음. 그대로 false.

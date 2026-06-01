@@ -3,6 +3,13 @@ title: Shared API Contracts Plan
 created_at: 2026-05-22T16:28:28Z
 resolved: partial
 status_notes: |
+  Remaining non-contract reads (tracked 2026-06-02, cycle 260602-01 meta-audit
+  #2): only two CLI read sites still cast `response.body as <hand-rolled type>`
+  instead of parsing through a contract — the revision-list read inside
+  `apps/cli/src/commands/impact.ts` (`RevisionListResponse`) and a read in
+  `apps/cli/src/commands/status.ts`. These are the tail of the deferred typed
+  CLI client work; left deferred (not ad-hoc fixed) so the typed-client slice
+  stays one coherent piece.
   Impact domain CLOSED on 2026-06-02 (cycle 260602-01): the file-based impact
   variant of `POST /v1/changes/preview` got its own
   `packages/contracts/src/impact.ts` (request + preview response schemas,

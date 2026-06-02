@@ -68,6 +68,7 @@ describe("CLI dispatcher routes", () => {
       "usecase restore",
       "usecase set",
       "usecase show",
+      "verify",
       "who",
       "workspace switch"
     ]);

@@ -324,8 +324,30 @@ vspec history <KEY-NNN> [--limit N]
 vspec diff <KEY-NNN> <rev1> <rev2>
 vspec revert <KEY-NNN> --to <rev>
 vspec impact <KEY-NNN> [--proposed-change <file>]
+vspec verify <KEY-NNN> [--test-cmd "<command>"]
 vspec impact session [<session-id>]   # 🔵 Planned
 ```
+
+### `vspec verify`
+
+`vspec verify <KEY-NNN>` deterministically checks spec-step implementation
+links. It reads the use case, walks each step's `implements` refs, and resolves
+them against the current working tree:
+
+- `path` must point to an existing file.
+- `path:symbol` must point to an existing file whose contents include `symbol`.
+- Steps with no `implements` refs are reported as unlinked.
+- When all links resolve and `--test-cmd` is provided, Vooster runs that command
+  and uses only its exit code; it does not parse or interpret test output.
+
+Exit codes are stable for the same input tree:
+
+- `0` — all linked refs resolve and delegated tests pass or were not requested.
+- `1` — at least one link is broken, or delegated tests fail.
+- `7` — no links are broken, but at least one step is unlinked.
+
+`--format=json|agent` returns the same deterministic result payload, including
+`checked_refs`, `broken_links`, `unlinked_steps`, `test_command`, and `drift`.
 
 ### Agent Format — History
 
@@ -362,6 +384,7 @@ cache correlation.
 
 ```
 vspec impact <KEY-NNN> --format=agent [--proposed-change <file>]
+vspec verify <KEY-NNN> --format=agent [--test-cmd "<command>"]
 ```
 
 ### Agent Format — Changes

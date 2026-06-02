@@ -7,7 +7,7 @@ type CommandHelp = {
 
 const commandGroups = [
   ["Project", "workspace switch, project create/list/switch, status"],
-  ["Use Cases", "usecase create/list/show/set/archive/restore, history, diff"],
+  ["Use Cases", "usecase create/list/show/set/archive/restore, history, diff, verify"],
   ["Scenarios", "scenario add, step add/edit, comment add/list/edit/resolve/delete"],
   [
     "Actors",

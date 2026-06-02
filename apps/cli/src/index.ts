@@ -32,6 +32,7 @@ import { runSync } from "./commands/sync.js";
 import { runStatus } from "./commands/status.js";
 import { runWorkspace } from "./commands/workspace.js";
 import { runUsecase } from "./commands/usecase.js";
+import { runVerify } from "./commands/verify.js";
 import { runWho } from "./commands/who.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -94,6 +95,7 @@ type VspecFlags = {
   to?: string;
   ttl?: string;
   type?: string;
+  "test-cmd"?: string;
   usecase?: string;
   value?: string;
   visibility?: string;
@@ -217,6 +219,7 @@ const commandRoutes: Record<string, CommandRouteRunner> = {
     runUsecase(flags, "set", argv[2], writeLine),
   "usecase show": ({ argv, flags, writeLine }) =>
     runUsecase(flags, "show", argv[2], writeLine),
+  verify: ({ argv, flags, writeLine }) => runVerify(flags, argv[1], writeLine),
   who: ({ argv, flags, writeLine }) => runWho(flags, argv[1], writeLine),
   "workspace switch": ({ argv, flags, writeLine }) => {
     runWorkspace(flags, "switch", argv[2], writeLine);
@@ -316,6 +319,7 @@ export class VspecCommand extends Command {
     status: Flags.string(),
     strategy: Flags.string(),
     summary: Flags.string(),
+    "test-cmd": Flags.string(),
     title: Flags.string(),
     to: Flags.string(),
     ttl: Flags.string(),

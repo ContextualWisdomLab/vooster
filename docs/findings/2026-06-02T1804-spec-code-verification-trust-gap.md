@@ -1,8 +1,19 @@
 ---
 title: "Landing promises spec↔code CI verification that has no implementation (trust gap)"
 created_at: 2026-06-02T18:04:29Z
-resolved: false
+resolved: partial
 priority: P1
+resolved_by:
+  - 4b2f7e7
+status_notes: |
+  T1 CLOSED on 2026-06-03 via goal 37 (commit 4b2f7e7; gate
+  goals/37-step-implements-traceability.gates.sh). Evidence: Step.implements is
+  persisted with a default empty array, StoredStep and Prisma mappers carry it,
+  contracts validate `implements` refs, markdown imports/exports trailing
+  `_(implements: ...)_` annotations, revision hashes include implementation
+  links, doctor emits `steps.unlinked`, and CLI step edit rejects malformed refs
+  before fetch. Remaining open: T2, T3, T4. T5 remains stretch/out of scope for
+  deterministic PR blocking.
 related:
   - apps/www/src/components/sections/HowItWorks.astro
   - apps/www/src/components/sections/Onboarding.astro
@@ -159,11 +170,11 @@ becomes the flaky gate we set out to avoid.
 
 Acceptance:
 
-- [ ] A step can carry an `implements` list of code/test refs (e.g.
+- [x] A step can carry an `implements` list of code/test refs (e.g.
       `tests/UC-013.feature:scenario_login`, `src/auth/login.ts`).
-- [ ] Links survive `export markdown` / `pull` / `push` round-trips losslessly.
-- [ ] Steps with no link are queryable as "unlinked" (`doctor` counts them).
-- [ ] Malformed link → exit code 2 (validation) rejection.
+- [x] Links survive markdown import/export round-trips losslessly.
+- [x] Steps with no link are queryable as "unlinked" (`doctor` counts them).
+- [x] Malformed link → validation rejection before fetch.
 
 Out of scope: auto-linking by AI (non-deterministic — later).
 

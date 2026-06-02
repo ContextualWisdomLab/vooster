@@ -33,7 +33,7 @@ Only one variable is required:
     export VSPEC_DOGFOOD_REPO=<path to the separate dogfood repo, outside this monorepo>
 
 Everything else is automatic: provision builds the local vspec, installs it
-globally, auto-boots a stub-enabled in-memory API at `http://127.0.0.1:8787`
+globally, auto-boots a stub-enabled in-memory API at `http://127.0.0.1:8799`
 (no Postgres), and seeds an authenticated session into the repo's
 `.vspec/config.json`. To point at a remote API instead, set
 `VSPEC_DOGFOOD_API_URL` (and provide auth via `VSPEC_DOGFOOD_SESSION_COOKIE`

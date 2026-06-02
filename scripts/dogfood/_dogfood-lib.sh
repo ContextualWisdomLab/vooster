@@ -24,7 +24,7 @@
 : "${VSPEC_DOGFOOD_MAX_CYCLES:=10}"
 : "${VSPEC_DOGFOOD_CASES:=}"                       # comma-separated DF ids to filter (empty = all)
 : "${VSPEC_DOGFOOD_DRY_RUN:=}"
-: "${VSPEC_DOGFOOD_API_URL:=http://127.0.0.1:8787}" # vspec API; localhost is auto-booted (stub, in-memory)
+: "${VSPEC_DOGFOOD_API_URL:=http://127.0.0.1:8799}" # vspec API; localhost is auto-booted (stub, in-memory)
 : "${VSPEC_DOGFOOD_SESSION_COOKIE:=}"              # seeded auth (headless can't do OAuth device flow)
 : "${VSPEC_DOGFOOD_PROVISION_HOOK:=}"              # optional script: boot API + seed auth
 

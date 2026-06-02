@@ -9,7 +9,7 @@
 #
 # Usage:  bash scripts/dogfood/dogfood-serve-api.sh           # ensure up
 #         bash scripts/dogfood/dogfood-serve-api.sh --stop    # stop it
-# Env:    VSPEC_DOGFOOD_API_URL (default http://127.0.0.1:8787)
+# Env:    VSPEC_DOGFOOD_API_URL (default http://127.0.0.1:8799)
 # Exit:   0 healthy · 1 could not boot.
 
 set -uo pipefail
@@ -17,9 +17,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT"
 # shellcheck source=./_dogfood-lib.sh
 source "$ROOT/scripts/dogfood/_dogfood-lib.sh"
 
-: "${VSPEC_DOGFOOD_API_URL:=http://127.0.0.1:8787}"
+: "${VSPEC_DOGFOOD_API_URL:=http://127.0.0.1:8799}"
 API="${VSPEC_DOGFOOD_API_URL%/}"
-PORT="$(printf '%s' "$API" | sed -E 's#^https?://[^:/]+:?([0-9]*).*#\1#')"; : "${PORT:=8787}"
+PORT="$(printf '%s' "$API" | sed -E 's#^https?://[^:/]+:?([0-9]*).*#\1#')"; : "${PORT:=8799}"
 PIDFILE="$(df_state_dir)/api.pid"
 LOGFILE="$(df_state_dir)/api.log"
 ENTRY="dist/apps/api/src/index.js"
@@ -38,13 +38,19 @@ healthy() { curl -fsS "$API/healthz" >/dev/null 2>&1; }
 
 # --restart forces a fresh boot (provision rebuilds dist each cycle; a still-
 # running instance would be stale code). Default is idempotent reuse-if-healthy.
+# We only ever kill OUR tracked pid — never a blanket port-kill — so we can
+# never take down an unrelated service that happens to hold the port.
 if [ "${1:-}" = "--restart" ]; then
   stop_api 2>/dev/null || true
-  lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | xargs -r kill -9 2>/dev/null || true
   sleep 1
 elif healthy; then
   echo "✓ API already healthy at $API"
   exit 0
+fi
+
+# If something we don't own is on the port, refuse rather than fight it.
+if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+  df_die "port $PORT is occupied by another process. Set VSPEC_DOGFOOD_API_URL to a free port."
 fi
 
 df_require_cmd node

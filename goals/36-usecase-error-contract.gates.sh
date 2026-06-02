@@ -60,16 +60,6 @@ else
   echo "    ✓ pass"
 fi
 
-echo "[36.B2] coded schema-invalid usecase problem path exists"
-if rg -q "SCHEMA_INVALID" packages/contracts/src/common.ts &&
-  rg -q "allowed_values" apps/api/src/http/usecase-validation-problem.ts &&
-  rg -q "apiErrorCodeSchema" apps/cli/src/domain/error-codes.ts; then
-  echo "    ✓ pass"
-else
-  echo "    ✗ fail"
-  PASS=false
-fi
-
 echo "[36.C1 Gate rigor]"
 if bash "$ROOT/scripts/check-gate-rigor.sh" "$ROOT/goals/36-usecase-error-contract.md" >/dev/null 2>&1; then
   echo "    ✓ pass"

@@ -358,6 +358,10 @@ Exit codes are stable for the same input tree:
 
 `--format=json|agent` returns the same deterministic result payload, including
 `checked_refs`, `broken_links`, `unlinked_steps`, `test_command`, and `drift`.
+For `vspec verify`, drift is not semantic mismatch detection. The deterministic
+drift kinds are `broken_link`, `failing_test`, and `unlinked_step`; the blocking
+result never asks an LLM whether the linked code semantically implements the
+spec.
 
 The GitHub Action adapter in `action.yml` runs the same verify implementation
 through `apps/cli/bin/run.js verify` from the Action checkout and resolves refs

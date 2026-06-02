@@ -123,7 +123,55 @@ describe("verify command", () => {
     expect(exitCodes[0]).toBe(1);
     rmSync(root, { recursive: true });
   });
+
+  test("agent output exposes deterministic drift kinds only", async () => {
+    const root = fixtureRoot();
+    const driftKinds = new Set<string>();
+
+    stubUsecase(usecaseResponse({ implements: ["src/missing.ts"] }));
+    let lines: string[] = [];
+    await runVerify(flags({ format: "agent", root }), "UC-013", (line) =>
+      lines.push(line)
+    );
+    driftKinds.add(agentDriftKind(lines));
+    process.exitCode = undefined;
+
+    stubUsecase(usecaseResponse({ implements: [] }));
+    lines = [];
+    await runVerify(flags({ format: "agent", root }), "UC-013", (line) =>
+      lines.push(line)
+    );
+    driftKinds.add(agentDriftKind(lines));
+    process.exitCode = undefined;
+
+    stubUsecase(usecaseResponse());
+    lines = [];
+    await runVerify(
+      flags({
+        format: "agent",
+        root,
+        "test-cmd": `${process.execPath} -e "process.exit(1)"`
+      }),
+      "UC-013",
+      (line) => lines.push(line)
+    );
+    driftKinds.add(agentDriftKind(lines));
+
+    expect([...driftKinds].sort()).toEqual([
+      "broken_link",
+      "failing_test",
+      "unlinked_step"
+    ]);
+    rmSync(root, { recursive: true });
+  });
 });
+
+function agentDriftKind(lines: string[]): string {
+  const envelope = JSON.parse(lines.join("\n")) as {
+    data: { drift: Array<{ kind: string }> };
+  };
+  return envelope.data.drift[0]?.kind ?? "";
+}
 
 function fixtureRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "vspec-verify-"));

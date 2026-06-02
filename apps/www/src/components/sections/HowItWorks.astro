@@ -14,8 +14,8 @@ const steps = [
   },
   {
     n: "03",
-    pain: "Spec과 코드가 일치하지 않는 문제",
-    body: "시간이 지나면 코드와 spec은 따로 놀게 됩니다. spec은 점점 거짓말이 되고, \"분명히 시켰는데\"가 반복됩니다. Vooster는 spec과 코드의 일치를 CI에서 자동 검증해, 어긋난 PR을 통과시키지 않습니다.",
+    pain: "Spec 링크와 테스트가 끊기는 문제",
+    body: "시간이 지나면 코드와 spec은 따로 놀게 됩니다. Vooster는 각 step에 연결된 코드/테스트 링크를 CI에서 확인합니다. 링크가 깨졌거나 테스트가 실패하거나 연결 없는 step이 있으면 PR을 통과시키지 않습니다.",
     visual: "drift",
   },
 ] as const;
@@ -75,9 +75,9 @@ const steps = [
               <div class="p-4 bg-canvas-raised border border-error/40 rounded-sm font-mono text-[12px] leading-relaxed">
                 <div class="flex items-center gap-2 text-error">
                   <span aria-hidden="true">❌</span>
-                  <span>spec drift detected</span>
+                  <span>traceability drift detected</span>
                 </div>
-                <div class="mt-2.5 text-body">UC-013 · step 3 미구현</div>
+                <div class="mt-2.5 text-body">UC-013 · step 3 link missing</div>
                 <div class="text-body">PR #214 blocked</div>
               </div>
             )}

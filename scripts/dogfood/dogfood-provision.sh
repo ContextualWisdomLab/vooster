@@ -87,20 +87,24 @@ fi
 # but we cannot run the cases without it, so a real run requires it.
 echo "[0.5] API + auth"
 if df_dry_run; then
-  echo "  [dry-run] would boot API + seed auth (hook='${VSPEC_DOGFOOD_PROVISION_HOOK:-none}', api='${VSPEC_DOGFOOD_API_URL:-unset}')"
+  echo "  [dry-run] would seed auth (hook='${VSPEC_DOGFOOD_PROVISION_HOOK:-none}', api='${VSPEC_DOGFOOD_API_URL:-unset}')"
 elif [ -n "$VSPEC_DOGFOOD_PROVISION_HOOK" ]; then
+  # Custom hook owns booting the API and seeding auth.
   [ -x "$VSPEC_DOGFOOD_PROVISION_HOOK" ] || df_die "VSPEC_DOGFOOD_PROVISION_HOOK is not executable"
-  VSPEC_DOGFOOD_REPO="$VSPEC_DOGFOOD_REPO" "$VSPEC_DOGFOOD_PROVISION_HOOK" \
-    || df_die "provision hook failed"
+  "$VSPEC_DOGFOOD_PROVISION_HOOK" || df_die "provision hook failed"
 elif [ -n "$VSPEC_DOGFOOD_API_URL" ] && [ -n "$VSPEC_DOGFOOD_SESSION_COOKIE" ]; then
-  # Minimal default: write a thin .vspec config the CLI can read.
+  # Caller supplied a session token directly — write the config the CLI reads.
   mkdir -p "$VSPEC_DOGFOOD_REPO/.vspec"
-  cat > "$VSPEC_DOGFOOD_REPO/.vspec/session.json" <<EOF
-{ "api_url": "$VSPEC_DOGFOOD_API_URL", "session_cookie": "$VSPEC_DOGFOOD_SESSION_COOKIE" }
-EOF
-  echo "  ✓ seeded .vspec/session.json pointing at $VSPEC_DOGFOOD_API_URL"
+  tok="${VSPEC_DOGFOOD_SESSION_COOKIE#vspec_session=}"
+  df_require_cmd jq
+  jq -n --arg api "${VSPEC_DOGFOOD_API_URL%/}" --arg tok "$tok" \
+    '{api_url:$api, session_token:$tok}' > "$VSPEC_DOGFOOD_REPO/.vspec/config.json"
+  echo "  ✓ wrote .vspec/config.json pointing at $VSPEC_DOGFOOD_API_URL"
+elif [ -n "$VSPEC_DOGFOOD_API_URL" ]; then
+  # API is up with the auth stub enabled — mint a session headlessly.
+  bash "$ROOT/scripts/dogfood/dogfood-seed-auth.sh" || df_die "auth seeding failed"
 else
-  df_die "no API/auth: set VSPEC_DOGFOOD_PROVISION_HOOK, or both VSPEC_DOGFOOD_API_URL and VSPEC_DOGFOOD_SESSION_COOKIE"
+  df_die "no API/auth: set VSPEC_DOGFOOD_API_URL (stub-enabled API), or VSPEC_DOGFOOD_PROVISION_HOOK, or VSPEC_DOGFOOD_API_URL + VSPEC_DOGFOOD_SESSION_COOKIE"
 fi
 
 echo "✓ provision complete"

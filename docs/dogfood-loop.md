@@ -120,11 +120,18 @@ finding 문서가 영속 기록이다.
 vspec은 REST API를 가진 SaaS다. dogfood repo의 CLI가 `--api-url`로 가리킬
 **실행 중인 API + 인증 컨텍스트**가 있어야 한다. PROVISION은:
 
-- 로컬 API를 부팅 (`apps/api` — 기존 `check-bootable.sh`/Postgres 컨테이너
-  재사용). 또는 전용 staging URL.
+- 로컬 API를 부팅하되 **`VSPEC_AUTH_STUB=1`** 로 띄운다 (`apps/api/src/index.ts`가
+  이 env를 읽어 OAuth stub을 켠다). 또는 stub이 켜진 전용 staging URL.
 - 인증을 시드한다. GitHub OAuth device flow는 헤드리스에서 막히므로,
-  테스트용 세션 쿠키/API key를 발급해 `--session-cookie`로 주입하거나
-  dogfood repo의 `.vspec/` config에 미리 박아둔다.
+  `scripts/dogfood/dogfood-seed-auth.sh`가 stub을 이용한다: stub은 OAuth
+  `code`를 그대로 GitHub 신원으로 취급하므로(`signup-support.ts`의
+  `githubId: code`), 유니크한 code로 `/v1/auth/github/start` →
+  `/v1/auth/github/callback`을 호출해 `vspec_session`을 받아 dogfood repo의
+  `.vspec/config.json`(`{api_url, session_token}` — CLI가 실제로 읽는 형식,
+  `config-store.ts`)에 기록한다.
+- PROVISION은 `VSPEC_DOGFOOD_API_URL`만 있으면 이 seed를 자동 호출한다
+  (직접 토큰을 줄 거면 `VSPEC_DOGFOOD_SESSION_COOKIE`, API 부팅까지
+  커스텀하려면 `VSPEC_DOGFOOD_PROVISION_HOOK`).
 - claude가 받는 dogfood repo에는 **얇은 CLAUDE.md만** 둔다 ("이 repo에는
   vspec이 설치돼 있다. spec 관리는 vspec으로 한다") — 상세 사용법은 넣지
   않는다. 발견가능성/`ai-guide` 품질을 테스트해야 하기 때문.
@@ -208,16 +215,20 @@ dogfood loop의 codex goal은 `dogfood/DOGFOOD-GOAL.md`로 표현한다 (build
 
 ## 예산/제어 env (delegate-to-claude 네이밍 미러)
 
-| env                             | 기본값  | 역할                                   |
-| ------------------------------- | ------- | -------------------------------------- |
-| `VSPEC_DOGFOOD_REPO`            | (필수)  | dogfood 코드베이스 경로                |
-| `VSPEC_DOGFOOD_LINK`            | `pack`  | `pack`(tarball) \| `link`(pnpm link)   |
-| `VSPEC_DOGFOOD_CASE_BUDGET_USD` | `2.00`  | 케이스당 claude -p `--max-budget-usd`  |
-| `VSPEC_DOGFOOD_BUDGET_USD`      | `20.00` | cycle 누적 cap (run + analyze 포함)    |
-| `VSPEC_DOGFOOD_MAX_CYCLES`      | `10`    | 무한 루프 hard cap                     |
-| `VSPEC_DOGFOOD_MODEL`           | `opus`  | run/analyze 모델                       |
-| `VSPEC_DOGFOOD_DRY_RUN`         | (unset) | provision+compose만, claude 호출 안 함 |
-| `VSPEC_DOGFOOD_CASES`           | (전체)  | 쉼표구분 케이스 id 필터                |
+| env                             | 기본값   | 역할                                   |
+| ------------------------------- | -------- | -------------------------------------- |
+| `VSPEC_DOGFOOD_REPO`            | (필수)   | dogfood 코드베이스 경로                |
+| `VSPEC_DOGFOOD_LINK`            | `pack`   | `pack`(tarball) \| `link`(pnpm link)   |
+| `VSPEC_DOGFOOD_CASE_BUDGET_USD` | `2.00`   | 케이스당 claude -p `--max-budget-usd`  |
+| `VSPEC_DOGFOOD_BUDGET_USD`      | `20.00`  | cycle 누적 cap (run + analyze 포함)    |
+| `VSPEC_DOGFOOD_MAX_CYCLES`      | `10`     | 무한 루프 hard cap                     |
+| `VSPEC_DOGFOOD_MODEL`           | `opus`   | run/analyze 모델                       |
+| `VSPEC_DOGFOOD_DRY_RUN`         | (unset)  | provision+compose만, claude 호출 안 함 |
+| `VSPEC_DOGFOOD_CASES`           | (전체)   | 쉼표구분 케이스 id 필터                |
+| `VSPEC_DOGFOOD_API_URL`         | (필수\*) | stub-enabled vspec API URL (seed 자동) |
+| `VSPEC_DOGFOOD_SESSION_COOKIE`  | (옵션)   | 직접 줄 세션 토큰 (없으면 seed가 발급) |
+| `VSPEC_DOGFOOD_PROVISION_HOOK`  | (옵션)   | API 부팅+인증 커스텀 (위 둘 대체)      |
+| `VSPEC_DOGFOOD_GOALIFY`         | `adopt`  | `adopt`(goals/ 직접) \| `draft`(초안)  |
 
 ## 스크립트 (구현됨)
 

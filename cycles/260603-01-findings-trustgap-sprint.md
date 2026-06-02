@@ -3,8 +3,8 @@ cycle: 260603-01
 title: Findings sweep — honesty · contracts tail · spec-mvp lessons (L1/L2) + trust-gap sprint + meta audit
 authored_at: 2026-06-03T03:20:00+09:00
 started_at: 2026-06-03T03:37:40+09:00
-completed_at:
-status: running
+completed_at: 2026-06-03T05:10:40+09:00
+status: complete
 ---
 
 > **Run plan (2026-06-03).** `docs/findings/` 의 미해결 finding 을 9개 병렬

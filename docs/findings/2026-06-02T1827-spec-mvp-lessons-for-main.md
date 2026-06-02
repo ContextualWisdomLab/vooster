@@ -6,18 +6,25 @@ priority: P1
 resolved_by:
   - 9b618b3
   - e47082a
+  - f211854
 related:
   - docs/findings/2026-05-26T1234-agent-contract-followups.md
   - docs/findings/2026-05-22T1628-shared-api-contracts.md
   - docs/findings/2026-06-02T1804-spec-code-verification-trust-gap.md
 status_notes: |
+  L4 SKILL PORT CLOSED on 2026-06-03 via commit f211854. Evidence:
+  .claude/skills/analyze-session/SKILL.md and scripts/extract.sh now exist and
+  are adapted to docs/06-api-contract.md, docs/07-cli-spec.md, apps/* contract
+  drift, local sync, and Korean-first heuristic signals. One-session digest is
+  deferred until a concrete external session path is supplied. Remaining open:
+  L3, L5, L6.
   L2 CLOSED on 2026-06-03 via goal 36 (commit e47082a; gate
   goals/36-usecase-error-contract.gates.sh). Evidence:
   apps/api/src/http/usecase-validation-problem.ts returns code, field, and
   allowed_values for invalid usecase create payloads;
-  apps/cli/src/domain/error-codes.ts consumes apiErrorCodeSchema and has no
-  usecase authoring
-  problem-title literals. Remaining open: L3, L4, L5, L6.
+  apps/cli/src/domain/error-codes.ts consumes apiErrorCodeSchema; no usecase
+  authoring problem-title literals remain. Remaining open after L2: L3, L4, L5,
+  L6.
   L1 CLOSED on 2026-06-03 via goal 35 (commit 9b618b3; gate
   goals/35-korean-verb-phrase.gates.sh). Evidence:
   apps/api/src/application/verb-phrases.ts exposes spec_language with default

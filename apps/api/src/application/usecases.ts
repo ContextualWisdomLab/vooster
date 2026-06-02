@@ -213,6 +213,9 @@ function useCaseNextActions(key: string) {
 }
 
 function suggestedTitles(title: string): string[] {
+  if (/[가-힣]/u.test(title)) {
+    return [`${title}를 검토한다`];
+  }
   return [`Reviews ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
 }
 

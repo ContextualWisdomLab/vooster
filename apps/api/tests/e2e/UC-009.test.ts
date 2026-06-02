@@ -91,6 +91,30 @@ describe("UC-009 - Author a use case from scratch", () => {
     });
   });
 
+  test("MAIN: create a Korean draft use case title without force", async () => {
+    const setup = await createProject(
+      server,
+      "Korean Author UseCase",
+      "korean-author-usecase",
+      "stub-korean-author-usecase"
+    );
+    const actor = await createActor(server, setup, "Customer");
+
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({ primary_actor: "Customer", title: "주문을 생성한다" })
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as UseCaseResponse;
+    expect(body.usecase).toMatchObject({
+      key: "CHK-001",
+      primary_actor_id: actor.id,
+      title: "주문을 생성한다"
+    });
+  });
+
   test("2a: non-verb title requires force override", async () => {
     const setup = await createProject(
       server,

@@ -75,6 +75,23 @@ describe("doctor application", () => {
     }
   });
 
+  test("does not false-flag complete Korean use case prose", async () => {
+    const result = await diagnoseUseCase(
+      depsFor({
+        interests: [interest()],
+        mainScenario: scenario(),
+        steps: [step({ action: "고객이 주문을 제출한다." })],
+        usecase: {
+          projectId: "project-1",
+          usecase: usecase({ title: "주문을 생성한다" })
+        }
+      }),
+      "PAY-001"
+    );
+
+    expect(result).toMatchObject({ status: "ok", suggested_next_actions: [] });
+  });
+
   test("warns on dangling, self, and cyclic invocation links", async () => {
     const target = usecase({ id: "usecase-1", key: "PAY-001" });
     const child = usecase({ id: "usecase-2", key: "PAY-002" });

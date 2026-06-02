@@ -98,6 +98,15 @@ describe("use case authoring application", () => {
     });
   });
 
+  test("accepts a Korean verb phrase title by default", async () => {
+    await expect(
+      authorUseCase(depsFor(), input({ title: "주문을 생성한다" }))
+    ).resolves.toMatchObject({
+      status: "CREATED",
+      usecase: { title: "주문을 생성한다" }
+    });
+  });
+
   test("returns failure statuses without writing", async () => {
     await expect(
       authorUseCase(depsFor({ membership: undefined }), input())
@@ -107,6 +116,11 @@ describe("use case authoring application", () => {
     ).resolves.toEqual({
       status: "TITLE_NOT_VERB_PHRASE",
       suggestedTitles: ["Reviews order status"]
+    });
+    await expect(
+      authorUseCase(depsFor(), input({ force: false, title: "주문 상태" }))
+    ).resolves.toMatchObject({
+      status: "TITLE_NOT_VERB_PHRASE"
     });
     await expect(
       authorUseCase(depsFor({ project: undefined }), input())

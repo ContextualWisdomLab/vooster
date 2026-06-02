@@ -2,9 +2,9 @@
 cycle: 260603-01
 title: Findings sweep — honesty pass · contracts read-path tail · spec↔code trust-gap sprint + meta audit
 authored_at: 2026-06-03T03:20:00+09:00
-started_at: 2026-06-03T03:21:00+09:00
+started_at:
 completed_at:
-status: running
+status: draft
 ---
 
 > **Run plan (2026-06-03).** `docs/findings/` 의 미해결 finding 을 9개 병렬

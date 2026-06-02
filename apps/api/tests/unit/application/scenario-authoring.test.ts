@@ -626,7 +626,8 @@ function step(overrides: Partial<StoredStep> = {}): StoredStep {
     order_index: 0,
     scenario_id: "scenario-main",
     step_number: 1,
-    ...overrides
+    ...overrides,
+    implements: overrides.implements ?? []
   };
 }
 

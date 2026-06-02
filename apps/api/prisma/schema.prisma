@@ -206,6 +206,7 @@ model Step {
   step_number    Int
   actor_id       String
   action         String
+  implements     String[] @default([])
   invokes        String[] @default([])
   is_system_step Boolean  @default(false)
   notes          String?

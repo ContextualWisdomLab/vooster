@@ -100,6 +100,53 @@ describe("step --format=agent", () => {
     ]);
   });
 
+  test("step edit sends implementation links", async () => {
+    const requests: Array<{ body: unknown; url: string }> = [];
+    stubFetch(editStepBody(), requests);
+    const lines: string[] = [];
+
+    await runStep(
+      stepFlags({
+        "base-revision": "revision-1",
+        implements: "tests/UC-013.feature:scenario_login,src/auth/login.ts"
+      }),
+      "edit",
+      "step-1",
+      (line) => lines.push(line)
+    );
+
+    expect(requests).toEqual([
+      {
+        body: {
+          action: "Places an order.",
+          actor: "Customer",
+          base_revision: "revision-1",
+          force: false,
+          implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
+        },
+        url: "https://api.example.test/v1/steps/step-1"
+      }
+    ]);
+  });
+
+  test("step edit rejects malformed implementation links before fetch", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      runStep(
+        stepFlags({
+          "base-revision": "revision-1",
+          implements: "bad ref"
+        }),
+        "edit",
+        "step-1",
+        () => undefined
+      )
+    ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test("human step add", async () => {
     stubFetch(addStepBody());
     const lines: string[] = [];

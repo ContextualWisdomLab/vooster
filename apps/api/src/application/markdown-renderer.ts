@@ -8,7 +8,7 @@ import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
-import { invocationAnnotation } from "./markdown-invocations.js";
+import { implementsAnnotation, invocationAnnotation } from "./markdown-invocations.js";
 
 export type MarkdownRenderDeps = {
   actorStore: ActorStore;
@@ -159,7 +159,7 @@ async function stepLine(
   step: StoredStep,
   label: string
 ) {
-  return `${label} **${await actorName(actorStore, projectId, step.actor_id)}** ${step.action}${invocationAnnotation(step.invokes)}`;
+  return `${label} **${await actorName(actorStore, projectId, step.actor_id)}** ${step.action}${invocationAnnotation(step.invokes)}${implementsAnnotation(step.implements)}`;
 }
 
 async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {

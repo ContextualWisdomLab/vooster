@@ -178,6 +178,7 @@ function step(): StoredStep {
     action: "Pays the order.",
     actor_id: "actor-1",
     id: "step-1",
+    implements: [],
     invokes: [],
     is_system_step: false,
     notes: null,

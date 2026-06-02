@@ -28,6 +28,7 @@ type StepCliFlags = {
   branch?: string;
   "dry-run"?: boolean;
   format?: string;
+  implements?: string;
   "project-id"?: string;
   root?: string;
   "session-cookie"?: string;
@@ -50,6 +51,7 @@ type StepEditFlags = {
   apiUrl: string;
   actor?: string;
   baseRevision: string;
+  implementationRefs?: string[];
   sessionCookie: string;
   stepId: string;
 };
@@ -70,6 +72,7 @@ export class StepCommand extends Command {
     branch: Flags.string(),
     "dry-run": Flags.boolean(),
     format: Flags.string(),
+    implements: Flags.string(),
     "project-id": Flags.string(),
     root: Flags.string(),
     "session-cookie": Flags.string()
@@ -162,7 +165,8 @@ async function editStep(
     stepPatchRequestSchema.parse({
       action: stepFlags.action,
       actor: stepFlags.actor,
-      base_revision: stepFlags.baseRevision
+      base_revision: stepFlags.baseRevision,
+      implements: stepFlags.implementationRefs
     }),
     {
       Cookie: stepFlags.sessionCookie
@@ -209,7 +213,18 @@ function stepEditFlagsFrom(
     apiUrl: resolveContextFlag(flags, "api-url"),
     actor: optionalFlag(flags, "actor"),
     baseRevision: requiredFlag(flags, "base-revision"),
+    implementationRefs: implementationRefsFrom(optionalFlag(flags, "implements")),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     stepId: requiredArgument(stepId, "step-id")
   };
+}
+
+function implementationRefsFrom(value: string | undefined): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }

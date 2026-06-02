@@ -244,6 +244,7 @@ export function storedStep(step: {
   action: string;
   actor_id: string;
   id: string;
+  implements?: string[];
   invokes?: string[];
   is_system_step: boolean;
   notes: null | string;
@@ -255,6 +256,7 @@ export function storedStep(step: {
     action: step.action,
     actor_id: step.actor_id,
     id: step.id,
+    implements: step.implements ?? [],
     invokes: step.invokes ?? [],
     is_system_step: step.is_system_step,
     notes: step.notes,
@@ -684,6 +686,7 @@ export function stepData(step: StoredStep) {
     action: step.action,
     actor_id: step.actor_id,
     id: step.id,
+    implements: step.implements,
     invokes: step.invokes,
     is_system_step: step.is_system_step,
     notes: step.notes,
@@ -697,6 +700,7 @@ export function stepUpdate(step: StoredStep) {
   return {
     action: step.action,
     actor_id: step.actor_id,
+    implements: step.implements,
     invokes: step.invokes,
     is_system_step: step.is_system_step,
     notes: step.notes,

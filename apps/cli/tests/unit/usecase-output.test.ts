@@ -35,6 +35,7 @@ function usecaseShowResponse(): UsecaseShowResponse {
           {
             action: "Places an order.",
             actor: "Customer",
+            implements: [],
             invokes: [],
             step_number: 1
           }
@@ -48,6 +49,7 @@ function usecaseShowResponse(): UsecaseShowResponse {
           {
             action: "Uses a backup card.",
             actor: "Customer",
+            implements: [],
             invokes: [],
             step_number: 1
           }

@@ -148,6 +148,7 @@ export function step(scenarioId: string, action: string): StoredStep {
     action,
     actor_id: "actor-1",
     id: `${scenarioId}-step-1`,
+    implements: [],
     invokes: [],
     is_system_step: false,
     notes: null,

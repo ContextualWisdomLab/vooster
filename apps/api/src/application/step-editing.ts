@@ -32,6 +32,7 @@ export type StepEditingInput = {
   actorName: string | undefined;
   baseRevision: string;
   force: boolean;
+  implementationRefs?: string[];
   notes: string | undefined;
   stepId: string;
   userId: string | undefined;
@@ -110,6 +111,7 @@ export async function editStep(
     ...found.step,
     action: input.action ?? found.step.action,
     actor_id: actor.actor?.id ?? found.step.actor_id,
+    implements: input.implementationRefs ?? found.step.implements,
     notes: input.notes ?? found.step.notes
   };
   await deps.stepStore.updateStep(updated);
@@ -151,7 +153,12 @@ async function actorForEdit(
 }
 
 function cosmeticEdit(input: StepEditingInput, actor: StoredActor | undefined) {
-  return input.action === undefined && actor === undefined && input.notes !== undefined;
+  return (
+    input.action === undefined &&
+    actor === undefined &&
+    input.implementationRefs === undefined &&
+    input.notes !== undefined
+  );
 }
 
 async function stepWithUseCase(

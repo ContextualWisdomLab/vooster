@@ -36,7 +36,13 @@ describe("usecase agent application", () => {
       { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }
     ]);
     expect(result.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
+      {
+        action: "Places an order.",
+        actor: "Customer",
+        implements: [],
+        invokes: [],
+        step_number: 1
+      }
     ]);
   });
 
@@ -116,6 +122,7 @@ describe("usecase agent application", () => {
       {
         action: "Charges the card.",
         actor: "Customer",
+        implements: [],
         invokes: ["CHK-006"],
         step_number: 1
       }
@@ -151,7 +158,13 @@ describe("usecase agent application", () => {
 
     expect(data.primary_actor).toEqual({ name: "System" });
     expect(data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "System", invokes: [], step_number: 1 }
+      {
+        action: "Places an order.",
+        actor: "System",
+        implements: [],
+        invokes: [],
+        step_number: 1
+      }
     ]);
     expect(data.stakeholder_interests).toEqual([
       { interest: "Checkout revenue is protected.", stakeholder: "" }
@@ -188,7 +201,13 @@ describe("usecase agent application", () => {
       warnings: []
     });
     expect(result.envelope.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
+      {
+        action: "Places an order.",
+        actor: "Customer",
+        implements: [],
+        invokes: [],
+        step_number: 1
+      }
     ]);
     expect(result.envelope.suggested_next_actions).toContainEqual({
       command: "vspec change propose CHK-001",
@@ -531,7 +550,8 @@ function step(overrides: Partial<StoredStep> = {}): StoredStep {
     order_index: 0,
     scenario_id: "scenario-1",
     step_number: 1,
-    ...overrides
+    ...overrides,
+    implements: overrides.implements ?? []
   };
 }
 

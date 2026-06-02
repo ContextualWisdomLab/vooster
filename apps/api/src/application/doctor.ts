@@ -1,4 +1,4 @@
-import type { StoredUseCase } from "../domain/entities/index.js";
+import type { StoredStep, StoredUseCase } from "../domain/entities/index.js";
 import type { ProjectStore } from "../ports/project-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
@@ -88,12 +88,16 @@ export async function diagnoseUseCase(
   const mainScenario = await deps.scenarioStore.findMainScenario(found.usecase.id);
   const mainSteps =
     mainScenario === undefined ? [] : await deps.stepStore.listSteps(mainScenario.id);
+  const listedSteps = await stepsForUseCase(deps, found.usecase.id);
+  const implementationSteps = uniqueSteps(mainSteps.concat(listedSteps));
   const checks = useCaseChecks(
     found.usecase,
     interests.length,
     mainScenario !== undefined,
     mainSteps.length
-  ).concat(await invocationChecks(deps, found.projectId, found.usecase));
+  )
+    .concat(implementationChecks(implementationSteps))
+    .concat(await invocationChecks(deps, found.projectId, found.usecase));
   const suggested_next_actions = nextActions(found.usecase, checks);
 
   return {
@@ -147,6 +151,36 @@ function useCaseChecks(
       status: mainStepCount === 0 ? "fail" : "pass"
     }
   ];
+}
+
+async function stepsForUseCase(
+  deps: Pick<DoctorDeps, "scenarioStore" | "stepStore">,
+  usecaseId: string
+): Promise<StoredStep[]> {
+  return (
+    await Promise.all(
+      (await deps.scenarioStore.listScenarios(usecaseId)).map((scenario) =>
+        deps.stepStore.listSteps(scenario.id)
+      )
+    )
+  ).flat();
+}
+
+function implementationChecks(steps: StoredStep[]): DoctorCheck[] {
+  const unlinked = steps.filter((step) => step.implements.length === 0);
+  return unlinked.length === 0
+    ? []
+    : [
+        {
+          id: "steps.unlinked",
+          message: `${String(unlinked.length)} step(s) have no implementation link.`,
+          status: "warning"
+        }
+      ];
+}
+
+function uniqueSteps(steps: StoredStep[]): StoredStep[] {
+  return Array.from(new Map(steps.map((step) => [step.id, step])).values());
 }
 
 async function invocationChecks(

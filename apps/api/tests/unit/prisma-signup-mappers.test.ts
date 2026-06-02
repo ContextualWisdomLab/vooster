@@ -1,9 +1,17 @@
 import { describe, expect, test } from "vitest";
-import type { StoredWorkSession } from "../../src/domain/entities/index.js";
+import type {
+  StoredRevision,
+  StoredStep,
+  StoredWorkSession
+} from "../../src/domain/entities/index.js";
 import {
   mergeRequestData,
+  revisionContentHash,
+  stepData,
+  stepUpdate,
   storedMergeRequest,
   storedRevision,
+  storedStep,
   storedWorkSession,
   workSessionData,
   workSessionUpdate
@@ -139,4 +147,55 @@ describe("prisma signup mappers", () => {
       })
     ).toThrow("Unknown revision entity type UNKNOWN");
   });
+
+  test("carries step implementation links through persistence mappers and hashes", () => {
+    const stored = storedStep({
+      action: "Logs the user in.",
+      actor_id: "actor-1",
+      id: "step-1",
+      implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"],
+      invokes: ["AUTH-002"],
+      is_system_step: false,
+      notes: null,
+      order_index: 1,
+      scenario_id: "scenario-1",
+      step_number: 1
+    });
+
+    expect(stored.implements).toEqual([
+      "tests/UC-013.feature:scenario_login",
+      "src/auth/login.ts"
+    ]);
+    expect(stepData(stored).implements).toEqual(stored.implements);
+    expect(stepUpdate(stored).implements).toEqual(stored.implements);
+    expect(hashFor(step({ implements: [] }))).not.toBe(hashFor(stored));
+  });
 });
+
+function hashFor(step: StoredStep) {
+  return revisionContentHash({
+    change_summary: "Snapshot",
+    entity_id: "usecase-1",
+    entity_type: "USECASE",
+    id: "revision-1",
+    severity: "COSMETIC",
+    snapshot: { steps: [step] },
+    version_number: 1
+  } as unknown as StoredRevision);
+}
+
+function step(overrides: Partial<StoredStep> = {}): StoredStep {
+  return {
+    action: "Logs the user in.",
+    actor_id: "actor-1",
+    id: "step-1",
+    invokes: [],
+    is_system_step: false,
+    notes: null,
+    order_index: 1,
+    scenario_id: "scenario-1",
+    step_number: 1,
+    ...overrides,
+    implements: overrides.implements ?? []
+  };
+}

@@ -86,6 +86,7 @@ async function patchStep(
         actorName: parsed.data.actor,
         baseRevision: parsed.data.base_revision,
         force: parsed.data.force,
+        implementationRefs: parsed.data.implements,
         notes: parsed.data.notes,
         stepId: stepParamsSchema.parse(request.params).stepId,
         userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)

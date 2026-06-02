@@ -131,6 +131,7 @@ export const usecaseListResponseSchema = z.object({
 const usecaseStepResponseSchema = z.looseObject({
   action: z.string(),
   actor: z.string(),
+  implements: z.array(z.string()).default([]),
   invokes: z.array(z.string()).default([]),
   step_number: z.number()
 });

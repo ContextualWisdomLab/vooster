@@ -37,12 +37,14 @@ describe("scenario and step contracts", () => {
     expect(
       stepPatchRequestSchema.parse({
         actor: "Support",
-        base_revision: "revision-1"
+        base_revision: "revision-1",
+        implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
       })
     ).toEqual({
       actor: "Support",
       base_revision: "revision-1",
-      force: false
+      force: false,
+      implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
     });
     expect(scenarioParamsSchema.parse({ usecaseId: "PAY-001" }).usecaseId).toBe(
       "PAY-001"
@@ -60,6 +62,12 @@ describe("scenario and step contracts", () => {
       scenarioStepCreateRequestSchema.parse({ action: "Pays.", actor: "" })
     ).toThrow();
     expect(() => stepPatchRequestSchema.parse({ action: "Pays." })).toThrow();
+    expect(() =>
+      stepPatchRequestSchema.parse({
+        base_revision: "revision-1",
+        implements: ["bad ref"]
+      })
+    ).toThrow();
     expect(() => scenarioParamsSchema.parse({ usecaseId: "" })).toThrow();
     expect(() => scenarioStepParamsSchema.parse({ scenarioId: "" })).toThrow();
     expect(() => stepParamsSchema.parse({ stepId: "" })).toThrow();
@@ -75,6 +83,9 @@ describe("scenario and step contracts", () => {
     expect(created.scenario.id).toBe("scenario-1");
     expect(created.scenario.usecase_id).toBe("usecase-1");
     expect(created.steps[0]?.invokes).toEqual(["PAY-002"]);
+    expect(created.steps[0]?.implements).toEqual([
+      "tests/UC-013.feature:scenario_login"
+    ]);
     expect(
       scenarioStepCreateResponseSchema.parse({
         revision: revision(),
@@ -111,6 +122,7 @@ function step() {
     action: "Pays the order.",
     actor_id: "actor-1",
     id: "step-1",
+    implements: ["tests/UC-013.feature:scenario_login"],
     invokes: ["PAY-002"],
     is_system_step: false,
     notes: null,

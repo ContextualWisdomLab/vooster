@@ -26,6 +26,7 @@ export type UseCaseShowData = {
     steps: Array<{
       action: string;
       actor: string;
+      implements: string[];
       invokes: string[];
       step_number: number;
     }>;

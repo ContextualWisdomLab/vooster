@@ -130,6 +130,7 @@ export async function addScenarioStep(
     action: input.action,
     actor_id: actor.id,
     id: idFrom(deps),
+    implements: [],
     invokes: [],
     is_system_step: actor.name === "System",
     notes: null,

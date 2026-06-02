@@ -3,6 +3,14 @@ import { z } from "zod";
 export const scenarioTypeSchema = z.enum(["EXTENSION", "MAIN_SUCCESS"]);
 export const scenarioOutcomeSchema = z.enum(["FAILURE", "PARTIAL", "SUCCESS"]);
 
+export const stepImplementationRefSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (value) => /^[^\s:]+(?::[A-Za-z_$][A-Za-z0-9_$.-]*)?$/.test(value),
+    "Use path or path:symbol with no whitespace."
+  );
+
 export const scenarioCreateRequestSchema = z.object({
   condition: z.string().optional(),
   extension_point: z.string().optional(),
@@ -21,6 +29,7 @@ export const stepPatchRequestSchema = z.object({
   actor: z.string().optional(),
   base_revision: z.string().min(1),
   force: z.boolean().default(false),
+  implements: z.array(stepImplementationRefSchema).optional(),
   notes: z.string().optional()
 });
 
@@ -57,6 +66,7 @@ export const stepStoredResponseSchema = z.looseObject({
   action: z.string().optional(),
   actor_id: z.string().optional(),
   id: z.string().optional(),
+  implements: z.array(z.string()).default([]),
   invokes: z.array(z.string()).default([]),
   scenario_id: z.string().optional(),
   step_number: z.number().optional()

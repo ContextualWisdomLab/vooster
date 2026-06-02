@@ -57,21 +57,30 @@ describe("sync markdown helpers", () => {
       parseStepAction("Validates the cart. _(includes: CHECKOUT-006, CHECKOUT-007)_")
     ).toEqual({
       action: "Validates the cart.",
+      implements: [],
       invokes: ["CHECKOUT-006", "CHECKOUT-007"]
     });
     expect(parseStepAction("Processes payment. _(INCLUDES: PAY-001)_")).toEqual({
       action: "Processes payment.",
+      implements: [],
       invokes: ["PAY-001"]
     });
     expect(parseStepAction("Mentions _(includes: PAY-001)_ in the middle.")).toEqual({
       action: "Mentions _(includes: PAY-001)_ in the middle.",
+      implements: [],
       invokes: []
     });
   });
 
-  test("round-trips includes annotations through step action parse and serialize", () => {
-    const line = "Validates the cart. _(includes: CHECKOUT-006, CHECKOUT-007)_";
+  test("round-trips includes and implements annotations through step action parse and serialize", () => {
+    const line =
+      "Validates the cart. _(includes: CHECKOUT-006, CHECKOUT-007)_ _(implements: tests/UC-013.feature:scenario_login, src/auth/login.ts)_";
 
+    expect(parseStepAction(line)).toEqual({
+      action: "Validates the cart.",
+      implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"],
+      invokes: ["CHECKOUT-006", "CHECKOUT-007"]
+    });
     expect(serializeStepAction(parseStepAction(line))).toBe(line);
     expect(serializeStepAction(parseStepAction("Validates the cart."))).toBe(
       "Validates the cart."

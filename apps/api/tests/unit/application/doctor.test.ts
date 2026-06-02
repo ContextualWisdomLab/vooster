@@ -141,6 +141,28 @@ describe("doctor application", () => {
       ])
     );
   });
+
+  test("warns when scenario steps have no implementation links", async () => {
+    const result = await diagnoseUseCase(
+      depsFor({
+        interests: [interest()],
+        mainScenario: scenario(),
+        steps: [step({ implements: [] })]
+      }),
+      "PAY-001"
+    );
+
+    expect(result.status).toBe("issues_found");
+    if (result.status !== "issues_found") {
+      throw new Error("expected doctor warnings");
+    }
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        id: "steps.unlinked",
+        status: "warning"
+      })
+    );
+  });
 });
 
 type DoctorOptions = {
@@ -262,6 +284,7 @@ function step(overrides: Partial<StoredStep> = {}): StoredStep {
     order_index: 1,
     scenario_id: "scenario-1",
     step_number: 1,
-    ...overrides
+    ...overrides,
+    implements: overrides.implements ?? ["tests/PAY-001.feature:happy_path"]
   };
 }

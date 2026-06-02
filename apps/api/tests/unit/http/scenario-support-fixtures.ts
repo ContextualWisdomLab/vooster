@@ -34,7 +34,8 @@ export function step(overrides: Partial<StoredStep> = {}): StoredStep {
     order_index: 0,
     scenario_id: "scenario-1",
     step_number: 1,
-    ...overrides
+    ...overrides,
+    implements: overrides.implements ?? []
   };
 }
 

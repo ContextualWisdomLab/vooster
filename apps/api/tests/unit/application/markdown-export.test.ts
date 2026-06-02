@@ -60,6 +60,34 @@ describe("markdown export application", () => {
     );
   });
 
+  test("renders implementation annotations on scenario steps", async () => {
+    const stepsByScenario = new Map([
+      [
+        "scenario-main",
+        [
+          {
+            ...step("scenario-main", 1, "Validates the cart."),
+            implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
+          }
+        ]
+      ]
+    ]);
+
+    const result = await exportMarkdown(depsFor({ stepsByScenario }), {
+      revisionId: "revision-1",
+      usecaseId: "usecase-1",
+      userId: "user-1"
+    });
+
+    expect(result.status).toBe("EXPORTED");
+    if (result.status !== "EXPORTED") {
+      throw new Error("expected markdown to export");
+    }
+    expect(result.markdown).toContain(
+      "1. **Customer** Validates the cart. _(implements: tests/UC-013.feature:scenario_login, src/auth/login.ts)_"
+    );
+  });
+
   test("rejects missing use cases", async () => {
     await expect(
       exportMarkdown(depsFor({ usecase: null }), {

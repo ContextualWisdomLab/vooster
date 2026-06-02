@@ -2,11 +2,32 @@
 title: "Route-level unit tests violate coverage-diagnosis prescription"
 created_at: 2026-05-23T18:36:00Z
 priority: P2
-resolved: partial
+resolved: true
 resolved_by:
   - 629c842
   - 97b766d
+  - 78a8feb
 status_notes: |
+  RESOLVED 2026-06-02 (cycle 260602-01). Phase 1 (decision + exemplars) was
+  already closed. Phase 2 (migrate the 37-file mocked-unit back catalog to the
+  app.inject integration pattern) is now complete: 33 files fully migrated to
+  tests/integration/http/ with their mocked units removed, and the 4 remaining
+  unit files (change-commit, actor-management, stakeholder-management, session)
+  are each trimmed to a SINGLE defensive branch that is genuinely unreachable
+  through real HTTP (vanished-preview 404, updates-not-configured 500,
+  AUTO_BRANCH_COLLISION 409) — for those, the mocked unit is the only possible
+  exerciser, so they are accepted documented exceptions (with in-file NOTE
+  comments citing where the rest is covered), not the anti-pattern this finding
+  targeted. The 6 src/http/*-routes.ts without a name-matching integration test
+  (actor-test, ai-guide, usecase-agent, usecase-archive, usecase-search, who)
+  never had a mocked unit and were never in this queue; they are covered by
+  UC-*.test.ts e2e. Verification: integration+unit/http = 263 tests green,
+  `bash scripts/completion-check.sh` exit 0. Detailed per-batch history below.
+  The "every *-routes.ts has an integration importer" gate idea (Goal promotion
+  judgment, below) was reconsidered and REJECTED: app.inject tests use
+  server.fetch (no module import) and route paths are dynamic, so any such grep
+  would be form-coupled per goal-design.md §1.5; the convention is enforced by
+  33 exemplars + the existing coverage gate + code review instead.
   Phase 1 is closed: the route integration pattern is documented below, and three app.inject exemplars now live under apps/api/tests/integration/http/.
   Phase 2 open: migrate the apps/api/tests/unit/http/*-routes.test.ts back catalog to the app.inject integration pattern, one route at a time. Verified count 2026-05-27 after the post-completion correction commit 97b766d: 36 *-routes.test.ts files remain; doctor-routes was migrated to apps/api/tests/integration/http/doctor-route.test.ts and the mocked unit file was removed. Progress: 1/37 migrated. The earlier "~80" figure in the body below was an over-estimate; the real Phase 2 queue is 37 files. Picked up by cycle 260527-01 as the overnight filler queue.
   2026-06-02 honesty re-verify (cycle 260602-01): queue confirmed at 36 unit files. NOTE: lock-routes.test.ts and sync-routes.test.ts unit files still exist alongside their Phase-1 integration exemplars (lock-route.test.ts, sync-route.test.ts) — those exemplars added coverage but did NOT remove the unit files, so lock/sync are still "not migrated" (only doctor is fully migrated). Migrating lock/sync = fold the unit cases into the existing exemplar (avoid a duplicate file), confirm green, then delete the unit file. Picked up by cycle 260602-01 as the overnight filler queue. Progress 2026-06-02: sync-routes migrated (folded push-malformed + no-membership cases into the existing sync-route.test.ts integration exemplar, unit file removed) -> 2/37 migrated, 35 unit files remain. Then a batch of 13 single-test validation-only route-units migrated to app.inject integration (api-key, branch, gherkin-export, goal-promotion, impact, merge-resolve, merge, revision-history, revision-revert, session-complete, stakeholder-interest, step, usecase-test) -> 15/37 migrated, 22 unit files remain. Remaining 22 split into ~12 more pure-validation files and ~10 side-effect-heavy files (lock/project/usecase/stakeholder/stakeholder-management/actor-management/invitation/session/session-list/usecase-update) that assert mocked store mutations and need full auth+project+session integration setup.

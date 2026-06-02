@@ -9,6 +9,11 @@ resolved_by:
   - 73dca0f
   - 97b766d
 status_notes: |
+  2026-06-03 re-verified: items 1-3 are CLOSED (suggested-command
+  corrections, goal create --actor name alignment, single format_version: 1
+  envelope). 4a/4c reason-only conversion stays deferred to a reviewed slice:
+  making suggested_next_actions.command optional is contract-wide loosening
+  across @vooster/contracts schemas, CLI printers, and tests. KEEP partial.
   Suggested-command corrections — CLOSED 2026-05-26 (commit 8d27157).
   Goal create `--actor` name alignment — CLOSED 2026-05-26 (commit 5ce7ea5);
     closes audit §A2 "Goals: requires --actor-id not --actor".

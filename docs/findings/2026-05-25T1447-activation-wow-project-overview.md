@@ -5,6 +5,9 @@ resolved: false
 priority: P1
 kind: snapshot
 status_notes: |
+  2026-06-03: re-verified — F1 shipped via goal 32, F2 via goal 33;
+  F3/F4 remain independent queued children. Keep this snapshot as
+  resolved: false reference-only rationale.
   2026-05-26: F2(project-overview-blueprint) closed via backend count
   contract + delegated goal 33 (commits 462164e..4b5d701); F3/F4 remain child work.
   2026-05-26: F1(web-viewer-de-jargon) closed via delegated goal 32

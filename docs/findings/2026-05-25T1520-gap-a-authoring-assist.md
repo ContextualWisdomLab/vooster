@@ -2,6 +2,9 @@
 title: "F4 — GAP-A 자연어→유스케이스 생성 보조 (에이전트-assisted, 로드맵)"
 created_at: 2026-05-25T15:20:22Z
 resolved: false
+status_notes: |
+  2026-06-03: blocked on F3 observation; doctor/verb-phrase foundations exist,
+  but elicitation design and scope remain open. Keep open.
 related:
   - docs/findings/2026-05-25T1447-activation-wow-project-overview.md
   - docs/findings/2026-05-25T1516-persona-dogfood-harness.md

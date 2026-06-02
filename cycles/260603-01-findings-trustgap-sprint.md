@@ -1,6 +1,6 @@
 ---
 cycle: 260603-01
-title: Findings sweep — honesty pass · contracts read-path tail · spec↔code trust-gap sprint + meta audit
+title: Findings sweep — honesty · contracts tail · spec-mvp lessons (L1/L2) + trust-gap sprint + meta audit
 authored_at: 2026-06-03T03:20:00+09:00
 started_at:
 completed_at:
@@ -10,15 +10,19 @@ status: draft
 > **Run plan (2026-06-03).** `docs/findings/` 의 미해결 finding 을 9개 병렬
 > 조사로 코드와 대조 검증했다. 대부분은 직전 cycle(260602-01)이 이미 명시적으로
 > 닫았거나 out-of-scope 로 미뤘고(그 결정 존중), 남은 **무인-안전·결정-잠금**
-> 작업의 척추는 단 하나 — `2026-06-02T1804-spec-code-verification-trust-gap.md`
-> 의 **T1→T2→T3→T4 sprint** 다. 4개 reproducer claim 전부 재확인됐고, 작업
-> 0건 시작 안 됐으며, 7개 touch point 가 현재 코드와 정확히 일치한다. 이것이
-> 아침까지 도는 **deep backstop**(직전 cycle 의 route-test 36파일에 해당)이다.
-> 그 앞에 (Tier 0) 전 finding status_notes 정직성 정정 1 work-unit, (Tier 1)
-> shared-api-contracts read-path 꼬리 3-cast 안전 슬라이스 1 work-unit 을 깔아
-> 확실한 quick win 을 먼저 잠근다. work-unit 2개마다 메타 감사.
+> main-repo 작업은 두 sprint 다: **(2A)**
+> `2026-06-02T1827-spec-mvp-lessons-for-main.md` 의 **L1(한글-aware verb-phrase
+> 검증 버그)+L2(typed self-teaching error contract)** — spec-mvp 재작성에서
+> 역수입한, 이 repo(apps/api·apps/cli) 대상 제품 수정. L1 은 contained 한 실제
+> correctness 버그라 quick-win 으로 먼저. **(2B)**
+> `2026-06-02T1804-spec-code-verification-trust-gap.md` 의 **T1→T2→T3→T4** — 4개
+> reproducer claim 재확인·작업 0건·7 touch point 정확, 아침까지 도는 **deep
+> backstop**(직전 cycle 의 route-test 36파일에 해당). 그 앞에 (Tier 0) 전 finding
+> status_notes 정직성 정정 1 work-unit, (Tier 1) shared-api-contracts read-path
+> 꼬리 3-cast 안전 슬라이스 1 work-unit 을 깔아 확실한 quick win 을 먼저 잠근다.
+> work-unit 2개마다 메타 감사.
 
-# 260603-01 — Findings sweep: honesty · contracts tail · trust-gap sprint + meta audit
+# 260603-01 — Findings sweep: honesty · contracts tail · spec-mvp lessons + trust-gap sprint + meta audit
 
 **목표**: 2026-06-03 시점 `docs/findings/` 의 미해결 finding 을, **무인 실행에
 안전한(decision-locked)** 항목부터 우선순위/의존성 순으로 닫는다. 안전치 않은
@@ -50,8 +54,13 @@ commit + push **(브랜치 `main`, 직접 push 허용 — 사용자가 코드 �
 - `docs/findings/AGENTS.md` — finding frontmatter schema
   (`resolved: false|"partial"|true`, `priority`, `resolved_by`, `kind`,
   `status_notes`, `related`) + honesty rules
-- `docs/findings/2026-06-02T1804-spec-code-verification-trust-gap.md` — **이번
-  cycle 의 척추**. T1 의 7개 touch point 가 구현 레시피.
+- `docs/findings/2026-06-02T1804-spec-code-verification-trust-gap.md` — **척추
+  중 하나(trust-gap, Tier 2B)**. T1 의 7개 touch point 가 구현 레시피.
+- `docs/findings/2026-06-02T1827-spec-mvp-lessons-for-main.md` — **나머지 척추
+  (spec-mvp→main lessons, Tier 2A)**. L1(한글-aware 검증)+L2(typed error
+  contract)가 promote 대상, L4(analyze-session skill)는 inline, L3/L5/L6 은
+  deferred. 직전 `2026-06-02T1807`(형제 repo 로 잘못 프레이밍됨)을 supersede 하며
+  1807 은 트리에서 삭제됨(commit 70296a8, git history 잔존).
 - 직전 cycle `cycles/260602-01-findings-contracts-route-test-sweep.md` 의
   **Out of scope** 절 — 거기서 결정-잠금으로 미룬 항목(A14 verbs, typed-client
   layer, T1-4 unroutable suggestions, F3, F4, merge public setup)은 **본 cycle
@@ -62,7 +71,9 @@ commit + push **(브랜치 `main`, 직접 push 허용 — 사용자가 코드 �
 - chain **GREEN** (`.state/active-goal == ALL_DONE`).
 - 최고 goal 번호 `34` → 다음 빈 번호 **`35`**.
 - 작업 브랜치 **`main`** (별도 branch 생성 금지, `origin/main` 으로 push).
-- 9개 병렬 조사로 각 finding 실상을 코드 대조 검증함(아래 Target 분류 근거).
+- HEAD 은 user 의 `70296a8` 을 포함(1807 삭제 + 1827 추가). 1807 은 더 이상
+  트리에 없음 — 1827 이 후속(이 repo 대상).
+- 병렬 조사로 각 finding 실상을 코드 대조 검증함(아래 Target 분류 근거).
 
 ---
 
@@ -97,8 +108,8 @@ LOOP:
   step 2 — work-unit 진행:
     target 리스트(아래 "Target")에서 첫 미완료 항목 선택, "Finding 처리 절차" 수행.
     한 work-unit 완료 = {Tier 0 honesty pass 1건 | contracts cast 슬라이스 1건 |
-      trust-gap 한 ticket(T1/T2/T3/T4) 또는 그 sub-slice 1건 |
-      메타 감사가 만든 개선 1건 완료} 중 하나.
+      1827 한 lesson(L1/L2) 또는 L4 skill | trust-gap 한 ticket(T1/T2/T3/T4)
+      또는 그 sub-slice 1건 | 메타 감사가 만든 개선 1건 완료} 중 하나.
     완료 시:
       → 해당 finding frontmatter/status_notes 갱신, commit + push
       → audit_counter += 1
@@ -106,18 +117,18 @@ LOOP:
       → step 1
 
   step 3 — 소진 확인:
-    Tier 0/1 in-scope 가 모두 처리됐고 trust-gap T1–T4 까지 처리 가능한 만큼
-    처리했으면:
+    Tier 0/1 in-scope + 1827 L1/L2/L4 가 처리됐고 trust-gap T1–T4 까지 처리
+    가능한 만큼 처리했으면:
       → TERMINATE
-    (trust-gap sprint 는 사실상 아침까지의 무한 filler. 다른 모든 in-scope 가
-     닫힌 뒤에도 시간이 남으면 T1→T2→T3→T4 를 계속 전진. 멈추는 건 종료 조건이
-     모두 충족될 때만.)
+    (1827 L1/L2 를 quick-win 으로 먼저, trust-gap sprint 가 사실상 아침까지의
+     무한 filler. 다른 모든 in-scope 가 닫힌 뒤에도 시간이 남으면 T1→T2→T3→T4 를
+     계속 전진. 멈추는 건 종료 조건이 모두 충족될 때만.)
 ```
 
 종료 조건 (셋 다 만족):
 
-1. Tier 0 honesty pass 완료 + Tier 1 contracts 꼬리 처리 + trust-gap 이
-   가능한 만큼 전진(각 ticket `resolved`/명시적 deferred).
+1. Tier 0 honesty pass 완료 + Tier 1 contracts 꼬리 처리 + 1827 L1/L2/L4 처리
+   - trust-gap 이 가능한 만큼 전진(각 ticket `resolved`/명시적 deferred).
 2. `bash scripts/completion-check.sh` exit 0.
 3. `git status --short` 비어 있고 `git log @{u}..HEAD` 비어 있음 (push 완료).
 
@@ -126,7 +137,7 @@ LOOP:
 append. → commit + push.
 
 **막혀도 종료하지 마라.** 한 target stuck → blocker 기록 → 다음 target.
-trust-gap backstop 이 남아 있는 한 할 일은 항상 있다.
+main-repo sprint backstop(1827 · trust-gap)이 남아 있는 한 할 일은 항상 있다.
 
 ---
 
@@ -170,14 +181,10 @@ frontmatter 에 반영한다. **단일 commit** 으로 묶어 처리.
   종속**, elicitation 설계 미확정 → 무인 불가. status_notes/note 에 "2026-06-03:
   blocked on F3 observation; doctor/verb-phrase foundations exist but design
   open; keep open" 추가.
-- **`2026-06-02T1807-vspec-mvp-next-steps.md`** (P1) — 대상이 **형제 repo
-  `vooster-spec-mvp`** (이 repo 아님). status_notes 에 "2026-06-03: subject is
-  sibling repo; W1-a telemetry / W2 verify are decision-locked but belong in a
-  dedicated cycle ROOTED IN vooster-spec-mvp (this run is authorized for
-  vooster/main only); W3 external dogfood needs human setup; W4b distribution
-  needs owner decision. W4a (doc drift in 03-cli-spec.md) is the only trivial
-  mechanical item — left for the sibling-repo cycle to avoid cross-repo
-  autonomous commits. KEEP open; promote as a sibling-repo cycle." 추가.
+- **`2026-06-02T1827-spec-mvp-lessons-for-main.md`** (P1) — 직전 `1807`(형제
+  repo 로 잘못 프레이밍)을 supersede; user 가 1807 삭제 + 1827 추가(70296a8).
+  1827 의 대상은 **이 repo**(apps/api·apps/cli·.claude) — in-scope. honesty pass
+  대상이 아니라 **work tier(Tier 2A)에서 promote/처리**. 여기선 손대지 않음.
 - **`2026-05-22T1628-shared-api-contracts.md`** / **`2026-05-23T1700-dogfood-followups.md`**
   — Tier 1 / out-of-scope 에서 별도 처리(아래). 이 honesty pass 에서는 손대지 않음.
 
@@ -209,7 +216,57 @@ frontmatter 에 반영한다. **단일 commit** 으로 묶어 처리.
   casts remain on read paths" 추가. `resolved` 는 **partial 유지**(typed-client
   write layer + unroutable-suggestions 잔존).
 
-### Tier 2 — trust-gap sprint (deep backstop, 무한 filler, 아침까지 전진)
+### Tier 2 — 결정-잠금 main-repo sprints (quick-win-first → deep backstop)
+
+두 sprint 모두 이 repo 의 제품 코드를 건드리며 enumerable gate 를 갖는다.
+**2A(1827 L1/L2)를 quick-win 으로 먼저**, **2B(trust-gap T1–T4)를 아침까지 도는
+deep backstop** 으로. L4(skill)는 inline, L3/L5/L6 은 deferred(Out of scope).
+
+#### Tier 2A — `2026-06-02T1827-spec-mvp-lessons-for-main.md` (spec-mvp→main lessons)
+
+spec-mvp 재작성 commit 들에서 역수입한, 본 repo 가 아직 내재화 못한 lesson.
+1827 의 promotion judgment 그대로: **L1+L2 promote(goal chain), L4 inline,
+L3/L5/L6 deferred**.
+
+- **goal 35 — L1: 한글-aware verb-phrase 검증 + `spec_language`** _(실제 correctness 버그)_
+  현황(검증됨): `apps/api/src/application/verb-phrases.ts:1-44` 가 English-only
+  verb list + `^[A-Za-z]+`(ASCII) 매칭 → 한글 제목(`주문을 생성한다`)이 **절대
+  매칭 안 되고 silent fail**. doctor 메시지도 English-only
+  (`apps/api/src/application/doctor.ts:114-149`), `spec_language` 개념 부재. 제품
+  ICP 가 한국어(`apps/www` 전부 한국어)이므로 이는 i18n 이 아니라 correctness 버그.
+  작업: spec-mvp 의 한글-aware verb-phrase + quality heuristic 을 포팅,
+  `spec_language`(default `ko`)가 선택하게. RED(한글 verb-phrase 제목이 검증
+  통과하는 실패 테스트) → GREEN.
+  gates(§1.5 최소): (a) 한글 verb-phrase 제목이 검증 통과, (b) doctor 가 한글
+  산문을 false-flag 안 함, (c) `grep "spec_language" apps/` non-empty.
+  - check-gate-rigor 마지막 게이트. acceptance(finding L1) 그대로.
+
+- **goal 36 — L2: typed self-teaching error contract** _(에이전트 recovery)_
+  현황(검증됨): 12-code enum 존재(`apps/cli/src/domain/error-codes.ts:3-16`)하나
+  **HTTP-status + problem-title 문자열 매칭**(`error-codes.ts:26-41`, 예: 리터럴
+  `"Use case title should be a verb phrase"` 매칭)으로 도달 — 메시지 리워딩/한글화
+  (L1)에 깨짐. zod 실패는 **generic** `problem(400, "Invalid use case request")`
+  (`apps/api/src/http/usecase-routes.ts:81-83`)로 떨어져 _어느 필드_·_허용값_
+  미고지. 작업: zod 실패를 offending field + allowed values 를 담은 coded
+  envelope 로 매핑; `error.code` 를 title-string 매칭이 아니라 에러 출처에서 도출.
+  gates(§1.5): (a) 잘못된 usecase payload → 필드명 포함 coded error, (b)
+  `error-codes.ts` 의 problem-title 리터럴 수가 0 방향으로 축소.
+  - check-gate-rigor 마지막 게이트. acceptance(finding L2) 그대로.
+
+- **L4 — `analyze-session` dogfood skill 포팅** _(inline, goal 아님)_
+  `.claude/skills/analyze-session/` 을 이 repo 로 포팅, "internalize the
+  direction" step 을 `docs/06-api-contract.md`/`docs/07-cli-spec.md` 로, friction
+  catalog 을 apps/\* contract 로 적응. acceptance: 스킬 디렉터리 존재. (외부 세션
+  digest 는 human-driven — 스킬만 포팅하고 1회 digest 는 deferred note.)
+  ★ skill 추가는 universal-invariant gate 가 아니므로 goal 승격 안 함(direct fix).
+
+- **L3/L5/L6 — deferred (Out of scope 참조).**
+
+1827 처리: L1/L2 goal GREEN 시 status_notes 에 "L<n> CLOSED via goal <m> (<sha>)",
+`resolved_by` SHA. L1·L2·L4 닫히고 L3/L5/L6 만 남으면 `partial` + 잔여 명시.
+(finding 삭제 금지 — "promoted to goal 35–36" 기록.)
+
+#### Tier 2B — trust-gap sprint (deep backstop, 무한 filler, 아침까지 전진)
 
 **`docs/findings/2026-06-02T1804-spec-code-verification-trust-gap.md` —
 spec↔code 검증 trust gap (P1).**
@@ -221,7 +278,7 @@ enumerable gate — round-trip lossless, doctor unlinked count, 그리고 T2 의
 
 승격 계획 (한 ticket = 한 goal, chain-blocking core 먼저):
 
-- **goal 35 — T1: spec step ↔ code/test traceability link (`implements`)**
+- **goal 37 — T1: spec step ↔ code/test traceability link (`implements`)**
   finding 의 7 touch point 그대로 구현:
   1. `apps/api/prisma/schema.prisma` `model Step` 에 `implements String[] @default([])`
      (invokes 옆). 마이그레이션 1개.
@@ -251,7 +308,7 @@ enumerable gate — round-trip lossless, doctor unlinked count, 그리고 T2 의
   - [ ] unlinked step 쿼리 가능(doctor 카운트)
   - [ ] malformed link → exit 2.
 
-- **goal 36 — T2: `vspec verify [<KEY>]` — 결정적 traceability check**
+- **goal 38 — T2: `vspec verify [<KEY>]` — 결정적 traceability check**
   새 `apps/cli/src/commands/verify.ts`(`diff.ts`/`impact.ts` 템플릿). 두 순수 단계:
   (a) resolve — 각 `implements` ref 를 working tree 에 대조(file→존재,
   `path:symbol`→symbol grep/AST, test-ID→test list), (b) run — `--test-cmd` spawn
@@ -262,13 +319,13 @@ enumerable gate — round-trip lossless, doctor unlinked count, 그리고 T2 의
 sort -u | wc -l` == 1)** ← 가장 중요한 hard gate / test 실행은 위임(`--test-cmd`).
   acceptance(finding) 4개 그대로.
 
-- **goal 37 — T3: CI gate adapter (GitHub Action)** (T2 의존)
+- **goal 39 — T3: CI gate adapter (GitHub Action)** (T2 의존)
   `action.yml` + 복붙용 `.github/workflows/vspec-verify.yml`(`vspec verify` 실행).
   exit 0→pass / 1→fail / 7→config. broken link/failing test 를 PR comment 또는
   Checks API 로 노출. `apps/cli/src/commands/init.ts` 가 옵션으로 workflow yml 생성.
   cloud 비의존(T2 가 순수 함수면 자동).
 
-- **goal 38 — T4: "spec drift" 정직한 정의 + 랜딩 카피 정정** (T2 의존)
+- **goal 40 — T4: "spec drift" 정직한 정의 + 랜딩 카피 정정** (T2 의존)
   `verify --format=agent` 가 `{ drift: [{ kind: "broken_link"|"failing_test"|
 "unlinked_step", … }] }` 방출. 문서/랜딩에 "drift = 위 3개 결정적 조건"임을 명시.
   `apps/www/src/components/sections/HowItWorks.astro:18,78-81` 의 "자동 검증" 카피를
@@ -283,15 +340,16 @@ follow-on. 한 goal 이 3 TDD 사이클 무진전 → DEADLOCK 가드(promotion 
 finding 처리: 각 ticket goal 이 GREEN 되면 trust-gap status_notes 에
 "T<n> CLOSED via goal <m> (<sha>)" 추가, `resolved_by` 에 SHA. T1–T4 가 모두
 닫히면 `resolved: true`; 일부만이면 `partial` + 잔여 명시. (finding 삭제 금지 —
-"promoted to goal 35–38" 기록.)
+"promoted to goal 37–40" 기록.)
 
 ---
 
 ## Finding 처리 절차 (work-unit 공통)
 
 1. **읽기** — finding 전문 + 관련 코드. status_notes 의 주장을 코드로 대조(Q6).
-2. **판단** — promote(goal) / delegate(claude-owned) / direct 중 택. Tier 0/1 은
-   direct; trust-gap 은 promote(goal chain). promote 는 §1.5/§5 셋 다 만족할 때만.
+2. **판단** — promote(goal) / delegate(claude-owned) / direct 중 택. Tier 0/1 +
+   1827 L4(skill) 는 direct; 1827 L1/L2 와 trust-gap 은 promote(goal chain).
+   promote 는 §1.5/§5 셋 다 만족할 때만.
 3. **실행 (TDD)** — RED(실패 테스트 먼저) → GREEN(최소 구현) → REFACTOR.
 4. **검증** — 해당 도메인 테스트 + `bash scripts/completion-check.sh` exit 0.
    acceptance signal 직접 재실행(P8).
@@ -353,9 +411,14 @@ finding 처리: 각 ticket goal 이 GREEN 되면 trust-gap status_notes 에
 - **`persona-dogfood-harness` (F3)** — 유료 헤드리스 에이전트 + human-vetted oracle.
   무인 불가. false 유지.
 - **`gap-a-authoring-assist` (F4)** — XL 로드맵, F3 결과 의존, 미설계. open 유지.
-- **`vspec-mvp-next-steps` (W1/W2/W3/W4)** — **형제 repo `vooster-spec-mvp`** 대상.
-  cross-repo 자율 커밋은 본 run 인가 범위(vooster/main) 밖. 형제 repo 전용 cycle 로
-  승격 권고. 본 cycle 에서 코드 커밋 안 함.
+- **`spec-mvp-lessons-for-main` L3/L5/L6** — L3(에이전트-first defaults + API
+  problem 을 envelope error family 로 통합)·L5(canonical markdown round-trip
+  normalize for sync/export)는 더 큰 contract/format 리팩터로, L1/L2 _뒤_ 별도
+  scoped goal. L6(공유 `parseEnum` + section-level apply)는 opportunistic(P3).
+  본 cycle 은 L1/L2/L4 만; L3/L5/L6 deferred.
+- **형제 repo `vooster-spec-mvp` 자체 개선** — 1827 은 lesson 을 _main_ 으로
+  역수입하는 것이지 형제 repo 를 고치는 게 아니다. 형제 repo 에 자율 커밋 금지
+  (본 run 인가 범위 = vooster/main).
 - **trust-gap T5 (semantic LLM check)** — 비결정적, 무인 금지. note 만.
 - **스냅샷/로그 finding** (`perf-log`, `dogfood-snapshot`, `activation-wow`) — 강제
   종료 금지. reference 로 둔다(`kind: snapshot`/`append-only-log` → `resolved: true`

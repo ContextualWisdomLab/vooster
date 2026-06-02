@@ -159,8 +159,8 @@ becomes the flaky gate we set out to avoid.
 
 Acceptance:
 
-- [ ] A step can carry `implements: ["tests/UC-013.feature:scenario_login",
-    "src/auth/login.ts"]`.
+- [ ] A step can carry an `implements` list of code/test refs (e.g.
+      `tests/UC-013.feature:scenario_login`, `src/auth/login.ts`).
 - [ ] Links survive `export markdown` / `pull` / `push` round-trips losslessly.
 - [ ] Steps with no link are queryable as "unlinked" (`doctor` counts them).
 - [ ] Malformed link → exit code 2 (validation) rejection.

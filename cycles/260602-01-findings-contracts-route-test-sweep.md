@@ -3,9 +3,26 @@ cycle: 260602-01
 title: Findings closure — contracts tail, agent-envelope, route-test honesty + meta audit
 authored_at: 2026-06-02T08:20:51+09:00
 started_at: 2026-06-02T08:21:00+09:00
-completed_at:
-status: running
+completed_at: 2026-06-02T09:25:39+09:00
+status: complete
 ---
+
+> **Run summary (2026-06-02).** Tier 0 honesty pass done. Tier 1: T1-1
+> stakeholder-interest + T1-2 impact migrated to `@vooster/contracts`; T1-3
+> agent envelope consolidated to a single `format_version: 1` (incl. goal-7
+> gate §5 case (b) update); T1-4 unroutable-suggestions DEFERRED after
+> measuring its contract-wide blast radius (17 schemas + many printers — see
+> Out of scope). Tier 2: route-test Phase 2 finding CLOSED (`resolved: true`)
+> — 33/37 mocked-unit route tests migrated to app.inject integration (the
+> side-effect tail via uc-fixtures, asserting observable state not mocks), 4
+> trimmed to documented HTTP-unreproducible defensive residuals. 4 meta-audit
+> checkpoints ran (init-test overfit trim; gate-7.A2 KEEP rationale; migration
+> honesty; rejected a form-coupled "integration importer" gate). Final
+> verification: API 776 tests, CLI+contracts 276 tests, `completion-check`
+> exit 0, all pushed to `main`. shared-api-contracts + agent-contract-followups
+> remain `partial` (typed-client + reason-only suggestions deferred to reviewed
+> slices). Terminated on the cycle's own conditions: all in-scope
+> resolved/deferred, chain green, nothing left to push.
 
 # 260602-01 — Findings closure: contracts tail · agent-envelope · route-test honesty + meta audit
 

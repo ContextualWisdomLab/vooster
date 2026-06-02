@@ -10,9 +10,9 @@ import {
   sendUseCaseAuthoringResult,
   useCaseCreateAccessProblem
 } from "./usecase-results.js";
-import { problem } from "./signup-support.js";
 import { createUseCaseFromGoal } from "./usecase-from-goal.js";
 import { authenticatedUserId } from "./session-support.js";
+import { useCaseCreateValidationProblem } from "./usecase-validation-problem.js";
 import type { SignupState } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { GoalStore } from "../ports/goal-store.js";
@@ -80,7 +80,7 @@ async function createUseCase(
   }
   const parsed = usecaseCreateRequestSchema.safeParse(request.body);
   if (!parsed.success) {
-    return reply.code(400).send(problem(400, "Invalid use case request"));
+    return reply.code(400).send(useCaseCreateValidationProblem(parsed.error));
   }
   return sendUseCaseAuthoringResult(
     reply,

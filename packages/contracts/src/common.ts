@@ -12,3 +12,20 @@ export const suggestedNextActionSchema = z.object({
 });
 
 export type SuggestedNextAction = z.infer<typeof suggestedNextActionSchema>;
+
+export const apiErrorCodeSchema = z.enum([
+  "UNAUTHORIZED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "CONFLICT",
+  "REVISION_STALE",
+  "LOCK_HELD",
+  "RATE_LIMITED",
+  "BAD_REQUEST",
+  "SCHEMA_INVALID",
+  "TITLE_NOT_VERB_PHRASE",
+  "PRIMARY_ACTOR_NOT_AVAILABLE",
+  "INTERNAL"
+]);
+
+export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;

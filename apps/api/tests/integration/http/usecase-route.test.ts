@@ -54,6 +54,26 @@ describe("POST /v1/projects/:projectId/usecases integration", () => {
     expect(await response.json()).toMatchObject({ title: "Invalid use case request" });
   });
 
+  test("rejects invalid use case enum values with field guidance", async () => {
+    const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: setup.cookie },
+      body: JSON.stringify({
+        primary_actor: "Customer",
+        priority: "P9",
+        title: "Creates an order"
+      })
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      allowed_values: ["P0", "P1", "P2", "P3"],
+      code: "SCHEMA_INVALID",
+      field: "priority",
+      title: "Invalid use case request"
+    });
+  });
+
   test("rejects use case creation without membership", async () => {
     const response = await server.fetch(`/v1/projects/${setup.projectId}/usecases`, {
       method: "POST",

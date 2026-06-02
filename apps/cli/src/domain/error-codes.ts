@@ -1,3 +1,4 @@
+import { apiErrorCodeSchema, type ApiErrorCode } from "@vooster/contracts";
 import type { EnvelopeError, SuggestedNextAction } from "./envelope.js";
 
 export const ErrorCode = {
@@ -13,11 +14,12 @@ export const ErrorCode = {
   TITLE_NOT_VERB_PHRASE: "TITLE_NOT_VERB_PHRASE",
   PRIMARY_ACTOR_NOT_AVAILABLE: "PRIMARY_ACTOR_NOT_AVAILABLE",
   INTERNAL: "INTERNAL"
-} as const;
+} as const satisfies Record<string, ApiErrorCode>;
 
-export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
+export type ErrorCodeValue = ApiErrorCode;
 
 type ProblemBody = {
+  code?: unknown;
   title?: string;
   type?: string;
   suggested_next_actions?: SuggestedNextAction[];
@@ -25,9 +27,9 @@ type ProblemBody = {
 
 export function classifyError(status: number, body: unknown): ErrorCodeValue {
   const problem = isProblemBody(body) ? body : undefined;
-  const titleMatch = matchByTitle(problem?.title);
-  if (titleMatch !== undefined) {
-    return titleMatch;
+  const codeMatch = matchByCode(problem?.code);
+  if (codeMatch !== undefined) {
+    return codeMatch;
   }
   return matchByStatus(status);
 }
@@ -47,14 +49,9 @@ export function extractSuggestedNextActions(body: unknown): SuggestedNextAction[
   return body.suggested_next_actions.filter(isSuggestedNextAction);
 }
 
-function matchByTitle(title: string | undefined): ErrorCodeValue | undefined {
-  if (title === "Primary actor is not available") {
-    return ErrorCode.PRIMARY_ACTOR_NOT_AVAILABLE;
-  }
-  if (title === "Use case title should be a verb phrase") {
-    return ErrorCode.TITLE_NOT_VERB_PHRASE;
-  }
-  return undefined;
+function matchByCode(code: unknown): ErrorCodeValue | undefined {
+  const parsed = apiErrorCodeSchema.safeParse(code);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function matchByStatus(status: number): ErrorCodeValue {
@@ -76,7 +73,8 @@ function extractDetails(
   if (problem === undefined) {
     return undefined;
   }
-  const { title, type, status, suggested_next_actions, ...rest } = problem;
+  const { code, title, type, status, suggested_next_actions, ...rest } = problem;
+  void code;
   void title;
   void type;
   void status;

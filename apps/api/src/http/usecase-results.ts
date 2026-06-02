@@ -1,5 +1,6 @@
 import type { FastifyReply } from "fastify";
 import {
+  type ApiErrorCode,
   usecaseCreateResponseSchema,
   usecaseUpdateResponseSchema
 } from "@vooster/contracts";
@@ -8,6 +9,12 @@ import type {
   UseCaseUpdateResult
 } from "../application/usecases.js";
 import { problem } from "./signup-support.js";
+
+const FORBIDDEN = "FORBIDDEN" satisfies ApiErrorCode;
+const NOT_FOUND = "NOT_FOUND" satisfies ApiErrorCode;
+const PRIMARY_ACTOR_NOT_AVAILABLE =
+  "PRIMARY_ACTOR_NOT_AVAILABLE" satisfies ApiErrorCode;
+const TITLE_NOT_VERB_PHRASE = "TITLE_NOT_VERB_PHRASE" satisfies ApiErrorCode;
 
 export function sendUseCaseAuthoringResult(
   reply: FastifyReply,
@@ -21,7 +28,7 @@ export function sendUseCaseAuthoringResult(
         problem(
           422,
           "Use case title should be a verb phrase",
-          { suggested_titles: result.suggestedTitles },
+          { code: TITLE_NOT_VERB_PHRASE, suggested_titles: result.suggestedTitles },
           [
             {
               command: "vspec usecase create --force",
@@ -31,13 +38,15 @@ export function sendUseCaseAuthoringResult(
         )
       );
     case "PROJECT_NOT_FOUND":
-      return reply.code(404).send(problem(404, "Project not found"));
+      return reply
+        .code(404)
+        .send(problem(404, "Project not found", { code: NOT_FOUND }));
     case "PRIMARY_ACTOR_NOT_AVAILABLE":
       return reply.code(422).send(
         problem(
           422,
           "Primary actor is not available",
-          { actor_name: result.actorName },
+          { actor_name: result.actorName, code: PRIMARY_ACTOR_NOT_AVAILABLE },
           [
             {
               command: "vspec actor list",
@@ -62,16 +71,21 @@ export function sendUseCaseAuthoringResult(
 }
 
 export function useCaseCreateAccessProblem() {
-  return problem(403, "Not authorized to create use cases in this project", {}, [
-    {
-      command: "vspec login",
-      reason: "Authenticate with an account that has project access."
-    },
-    {
-      command: "vspec member set-role",
-      reason: "Ask a workspace owner for editor access."
-    }
-  ]);
+  return problem(
+    403,
+    "Not authorized to create use cases in this project",
+    { code: FORBIDDEN },
+    [
+      {
+        command: "vspec login",
+        reason: "Authenticate with an account that has project access."
+      },
+      {
+        command: "vspec member set-role",
+        reason: "Ask a workspace owner for editor access."
+      }
+    ]
+  );
 }
 
 export function sendUseCaseUpdateResult(

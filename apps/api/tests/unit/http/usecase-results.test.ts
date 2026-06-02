@@ -50,6 +50,7 @@ describe("use case result responses", () => {
     });
 
     expect(title.body).toMatchObject({
+      code: "TITLE_NOT_VERB_PHRASE",
       suggested_next_actions: [{ command: "vspec usecase create --force" }],
       suggested_titles: ["Reviews checkout"]
     });
@@ -63,6 +64,7 @@ describe("use case result responses", () => {
     expect(actor.statusCode).toBe(422);
     expect(actor.body).toMatchObject({
       actor_name: "Buyer",
+      code: "PRIMARY_ACTOR_NOT_AVAILABLE",
       suggested_next_actions: [
         { command: "vspec actor list" },
         { command: "vspec actor create --name Buyer" }

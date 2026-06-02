@@ -73,13 +73,14 @@ dogfood/
     specs-snapshot/                # 생성된 spec 파일 스냅샷 (git diff + new files)
     result.json                    # cost, num_turns, duration, is_error
     findings.json                  # 분석기 출력
-scripts/dogfood/
-  dogfood-cycle.sh                 # 오케스트레이터 (codex goal 엔트리포인트)
+scripts/dogfood/                   # 구현됨 — 전부 VSPEC_DOGFOOD_DRY_RUN 지원
+  _dogfood-lib.sh                  # 공유 헬퍼 (env, cycle/state, case 파싱, ledger) + --self-test
+  dogfood-cycle.sh                 # 오케스트레이터 (codex goal 엔트리포인트) + --self-test
   dogfood-provision.sh             # 빌드 + reset + link + API 부팅
-  dogfood-run.sh                   # 케이스 1개/전체 claude -p 실행 + 캡처
+  dogfood-run.sh                   # 케이스 1개 claude -p 실행 + 캡처
   dogfood-analyze.sh               # digest → 분석기 claude -p → findings.json
   dogfood-triage.sh                # 집계 + 종료 판정 + exit code
-  dogfood-goalify.sh               # findings → goal trio draft
+  dogfood-goalify.sh               # findings 문서화 + goal trio 작성 (adopt|draft)
 .state/dogfood/                    # gitignored (.state/ 는 이미 .gitignore)
   cycle                            # 현재 cycle id + phase
   spawned-goals                    # 이번 cycle이 추가한 goal 목록 (build 대기)
@@ -214,7 +215,14 @@ dogfood loop의 codex goal은 `dogfood/DOGFOOD-GOAL.md`로 표현한다 (build
 | `VSPEC_DOGFOOD_DRY_RUN`         | (unset) | provision+compose만, claude 호출 안 함 |
 | `VSPEC_DOGFOOD_CASES`           | (전체)  | 쉼표구분 케이스 id 필터                |
 
-## 스크립트 스켈레톤 (구현 예정)
+## 스크립트 (구현됨)
+
+전부 `scripts/dogfood/` 아래 있고 `VSPEC_DOGFOOD_DRY_RUN=1`을 지원한다 —
+별도 repo / claude 호출 / API 없이도 배선을 끝까지 검증할 수 있다.
+`bash scripts/dogfood/dogfood-cycle.sh --self-test`가 dry-run으로 전체
+파이프라인(provision → run → analyze → triage)을 한 바퀴 돌린다.
+
+아래는 핵심 흐름의 골격이다 (실제 구현은 위 파일들 참조).
 
 ### dogfood-cycle.sh (오케스트레이터)
 

@@ -24,15 +24,18 @@ const commandHelp = new Map<string, CommandHelp>([
     "init",
     {
       summary: "Initialize a .vspec/ directory in the current repository.",
-      usage: "$ vspec init --project <KEY> [--force] [--format human|json|agent]",
+      usage:
+        "$ vspec init --project <KEY> [--force] [--verify-workflow] [--format human|json|agent]",
       flags: [
         "--project=<KEY>             Project key to bind this repo to. Required.",
         "--force                     Overwrite an existing .vspec/config.json.",
+        "--verify-workflow           Generate .github/workflows/vspec-verify.yml.",
         "--format=<human|json|agent> Output format. Default: human."
       ],
       examples: [
         "$ vspec init --project ACME",
         "$ vspec init --project ACME --force",
+        "$ vspec init --project ACME --verify-workflow",
         "$ vspec init --project ACME --format agent"
       ]
     }

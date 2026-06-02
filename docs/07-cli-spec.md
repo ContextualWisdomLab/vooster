@@ -328,6 +328,16 @@ vspec verify <KEY-NNN> [--test-cmd "<command>"]
 vspec impact session [<session-id>]   # 🔵 Planned
 ```
 
+### `vspec init --verify-workflow`
+
+`vspec init --project <KEY> --verify-workflow` writes the normal
+`.vspec/config.json` and also generates `.github/workflows/vspec-verify.yml`.
+The generated workflow installs dependencies, runs the Vooster GitHub Action,
+and comments on pull requests when verification fails. It defaults to
+`<KEY>-001` and can be configured with repository variables
+`VSPEC_VERIFY_USECASE`, `VSPEC_VERIFY_TEST_COMMAND`, and `VSPEC_API_URL`, plus
+secret `VSPEC_SESSION_COOKIE`.
+
 ### `vspec verify`
 
 `vspec verify <KEY-NNN>` deterministically checks spec-step implementation
@@ -348,6 +358,14 @@ Exit codes are stable for the same input tree:
 
 `--format=json|agent` returns the same deterministic result payload, including
 `checked_refs`, `broken_links`, `unlinked_steps`, `test_command`, and `drift`.
+
+The GitHub Action adapter in `action.yml` runs the same verify implementation
+through `apps/cli/bin/run.js verify` from the Action checkout and resolves refs
+against the caller workspace. Exit code `0` passes, exit code `1` fails, and
+exit code `7` fails by default or becomes a warning when `unlinked-policy: warn`
+is set. `.github/workflows/vspec-verify.yml` is a copy-paste workflow that
+surfaces the captured verify log in the check summary and as a pull request
+comment on failure.
 
 ### Agent Format — History
 

@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { Command, Flags } from "@oclif/core";
 import { CLIError } from "@oclif/core/errors";
 
@@ -14,6 +16,7 @@ type InitCliFlags = {
   force?: boolean;
   format?: string;
   project?: string;
+  "verify-workflow"?: boolean;
 };
 
 type InitFormat = "agent" | "human" | "json";
@@ -24,6 +27,7 @@ type InitData = {
   current_project_id: string;
   current_project_key: string;
   current_workspace_id: string;
+  verify_workflow_path?: string;
 };
 
 type ProjectListResponse = {
@@ -48,12 +52,16 @@ export class InitCommand extends Command {
     project: Flags.string({
       description: "Project key to bind this repo to.",
       required: false
+    }),
+    "verify-workflow": Flags.boolean({
+      description: "Generate .github/workflows/vspec-verify.yml."
     })
   };
 
   static override examples = [
     "<%= config.bin %> init --project ACME",
     "<%= config.bin %> init --project ACME --force",
+    "<%= config.bin %> init --project ACME --verify-workflow",
     "<%= config.bin %> init --project ACME --format agent"
   ];
 
@@ -70,9 +78,11 @@ export async function runInit(
   writeLine: (message: string) => void
 ): Promise<void> {
   const projectKey = projectKeyFrom(flags.project);
-  const path = localConfigPath(cwd);
+  const configPath = localConfigPath(cwd);
+  const verifyWorkflowPath =
+    flags["verify-workflow"] === true ? localVerifyWorkflowPath(cwd) : undefined;
 
-  if (configExists({ path }) && flags.force !== true) {
+  if (configExists({ path: configPath }) && flags.force !== true) {
     throw new CLIError(
       ".vspec/config.json already exists. Re-run with --force to overwrite.",
       {
@@ -80,17 +90,31 @@ export async function runInit(
       }
     );
   }
+  if (
+    verifyWorkflowPath !== undefined &&
+    existsSync(verifyWorkflowPath) &&
+    flags.force !== true
+  ) {
+    throw new CLIError(
+      ".github/workflows/vspec-verify.yml already exists. Re-run with --force to overwrite.",
+      { exit: 6 }
+    );
+  }
 
   const projectContext = await resolveProjectContext(projectKey, cwd);
 
-  writeConfig(projectContext, { merge: false, path });
+  writeConfig(projectContext, { merge: false, path: configPath });
+  if (verifyWorkflowPath !== undefined) {
+    writeVerifyWorkflow(verifyWorkflowPath, projectKey);
+  }
 
   const data: InitData = {
     api_url: projectContext.api_url,
-    config_path: path,
+    config_path: configPath,
     current_project_id: projectContext.current_project_id,
     current_project_key: projectContext.current_project_key,
-    current_workspace_id: projectContext.current_workspace_id
+    current_workspace_id: projectContext.current_workspace_id,
+    verify_workflow_path: verifyWorkflowPath
   };
   const format = initFormat(flags.format ?? "human");
 
@@ -105,7 +129,10 @@ export async function runInit(
   }
 
   writeLine(`Project ${projectKey}`);
-  writeLine(`Config ${path}`);
+  writeLine(`Config ${configPath}`);
+  if (verifyWorkflowPath !== undefined) {
+    writeLine(`Verify workflow ${verifyWorkflowPath}`);
+  }
 }
 
 async function resolveProjectContext(projectKey: string, cwd: string) {
@@ -186,4 +213,77 @@ function initFormat(rawFormat: string): InitFormat {
 
 function isInitFormat(format: string): format is InitFormat {
   return ["agent", "human", "json"].includes(format);
+}
+
+function localVerifyWorkflowPath(cwd: string): string {
+  return join(cwd, ".github", "workflows", "vspec-verify.yml");
+}
+
+function writeVerifyWorkflow(path: string, projectKey: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, verifyWorkflowTemplate(projectKey));
+}
+
+function verifyWorkflowTemplate(projectKey: string): string {
+  const usecaseKey = githubExpression(
+    `vars.VSPEC_VERIFY_USECASE || '${projectKey}-001'`
+  );
+  const testCommand = githubExpression("vars.VSPEC_VERIFY_TEST_COMMAND || 'pnpm test'");
+  return [
+    "name: Vspec Verify",
+    "",
+    "on:",
+    "  pull_request:",
+    "    branches: [main]",
+    "  workflow_dispatch:",
+    "",
+    "permissions:",
+    "  contents: read",
+    "  pull-requests: write",
+    "",
+    "jobs:",
+    "  vspec-verify:",
+    "    runs-on: ubuntu-latest",
+    "    timeout-minutes: 10",
+    "    steps:",
+    "      - uses: actions/checkout@v4",
+    "      - uses: pnpm/action-setup@v4",
+    "        with:",
+    "          version: 11.0.5",
+    "      - uses: actions/setup-node@v4",
+    "        with:",
+    '          node-version: "22"',
+    "          cache: pnpm",
+    "      - run: pnpm install --frozen-lockfile",
+    "      - name: Run Vooster verify",
+    "        id: verify",
+    "        uses: vibemafiaclub/vooster@main",
+    "        with:",
+    `          usecase-key: "${usecaseKey}"`,
+    `          test-command: "${testCommand}"`,
+    `          api-url: "${githubExpression("vars.VSPEC_API_URL")}"`,
+    `          session-cookie: "${githubExpression("secrets.VSPEC_SESSION_COOKIE")}"`,
+    "          unlinked-policy: fail",
+    "      - name: Comment verify failure",
+    "        if: ${{ github.event_name == 'pull_request' && failure() && steps.verify.outcome == 'failure' }}",
+    "        uses: actions/github-script@v7",
+    "        with:",
+    "          script: |",
+    '            const fs = require("node:fs");',
+    '            const exitCode = "${{ steps.verify.outputs.exit_code }}";',
+    '            const logPath = "${{ steps.verify.outputs.log_path }}";',
+    '            const log = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8").slice(-12000) : "(no verify log captured)";',
+    '            const body = ["Vooster spec-code verification failed.", "", `Exit code: ${exitCode || "unknown"}`, "", "```text", log, "```"].join("\\n");',
+    "            await github.rest.issues.createComment({",
+    "              owner: context.repo.owner,",
+    "              repo: context.repo.repo,",
+    "              issue_number: context.issue.number,",
+    "              body",
+    "            });",
+    ""
+  ].join("\n");
+}
+
+function githubExpression(value: string): string {
+  return "$" + "{{ " + value + " }}";
 }

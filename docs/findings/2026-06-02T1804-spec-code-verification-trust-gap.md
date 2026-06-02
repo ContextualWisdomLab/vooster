@@ -5,7 +5,16 @@ resolved: partial
 priority: P1
 resolved_by:
   - 4b2f7e7
+  - e79d701
 status_notes: |
+  T2 CLOSED on 2026-06-03 via goal 38 (commit e79d701; gate
+  goals/38-deterministic-verify.gates.sh). Evidence:
+  apps/cli/src/commands/verify.ts routes `vspec verify <KEY-NNN>`, resolves
+  step `implements` refs against the local working tree, exits 1 for broken
+  links or delegated test failure, exits 7 for otherwise-unlinked steps,
+  delegates `--test-cmd` by exit code only, and has a 10-run deterministic JSON
+  proof in apps/cli/tests/unit/verify-command.test.ts. Remaining open: T3, T4.
+  T5 remains stretch/out of scope for deterministic PR blocking.
   T1 CLOSED on 2026-06-03 via goal 37 (commit 4b2f7e7; gate
   goals/37-step-implements-traceability.gates.sh). Evidence: Step.implements is
   persisted with a default empty array, StoredStep and Prisma mappers carry it,
@@ -199,13 +208,13 @@ leakage; CI proof is `for i in $(seq 10); do vspec verify; echo $?; done | sort 
 
 Acceptance:
 
-- [ ] All steps linked and targets exist → exit code 0.
-- [ ] A link target (file/test) missing → exit code 1 + list of broken links.
-- [ ] Any unlinked step → distinct exit code 7 ("incomplete coverage").
-- [ ] **10 repeated runs on the same commit → identical results & exit codes
+- [x] All steps linked and targets exist → exit code 0.
+- [x] A link target (file/test) missing → exit code 1 + list of broken links.
+- [x] Any unlinked step → distinct exit code 7 ("incomplete coverage").
+- [x] **10 repeated runs on the same commit → identical results & exit codes
       100% of the time** (verified by repeated CI runs). ← the most important
       criterion.
-- [ ] Test execution is delegated (`--test-cmd "npm test"`); Vooster never
+- [x] Test execution is delegated (`--test-cmd "npm test"`); Vooster never
       interprets test meaning.
 
 Out of scope: LLM "did this code really implement the step" judgment — explicitly

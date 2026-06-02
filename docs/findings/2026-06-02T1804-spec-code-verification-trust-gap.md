@@ -6,7 +6,18 @@ priority: P1
 resolved_by:
   - 4b2f7e7
   - e79d701
+  - 027a658
 status_notes: |
+  T3 CLOSED on 2026-06-03 via goal 39 (commit 027a658; gate
+  goals/39-ci-verify-adapter.gates.sh). Evidence: action.yml is a composite
+  adapter that installs the Vooster CLI from the Action checkout, runs
+  apps/cli/bin/run.js verify against the caller workspace, maps exit 0 to pass,
+  exit 1 to fail, and exit 7 through unlinked-policy fail/warn, and writes the
+  captured verify log to the GitHub step summary. .github/workflows/
+  vspec-verify.yml invokes the local Action and comments on pull requests when
+  verification fails; vspec init --verify-workflow writes a copy-paste workflow
+  template for caller repos. Remaining open: T4. T5 remains stretch/out of
+  scope for deterministic PR blocking.
   T2 CLOSED on 2026-06-03 via goal 38 (commit e79d701; gate
   goals/38-deterministic-verify.gates.sh). Evidence:
   apps/cli/src/commands/verify.ts routes `vspec verify <KEY-NNN>`, resolves
@@ -28,7 +39,10 @@ related:
   - apps/www/src/components/sections/Onboarding.astro
   - apps/cli/src/commands/diff.ts
   - apps/cli/src/commands/impact.ts
+  - apps/cli/src/commands/init.ts
   - apps/api/prisma/schema.prisma
+  - action.yml
+  - .github/workflows/vspec-verify.yml
   - docs/07-cli-spec.md
   - docs/findings/2026-05-24T1100-spec-impl-audit.md
 ---
@@ -236,11 +250,11 @@ function over (snapshot, working tree, test result).
 
 Acceptance:
 
-- [ ] exit 0 → check passes / exit 1 → check fails (merge blocked) / exit 7 →
+- [x] exit 0 → check passes / exit 1 → check fails (merge blocked) / exit 7 →
       warn-or-fail per config.
-- [ ] Broken links / failing tests surfaced in a PR comment or check detail.
-- [ ] `vspec init` optionally generates the workflow yml.
-- [ ] Same binary, same result self-hosted/local (no cloud dependency).
+- [x] Broken links / failing tests surfaced in a PR comment or check detail.
+- [x] `vspec init` optionally generates the workflow yml.
+- [x] Same binary, same result self-hosted/local (no cloud dependency).
 
 ### TICKET-4 — define & label "spec drift" honestly
 

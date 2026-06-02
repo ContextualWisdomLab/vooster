@@ -1,13 +1,22 @@
 ---
 title: "Landing promises spec↔code CI verification that has no implementation (trust gap)"
 created_at: 2026-06-02T18:04:29Z
-resolved: partial
+resolved: true
 priority: P1
 resolved_by:
   - 4b2f7e7
   - e79d701
   - 027a658
+  - 6118bb9
 status_notes: |
+  T4 CLOSED on 2026-06-03 via goal 40 (commit 6118bb9; gate
+  goals/40-honest-drift-definition.gates.sh). Evidence: vspec verify
+  --format=agent is explicitly tested to expose only deterministic drift kinds
+  broken_link, failing_test, and unlinked_step; docs/07-cli-spec.md states that
+  drift is not semantic mismatch detection; HowItWorks.astro and
+  Onboarding.astro now describe link/test-based verification rather than broad
+  spec/code semantic agreement. T1-T4 are closed; T5 remains explicit
+  non-blocking stretch/out of scope. Finding resolved true.
   T3 CLOSED on 2026-06-03 via goal 39 (commit 027a658; gate
   goals/39-ci-verify-adapter.gates.sh). Evidence: action.yml is a composite
   adapter that installs the Vooster CLI from the Action checkout, runs
@@ -40,6 +49,7 @@ related:
   - apps/cli/src/commands/diff.ts
   - apps/cli/src/commands/impact.ts
   - apps/cli/src/commands/init.ts
+  - apps/cli/src/commands/verify.ts
   - apps/api/prisma/schema.prisma
   - action.yml
   - .github/workflows/vspec-verify.yml
@@ -276,11 +286,11 @@ reword "자동 검증" toward "link/test-based verification."
 
 Acceptance:
 
-- [ ] `vspec verify --format=agent` returns structured drift kinds
+- [x] `vspec verify --format=agent` returns structured drift kinds
       (`broken_link` / `failing_test` / `unlinked_step`).
-- [ ] Docs state explicitly: "drift is not semantic mismatch but the 3
+- [x] Docs state explicitly: "drift is not semantic mismatch but the 3
       deterministic conditions above."
-- [ ] Landing drift copy (`HowItWorks.astro:18,78-81`) edited to be consistent
+- [x] Landing drift copy (`HowItWorks.astro:18,78-81`) edited to be consistent
       with this definition.
 
 ### TICKET-5 — non-blocking semantic check _(STRETCH, only if time remains)_

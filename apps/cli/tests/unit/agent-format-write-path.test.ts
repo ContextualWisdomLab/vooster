@@ -151,14 +151,28 @@ describe("--format=agent write-path envelopes", () => {
 function stubFetch(body: unknown): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn(() =>
-      Promise.resolve({
-        headers: new Headers(),
-        json: () => Promise.resolve(body),
-        ok: true
-      } as Response)
-    )
+    vi.fn((input: string | URL) => {
+      const url = input.toString();
+      return Promise.resolve(
+        jsonResponse(url.endsWith("/sync/pull") ? syncPull() : body)
+      );
+    })
   );
+}
+
+function jsonResponse(body: unknown): Response {
+  return {
+    headers: new Headers(),
+    json: () => Promise.resolve(body),
+    ok: true
+  } as Response;
+}
+
+function syncPull() {
+  return {
+    cursor: "cursor-1",
+    files: []
+  };
 }
 
 function baseFlags(overrides: Record<string, string> = {}): Record<string, string> {

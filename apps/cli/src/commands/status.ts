@@ -1,9 +1,12 @@
 import { Command, Flags } from "@oclif/core";
+import {
+  sessionListResponseSchema,
+  type SessionListResponse
+} from "@vooster/contracts";
 
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { readConfig, type VspecConfig } from "../config-store.js";
 import { fetchJson } from "../http-client.js";
-import type { SessionListResponse } from "./session-output.js";
 
 type StatusFlags = {
   format?: string;
@@ -68,11 +71,10 @@ async function sessionContext(
   }
 
   try {
-    return (
-      await fetchJson(url, {
-        headers: { Cookie: sessionCookie(config.session_token) }
-      })
-    ).body as SessionListResponse;
+    const response = await fetchJson(url, {
+      headers: { Cookie: sessionCookie(config.session_token) }
+    });
+    return sessionListResponseSchema.parse(response.body);
   } catch {
     return undefined;
   }

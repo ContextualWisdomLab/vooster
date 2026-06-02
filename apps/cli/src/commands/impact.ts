@@ -3,6 +3,7 @@ import { Args, Command, Flags } from "@oclif/core";
 import {
   impactPreviewRequestSchema,
   impactPreviewResponseSchema,
+  revisionHistoryResponseSchema,
   type ImpactPreviewResponse
 } from "@vooster/contracts";
 
@@ -22,12 +23,6 @@ type ImpactFlags = {
   proposedChangePath: string | undefined;
   sessionCookie: string;
   usecaseId: string;
-};
-
-type RevisionListResponse = {
-  revisions: Array<{
-    revision: string;
-  }>;
 };
 
 export class ImpactCommand extends Command {
@@ -128,7 +123,7 @@ async function latestUseCaseRevision(
       Cookie: flags.sessionCookie
     }
   });
-  const body = response.body as RevisionListResponse;
+  const body = revisionHistoryResponseSchema.parse(response.body);
   const latest = body.revisions[0];
   if (latest === undefined) {
     throw new Error("Use case has no revisions.");

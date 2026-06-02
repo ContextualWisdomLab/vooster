@@ -102,11 +102,21 @@ function impactFlags(overrides: Record<string, string> = {}): Record<string, str
 
 function historyResponse() {
   return {
+    limit: 1,
     revisions: [
       {
-        revision: "revision-1"
+        author: "user-1",
+        entity_id: "usecase-1",
+        entity_type: "USECASE",
+        revision: "revision-1",
+        timestamp: "2026-05-22T00:00:00.000Z",
+        version_number: 1
       }
-    ]
+    ],
+    suggested_next_actions: [],
+    suppressed_count: 0,
+    truncated: false,
+    usecase: { key: "IMP-001" }
   };
 }
 

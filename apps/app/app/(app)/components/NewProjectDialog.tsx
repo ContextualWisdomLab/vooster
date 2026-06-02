@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -132,6 +133,7 @@ export function NewProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {pending ? "만드는 중..." : "프로젝트 만들기"}
             </Button>
           </DialogFooter>

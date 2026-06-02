@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,7 @@ export function DeleteProjectDialog({
             onClick={handleDelete}
             disabled={pending}
           >
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {pending ? "삭제 중..." : "삭제"}
           </Button>
         </DialogFooter>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -98,6 +99,7 @@ export function RenameProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {pending ? "저장 중..." : "저장"}
             </Button>
           </DialogFooter>

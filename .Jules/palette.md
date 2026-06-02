@@ -1,0 +1,3 @@
+## 2025-03-01 - Add loading spinners to async action buttons
+**Learning:** During async operations, disabled buttons with just "Saving..." or "Loading..." text lack immediate visual indication that something is in progress. Adding an animated spinner alongside the text creates a clearer and more standard loading pattern for users, confirming that their action has been triggered and is being processed.
+**Action:** When a button disables due to an ongoing async task (e.g. form submission), append an animated loading spinner (e.g. `Loader2` from `lucide-react` with `animate-spin`) next to the changing text.

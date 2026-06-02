@@ -108,6 +108,25 @@ case_field() {
   ' "$1"
 }
 
+# reset_repo_to_baseline <baseline-name> — put the dogfood repo at a pristine
+# per-case baseline. Convention: case `baseline: X` maps to git ref `baseline/X`
+# (falls back to a bare ref X if `baseline/X` is absent). Preserves the globally
+# linked CLI (untracked) and the seeded .vspec auth so cases stay runnable.
+reset_repo_to_baseline() {
+  local name="$1" repo="$VSPEC_DOGFOOD_REPO" ref
+  [ -d "$repo/.git" ] || { df_log "✗ reset: '$repo' is not a git repo"; return 1; }
+  if git -C "$repo" rev-parse --verify -q "baseline/$name" >/dev/null; then
+    ref="baseline/$name"
+  elif git -C "$repo" rev-parse --verify -q "$name" >/dev/null; then
+    ref="$name"
+  else
+    df_log "✗ reset: no baseline ref for '$name' (expected 'baseline/$name')"
+    return 1
+  fi
+  git -C "$repo" reset --hard "$ref" >/dev/null 2>&1 || return 1
+  git -C "$repo" clean -fd -e .vspec -e node_modules >/dev/null 2>&1 || return 1
+}
+
 # ── session capture ──────────────────────────────────────────────────────────
 # locate_session_jsonl <session-id> — find the transcript claude wrote.
 locate_session_jsonl() {

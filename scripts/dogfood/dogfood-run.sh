@@ -21,8 +21,17 @@ RUN_DIR="$(df_runs_dir)/$CYCLE/$CASE"
 mkdir -p "$RUN_DIR"
 
 BUDGET="$(case_field "$CASE_FILE" case_budget_usd)"; : "${BUDGET:=$VSPEC_DOGFOOD_CASE_BUDGET_USD}"
+BASELINE="$(case_field "$CASE_FILE" baseline)"; : "${BASELINE:=empty}"
 TASK="$(case_task_prompt "$CASE_FILE")"
 [ -n "$TASK" ] || df_die "case $CASE has an empty ## Task section"
+
+# Per-case pristine reset (cases declare different baselines). The globally
+# linked CLI and seeded .vspec auth are preserved by reset_repo_to_baseline.
+if df_dry_run; then
+  echo "  [dry-run] would reset dogfood repo to baseline/$BASELINE"
+else
+  reset_repo_to_baseline "$BASELINE" || df_die "could not reset repo to baseline '$BASELINE' for $CASE"
+fi
 
 PROMPT="You are an AI coding agent working in this repository. The team manages
 software specifications with a CLI tool called \`vspec\` that is installed here.

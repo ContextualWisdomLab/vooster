@@ -15,9 +15,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT"
 # shellcheck source=./_dogfood-lib.sh
 source "$ROOT/scripts/dogfood/_dogfood-lib.sh"
 
-BASELINE="${1:-$VSPEC_DOGFOOD_BASELINE}"
-
-echo "=== dogfood provision (baseline=$BASELINE, link=$VSPEC_DOGFOOD_LINK) ==="
+echo "=== dogfood provision (link=$VSPEC_DOGFOOD_LINK, per-case baselines) ==="
 
 # ── 0.1 build the local product ──────────────────────────────────────────────
 echo "[0.1] build local vspec"
@@ -40,37 +38,46 @@ else
   esac
 fi
 
-# ── 0.3 clean reset to baseline ──────────────────────────────────────────────
-echo "[0.3] reset repo to pristine baseline"
+# ── 0.3 verify per-case baseline refs exist ──────────────────────────────────
+# The repo is reset PER CASE in dogfood-run.sh (cases declare different
+# baselines), so here we only confirm the refs the selected cases need exist.
+echo "[0.3] verify baseline refs"
 if df_dry_run; then
-  echo "  [dry-run] would: git -C \$REPO clean -fdx && git -C \$REPO reset --hard $BASELINE"
+  echo "  [dry-run] cases reset to git ref baseline/<case.baseline> at run time"
 else
-  git -C "$VSPEC_DOGFOOD_REPO" clean -fdx >/dev/null 2>&1 || df_die "git clean failed"
-  git -C "$VSPEC_DOGFOOD_REPO" reset --hard "$BASELINE" >/dev/null 2>&1 \
-    || df_die "git reset --hard $BASELINE failed (does the ref exist?)"
+  for b in $(for c in $(select_cases); do case_field "$(case_file "$c")" baseline; done | sort -u); do
+    [ -n "$b" ] || continue
+    if git -C "$VSPEC_DOGFOOD_REPO" rev-parse --verify -q "baseline/$b" >/dev/null \
+       || git -C "$VSPEC_DOGFOOD_REPO" rev-parse --verify -q "$b" >/dev/null; then
+      echo "  ✓ baseline '$b'"
+    else
+      df_die "missing baseline ref for '$b' (expected git ref 'baseline/$b' in the dogfood repo — see scripts/dogfood/dogfood-init-repo.sh)"
+    fi
+  done
 fi
 
-# ── 0.4 link the local build into the repo ───────────────────────────────────
-echo "[0.4] link local build ($VSPEC_DOGFOOD_LINK)"
+# ── 0.4 link the local build GLOBALLY ─────────────────────────────────────────
+# Install on PATH globally, not into the repo's node_modules — so per-case
+# `git clean` in dogfood-run.sh cannot wipe the CLI under test.
+echo "[0.4] link local build ($VSPEC_DOGFOOD_LINK, global)"
 if df_dry_run; then
-  echo "  [dry-run] would install local @vooster/cli into the dogfood repo via $VSPEC_DOGFOOD_LINK"
+  echo "  [dry-run] would install local @vooster/cli globally via $VSPEC_DOGFOOD_LINK"
 else
   case "$VSPEC_DOGFOOD_LINK" in
     pack)
       df_require_cmd npm
       tarball="$(cd "$ROOT/apps/cli" && npm pack --silent 2>/dev/null | tail -1)"
       [ -n "$tarball" ] && [ -f "$ROOT/apps/cli/$tarball" ] || df_die "npm pack produced no tarball"
-      ( cd "$VSPEC_DOGFOOD_REPO" && npm install --no-save "$ROOT/apps/cli/$tarball" ) \
-        || df_die "installing packed CLI into dogfood repo failed"
+      npm install -g "$ROOT/apps/cli/$tarball" || df_die "global install of packed CLI failed"
       rm -f "$ROOT/apps/cli/$tarball"
       ;;
     link)
       df_require_cmd pnpm
       ( cd "$ROOT/apps/cli" && pnpm link --global ) || df_die "pnpm link --global failed"
-      ( cd "$VSPEC_DOGFOOD_REPO" && pnpm link --global @vooster/cli ) || df_die "pnpm link into repo failed"
       ;;
     *) df_die "unknown VSPEC_DOGFOOD_LINK='$VSPEC_DOGFOOD_LINK' (expected pack|link)" ;;
   esac
+  command -v vspec >/dev/null 2>&1 || echo "  ⚠ 'vspec' not on PATH after install — check global bin dir"
 fi
 
 # ── 0.5 running API + seeded auth ────────────────────────────────────────────

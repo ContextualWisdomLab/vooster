@@ -74,9 +74,10 @@ dogfood/
     result.json                    # cost, num_turns, duration, is_error
     findings.json                  # 분석기 출력
 scripts/dogfood/                   # 구현됨 — 전부 VSPEC_DOGFOOD_DRY_RUN 지원
-  _dogfood-lib.sh                  # 공유 헬퍼 (env, cycle/state, case 파싱, ledger) + --self-test
+  _dogfood-lib.sh                  # 공유 헬퍼 (env, cycle/state, case 파싱, reset, ledger) + --self-test
+  dogfood-init-repo.sh             # 별도 dogfood repo 스캐폴딩 (baseline 브랜치 생성)
   dogfood-cycle.sh                 # 오케스트레이터 (codex goal 엔트리포인트) + --self-test
-  dogfood-provision.sh             # 빌드 + reset + link + API 부팅
+  dogfood-provision.sh             # 빌드 + 글로벌 link + baseline ref 검증 + API 부팅
   dogfood-run.sh                   # 케이스 1개 claude -p 실행 + 캡처
   dogfood-analyze.sh               # digest → 분석기 claude -p → findings.json
   dogfood-triage.sh                # 집계 + 종료 판정 + exit code
@@ -99,14 +100,17 @@ finding 문서가 영속 기록이다.
 1. **별도 git repo**. 이 모노레포 **밖**에 있어야 한다 (gate-cache/`.state`
    오염 방지, 그리고 vspec이 보는 working tree가 모노레포가 아니어야 ICP
    상황을 재현). 경로는 `VSPEC_DOGFOOD_REPO` env로 주입.
-2. **매 cycle clean reset**. PROVISION이
-   `git -C $REPO clean -fdx && git -C $REPO reset --hard $BASELINE` 로
-   pristine baseline으로 되돌린다. 이전 cycle이 만든 spec이 남아 결과를
-   오염시키지 않게 한다. 케이스별로 다른 baseline tag를 쓸 수 있다
-   (greenfield = 빈 repo, "add feature" = 기존 spec 몇 개가 있는 baseline).
-3. **로컬 빌드 link**. PROVISION이 `pnpm -r build` 후 로컬 산출물을 dogfood
-   repo에 link/install 한다. 두 방식:
-   - `npm pack` 한 tarball을 install — distribution 경로까지 검증 (권장 기본).
+2. **per-case clean reset**. 케이스마다 baseline이 다르므로(`empty` /
+   `seeded-small` / `seeded-rough`), reset은 cycle 단위가 아니라 **케이스
+   단위**로 `dogfood-run.sh`가 수행한다. 컨벤션: 케이스 `baseline: X` →
+   git ref `baseline/X`. reset =
+   `git reset --hard baseline/X && git clean -fd -e .vspec -e node_modules`
+   (글로벌 링크된 CLI와 시드된 `.vspec` 인증은 보존). baseline ref들은
+   `scripts/dogfood/dogfood-init-repo.sh`가 만든다.
+3. **로컬 빌드 link (글로벌)**. PROVISION이 `pnpm -r build` 후 로컬 CLI를
+   **글로벌로** 설치한다 — repo의 `node_modules`에 넣으면 per-case
+   `git clean`에 지워지기 때문. 두 방식:
+   - `npm install -g <pack tarball>` — distribution 경로까지 검증 (권장 기본).
      analyze-session friction signal 중 "binary/setup confusion"을 잡으려면
      이 경로가 정직하다.
    - `pnpm link --global` — 빠름. `VSPEC_DOGFOOD_LINK=link` 로 선택.
@@ -290,8 +294,10 @@ findings.schema.json` (system prompt = analyze-session SKILL 본문 + rubric) �
 - **goalify 자동화 신뢰도**: 초안 goal의 gate가 rigor는 통과해도 의미가
   엉성할 수 있다. 초기엔 goalify를 "finding + goal **초안**까지만, 사람/별도
   리뷰가 채택" 으로 보수적으로 운영하고, 신뢰가 쌓이면 자동 채택으로 승격.
-- **케이스 baseline 관리**: 케이스별 baseline tag를 dogfood repo에 어떻게
-  버저닝할지.
+- **seeded baseline 채우기**: `dogfood-init-repo.sh`가 `baseline/empty`는
+  완성하지만 `baseline/seeded-small`/`seeded-rough`는 placeholder로 만든다.
+  실제 spec 형식대로 vspec을 한 번 돌려 채운 뒤 해당 브랜치에 recommit해야
+  DF-002~005가 진짜 시드 상태에서 시작한다.
 
 ```
 

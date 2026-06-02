@@ -5,17 +5,25 @@ resolved: partial
 priority: P1
 resolved_by:
   - 9b618b3
+  - e47082a
 related:
   - docs/findings/2026-05-26T1234-agent-contract-followups.md
   - docs/findings/2026-05-22T1628-shared-api-contracts.md
   - docs/findings/2026-06-02T1804-spec-code-verification-trust-gap.md
 status_notes: |
+  L2 CLOSED on 2026-06-03 via goal 36 (commit e47082a; gate
+  goals/36-usecase-error-contract.gates.sh). Evidence:
+  apps/api/src/http/usecase-validation-problem.ts returns code, field, and
+  allowed_values for invalid usecase create payloads;
+  apps/cli/src/domain/error-codes.ts consumes apiErrorCodeSchema and has no
+  usecase authoring
+  problem-title literals. Remaining open: L3, L4, L5, L6.
   L1 CLOSED on 2026-06-03 via goal 35 (commit 9b618b3; gate
   goals/35-korean-verb-phrase.gates.sh). Evidence:
   apps/api/src/application/verb-phrases.ts exposes spec_language with default
   ko, and apps/api/tests/unit/application/verb-phrases.test.ts plus
   apps/api/tests/e2e/UC-009.test.ts cover Korean title validation and authoring.
-  Remaining open: L2, L3, L4, L5, L6.
+  Remaining open after L1: L2, L3, L4, L5, L6.
   Source of the lessons is the SIBLING repo vooster-spec-mvp (the local-first
   CLI rebuild), at /Users/sumin/repos/vibemafiaclub/vooster-spec-mvp. The
   TARGET of every action below is THIS repo (apps/api, apps/cli, .claude/).

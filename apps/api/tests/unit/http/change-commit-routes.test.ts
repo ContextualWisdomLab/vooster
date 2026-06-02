@@ -14,33 +14,14 @@ import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 type Handler = (request: FastifyRequest, reply: FastifyReply) => unknown;
 type RouteName = "commit" | "expire";
 
+// NOTE: This defensive branch ("commit references a preview whose use case has
+// vanished from the store") cannot be reproduced against the real server: the
+// in-memory use case store has no delete operation, and archiving keeps the use
+// case findable via findUseCaseWithProject. It therefore stays a unit test.
+// The other change-commit behaviors are covered by:
+//   tests/integration/http/change-commit-route.test.ts (malformed 400, expire 404)
+//   tests/e2e/UC-035.test.ts (valid commit, unknown/expired preview)
 describe("change commit routes", () => {
-  test("rejects malformed commit requests before preview lookup", async () => {
-    const captured = reply();
-
-    await registeredRoutes(signupState()).commit(
-      request({}, {}),
-      captured.fastifyReply
-    );
-
-    expect(captured.statusCode).toBe(400);
-    expect(captured.body).toMatchObject({
-      title: "Every commit must reference a still-valid preview"
-    });
-  });
-
-  test("rejects expire requests for unknown previews", async () => {
-    const captured = reply();
-
-    await registeredRoutes(signupState()).expire(
-      request({ previewId: "preview-missing" }, undefined),
-      captured.fastifyReply
-    );
-
-    expect(captured.statusCode).toBe(404);
-    expect(captured.body).toMatchObject({ title: "Change preview not found" });
-  });
-
   test("rejects commit when the preview use case no longer exists", async () => {
     const state = signupState();
     previews(state).set("preview-1", preview());

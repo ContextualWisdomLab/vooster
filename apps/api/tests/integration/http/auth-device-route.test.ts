@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
+import { signup } from "../../helpers/uc-fixtures.js";
 import { startServer, type TestServer } from "../../helpers/server.js";
 
 let server: TestServer;
@@ -76,6 +77,21 @@ describe("device auth routes integration", () => {
     expect(body.user.github_id).toBe("First.User");
     expect(body.workspaces[0]?.slug).toBe("github-first-user");
     expect(response.headers.get("set-cookie")).toContain("vspec_session=");
+  });
+
+  test("reports fallback workspace slug conflicts through real routing", async () => {
+    await signup(server, "Existing Workspace", "github-first-user", "other-user");
+
+    const response = await server.fetch("/v1/auth/github/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: "stub-access-token-First.User" })
+    });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      title: "Workspace slug is already taken"
+    });
   });
 
   test("clears the current session on logout through real routing", async () => {

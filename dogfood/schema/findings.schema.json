@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DogfoodSessionFindings",
+  "description": "Structured output for one analyzed dogfood session. Produced by scripts/dogfood/dogfood-analyze.sh via `claude -p --json-schema`. Severity and QUANTS follow dogfood/rubric.md and .claude/skills/analyze-session/SKILL.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "summary", "task_succeeded", "findings"],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "The DF-NNN case id this session ran.",
+      "pattern": "^DF-[0-9]{3}$"
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-paragraph session summary: task, whether it succeeded, headline friction, rough counts (vspec attempts, explicit --format=agent, direct spec edits, suggested_next_actions seen)."
+    },
+    "task_succeeded": {
+      "type": "boolean",
+      "description": "Did the agent complete the case's stated task at all (regardless of friction)?"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Optional rough counts pulled from the digest.",
+      "additionalProperties": false,
+      "properties": {
+        "vspec_invocations": { "type": "integer", "minimum": 0 },
+        "failed_invocations": { "type": "integer", "minimum": 0 },
+        "help_probes": { "type": "integer", "minimum": 0 },
+        "format_agent_uses": { "type": "integer", "minimum": 0 },
+        "direct_spec_edits": { "type": "integer", "minimum": 0 },
+        "turns_to_first_success": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Zero or more findings. Empty array means a clean session for this case.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "severity",
+          "quants",
+          "evidence",
+          "root_cause_area",
+          "recommendation",
+          "routing"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Short noun-phrase title."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2"],
+            "description": "P0 corruption/contract break; P1 agent-recovery/core-workflow bug; P2 polish/process."
+          },
+          "quants": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "enum": ["Q", "A", "N", "T", "S"] },
+            "description": "Harmed QUANTS dimension(s)."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Exact digest line/section, command, and error text grounding this finding. No evidence => not a finding."
+          },
+          "root_cause_area": {
+            "type": "string",
+            "description": "Responsible code/docs area, e.g. apps/api/src/http, apps/cli/src, packages/contracts/src, apps/api/src/application/ai-guide.ts, docs/07-cli-spec.md, apps/app, apps/www."
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Concrete direction: API/CLI/contract fix, guide/help fix, sync/file-format fix, or deferred product decision."
+          },
+          "routing": {
+            "type": "string",
+            "enum": ["codex", "claude"],
+            "description": "Who should build the fix per existing routing: 'claude' for presentation (apps/app, apps/www); 'codex' (TDD) otherwise."
+          }
+        }
+      }
+    }
+  }
+}

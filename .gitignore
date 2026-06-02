@@ -37,6 +37,9 @@ playwright/.cache/
 
 # Local agent state (kept ignored to avoid leaking between agent runs)
 .state/
+
+# Dogfood loop per-cycle artifacts (sessions, spec snapshots) — see docs/dogfood-loop.md
+dogfood/runs/
 .vspec/cache/
 .vspec/session.json
 .vspec/sync-state.json

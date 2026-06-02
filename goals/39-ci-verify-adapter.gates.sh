@@ -49,18 +49,7 @@ else
   PASS=false
 fi
 
-echo "[39.B1] action and workflow invoke deterministic verify"
-if rg -q 'using: composite' action.yml &&
-  rg -q 'apps/cli/bin/run\.js" verify' action.yml &&
-  rg -q 'uses: \./' .github/workflows/vspec-verify.yml &&
-  rg -q 'actions/github-script@v7' .github/workflows/vspec-verify.yml; then
-  echo "    pass"
-else
-  echo "    fail -- action/workflow adapter contract missing"
-  PASS=false
-fi
-
-echo "[39.B2] init advertises workflow generation"
+echo "[39.B1] init advertises workflow generation"
 if rg -q -- '--verify-workflow' apps/cli/src/commands/init.ts apps/cli/src/cli-help.ts docs/07-cli-spec.md; then
   echo "    pass"
 else

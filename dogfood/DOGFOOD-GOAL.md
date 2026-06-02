@@ -28,9 +28,17 @@ Interpret its exit code:
 
 ## Required environment
 
-`VSPEC_DOGFOOD_REPO` must point at the separate dogfood codebase (outside this
-monorepo). See `docs/dogfood-loop.md` § "예산/제어 env" for the full knob list
-(`VSPEC_DOGFOOD_BUDGET_USD`, `VSPEC_DOGFOOD_MAX_CYCLES`, `VSPEC_DOGFOOD_LINK`, …).
+Only one variable is required:
+
+    export VSPEC_DOGFOOD_REPO=<path to the separate dogfood repo, outside this monorepo>
+
+Everything else is automatic: provision builds the local vspec, installs it
+globally, auto-boots a stub-enabled in-memory API at `http://127.0.0.1:8787`
+(no Postgres), and seeds an authenticated session into the repo's
+`.vspec/config.json`. To point at a remote API instead, set
+`VSPEC_DOGFOOD_API_URL` (and provide auth via `VSPEC_DOGFOOD_SESSION_COOKIE`
+or `VSPEC_DOGFOOD_PROVISION_HOOK`). Full knob list: `docs/dogfood-loop.md`
+§ "예산/제어 env".
 
 ## Invariants
 

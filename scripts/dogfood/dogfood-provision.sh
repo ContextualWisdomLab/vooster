@@ -101,7 +101,13 @@ elif [ -n "$VSPEC_DOGFOOD_API_URL" ] && [ -n "$VSPEC_DOGFOOD_SESSION_COOKIE" ]; 
     '{api_url:$api, session_token:$tok}' > "$VSPEC_DOGFOOD_REPO/.vspec/config.json"
   echo "  ✓ wrote .vspec/config.json pointing at $VSPEC_DOGFOOD_API_URL"
 elif [ -n "$VSPEC_DOGFOOD_API_URL" ]; then
-  # API is up with the auth stub enabled — mint a session headlessly.
+  # Ensure a stub-enabled API is up (idempotent; boots local in-memory API for
+  # localhost URLs), then mint a session headlessly via the stub.
+  # --restart so the freshly built code (step 0.1) is what serves, not a stale
+  # instance left running from a previous cycle.
+  case "$VSPEC_DOGFOOD_API_URL" in
+    *localhost*|*127.0.0.1*) bash "$ROOT/scripts/dogfood/dogfood-serve-api.sh" --restart || df_die "could not start local API" ;;
+  esac
   bash "$ROOT/scripts/dogfood/dogfood-seed-auth.sh" || df_die "auth seeding failed"
 else
   df_die "no API/auth: set VSPEC_DOGFOOD_API_URL (stub-enabled API), or VSPEC_DOGFOOD_PROVISION_HOOK, or VSPEC_DOGFOOD_API_URL + VSPEC_DOGFOOD_SESSION_COOKIE"

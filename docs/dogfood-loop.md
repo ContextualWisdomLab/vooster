@@ -76,8 +76,10 @@ dogfood/
 scripts/dogfood/                   # 구현됨 — 전부 VSPEC_DOGFOOD_DRY_RUN 지원
   _dogfood-lib.sh                  # 공유 헬퍼 (env, cycle/state, case 파싱, reset, ledger) + --self-test
   dogfood-init-repo.sh             # 별도 dogfood repo 스캐폴딩 (baseline 브랜치 생성)
+  dogfood-serve-api.sh             # stub-enabled in-memory API 기동 (멱등; --restart/--stop)
+  dogfood-seed-auth.sh             # stub OAuth로 세션 발급 → .vspec/config.json
   dogfood-cycle.sh                 # 오케스트레이터 (codex goal 엔트리포인트) + --self-test
-  dogfood-provision.sh             # 빌드 + 글로벌 link + baseline ref 검증 + API 부팅
+  dogfood-provision.sh             # 빌드 + 글로벌 link + baseline ref 검증 + API 기동 + auth seed
   dogfood-run.sh                   # 케이스 1개 claude -p 실행 + 캡처
   dogfood-analyze.sh               # digest → 분석기 claude -p → findings.json
   dogfood-triage.sh                # 집계 + 종료 판정 + exit code

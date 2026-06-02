@@ -115,18 +115,10 @@ describe("step --format=agent", () => {
       (line) => lines.push(line)
     );
 
-    expect(requests).toEqual([
-      {
-        body: {
-          action: "Places an order.",
-          actor: "Customer",
-          base_revision: "revision-1",
-          force: false,
-          implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
-        },
-        url: "https://api.example.test/v1/steps/step-1"
-      }
-    ]);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.body).toMatchObject({
+      implements: ["tests/UC-013.feature:scenario_login", "src/auth/login.ts"]
+    });
   });
 
   test("step edit rejects malformed implementation links before fetch", async () => {

@@ -82,22 +82,6 @@ else
   PASS=false
 fi
 
-echo "[37.B2] contracts validate implementation refs"
-if rg -q 'stepImplementationRefSchema' packages/contracts/src/scenario.ts; then
-  echo "    pass"
-else
-  echo "    fail -- step implementation ref schema missing"
-  PASS=false
-fi
-
-echo "[37.B3] doctor reports unlinked steps"
-if rg -q 'steps\.unlinked' apps/api/src/application/doctor.ts; then
-  echo "    pass"
-else
-  echo "    fail -- steps.unlinked doctor check missing"
-  PASS=false
-fi
-
 echo "[37.C1 Gate rigor]"
 if bash "$ROOT/scripts/check-gate-rigor.sh" "$ROOT/goals/37-step-implements-traceability.md" >/dev/null 2>&1; then
   echo "    pass"

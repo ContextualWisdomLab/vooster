@@ -3,6 +3,11 @@ title: "F3 — claude -p 페르소나 dogfood 하니스 (WOW-3 프록시 관찰)
 created_at: 2026-05-25T15:16:07Z
 resolved: false
 priority: P1
+status_notes: |
+  2026-06-03 (cycle 260603-01): re-confirmed unattended-unsafe — the harness
+  needs paid `claude -p` autonomous spawn + a human-vetted persona/threshold/PII
+  oracle, and meaningful termination requires human result interpretation. Stays
+  queued; NOT promoted to a goal (prior cycles 260527-01/260602-01 agree).
 related:
   - docs/findings/2026-05-25T1447-activation-wow-project-overview.md
   - docs/findings/2026-05-25T1503-web-viewer-de-jargon.md

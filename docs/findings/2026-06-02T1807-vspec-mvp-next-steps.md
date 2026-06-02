@@ -11,6 +11,16 @@ status_notes: |
   Subject is the SIBLING repo vooster-spec-mvp (the local-first CLI), not
   apps/* in this repo. All `vooster-spec-mvp/...` paths below are rooted in
   /Users/sumin/repos/vibemafiaclub/vooster-spec-mvp.
+  2026-06-03 (cycle 260603-01): claims re-verified in the sibling repo (it is
+  accessible, clean, on main, ~20 commits ahead of origin). W1-a (telemetry
+  absent), W2 (no verify/diff/impact), W4a (actor/stakeholder set+apply
+  undocumented in docs/03-cli-spec.md while implemented in src/cli.ts:147/155/
+  181/189), and W4b (package.json 0.1.0, no files/publishConfig) all confirmed.
+  W1-a + W2 are decision-locked and safe — but they belong in a dedicated cycle
+  ROOTED IN vooster-spec-mvp; this run is authorized for vooster/main only, so
+  no cross-repo autonomous commits are made. W3 (external dogfood) needs human
+  target selection; W4b (distribution) needs an owner decision (npm/link/npx).
+  KEEP open; promote as a sibling-repo cycle.
 ---
 
 # vspec local-first MVP — next-step improvement plan

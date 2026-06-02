@@ -38,6 +38,10 @@ status_notes: |
     sites + ~10 test updates, not the small change first estimated. Left OPEN/
     deferred: too cross-cutting to land safely in an unattended run; do it as a
     dedicated reviewed slice.
+  2026-06-03 (cycle 260603-01): re-confirmed against code — items 1–3 CLOSED;
+    4a/4c (member set-role/list, workspace list reason-only conversion) still
+    deferred to a reviewed slice (contract-wide command-optional loosening).
+    KEEP partial.
 related:
   - docs/findings/2026-05-24T1100-spec-impl-audit.md
   - docs/06-api-contract.md

@@ -48,6 +48,7 @@ export type StepEditingResult =
       usecase: StoredUseCase;
     }
   | { status: "EMPTY_ACTION" }
+  | { status: "NO_CHANGES" }
   | { knownActors: string[]; status: "UNKNOWN_ACTOR" }
   | { action: string; status: "PASSIVE_ACTION" }
   | { lock: StoredLock; usecase: StoredUseCase; status: "HARD_LOCKED" }
@@ -86,6 +87,9 @@ export async function editStep(
   }
   if (input.action !== undefined && input.action.trim().length === 0) {
     return { status: "EMPTY_ACTION" };
+  }
+  if (!hasRequestedChange(input)) {
+    return { status: "NO_CHANGES" };
   }
   if (input.action !== undefined && !input.force && usesPassiveVoice(input.action)) {
     return { action: input.action, status: "PASSIVE_ACTION" };
@@ -127,6 +131,15 @@ export async function editStep(
     status: "UPDATED",
     step: updated
   };
+}
+
+function hasRequestedChange(input: StepEditingInput): boolean {
+  return (
+    input.action !== undefined ||
+    input.actorName !== undefined ||
+    input.implementationRefs !== undefined ||
+    input.notes !== undefined
+  );
 }
 
 async function actorForEdit(

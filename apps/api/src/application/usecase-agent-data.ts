@@ -23,6 +23,7 @@ export async function agentData(
           (await deps.stepStore.listSteps(scenario.id)).map(async (step) => ({
             action: step.action,
             actor: await actorName(deps.actorStore, projectId, step.actor_id),
+            id: step.id,
             implements: step.implements,
             invokes: step.invokes,
             step_number: step.step_number

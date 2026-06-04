@@ -39,6 +39,7 @@ describe("usecase agent application", () => {
       {
         action: "Places an order.",
         actor: "Customer",
+        id: "step-1",
         implements: [],
         invokes: [],
         step_number: 1
@@ -122,6 +123,7 @@ describe("usecase agent application", () => {
       {
         action: "Charges the card.",
         actor: "Customer",
+        id: "step-callee",
         implements: [],
         invokes: ["CHK-006"],
         step_number: 1
@@ -161,6 +163,7 @@ describe("usecase agent application", () => {
       {
         action: "Places an order.",
         actor: "System",
+        id: "step-1",
         implements: [],
         invokes: [],
         step_number: 1
@@ -204,6 +207,7 @@ describe("usecase agent application", () => {
       {
         action: "Places an order.",
         actor: "Customer",
+        id: "step-1",
         implements: [],
         invokes: [],
         step_number: 1
@@ -212,6 +216,30 @@ describe("usecase agent application", () => {
     expect(result.envelope.suggested_next_actions).toContainEqual({
       command: "vspec change propose CHK-001",
       reason: "Propose a reviewed spec change after reading the pinned snapshot."
+    });
+  });
+
+  test("exposes editable step ids and the latest revision as the mutation base", async () => {
+    const result = await showUseCaseForAgent(
+      depsFor({
+        latestRevision: revision("revision-latest")
+      }),
+      input({ format: "agent", requestId: "req-agent-fetch" })
+    );
+
+    expect(result.status).toBe("AGENT_ENVELOPE");
+    if (result.status !== "AGENT_ENVELOPE") {
+      throw new Error("expected agent envelope");
+    }
+    expect(result.envelope.context.revision).toBe("revision-latest");
+    expect(result.envelope.data.usecase).toMatchObject({
+      current_revision_id: "revision-latest",
+      id: "usecase-1",
+      key: "CHK-001"
+    });
+    expect(result.envelope.data.scenarios[0]?.steps[0]).toMatchObject({
+      id: "step-1",
+      step_number: 1
     });
   });
 
@@ -284,6 +312,7 @@ describe("usecase agent application", () => {
 function depsFor(
   options: {
     found?: { projectId: string; usecase: StoredUseCase };
+    latestRevision?: StoredRevision;
     membership?: StoredMembership;
     scenariosByUseCase?: Map<string, StoredScenario[]>;
     session?: StoredWorkSession;
@@ -300,7 +329,7 @@ function depsFor(
       "membership" in options ? options.membership : membership()
     ),
     projectStore: projectStore(),
-    revisionStore: revisionStore(),
+    revisionStore: revisionStore(options.latestRevision),
     scenarioStore: scenarioStore(options.scenariosByUseCase),
     stakeholderInterestStore: stakeholderInterestStore(),
     stakeholderStore: stakeholderStore(),
@@ -360,10 +389,10 @@ function projectStore(): ProjectStore {
   };
 }
 
-function revisionStore(): RevisionStore {
+function revisionStore(latestRevision?: StoredRevision): RevisionStore {
   return {
     findRevisionById: () => Promise.resolve(undefined),
-    latestRevision: () => Promise.resolve(undefined),
+    latestRevision: () => Promise.resolve(latestRevision),
     listRevisions: () =>
       Promise.resolve([revision("revision-current"), revision("revision-pinned")]),
     nextVersionNumber: () => Promise.resolve(1),

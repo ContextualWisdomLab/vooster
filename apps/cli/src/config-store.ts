@@ -43,6 +43,9 @@ export function discoverLocalConfigPath(start: string = process.cwd()): string |
     if (existsSync(candidate)) {
       return candidate;
     }
+    if (existsSync(join(dir, ".git"))) {
+      return null;
+    }
     dir = parent;
     parent = dirname(dir);
   }

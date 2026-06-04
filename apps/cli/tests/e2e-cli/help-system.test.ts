@@ -10,6 +10,8 @@ describe("CLI help system", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("COMMAND GROUPS");
     expect(result.stdout).toContain("Project");
+    expect(result.stdout).toContain("AI");
+    expect(result.stdout).toContain("ai-guide");
     expect(result.stdout).toContain("Locks");
     expect(result.stdout).toContain("vspec help <command>");
     expect(result.stdout).not.toContain("--actor-id");
@@ -33,5 +35,25 @@ describe("CLI help system", () => {
     expect(result.stdout).toContain("USAGE");
     expect(result.stdout).toContain("$ vspec usecase create --title <text>");
     expect(result.stdout).toContain("--primary-actor=<name>");
+  });
+
+  test("greenfield authoring help exposes the flags agents need", async () => {
+    const scenario = await runCli(["help", "scenario", "add"]);
+    const step = await runCli(["help", "step", "add"]);
+    const stepEdit = await runCli(["help", "step", "edit"]);
+    const interest = await runCli(["help", "usecase", "add-stakeholder"]);
+    const stakeholder = await runCli(["help", "stakeholder", "create"]);
+
+    expect(scenario.stdout).toContain("--at=<extension-point>");
+    expect(scenario.stdout).toContain("2a");
+    expect(scenario.stdout).toContain("--condition=<text>");
+    expect(step.stdout).toContain("--actor=<name>");
+    expect(step.stdout).toContain("appends");
+    expect(step.stdout).toContain("--force");
+    expect(stepEdit.stdout).toContain("--base-revision=<revision-id>");
+    expect(stepEdit.stdout).toContain("step id from usecase show");
+    expect(interest.stdout).toContain("--stakeholder=<name>");
+    expect(interest.stdout).toContain("--interest=<text>");
+    expect(stakeholder.stdout).toContain("--type=<INTERNAL|EXTERNAL|REGULATORY>");
   });
 });

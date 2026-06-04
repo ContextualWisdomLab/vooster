@@ -30,6 +30,11 @@ describe("step editing result responses", () => {
         expectedStatus: 400,
         result: { status: "EMPTY_ACTION" },
         title: "Step action is required"
+      },
+      {
+        expectedStatus: 400,
+        result: { status: "NO_CHANGES" },
+        title: "No step changes supplied"
       }
     ];
 

@@ -24,6 +24,8 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
         );
     case "EMPTY_ACTION":
       return reply.code(400).send(problem(400, "Step action is required"));
+    case "NO_CHANGES":
+      return reply.code(400).send(noStepChangesProblem());
     case "UNKNOWN_ACTOR":
       return reply.code(422).send(unknownStepActorProblem(result.knownActors));
     case "PASSIVE_ACTION":
@@ -41,6 +43,20 @@ export function sendStepEditingResult(reply: FastifyReply, result: StepEditingRe
         })
       );
   }
+}
+
+function noStepChangesProblem() {
+  return problem(
+    400,
+    "No step changes supplied",
+    { editable_fields: ["--action", "--actor", "--implements"] },
+    [
+      {
+        command: "vspec help step edit",
+        reason: "Review editable fields; step edit does not reorder steps."
+      }
+    ]
+  );
 }
 
 function unknownStepActorProblem(knownActorNames: string[]) {

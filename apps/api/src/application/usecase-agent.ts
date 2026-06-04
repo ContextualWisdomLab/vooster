@@ -28,11 +28,13 @@ export async function showUseCaseForAgent(
   if (found.usecase.archived_at !== null) {
     return { status: "ARCHIVED" };
   }
+  const headRevision = await latestRevisionId(deps.revisionStore, found.usecase);
+  const usecaseAtHead = { ...found.usecase, current_revision_id: headRevision };
   if (input.format !== "agent") {
     return {
-      data: await agentData(deps, found.projectId, found.usecase),
+      data: await agentData(deps, found.projectId, usecaseAtHead),
       status: "SIMPLE",
-      usecase: found.usecase
+      usecase: usecaseAtHead
     };
   }
 
@@ -40,7 +42,12 @@ export async function showUseCaseForAgent(
   const pinned = session?.pinned_revisions?.[found.usecase.id];
   const revision =
     pinned ??
-    (await resolveRevision(deps.revisionStore, found.usecase, input.requestedRevision));
+    (await resolveRevision(
+      deps.revisionStore,
+      found.usecase,
+      input.requestedRevision,
+      headRevision
+    ));
   if (revision === undefined) {
     return {
       revision: input.requestedRevision,
@@ -53,7 +60,7 @@ export async function showUseCaseForAgent(
     envelope: await agentEnvelope(
       deps,
       found.projectId,
-      found.usecase,
+      usecaseAtHead,
       revision,
       session?.id ?? null,
       warningsFor(session, pinned, input.requestedRevision),
@@ -142,15 +149,22 @@ function suggestedActions(usecase: StoredUseCase, warnings: Array<{ type: string
 async function resolveRevision(
   revisionStore: RevisionStore,
   usecase: StoredUseCase,
-  requestedRevision: string | undefined
+  requestedRevision: string | undefined,
+  headRevision: string
 ): Promise<string | undefined> {
   if (requestedRevision === undefined) {
-    return usecase.current_revision_id;
+    return headRevision;
   }
   const exists = (await revisionStore.listRevisions(usecase.id)).some(
     (revision) => revision.id === requestedRevision
   );
   return exists ? requestedRevision : undefined;
+}
+
+async function latestRevisionId(revisionStore: RevisionStore, usecase: StoredUseCase) {
+  return (
+    (await revisionStore.latestRevision(usecase.id))?.id ?? usecase.current_revision_id
+  );
 }
 
 async function activeSession(

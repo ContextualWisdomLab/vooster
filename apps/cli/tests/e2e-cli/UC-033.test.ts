@@ -18,6 +18,19 @@ describe("UC-033 CLI - Learn how to use vspec", () => {
       expect(result.stdout).toContain("Mandatory workflow");
       expect(result.stdout).toContain("The --format=agent payload contract");
       expect(result.stdout).toContain("Forbidden actions");
+      expect(result.stdout).toContain("Greenfield setup");
+      expect(result.stdout).toContain("If `vspec status` already shows an API");
+      expect(result.stdout).toContain("vspec project create --key POCKET");
+      expect(result.stdout).toContain("vspec init --project POCKET");
+      expect(result.stdout).toContain(
+        'vspec actor create --name "Pocket" --type SUPPORTING'
+      );
+      expect(result.stdout).toContain("vspec usecase add-stakeholder");
+      expect(result.stdout).toContain("Existing use case edits");
+      expect(result.stdout).toContain("`vspec step add` appends");
+      expect(result.stdout).toContain(
+        "vspec scenario add POCKET-001 --type EXTENSION --at 2a"
+      );
       expect(result.stdout).toContain("Worked example");
       expect(result.stdout).toContain("vspec login");
       expect(result.stdout).toContain("vspec project list");

@@ -115,7 +115,11 @@ function data() {
     scenarios: [],
     stakeholder_interests: [],
     title: "Places an order",
-    usecase: { id: "usecase-1", key: "CHK-001" }
+    usecase: {
+      current_revision_id: "revision-1",
+      id: "usecase-1",
+      key: "CHK-001"
+    }
   };
 }
 

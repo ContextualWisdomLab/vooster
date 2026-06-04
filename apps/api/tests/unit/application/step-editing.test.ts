@@ -124,6 +124,9 @@ describe("step editing application", () => {
     await expect(editStep(depsFor(), input({ action: "" }))).resolves.toEqual({
       status: "EMPTY_ACTION"
     });
+    await expect(editStep(depsFor(), input())).resolves.toEqual({
+      status: "NO_CHANGES"
+    });
     await expect(
       editStep(depsFor(), input({ action: "Order is processed." }))
     ).resolves.toEqual({

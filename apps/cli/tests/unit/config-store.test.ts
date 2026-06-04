@@ -71,6 +71,21 @@ describe("config-store", () => {
       mkdirSync(nested, { recursive: true });
       expect(discoverLocalConfigPath(nested)).toBe(localConfigPath(repo));
     });
+
+    it("stops at a git repo root instead of treating home config as local", () => {
+      seedGlobal({ api_url: "https://example.com", session_token: "global-token" });
+      const home = tempDir();
+      process.env.HOME = home;
+      seedLocal(home, { session_token: "stale-home-token" });
+      const repo = join(home, "work", "pocket");
+      mkdirSync(join(repo, ".git"), { recursive: true });
+
+      expect(discoverLocalConfigPath(repo)).toBeNull();
+      expect(readConfig({ cwd: repo })).toEqual({
+        api_url: "https://example.com",
+        session_token: "global-token"
+      });
+    });
   });
 
   describe("readConfig with cwd overlay", () => {

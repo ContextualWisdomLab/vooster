@@ -41,6 +41,24 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     );
     expect(guide.content).toContain("Forbidden actions");
     expect(guide.content).toContain("Never force a merge or ignore a conflict");
+    expect(guide.content).toContain("Greenfield setup");
+    expect(guide.content).toContain("If `vspec status` already shows an API");
+    expect(guide.content).toContain("vspec project create --key POCKET");
+    expect(guide.content).toContain("vspec init --project POCKET");
+    expect(guide.content).toContain(
+      'vspec actor create --name "Pocket" --type SUPPORTING'
+    );
+    expect(guide.content).toContain("vspec usecase add-stakeholder");
+    expect(guide.content).toContain("vspec scenario add POCKET-001");
+    expect(guide.content).toContain("Existing use case edits");
+    expect(guide.content).toContain(
+      "step ids in `vspec usecase show <KEY-NNN> --format=agent`"
+    );
+    expect(guide.content).toContain("`data.usecase.current_revision_id`");
+    expect(guide.content).toContain("`vspec step add` appends");
+    expect(guide.content).toContain(
+      "vspec scenario add POCKET-001 --type EXTENSION --at 2a"
+    );
     expect(guide.content).toContain(
       'vspec session start --intent "Update checkout copy" --pin PAY-001'
     );
@@ -68,17 +86,37 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.sections.map((section) => section.heading)).toEqual([
       "Why sessions exist",
       "Mandatory workflow",
+      "Greenfield setup",
+      "Existing use case edits",
       "The --format=agent payload contract",
       "Forbidden actions",
       "Worked example"
     ]);
     expect(guide.sections.at(1)?.body).toContain("start a session with --pin");
-    expect(guide.sections.at(2)?.body).toContain("suggested_next_actions");
+    expect(guide.sections.at(2)?.body).toContain("vspec project create --key POCKET");
+    expect(guide.sections.at(2)?.body).toContain("do not run vspec login again");
+    expect(guide.sections.at(2)?.body).toContain(
+      "vspec scenario add POCKET-001 --type EXTENSION --at 2a"
+    );
+    expect(guide.sections.at(3)?.body).toContain("step ids");
+    expect(guide.sections.at(3)?.body).toContain("current_revision_id");
+    expect(guide.sections.at(4)?.body).toContain("suggested_next_actions");
     expect(guide.examples).toContainEqual({
       title: "First pinned edit",
       commands: [
         "vspec login",
         "vspec project list",
+        "vspec project create --key POCKET --name Pocket",
+        "vspec init --project POCKET",
+        'vspec actor create --name "Account Holder" --type PRIMARY',
+        'vspec actor create --name "Pocket" --type SUPPORTING',
+        'vspec stakeholder create --name "Account Holder" --type EXTERNAL',
+        'vspec usecase create --title "Record a new expense" --primary-actor "Account Holder" --force --format=agent',
+        'vspec usecase add-stakeholder POCKET-001 --stakeholder "Account Holder" --interest "Accurate confirmed expense records"',
+        "vspec scenario add POCKET-001 --type MAIN_SUCCESS --outcome SUCCESS",
+        'vspec step add <main-scenario-id> --actor "Account Holder" --action "enters the expense amount, selects a category, and optionally adds a note"',
+        'vspec step add <main-scenario-id> --actor "Pocket" --action "validates the amount is positive and the category is selected"',
+        'vspec scenario add POCKET-001 --type EXTENSION --at 2a --condition "Amount is missing or invalid" --outcome FAILURE',
         'vspec session start --intent "Update checkout copy" --pin PAY-001',
         "vspec usecase show PAY-001 --format=agent",
         "vspec change propose --usecase PAY-001 --summary ..."

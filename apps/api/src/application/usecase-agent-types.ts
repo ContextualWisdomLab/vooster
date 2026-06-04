@@ -26,6 +26,7 @@ export type UseCaseShowData = {
     steps: Array<{
       action: string;
       actor: string;
+      id: string;
       implements: string[];
       invokes: string[];
       step_number: number;
@@ -34,7 +35,7 @@ export type UseCaseShowData = {
   }>;
   stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
   title: string;
-  usecase: { id: string; key: string };
+  usecase: { current_revision_id: string; id: string; key: string };
 };
 
 export type AgentEnvelope = {

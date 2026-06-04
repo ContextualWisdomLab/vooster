@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2Icon } from "lucide-react";
 import { createProjectAction } from "../../actions";
 import { inferProjectKey, isValidProjectKey } from "@/lib/project-key";
 
@@ -132,6 +133,7 @@ export function NewProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending ? <Loader2Icon className="animate-spin" /> : null}
               {pending ? "만드는 중..." : "프로젝트 만들기"}
             </Button>
           </DialogFooter>

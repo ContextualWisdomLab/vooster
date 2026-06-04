@@ -11,6 +11,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Loader2Icon } from "lucide-react";
 import { deleteProjectAction } from "../../actions";
 import type { ProjectSummary } from "../../data";
 
@@ -79,6 +80,7 @@ export function DeleteProjectDialog({
             onClick={handleDelete}
             disabled={pending}
           >
+            {pending ? <Loader2Icon className="animate-spin" /> : null}
             {pending ? "삭제 중..." : "삭제"}
           </Button>
         </DialogFooter>

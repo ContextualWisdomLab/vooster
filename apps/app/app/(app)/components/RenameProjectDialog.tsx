@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2Icon } from "lucide-react";
 import { renameProjectAction } from "../../actions";
 import type { ProjectSummary } from "../../data";
 
@@ -98,6 +99,7 @@ export function RenameProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending ? <Loader2Icon className="animate-spin" /> : null}
               {pending ? "저장 중..." : "저장"}
             </Button>
           </DialogFooter>

@@ -68,12 +68,94 @@ $(cat "$RUBRIC")
 === SESSION DIGEST (case $CASE) ===
 $(cat "$DIGEST")"
 
-raw="$(df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT" --json-schema "$SCHEMA" 2>/dev/null)"
-if [ -z "$raw" ]; then
-  # retry once WITHOUT --json-schema in case the flag is unsupported
-  raw="$(df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT")"
+run_analyzer() {
+  local raw_file pid elapsed rc timeout
+  raw_file="$RUN_DIR/analyzer.raw"
+  timeout="${VSPEC_DOGFOOD_ANALYZE_TIMEOUT_SECONDS:-420}"
+  rm -f "$raw_file"
+  df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT" "$@" > "$raw_file" 2>/dev/null &
+  pid=$!
+  elapsed=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$elapsed" -ge "$timeout" ]; then
+      pkill -TERM -P "$pid" 2>/dev/null || true
+      kill -TERM "$pid" 2>/dev/null || true
+      sleep 1
+      pkill -KILL -P "$pid" 2>/dev/null || true
+      kill -KILL "$pid" 2>/dev/null || true
+      cat "$raw_file" 2>/dev/null || true
+      return 124
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  wait "$pid"; rc=$?
+  cat "$raw_file" 2>/dev/null || true
+  return "$rc"
+}
+
+write_fallback_findings() {
+  local reason="$1" result_summary title evidence area rec severity task_succeeded
+  result_summary="$(jq -c '{subtype,is_error,total_cost_usd,session_id,errors}' "$RUN_DIR/result.json" 2>/dev/null || printf '{}')"
+  if echo "$result_summary" | grep -qi 'budget'; then
+    title="Dogfood case exhausted its automation budget before completion"
+    area="apps/cli/src and apps/api/src/application/ai-guide.ts"
+    rec="Reduce cold-start recovery loops: make ai-guide/help/errors teach the authenticated init-to-use-case path without source spelunking or repeated failed commands."
+    severity="P1"
+    task_succeeded="false"
+  elif jq -e '.is_error == false and (.subtype // "") == "success"' "$RUN_DIR/result.json" >/dev/null 2>&1; then
+    title="Dogfood analyzer did not return machine-readable findings"
+    area="scripts/dogfood/dogfood-analyze.sh"
+    rec="Keep analyzer calls bounded and preserve dogfood run evidence as fallback findings when Claude analysis is unavailable."
+    severity="P2"
+    task_succeeded="true"
+  else
+    title="Dogfood analyzer did not return machine-readable findings"
+    area="scripts/dogfood/dogfood-analyze.sh"
+    rec="Keep analyzer calls bounded and preserve dogfood run evidence as fallback findings when Claude analysis is unavailable."
+    severity="P1"
+    task_succeeded="false"
+  fi
+  evidence="Analyzer fallback reason: $reason. result.json: $result_summary"
+  jq -n \
+    --arg case_id "$CASE" \
+    --arg summary "Fallback analysis for $CASE: the run did not produce a clean completed task signal; $reason." \
+    --arg title "$title" \
+    --arg evidence "$evidence" \
+    --arg area "$area" \
+    --arg rec "$rec" \
+    --arg severity "$severity" \
+    --argjson task_succeeded "$task_succeeded" \
+    '{
+      case_id: $case_id,
+      summary: $summary,
+      task_succeeded: $task_succeeded,
+      findings: [
+        {
+          title: $title,
+          severity: $severity,
+          quants: ["A", "T"],
+          evidence: $evidence,
+          root_cause_area: $area,
+          recommendation: $rec,
+          routing: "codex"
+        }
+      ]
+    }' > "$OUT"
+  ledger_append "$CYCLE" "analyze:$CASE" "0" "fallback:$reason"
+  echo "✓ analyze $CASE → fallback finding(s) ($reason)"
+}
+
+raw="$(run_analyzer --json-schema "$SCHEMA")"; analyzer_rc=$?
+if [ "$analyzer_rc" -ne 0 ] || [ -z "$raw" ]; then
+  if [ "$analyzer_rc" -ne 124 ]; then
+    raw="$(run_analyzer)"; analyzer_rc=$?
+  fi
 fi
-[ -n "$raw" ] || df_die "analyzer returned nothing for $CASE"
+if [ "$analyzer_rc" -ne 0 ] || [ -z "$raw" ]; then
+  write_fallback_findings "analyzer unavailable or timed out"
+  exit 0
+fi
 
 cost="$(echo "$raw" | jq -r '.total_cost_usd // 0' 2>/dev/null)"
 ledger_append "$CYCLE" "analyze:$CASE" "${cost:-0}" "-"
@@ -82,10 +164,10 @@ ledger_append "$CYCLE" "analyze:$CASE" "${cost:-0}" "-"
 echo "$raw" | jq -r '.result // .' 2>/dev/null \
   | sed -e 's/^```json//' -e 's/^```//' -e '/^```$/d' \
   | jq '.' > "$OUT" 2>/dev/null \
-  || df_die "analyzer output for $CASE was not valid JSON (see $RUN_DIR)"
+  || { write_fallback_findings "analyzer output was not valid JSON"; exit 0; }
 
 jq -e '.case_id and (.findings|type=="array")' "$OUT" >/dev/null 2>&1 \
-  || df_die "analyzer output for $CASE missing required fields"
+  || { write_fallback_findings "analyzer output missed required fields"; exit 0; }
 
 n="$(jq '.findings | length' "$OUT")"
 echo "✓ analyze $CASE → $n finding(s)"

@@ -32,10 +32,9 @@ shopt -s nullglob
 findings_files=("$CYCLE_DIR"/*/findings.json)
 [ "${#findings_files[@]}" -gt 0 ] || df_die "no findings.json under $CYCLE_DIR"
 
-# Actionable findings only (P0/P1), as a compact JSON array.
-actionable="$(jq -s '[.[].findings[]? | select(.severity=="P0" or .severity=="P1")]' "${findings_files[@]}")"
-count="$(echo "$actionable" | jq 'length')"
-[ "$count" -gt 0 ] || { echo "  no P0/P1 findings to goalify"; exit 0; }
+# Record all dogfood findings as debt. Only P0/P1 findings become build goals.
+findings="$(jq -s '[.[] as $doc | $doc.findings[]? | select(.severity=="P0" or .severity=="P1" or .severity=="P2") | . + {case_id: ($doc.case_id // "unknown")}]' "${findings_files[@]}")"
+count="$(echo "$findings" | jq 'length')"
 
 slugify() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed -e 's/^-//' -e 's/-$//' | cut -c1-50; }
 next_goal_number() {
@@ -48,13 +47,106 @@ next_goal_number() {
   echo "$((max + 1))"
 }
 
+write_fallback_goal() {
+  local dest_dir="$1" goal_n="$2" goal_name="$3" finding_md="$4" title="$5" rec="$6" area="$7"
+  local rel_finding rel_goal md_file gates_file next_file
+  rel_finding="${finding_md#$ROOT/}"
+  rel_goal="goals/${goal_name}.md"
+  md_file="$dest_dir/${goal_name}.md"
+  gates_file="$dest_dir/${goal_name}.gates.sh"
+  next_file="$dest_dir/${goal_name}.next-task.sh"
+
+  cat > "$md_file" <<EOF
+# Goal $goal_n: Dogfood Finding Follow-Up
+
+Resolve the dogfood finding **$title**.
+
+Source finding: \`$rel_finding\`
+
+Root-cause area: \`$area\`
+
+## Completion
+
+A. The source finding is marked \`resolved: true\` after the implementation
+addresses the recommendation below.
+
+B. The implementation has been verified with the smallest relevant test or
+dogfood rerun, and the finding document records that evidence.
+
+## Recommendation
+
+$rec
+EOF
+
+  cat > "$gates_file" <<EOF
+#!/usr/bin/env bash
+set -uo pipefail
+ROOT="\$(cd "\$(dirname "\$0")/.." && pwd)"; cd "\$ROOT"
+source "\$ROOT/scripts/_gate-cache.sh"
+
+GATE_INPUTS=(
+  "$rel_goal"
+  "$rel_finding"
+  scripts/check-gate-rigor.sh
+  scripts/_gate-cache.sh
+)
+
+if gate_cache_hit "$goal_name" "\${GATE_INPUTS[@]}"; then
+  echo "[cache hit] $goal_name inputs unchanged"
+  exit 0
+fi
+
+PASS=true
+
+echo "[$goal_n.A1] source dogfood finding is resolved"
+if grep -q '^resolved: true' "$rel_finding"; then
+  echo "    ✓ pass"
+else
+  echo "    ✗ fail — resolve the finding and set resolved: true in $rel_finding"
+  PASS=false
+fi
+
+echo "[$goal_n.B1] gate rigor"
+if bash scripts/check-gate-rigor.sh "$rel_goal" >/dev/null; then
+  echo "    ✓ pass"
+else
+  echo "    ✗ fail — gate rigor failed for $rel_goal"
+  PASS=false
+fi
+
+if [ "\$PASS" = true ]; then
+  gate_cache_save "$goal_name" "\${GATE_INPUTS[@]}"
+  exit 0
+fi
+exit 1
+EOF
+
+  cat > "$next_file" <<EOF
+#!/usr/bin/env bash
+set -uo pipefail
+cat <<'TASK'
+TASK: Resolve the dogfood finding "$title".
+
+1. Read $rel_finding.
+2. Add a failing test that captures the finding's user-visible failure.
+3. Implement the smallest fix in the stated root-cause area.
+4. Run the targeted test and relevant gate.
+5. Update $rel_finding with verification evidence and set resolved: true.
+TASK
+EOF
+  chmod +x "$gates_file" "$next_file"
+}
+
 TS="$(date -u +%Y-%m-%dT%H%M)"
 TSZ="$(date -u +%FT%TZ)"
 SPAWNED="$(df_state_dir)/spawned-goals"
 : > "$SPAWNED"
 
+[ "$count" -gt 0 ] || { echo "  no findings to record"; exit 0; }
+
 for i in $(seq 0 $((count - 1))); do
-  f="$(echo "$actionable" | jq ".[$i]")"
+  f="$(echo "$findings" | jq ".[$i]")"
+  case_id="$(echo "$f" | jq -r '.case_id // "unknown"')"
   title="$(echo "$f" | jq -r '.title')"
   sev="$(echo "$f" | jq -r '.severity')"
   routing="$(echo "$f" | jq -r '.routing // "codex"')"
@@ -65,8 +157,13 @@ for i in $(seq 0 $((count - 1))); do
   slug="$(slugify "$title")"
 
   # ── step 4: findings doc (deterministic) ──────────────────────────────────
-  finding_md="$ROOT/docs/findings/${TS}-dogfood-${slug}.md"
-  prio="P1"; [ "$sev" = "P0" ] && prio="P0"
+  doc_slug="$(slugify "$case_id-$title")"
+  finding_md=""
+  for candidate in "$ROOT"/docs/findings/*-dogfood-"$CYCLE"-"$doc_slug".md; do
+    [ -f "$candidate" ] && { finding_md="$candidate"; break; }
+  done
+  [ -n "$finding_md" ] || finding_md="$ROOT/docs/findings/${TS}-dogfood-${CYCLE}-${doc_slug}.md"
+  prio="$sev"
   {
     echo "---"
     echo "title: $title"
@@ -99,6 +196,10 @@ for i in $(seq 0 $((count - 1))); do
     echo "reports it at P0/P1 severity."
   } > "$finding_md"
   echo "  ✓ finding: docs/findings/$(basename "$finding_md")"
+
+  if [ "$sev" != "P0" ] && [ "$sev" != "P1" ]; then
+    continue
+  fi
 
   # ── step 5: goal trio ──────────────────────────────────────────────────────
   if df_dry_run; then
@@ -136,16 +237,18 @@ $(cat "$ROOT/docs/goal-design.md")"
   cost="$(echo "$raw" | jq -r '.total_cost_usd // 0' 2>/dev/null)"
   ledger_append "$CYCLE" "goalify:$GOAL_NAME" "${cost:-0}" "$routing"
   body="$(echo "$raw" | jq -r '.result // .' 2>/dev/null | sed -e 's/^```json//' -e 's/^```//' -e '/^```$/d')"
-  echo "$body" | jq -e '.md and .gates_sh and .next_task_sh' >/dev/null 2>&1 \
-    || { echo "  ⚠ goal draft for '$title' was not well-formed JSON — skipping (finding still queued)"; continue; }
-
   dest_dir="$ROOT/goals"
   [ "$VSPEC_DOGFOOD_GOALIFY" = "draft" ] && dest_dir="$ROOT/dogfood/goal-drafts/$CYCLE"
   mkdir -p "$dest_dir"
-  echo "$body" | jq -r '.md'           > "$dest_dir/${GOAL_NAME}.md"
-  echo "$body" | jq -r '.gates_sh'     > "$dest_dir/${GOAL_NAME}.gates.sh"
-  echo "$body" | jq -r '.next_task_sh' > "$dest_dir/${GOAL_NAME}.next-task.sh"
-  chmod +x "$dest_dir/${GOAL_NAME}.gates.sh" "$dest_dir/${GOAL_NAME}.next-task.sh"
+  if echo "$body" | jq -e '.md and .gates_sh and .next_task_sh' >/dev/null 2>&1; then
+    echo "$body" | jq -r '.md'           > "$dest_dir/${GOAL_NAME}.md"
+    echo "$body" | jq -r '.gates_sh'     > "$dest_dir/${GOAL_NAME}.gates.sh"
+    echo "$body" | jq -r '.next_task_sh' > "$dest_dir/${GOAL_NAME}.next-task.sh"
+    chmod +x "$dest_dir/${GOAL_NAME}.gates.sh" "$dest_dir/${GOAL_NAME}.next-task.sh"
+  else
+    echo "  ⚠ goal draft for '$title' was not well-formed JSON — adopting fallback goal"
+    write_fallback_goal "$dest_dir" "$GOAL_N" "$GOAL_NAME" "$finding_md" "$title" "$rec" "$area"
+  fi
 
   if [ "$VSPEC_DOGFOOD_GOALIFY" = "adopt" ]; then
     if bash "$ROOT/scripts/check-gate-rigor.sh" --all >/dev/null 2>&1; then

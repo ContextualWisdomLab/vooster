@@ -4,7 +4,7 @@ import { error as logError } from "node:console";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const binDir = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -15,8 +15,24 @@ try {
     throw Object.assign(new Error("Use source CLI"), { code: "ERR_MODULE_NOT_FOUND" });
   }
 
-  const cli = await import("../../dist/apps/cli/src/index.js");
-  await cli.runCli(argv);
+  for (const builtCli of [
+    resolve(binDir, "../dist/index.js"),
+    resolve(binDir, "../../dist/apps/cli/src/index.js")
+  ]) {
+    try {
+      const cli = await import(pathToFileURL(builtCli).href);
+      await cli.runCli(argv);
+      process.exit(process.exitCode ?? 0);
+    } catch (error) {
+      if (!isMissingBuiltCli(error, builtCli)) {
+        throw error;
+      }
+    }
+  }
+
+  throw Object.assign(new Error("No built CLI found"), {
+    code: "ERR_MODULE_NOT_FOUND"
+  });
 } catch (error) {
   if (!isMissingBuiltCli(error)) {
     throw error;
@@ -39,8 +55,15 @@ try {
   process.exit(result.status ?? 1);
 }
 
-function isMissingBuiltCli(error) {
-  return (
-    error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND"
-  );
+function isMissingBuiltCli(error, builtCli) {
+  if (
+    !(
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "ERR_MODULE_NOT_FOUND"
+    )
+  ) {
+    return false;
+  }
+  return builtCli === undefined || error.message.includes(builtCli);
 }

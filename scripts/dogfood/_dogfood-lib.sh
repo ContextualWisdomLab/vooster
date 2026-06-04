@@ -27,6 +27,11 @@
 : "${VSPEC_DOGFOOD_API_URL:=http://127.0.0.1:8799}" # vspec API; localhost is auto-booted (stub, in-memory)
 : "${VSPEC_DOGFOOD_SESSION_COOKIE:=}"              # seeded auth (headless can't do OAuth device flow)
 : "${VSPEC_DOGFOOD_PROVISION_HOOK:=}"              # optional script: boot API + seed auth
+: "${VSPEC_DOGFOOD_GLOBAL_CONFIG:=${VSPEC_DOGFOOD_REPO:+$VSPEC_DOGFOOD_REPO/.vspec/global-config.json}}"
+: "${VSPEC_DOGFOOD_ANALYZE_TIMEOUT_SECONDS:=420}"
+: "${VSPEC_DOGFOOD_STATE_DIR:=}"                   # tests may isolate dogfood state/ledger
+: "${VSPEC_DOGFOOD_RUNS_DIR:=}"                    # tests may isolate captured run artifacts
+: "${VSPEC_DOGFOOD_AUTH_STUB_ID:=dogfood}"         # keep agent-triggered stub login on seeded identity
 
 # ROOT is set by the caller (each script resolves it); fall back to two-up.
 DF_ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
@@ -40,8 +45,8 @@ df_require_cmd() {
 }
 
 # ── state dirs ───────────────────────────────────────────────────────────────
-df_state_dir() { printf '%s/.state/dogfood' "$DF_ROOT"; }
-df_runs_dir()  { printf '%s/dogfood/runs' "$DF_ROOT"; }
+df_state_dir() { printf '%s' "${VSPEC_DOGFOOD_STATE_DIR:-$DF_ROOT/.state/dogfood}"; }
+df_runs_dir()  { printf '%s' "${VSPEC_DOGFOOD_RUNS_DIR:-$DF_ROOT/dogfood/runs}"; }
 df_cases_dir() { printf '%s/dogfood/cases' "$DF_ROOT"; }
 
 df_init_state() { mkdir -p "$(df_state_dir)" "$(df_runs_dir)"; }
@@ -56,6 +61,18 @@ new_cycle_id() {
 }
 
 current_cycle_id() { cat "$(df_state_dir)/cycle" 2>/dev/null || true; }
+
+current_cycle_has_clean_triage() {
+  local cycle lf
+  cycle="$(current_cycle_id)"
+  [ -n "$cycle" ] || return 1
+  lf="$(ledger_file)"
+  [ -f "$lf" ] || return 1
+  awk -F'\t' -v cycle="$cycle" '
+    $2 == cycle && $3 == "triage" && $5 ~ /(^| )P0=0( |$)/ && $5 ~ /(^| )P1=0( |$)/ { found=1 }
+    END { exit found ? 0 : 1 }
+  ' "$lf"
+}
 
 # ── case discovery + parsing ─────────────────────────────────────────────────
 # select_cases — print DF ids (one per line), honoring VSPEC_DOGFOOD_CASES.
@@ -113,7 +130,7 @@ case_field() {
 # (falls back to a bare ref X if `baseline/X` is absent). Preserves the globally
 # linked CLI (untracked) and the seeded .vspec auth so cases stay runnable.
 reset_repo_to_baseline() {
-  local name="$1" repo="$VSPEC_DOGFOOD_REPO" ref
+  local name="$1" repo="$VSPEC_DOGFOOD_REPO" ref auth_tmp
   [ -d "$repo/.git" ] || { df_log "✗ reset: '$repo' is not a git repo"; return 1; }
   if git -C "$repo" rev-parse --verify -q "baseline/$name" >/dev/null; then
     ref="baseline/$name"
@@ -123,8 +140,18 @@ reset_repo_to_baseline() {
     df_log "✗ reset: no baseline ref for '$name' (expected 'baseline/$name')"
     return 1
   fi
+  auth_tmp=""
+  if [ -n "$VSPEC_DOGFOOD_GLOBAL_CONFIG" ] && [ -f "$VSPEC_DOGFOOD_GLOBAL_CONFIG" ]; then
+    auth_tmp="$(mktemp)"
+    cp "$VSPEC_DOGFOOD_GLOBAL_CONFIG" "$auth_tmp" || return 1
+  fi
   git -C "$repo" reset --hard "$ref" >/dev/null 2>&1 || return 1
-  git -C "$repo" clean -fd -e .vspec -e node_modules >/dev/null 2>&1 || return 1
+  git -C "$repo" clean -fd -e node_modules >/dev/null 2>&1 || return 1
+  if [ -n "$auth_tmp" ]; then
+    mkdir -p "$(dirname "$VSPEC_DOGFOOD_GLOBAL_CONFIG")" || return 1
+    cp "$auth_tmp" "$VSPEC_DOGFOOD_GLOBAL_CONFIG" || return 1
+    rm -f "$auth_tmp"
+  fi
 }
 
 # ── session capture ──────────────────────────────────────────────────────────
@@ -200,6 +227,86 @@ df_write_blocker() {
   df_log "✗ dogfood loop stopped ($reason): $detail — blocker appended."
 }
 
+# Put a dogfood-owned `vspec` shim before the user's PATH. This prevents the
+# headless agent from accidentally using or overriding a user-level vspec config.
+df_prepare_vspec_wrapper() {
+  [ -n "$VSPEC_DOGFOOD_GLOBAL_CONFIG" ] || return 1
+  local dir real wrapper
+  dir="$(df_state_dir)/bin"
+  mkdir -p "$dir" || return 1
+  real="$(command -v vspec 2>/dev/null)" || return 1
+  wrapper="$dir/vspec"
+  cat > "$wrapper" <<EOF
+#!/usr/bin/env bash
+unset VSPEC_CONFIG_PATH
+export VSPEC_GLOBAL_CONFIG_PATH="$VSPEC_DOGFOOD_GLOBAL_CONFIG"
+exec "$real" "\$@"
+EOF
+  chmod +x "$wrapper" || return 1
+  printf '%s' "$dir"
+}
+
+df_vspec() {
+  local repo="$1"; shift
+  local wrapper_dir
+  wrapper_dir="$(df_prepare_vspec_wrapper)" || return 1
+  ( cd "$repo" && env -u VSPEC_CONFIG_PATH \
+      VSPEC_GLOBAL_CONFIG_PATH="$VSPEC_DOGFOOD_GLOBAL_CONFIG" \
+      VSPEC_AUTH_STUB_ID="$VSPEC_DOGFOOD_AUTH_STUB_ID" \
+      PATH="$wrapper_dir:$PATH" \
+      vspec "$@" )
+}
+
+prepare_case_baseline() {
+  local baseline="$1"
+  case "$baseline" in
+    seeded-small) seed_seeded_small_baseline ;;
+  esac
+}
+
+seed_seeded_small_baseline() {
+  local repo="$VSPEC_DOGFOOD_REPO" projects scenario_json main_id extension_json extension_id
+  [ -n "$repo" ] || return 0
+  [ -d "$repo" ] || return 0
+  df_require_cmd jq
+
+  echo "=== hydrate seeded-small baseline ==="
+  projects="$(df_vspec "$repo" project list --format=agent 2>/dev/null || true)"
+  if ! printf '%s' "$projects" | jq -e '.data.items[]? | select(.key == "POCKET")' >/dev/null 2>&1; then
+    df_vspec "$repo" project create --key POCKET --name Pocket --format=agent >/dev/null
+  fi
+  df_vspec "$repo" init --project POCKET --force --format=agent >/dev/null
+
+  if df_vspec "$repo" usecase show POCKET-001 --format=agent >/dev/null 2>&1; then
+    df_vspec "$repo" pull --format=agent >/dev/null 2>&1 || true
+    rm -f "$repo/specs/SEED_NOTES.md"
+    echo "✓ hydrated seeded-small baseline"
+    return 0
+  fi
+
+  df_vspec "$repo" actor create --name "Account Holder" --type PRIMARY --format=agent >/dev/null 2>&1 || true
+  df_vspec "$repo" actor create --name "Pocket" --type SUPPORTING --format=agent >/dev/null 2>&1 || true
+  df_vspec "$repo" stakeholder create --name "Account Holder" --type EXTERNAL --format=agent >/dev/null 2>&1 || true
+  df_vspec "$repo" usecase create --title "User logs a new expense" --primary-actor "Account Holder" --force --format=agent >/dev/null
+  df_vspec "$repo" usecase add-stakeholder POCKET-001 --stakeholder "Account Holder" --interest "Accurate confirmed expense records" --format=agent >/dev/null 2>&1 || true
+
+  scenario_json="$(df_vspec "$repo" scenario add POCKET-001 --type MAIN_SUCCESS --outcome SUCCESS --format=agent)"
+  main_id="$(printf '%s' "$scenario_json" | jq -r '.data.scenario.id // empty')"
+  [ -n "$main_id" ] || df_die "seeded-small setup could not create main scenario"
+  df_vspec "$repo" step add "$main_id" --actor "Account Holder" --action "enters the expense amount, selects a category, and optionally adds a note" --format=agent >/dev/null
+  df_vspec "$repo" step add "$main_id" --actor "Pocket" --action "checks the amount is positive and confirms the Account Holder chose a category" --format=agent >/dev/null
+  df_vspec "$repo" step add "$main_id" --actor "Pocket" --action "saves the expense and confirms the saved entry" --format=agent >/dev/null
+
+  extension_json="$(df_vspec "$repo" scenario add POCKET-001 --type EXTENSION --at 2a --condition "Amount is missing or invalid" --outcome FAILURE --format=agent)"
+  extension_id="$(printf '%s' "$extension_json" | jq -r '.data.scenario.id // empty')"
+  [ -n "$extension_id" ] || df_die "seeded-small setup could not create validation extension"
+  df_vspec "$repo" step add "$extension_id" --actor "Pocket" --action "rejects the entry and asks the Account Holder to provide a valid amount and category" --format=agent >/dev/null
+
+  df_vspec "$repo" pull --format=agent >/dev/null 2>&1 || true
+  rm -f "$repo/specs/SEED_NOTES.md"
+  echo "✓ hydrated seeded-small baseline"
+}
+
 # ── claude -p wrapper ────────────────────────────────────────────────────────
 # df_claude <cwd> <budget-usd> <prompt> [extra args...]
 # Runs claude headless, returns the raw JSON envelope on stdout. In dry-run it
@@ -216,12 +323,27 @@ df_claude() {
     printf '{"is_error":false,"total_cost_usd":0,"session_id":"dry-run","num_turns":0,"result":""}'
     return 0
   fi
-  ( cd "$cwd" && claude --dangerously-skip-permissions \
-      --model "$VSPEC_DOGFOOD_MODEL" \
-      --output-format json \
-      --max-budget-usd "$budget" \
-      "$@" \
-      -p "$prompt" )
+  if [ -n "$VSPEC_DOGFOOD_REPO" ] && [ "$cwd" = "$VSPEC_DOGFOOD_REPO" ] && [ -n "$VSPEC_DOGFOOD_GLOBAL_CONFIG" ]; then
+    local wrapper_dir
+    wrapper_dir="$(df_prepare_vspec_wrapper)" || df_die "could not prepare dogfood vspec wrapper"
+    ( cd "$cwd" && env -u VSPEC_CONFIG_PATH \
+        VSPEC_GLOBAL_CONFIG_PATH="$VSPEC_DOGFOOD_GLOBAL_CONFIG" \
+        VSPEC_AUTH_STUB_ID="$VSPEC_DOGFOOD_AUTH_STUB_ID" \
+        PATH="$wrapper_dir:$PATH" \
+        claude --dangerously-skip-permissions \
+        --model "$VSPEC_DOGFOOD_MODEL" \
+        --output-format json \
+        --max-budget-usd "$budget" \
+        "$@" \
+        -p "$prompt" )
+  else
+    ( cd "$cwd" && claude --dangerously-skip-permissions \
+        --model "$VSPEC_DOGFOOD_MODEL" \
+        --output-format json \
+        --max-budget-usd "$budget" \
+        "$@" \
+        -p "$prompt" )
+  fi
 }
 
 # ── self-test (no claude, no external repo) ──────────────────────────────────

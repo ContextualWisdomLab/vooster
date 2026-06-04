@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist",
+    "paths": {
+      "@vooster/contracts": ["packages/contracts/dist/index.d.ts"]
+    },
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.build.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -7,14 +7,20 @@
     "vspec": "./bin/run.js"
   },
   "scripts": {
-    "build": "pnpm --filter @vooster/contracts build && cd ../.. && tsc -p tsconfig.json",
+    "build": "pnpm --filter @vooster/contracts build && tsc -p tsconfig.build.json",
     "test": "cd ../.. && vitest run apps/cli/tests",
     "test:e2e": "cd ../.. && vitest run apps/cli/tests/e2e-cli apps/cli/tests/e2e-cli-honest",
     "test:unit": "cd ../.. && vitest run apps/cli/tests/unit",
     "test:coverage": "cd ../.. && vitest run --config vitest.cli-unit.config.ts --coverage",
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
   },
+  "files": [
+    "bin",
+    "dist",
+    "package.json"
+  ],
   "dependencies": {
+    "@oclif/core": "^4.11.3",
     "@vooster/contracts": "workspace:*"
   }
 }

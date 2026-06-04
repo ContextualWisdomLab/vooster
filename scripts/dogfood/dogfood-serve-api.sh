@@ -67,7 +67,7 @@ fi
 echo "[serve] booting stub API on port $PORT (in-memory, no Postgres)"
 # Must UNSET DATABASE_URL (not set it empty) — index.ts uses the in-memory
 # store only when DATABASE_URL is undefined; "" still selects Prisma.
-env -u DATABASE_URL VSPEC_AUTH_STUB=1 PORT="$PORT" nohup node "$ENTRY" >"$LOGFILE" 2>&1 &
+env -u DATABASE_URL VSPEC_AUTH_STUB=1 VSPEC_FORCE_MEMORY_STORE=1 PORT="$PORT" nohup node "$ENTRY" >"$LOGFILE" 2>&1 &
 echo $! > "$PIDFILE"
 
 for _ in $(seq 1 50); do

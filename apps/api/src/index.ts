@@ -16,12 +16,13 @@ export type ApiRuntime = {
 export async function startApi(runtime: Partial<ApiRuntime> = {}) {
   const env = runtime.env ?? process.env;
   const authStub = env.VSPEC_AUTH_STUB === "1";
+  const forceMemoryStore = env.VSPEC_FORCE_MEMORY_STORE === "1";
   const port = portFrom(env.PORT);
   const app = await (runtime.createServer ?? createServer)({
     authStub,
     githubOAuth: githubOAuthFromEnv(authStub, env),
     signupStore:
-      env.DATABASE_URL === undefined
+      forceMemoryStore || env.DATABASE_URL === undefined
         ? undefined
         : (runtime.createSignupStore ?? createPrismaSignupStore)(env.DATABASE_URL)
   });

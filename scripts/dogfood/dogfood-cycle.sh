@@ -41,6 +41,12 @@ if [ "${1:-}" = "--self-test" ]; then
 fi
 
 # ── pre-flight: stop if we've hit the cycle/budget cap ───────────────────────
+if current_cycle_has_clean_triage; then
+  CYCLE="$(current_cycle_id)"
+  bash "$DF/dogfood-goalify.sh" "$CYCLE" || exit 1
+  echo "✓ cycle $CYCLE: clean pass already recorded — dogfood loop is DONE."
+  exit 0
+fi
 cycle_guard_or_exit3
 
 # ── 0. provision ─────────────────────────────────────────────────────────────
@@ -59,7 +65,8 @@ done
 # ── 3. triage / stop decision ────────────────────────────────────────────────
 bash "$DF/dogfood-triage.sh" "$CYCLE"
 case $? in
-  0)  echo "✓ cycle $CYCLE: clean pass — dogfood loop is DONE."; exit 0 ;;
+  0)  bash "$DF/dogfood-goalify.sh" "$CYCLE" || exit 1
+      echo "✓ cycle $CYCLE: clean pass — dogfood loop is DONE."; exit 0 ;;
   10) ;;                                  # actionable findings → continue
   3)  exit 3 ;;                           # cap hit (blocker already written)
   *)  exit 1 ;;

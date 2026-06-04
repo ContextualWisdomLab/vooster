@@ -45,6 +45,25 @@ describe("API entrypoint", () => {
     expect(runtime.app.listen).toHaveBeenCalledWith({ host: "0.0.0.0", port: 3001 });
   });
 
+  test("force-memory mode ignores ambient database URLs", async () => {
+    const runtime = runtimeFor({
+      DATABASE_URL: "postgres://example",
+      PORT: "8799",
+      VSPEC_AUTH_STUB: "1",
+      VSPEC_FORCE_MEMORY_STORE: "1"
+    });
+
+    await startApi(runtime);
+
+    expect(runtime.createSignupStore).not.toHaveBeenCalled();
+    expect(runtime.createServer).toHaveBeenCalledWith({
+      authStub: true,
+      githubOAuth: undefined,
+      signupStore: undefined
+    });
+    expect(runtime.app.listen).toHaveBeenCalledWith({ host: "0.0.0.0", port: 8799 });
+  });
+
   test("wires GitHub OAuth when both credentials are present", async () => {
     const runtime = runtimeFor({
       GITHUB_CLIENT_ID: "client-id",

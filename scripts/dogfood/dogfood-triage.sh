@@ -36,15 +36,15 @@ total="$(echo "$merged" | jq 'length')"
 echo "  findings: P0=$p0  P1=$p1  P2=$p2  (total $total)"
 ledger_append "$CYCLE" "triage" "0" "P0=$p0 P1=$p1 P2=$p2"
 
-# Budget/cap guard runs here too, so a long cycle can't blow past the cap
-# silently before the next cycle's pre-flight guard.
-cycle_guard_or_exit3
-
 actionable="$((p0 + p1))"
 if [ "$actionable" -eq 0 ]; then
   echo "✓ clean pass — no P0/P1 findings. Loop can stop."
   exit 0
 fi
+
+# Budget/cap guard runs here too, so a long cycle with remaining actionable
+# findings can't blow past the cap silently before the next cycle's pre-flight.
+cycle_guard_or_exit3
 
 echo "→ $actionable actionable finding(s); cycle continues to FINDINGS + GOALIFY."
 exit 10

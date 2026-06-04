@@ -6,7 +6,7 @@
 # metrics into dogfood/runs/<cycle>/<case>/. Design: docs/dogfood-loop.md.
 #
 # Usage:  bash scripts/dogfood/dogfood-run.sh <cycle-id> <DF-id>
-# Exit:   0 ok · 1 hard error (claude is_error, missing session, etc.)
+# Exit:   0 ok · 1 hard error (missing tooling, non-JSON claude failure, etc.)
 
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT"
@@ -31,6 +31,7 @@ if df_dry_run; then
   echo "  [dry-run] would reset dogfood repo to baseline/$BASELINE"
 else
   reset_repo_to_baseline "$BASELINE" || df_die "could not reset repo to baseline '$BASELINE' for $CASE"
+  prepare_case_baseline "$BASELINE"
 fi
 
 PROMPT="You are an AI coding agent working in this repository. The team manages
@@ -43,15 +44,19 @@ $TASK"
 echo "=== run $CASE (cycle $CYCLE, budget \$$BUDGET) ==="
 
 CWD="${VSPEC_DOGFOOD_REPO:-$ROOT}"
+df_require_cmd jq
 out="$(df_claude "$CWD" "$BUDGET" "$PROMPT")"
 rc=$?
 if [ "$rc" -ne 0 ]; then
-  echo "$out" > "$RUN_DIR/result.json" 2>/dev/null || true
-  df_die "claude exited $rc for $CASE"
+  if echo "$out" | jq -e '.is_error == true and (.session_id | type == "string")' >/dev/null 2>&1; then
+    echo "  ⚠ claude exited $rc for $CASE with a structured error result; capturing as evidence"
+  else
+    echo "$out" > "$RUN_DIR/result.json" 2>/dev/null || true
+    df_die "claude exited $rc for $CASE"
+  fi
 fi
 
-df_require_cmd jq
-echo "$out" | jq '{total_cost_usd,num_turns,duration_ms,is_error,session_id}' > "$RUN_DIR/result.json" 2>/dev/null \
+echo "$out" | jq '{type,subtype,total_cost_usd,num_turns,duration_ms,is_error,session_id,stop_reason,errors}' > "$RUN_DIR/result.json" 2>/dev/null \
   || printf '%s' "$out" > "$RUN_DIR/result.json"
 
 cost="$(echo "$out" | jq -r '.total_cost_usd // 0' 2>/dev/null)"

@@ -65,11 +65,23 @@ if df_dry_run; then
 else
   case "$VSPEC_DOGFOOD_LINK" in
     pack)
+      df_require_cmd pnpm
       df_require_cmd npm
-      tarball="$(cd "$ROOT/apps/cli" && npm pack --silent 2>/dev/null | tail -1)"
-      [ -n "$tarball" ] && [ -f "$ROOT/apps/cli/$tarball" ] || df_die "npm pack produced no tarball"
-      npm install -g "$ROOT/apps/cli/$tarball" || df_die "global install of packed CLI failed"
-      rm -f "$ROOT/apps/cli/$tarball"
+      pack_dir="$(mktemp -d "${TMPDIR:-/tmp}/vspec-dogfood-pack.XXXXXX")" || df_die "could not create pack temp dir"
+      if ! pnpm --dir "$ROOT/packages/contracts" pack --pack-destination "$pack_dir" --silent >/dev/null; then
+        rm -rf "$pack_dir"
+        df_die "pnpm pack for @vooster/contracts failed"
+      fi
+      if ! pnpm --dir "$ROOT/apps/cli" pack --pack-destination "$pack_dir" --silent >/dev/null; then
+        rm -rf "$pack_dir"
+        df_die "pnpm pack for @vooster/cli failed"
+      fi
+      contracts_tarball="$(find "$pack_dir" -maxdepth 1 -name 'vooster-contracts-*.tgz' -print -quit)"
+      cli_tarball="$(find "$pack_dir" -maxdepth 1 -name 'vooster-cli-*.tgz' -print -quit)"
+      [ -n "$contracts_tarball" ] && [ -f "$contracts_tarball" ] || { rm -rf "$pack_dir"; df_die "contracts pack produced no tarball"; }
+      [ -n "$cli_tarball" ] && [ -f "$cli_tarball" ] || { rm -rf "$pack_dir"; df_die "CLI pack produced no tarball"; }
+      npm install -g "$contracts_tarball" "$cli_tarball" || { rm -rf "$pack_dir"; df_die "global install of packed CLI failed"; }
+      rm -rf "$pack_dir"
       ;;
     link)
       df_require_cmd pnpm

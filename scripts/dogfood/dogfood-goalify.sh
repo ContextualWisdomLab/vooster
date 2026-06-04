@@ -210,43 +210,54 @@ for i in $(seq 0 $((count - 1))); do
   GOAL_N="$(next_goal_number)"
   GOAL_NAME="${GOAL_N}-dogfood-${slug}"
 
-  GOALIFY_PROMPT="Author ONE build goal trio for the vspec autonomous build harness,
-addressing the finding below. Follow docs/goal-design.md strictly:
-- the .md states completion conditions in natural language; if it makes a
-  universal claim ('every X ...') the .gates.sh MUST enumerate X from a
-  source of truth and loop (no single-case cheat);
-- the .gates.sh must NOT grep for things a test/typecheck/coverage already
-  proves (§1.5); source scripts/_gate-cache.sh and declare GATE_INPUTS;
-- keep it minimal (see the 63-line reference pattern).
-Routing: this finding is routed to '$routing'. If 'claude', the .md MUST include
-a '## Delegation' section (owner: claude, cwd: <the presentation app dir>, model: opus)
-and you may omit a meaningful next-task.sh; if 'codex', write a normal TDD goal.
-
-Respond with ONLY this JSON (no fences):
-{\"md\": \"<full goals/${GOAL_NAME}.md contents>\",
- \"gates_sh\": \"<full goals/${GOAL_NAME}.gates.sh contents>\",
- \"next_task_sh\": \"<full goals/${GOAL_NAME}.next-task.sh contents>\"}
-
-=== FINDING ===
-$f
-
-=== docs/goal-design.md ===
-$(cat "$ROOT/docs/goal-design.md")"
-
-  raw="$(df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$GOALIFY_PROMPT")"
-  cost="$(echo "$raw" | jq -r '.total_cost_usd // 0' 2>/dev/null)"
-  ledger_append "$CYCLE" "goalify:$GOAL_NAME" "${cost:-0}" "$routing"
-  body="$(echo "$raw" | jq -r '.result // .' 2>/dev/null | sed -e 's/^```json//' -e 's/^```//' -e '/^```$/d')"
   dest_dir="$ROOT/goals"
   [ "$VSPEC_DOGFOOD_GOALIFY" = "draft" ] && dest_dir="$ROOT/dogfood/goal-drafts/$CYCLE"
   mkdir -p "$dest_dir"
-  if echo "$body" | jq -e '.md and .gates_sh and .next_task_sh' >/dev/null 2>&1; then
-    echo "$body" | jq -r '.md'           > "$dest_dir/${GOAL_NAME}.md"
-    echo "$body" | jq -r '.gates_sh'     > "$dest_dir/${GOAL_NAME}.gates.sh"
-    echo "$body" | jq -r '.next_task_sh' > "$dest_dir/${GOAL_NAME}.next-task.sh"
-    chmod +x "$dest_dir/${GOAL_NAME}.gates.sh" "$dest_dir/${GOAL_NAME}.next-task.sh"
+  md_path="$dest_dir/${GOAL_NAME}.md"
+  gates_path="$dest_dir/${GOAL_NAME}.gates.sh"
+  next_path="$dest_dir/${GOAL_NAME}.next-task.sh"
+  rm -f "$md_path" "$gates_path" "$next_path"
+
+  # Have claude WRITE the three files directly (file tools), not emit JSON on
+  # stdout — same reliability reason as the analyzer.
+  GOALIFY_PROMPT="Author ONE build goal trio for the vspec autonomous build harness,
+addressing the finding below. First read docs/goal-design.md in this repo, then follow it strictly:
+- the .md states completion conditions in natural language; a universal claim
+  ('every X ...') requires the .gates.sh to enumerate X from a source of truth
+  and loop (no single-case cheat);
+- the .gates.sh must NOT grep for things a test/typecheck/coverage already
+  proves (§1.5); it must source scripts/_gate-cache.sh and declare GATE_INPUTS;
+  keep it minimal (see the ~63-line reference pattern);
+- Routing is '$routing'. If 'claude', the .md MUST include a '## Delegation'
+  section (owner: claude, cwd: <the presentation app dir e.g. apps/app>, model: opus)
+  and next-task.sh may be trivial; if 'codex', write a normal TDD goal.
+
+Using the Write tool, create EXACTLY these three files with complete, valid contents:
+  $md_path
+  $gates_path
+  $next_path
+The .gates.sh and .next-task.sh must be runnable bash. Write the files only; do
+not print their contents to stdout.
+
+=== FINDING ===
+$f"
+
+  ( df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$GOALIFY_PROMPT" >/dev/null 2>&1 ) &
+  gpid=$!; gelapsed=0
+  while kill -0 "$gpid" 2>/dev/null; do
+    if [ "$gelapsed" -ge "${VSPEC_DOGFOOD_GOALIFY_TIMEOUT_SECONDS:-420}" ]; then
+      pkill -TERM -P "$gpid" 2>/dev/null || true; kill -TERM "$gpid" 2>/dev/null || true; sleep 1
+      pkill -KILL -P "$gpid" 2>/dev/null || true; kill -KILL "$gpid" 2>/dev/null || true; break
+    fi
+    sleep 1; gelapsed=$((gelapsed + 1))
+  done
+  wait "$gpid" 2>/dev/null || true
+  ledger_append "$CYCLE" "goalify:$GOAL_NAME" "0" "$routing"
+
+  if [ -s "$md_path" ] && [ -s "$gates_path" ] && [ -s "$next_path" ]; then
+    chmod +x "$gates_path" "$next_path"
   else
-    echo "  ⚠ goal draft for '$title' was not well-formed JSON — adopting fallback goal"
+    echo "  ⚠ goal trio for '$title' not fully written — adopting deterministic fallback goal"
     write_fallback_goal "$dest_dir" "$GOAL_N" "$GOAL_NAME" "$finding_md" "$title" "$rec" "$area"
   fi
 

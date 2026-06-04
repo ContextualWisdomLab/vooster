@@ -2,13 +2,18 @@
 # scripts/dogfood/dogfood-analyze.sh — Step 2 of a dogfood cycle: analyze ONE run.
 #
 # Turn the captured session transcript into machine-readable findings by running
-# the analyze-session skill's logic headlessly: distill the .jsonl with the
-# skill's extractor, then ask claude (constrained to the findings schema) to
-# score it against the rubric. Output: dogfood/runs/<cycle>/<case>/findings.json.
-# Design: docs/dogfood-loop.md § "분석".
+# the analyze-session skill's logic headlessly. Rather than parsing claude's
+# stdout (a JSON envelope whose .result is unstable to coax into strict JSON),
+# we hand claude the input file paths and an EXACT output path and have it WRITE
+# the findings JSON there with its file tools. We then read + validate that file.
+# Output: dogfood/runs/<cycle>/<case>/findings.json. Design: docs/dogfood-loop.md.
+#
+# A failed analysis is a HARNESS error, not a product finding: we never fabricate
+# findings (that path produced false clean passes and junk goals). If the file is
+# missing/invalid after a retry, we exit non-zero so the cycle surfaces it.
 #
 # Usage:  bash scripts/dogfood/dogfood-analyze.sh <cycle-id> <DF-id>
-# Exit:   0 ok · 1 hard error.
+# Exit:   0 ok · 1 hard error (analyzer produced no valid findings file).
 
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT"
@@ -21,15 +26,17 @@ CASE="${2:?usage: dogfood-analyze.sh <cycle-id> <DF-id>}"
 RUN_DIR="$(df_runs_dir)/$CYCLE/$CASE"
 SESSION="$RUN_DIR/session.jsonl"
 OUT="$RUN_DIR/findings.json"
+DIGEST="$RUN_DIR/digest.txt"
 EXTRACT="$ROOT/.claude/skills/analyze-session/scripts/extract.sh"
 SKILL="$ROOT/.claude/skills/analyze-session/SKILL.md"
 RUBRIC="$ROOT/dogfood/rubric.md"
 SCHEMA="$ROOT/dogfood/schema/findings.schema.json"
+TIMEOUT="${VSPEC_DOGFOOD_ANALYZE_TIMEOUT_SECONDS:-420}"
 
 echo "=== analyze $CASE (cycle $CYCLE) ==="
 
 if df_dry_run; then
-  echo "  [dry-run] would: extract.sh → claude -p (schema-constrained) → findings.json"
+  echo "  [dry-run] would: extract.sh → claude writes $OUT (file tool) → validate"
   printf '{"case_id":"%s","summary":"dry-run","task_succeeded":true,"findings":[]}\n' "$CASE" > "$OUT"
   echo "✓ analyze $CASE (dry-run, empty findings)"
   exit 0
@@ -39,135 +46,70 @@ fi
 df_require_cmd jq
 
 # 2.1 distill (never read raw jsonl directly)
-DIGEST="$RUN_DIR/digest.txt"
 if [ -x "$EXTRACT" ]; then
   bash "$EXTRACT" "$SESSION" > "$DIGEST" 2>/dev/null || df_die "extract.sh failed on $SESSION"
 else
   df_die "analyze-session extractor missing: $EXTRACT"
 fi
 
-# 2.2 ask claude to score, constrained to the findings schema
-ANALYZE_PROMPT="You are analyzing ONE dogfood session for case $CASE. Apply the
-analyze-session methodology (friction catalog §3, QUANTS §4, finding format §5)
-and the dogfood rubric below. Ground EVERY finding in the digest; no evidence
-means no finding. Severity: P0 corruption/contract break, P1 agent-recovery or
-core-workflow bug, P2 polish. Set routing='claude' only for presentation
-root-cause (apps/app, apps/www); otherwise 'codex'.
+# 2.2 Have claude READ the inputs and WRITE the findings file. The deliverable is
+#     the file at $OUT, not stdout — far more reliable than parsing .result.
+ANALYZE_PROMPT="You are analyzing ONE vspec dogfood session for case $CASE.
 
-Respond with ONLY a JSON object that validates against this schema — no prose,
-no markdown fences:
+Steps:
+1. Read the session digest:       $DIGEST
+2. Read the analysis methodology: $SKILL   (use friction catalog §3, QUANTS §4, finding format §5)
+3. Read the scoring rubric:       $RUBRIC
+4. Read the output JSON schema:   $SCHEMA
+5. Derive findings GROUNDED in the digest — no evidence means no finding. Severity:
+   P0 = corruption/contract break, P1 = agent-recovery or core-workflow bug,
+   P2 = polish. Set routing='claude' ONLY for presentation root-cause
+   (apps/app, apps/www); otherwise routing='codex'.
+6. Using the Write tool, write a SINGLE JSON object that validates against the
+   schema to EXACTLY this path:
 
-$(cat "$SCHEMA")
+       $OUT
 
-=== ANALYZE-SESSION SKILL ===
-$(cat "$SKILL")
+   If the session shows no real issues, still write the object with
+   \"findings\": []. The findings concern the vspec PRODUCT (CLI/API/contracts/
+   web/sync/ai-guide), never this dogfood harness.
 
-=== DOGFOOD RUBRIC ===
-$(cat "$RUBRIC")
-
-=== SESSION DIGEST (case $CASE) ===
-$(cat "$DIGEST")"
+The file at $OUT is the only deliverable. Do not print the findings to stdout."
 
 run_analyzer() {
-  local raw_file pid elapsed rc timeout
-  raw_file="$RUN_DIR/analyzer.raw"
-  timeout="${VSPEC_DOGFOOD_ANALYZE_TIMEOUT_SECONDS:-420}"
-  rm -f "$raw_file"
-  df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT" "$@" > "$raw_file" 2>/dev/null &
-  pid=$!
-  elapsed=0
+  rm -f "$OUT"
+  ( df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT" >/dev/null 2>&1 ) &
+  local pid=$! elapsed=0
   while kill -0 "$pid" 2>/dev/null; do
-    if [ "$elapsed" -ge "$timeout" ]; then
-      pkill -TERM -P "$pid" 2>/dev/null || true
-      kill -TERM "$pid" 2>/dev/null || true
+    if [ "$elapsed" -ge "$TIMEOUT" ]; then
+      pkill -TERM -P "$pid" 2>/dev/null || true; kill -TERM "$pid" 2>/dev/null || true
       sleep 1
-      pkill -KILL -P "$pid" 2>/dev/null || true
-      kill -KILL "$pid" 2>/dev/null || true
-      cat "$raw_file" 2>/dev/null || true
+      pkill -KILL -P "$pid" 2>/dev/null || true; kill -KILL "$pid" 2>/dev/null || true
       return 124
     fi
-    sleep 1
-    elapsed=$((elapsed + 1))
+    sleep 1; elapsed=$((elapsed + 1))
   done
-  wait "$pid"; rc=$?
-  cat "$raw_file" 2>/dev/null || true
-  return "$rc"
+  wait "$pid"
 }
 
-write_fallback_findings() {
-  local reason="$1" result_summary title evidence area rec severity task_succeeded
-  result_summary="$(jq -c '{subtype,is_error,total_cost_usd,session_id,errors}' "$RUN_DIR/result.json" 2>/dev/null || printf '{}')"
-  if echo "$result_summary" | grep -qi 'budget'; then
-    title="Dogfood case exhausted its automation budget before completion"
-    area="apps/cli/src and apps/api/src/application/ai-guide.ts"
-    rec="Reduce cold-start recovery loops: make ai-guide/help/errors teach the authenticated init-to-use-case path without source spelunking or repeated failed commands."
-    severity="P1"
-    task_succeeded="false"
-  elif jq -e '.is_error == false and (.subtype // "") == "success"' "$RUN_DIR/result.json" >/dev/null 2>&1; then
-    title="Dogfood analyzer did not return machine-readable findings"
-    area="scripts/dogfood/dogfood-analyze.sh"
-    rec="Keep analyzer calls bounded and preserve dogfood run evidence as fallback findings when Claude analysis is unavailable."
-    severity="P2"
-    task_succeeded="true"
-  else
-    title="Dogfood analyzer did not return machine-readable findings"
-    area="scripts/dogfood/dogfood-analyze.sh"
-    rec="Keep analyzer calls bounded and preserve dogfood run evidence as fallback findings when Claude analysis is unavailable."
-    severity="P1"
-    task_succeeded="false"
-  fi
-  evidence="Analyzer fallback reason: $reason. result.json: $result_summary"
-  jq -n \
-    --arg case_id "$CASE" \
-    --arg summary "Fallback analysis for $CASE: the run did not produce a clean completed task signal; $reason." \
-    --arg title "$title" \
-    --arg evidence "$evidence" \
-    --arg area "$area" \
-    --arg rec "$rec" \
-    --arg severity "$severity" \
-    --argjson task_succeeded "$task_succeeded" \
-    '{
-      case_id: $case_id,
-      summary: $summary,
-      task_succeeded: $task_succeeded,
-      findings: [
-        {
-          title: $title,
-          severity: $severity,
-          quants: ["A", "T"],
-          evidence: $evidence,
-          root_cause_area: $area,
-          recommendation: $rec,
-          routing: "codex"
-        }
-      ]
-    }' > "$OUT"
-  ledger_append "$CYCLE" "analyze:$CASE" "0" "fallback:$reason"
-  echo "✓ analyze $CASE → fallback finding(s) ($reason)"
+# Valid iff the file exists, parses, and carries the required shape.
+findings_valid() {
+  jq -e '.case_id and (.findings|type=="array")' "$OUT" >/dev/null 2>&1
 }
 
-raw="$(run_analyzer --json-schema "$SCHEMA")"; analyzer_rc=$?
-if [ "$analyzer_rc" -ne 0 ] || [ -z "$raw" ]; then
-  if [ "$analyzer_rc" -ne 124 ]; then
-    raw="$(run_analyzer)"; analyzer_rc=$?
-  fi
-fi
-if [ "$analyzer_rc" -ne 0 ] || [ -z "$raw" ]; then
-  write_fallback_findings "analyzer unavailable or timed out"
-  exit 0
+ledger_append "$CYCLE" "analyze:$CASE" "0" "file-write"
+
+run_analyzer || true
+if ! findings_valid; then
+  echo "  ⚠ analyzer did not produce a valid $OUT — retrying once"
+  run_analyzer || true
 fi
 
-cost="$(echo "$raw" | jq -r '.total_cost_usd // 0' 2>/dev/null)"
-ledger_append "$CYCLE" "analyze:$CASE" "${cost:-0}" "-"
+if ! findings_valid; then
+  df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+fi
 
-# The analyzer's findings JSON is in .result; strip any stray fences then validate.
-echo "$raw" | jq -r '.result // .' 2>/dev/null \
-  | sed -e 's/^```json//' -e 's/^```//' -e '/^```$/d' \
-  | jq '.' > "$OUT" 2>/dev/null \
-  || { write_fallback_findings "analyzer output was not valid JSON"; exit 0; }
-
-jq -e '.case_id and (.findings|type=="array")' "$OUT" >/dev/null 2>&1 \
-  || { write_fallback_findings "analyzer output missed required fields"; exit 0; }
-
+# Pin case_id (claude may omit/mistype it) and report.
+tmp="$(mktemp)"; jq --arg c "$CASE" '.case_id=$c' "$OUT" > "$tmp" && mv "$tmp" "$OUT"
 n="$(jq '.findings | length' "$OUT")"
 echo "✓ analyze $CASE → $n finding(s)"

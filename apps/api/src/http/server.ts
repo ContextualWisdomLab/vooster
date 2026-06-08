@@ -1,3 +1,5 @@
+import fastifyCors from "@fastify/cors";
+import fastifyHelmet from "@fastify/helmet";
 import Fastify, { type FastifyInstance } from "fastify";
 import { healthResponseSchema } from "@vooster/contracts";
 import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
@@ -91,6 +93,10 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   if (serverOptions.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
   }
+
+  await app.register(fastifyHelmet);
+  await app.register(fastifyCors, { origin: false });
+
   app.get("/healthz", () => healthResponseSchema.parse({ status: "ok" }));
   if (serverOptions.signupStore !== undefined) {
     app.addHook("onClose", async () => {

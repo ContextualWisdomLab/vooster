@@ -72,11 +72,18 @@ export async function whoIsWorking(
     return { status: "FORBIDDEN" };
   }
 
-  const sessions = (await activeSessions(deps.workSessionStore, found.usecase.id)).map(
-    (session) => sessionRow(deps, session)
-  );
-  const locks = (await activeLocks(deps, found.usecase.id)).map(lockRow);
-  const mergeRequests = (await openMergeRequests(deps, found.usecase.id)).map(mergeRow);
+  // ⚡ Bolt: Parallelized async queries to reduce overall latency.
+  // Expected impact: Total fetch time reduced to the longest individual query,
+  // rather than the sum of all three queries.
+  const [activeSessionsData, activeLocksData, openMergeRequestsData] = await Promise.all([
+    activeSessions(deps.workSessionStore, found.usecase.id),
+    activeLocks(deps, found.usecase.id),
+    openMergeRequests(deps, found.usecase.id)
+  ]);
+
+  const sessions = activeSessionsData.map((session) => sessionRow(deps, session));
+  const locks = activeLocksData.map(lockRow);
+  const mergeRequests = openMergeRequestsData.map(mergeRow);
   const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
 
   return {

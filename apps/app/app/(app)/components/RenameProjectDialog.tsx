@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,6 +99,7 @@ export function RenameProjectDialog({
               취소
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="animate-spin" />}
               {pending ? "저장 중..." : "저장"}
             </Button>
           </DialogFooter>

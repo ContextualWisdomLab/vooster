@@ -46,9 +46,21 @@ export async function invocationGraph(
   projectId: string
 ): Promise<InvocationGraph> {
   const graph: InvocationGraph = new Map();
-  for (const usecase of await deps.useCaseStore.listUseCases(projectId)) {
-    graph.set(usecase.key, await invocationEdgesFor(deps, usecase));
+  const usecases = await deps.useCaseStore.listUseCases(projectId);
+
+  // ⚡ Bolt: Execute invocation edge queries concurrently instead of sequentially
+  // Reduces latency from O(N) to O(1) in the number of use cases
+  const results = await Promise.all(
+    usecases.map(async (usecase) => {
+      const edges = await invocationEdgesFor(deps, usecase);
+      return { key: usecase.key, edges };
+    })
+  );
+
+  for (const { key, edges } of results) {
+    graph.set(key, edges);
   }
+
   return graph;
 }
 

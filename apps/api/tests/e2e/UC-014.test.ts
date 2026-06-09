@@ -9,6 +9,7 @@ import { createActor, createProject, createUseCase } from "../helpers/uc-fixture
 type SearchResponse = {
   items: Array<{
     extension_count: number;
+    archived_at?: string | null;
     key: string;
     level: string;
     primary_actor: string;
@@ -202,6 +203,47 @@ describe("UC-014 - Search and filter use cases", () => {
       command: "vspec usecase list",
       reason: "Drop the search text to browse all visible use cases."
     });
+  });
+
+  test("*b: archived use cases can be listed explicitly without changing state", async () => {
+    const setup = await createProject(
+      server,
+      "Search Archived",
+      "search-archived",
+      "stub-search-archived"
+    );
+    await createActor(server, setup, "Customer");
+    const active = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews active case"
+    );
+    const archived = await createUseCase(
+      server,
+      setup,
+      "Customer",
+      "Reviews archived case"
+    );
+    await archiveUseCase(archived.id, setup.cookie);
+
+    const archivedOnly = await searchUseCases(setup.cookie, setup.projectId, {
+      archived: "only"
+    });
+    const all = await searchUseCases(setup.cookie, setup.projectId, {
+      archived: "all"
+    });
+
+    expect(archivedOnly.status).toBe(200);
+    const archivedBody = (await archivedOnly.json()) as SearchResponse;
+    expect(archivedBody.items).toHaveLength(1);
+    expect(archivedBody.items[0]?.key).toBe(archived.key);
+    expect(archivedBody.items[0]?.title).toBe(archived.title);
+    expect(typeof archivedBody.items[0]?.archived_at).toBe("string");
+
+    expect(all.status).toBe(200);
+    const allBody = (await all.json()) as SearchResponse;
+    expect(allBody.items.map((item) => item.key)).toEqual([active.key, archived.key]);
   });
 
   test("4a: malformed cursor fails and stale cursor returns plain empty page", async () => {

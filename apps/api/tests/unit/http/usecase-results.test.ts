@@ -4,6 +4,7 @@ import type {
   StoredRevision,
   StoredUseCase
 } from "../../../src/domain/entities/index.js";
+import { titleLooksLikeVerbPhrase } from "../../../src/application/verb-phrases.js";
 import {
   sendUseCaseAuthoringResult,
   sendUseCaseUpdateResult
@@ -20,8 +21,9 @@ describe("use case result responses", () => {
       {
         expectedStatus: 422,
         result: {
+          offendingWord: "checkout",
           status: "TITLE_NOT_VERB_PHRASE" as const,
-          suggestedTitles: ["Reviews checkout"]
+          suggestedTitles: ["Review checkout"]
         },
         title: "Use case title should be a verb phrase"
       },
@@ -45,15 +47,27 @@ describe("use case result responses", () => {
   test("serializes authoring validation guidance", () => {
     const title = reply();
     sendUseCaseAuthoringResult(title.fastifyReply, {
+      offendingWord: "checkout",
       status: "TITLE_NOT_VERB_PHRASE",
-      suggestedTitles: ["Reviews checkout"]
+      suggestedTitles: ["Review checkout"]
     });
 
     expect(title.body).toMatchObject({
       code: "TITLE_NOT_VERB_PHRASE",
-      suggested_next_actions: [{ command: "vspec usecase create --force" }],
-      suggested_titles: ["Reviews checkout"]
+      offending_word: "checkout",
+      suggested_next_actions: [
+        {
+          command: "vspec usecase create --force",
+          reason: "Create anyway after reviewing the title."
+        }
+      ],
+      suggested_titles: ["Review checkout"]
     });
+    expect(
+      suggestedTitles(title.body).every((suggested) =>
+        titleLooksLikeVerbPhrase(suggested)
+      )
+    ).toBe(true);
 
     const actor = reply();
     sendUseCaseAuthoringResult(actor.fastifyReply, {
@@ -159,6 +173,16 @@ function reply() {
     send: captured.send
   } as unknown as FastifyReply;
   return captured;
+}
+
+function suggestedTitles(body: unknown): string[] {
+  if (typeof body !== "object" || body === null) {
+    return [];
+  }
+  const value = (body as { suggested_titles?: unknown }).suggested_titles;
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function storedUseCase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {

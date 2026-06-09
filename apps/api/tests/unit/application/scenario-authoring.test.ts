@@ -24,12 +24,16 @@ describe("scenario authoring application", () => {
   test("creates the main success scenario and appends a use case revision", async () => {
     const savedScenarios: StoredScenario[] = [];
     const savedRevisions: StoredRevision[] = [];
+    const updatedUseCases: StoredUseCase[] = [];
 
-    const result = await createScenario(depsFor({ savedRevisions, savedScenarios }), {
-      type: "MAIN_SUCCESS",
-      usecaseId: "usecase-1",
-      userId: "user-1"
-    });
+    const result = await createScenario(
+      depsFor({ savedRevisions, savedScenarios, updatedUseCases }),
+      {
+        type: "MAIN_SUCCESS",
+        usecaseId: "usecase-1",
+        userId: "user-1"
+      }
+    );
 
     expect(result.status).toBe("CREATED");
     if (result.status !== "CREATED") {
@@ -56,6 +60,9 @@ describe("scenario authoring application", () => {
     expect(result.steps).toEqual([]);
     expect(savedScenarios).toEqual([result.scenario]);
     expect(savedRevisions).toEqual([result.revision]);
+    expect(updatedUseCases).toMatchObject([
+      { current_revision_id: result.revision.id, id: "usecase-1" }
+    ]);
   });
 
   test("rejects duplicate main success scenarios without writing", async () => {
@@ -124,17 +131,22 @@ describe("scenario authoring application", () => {
       }
     );
 
-    expect(result).toEqual({ status: "MISSING_STAKEHOLDER_INTEREST" });
+    expect(result).toEqual({
+      status: "MISSING_STAKEHOLDER_INTEREST",
+      usecaseKey: "PAY-001"
+    });
     expect(savedScenarios).toEqual([]);
   });
 
   test("creates an extension scenario with the default outcome warning", async () => {
     const savedScenarios: StoredScenario[] = [];
+    const updatedUseCases: StoredUseCase[] = [];
     const result = await createScenario(
       depsFor({
         existingScenarios: [mainScenario()],
         existingSteps: [step()],
-        savedScenarios
+        savedScenarios,
+        updatedUseCases
       }),
       {
         condition: "Payment is declined.",
@@ -159,6 +171,9 @@ describe("scenario authoring application", () => {
     });
     expect(result.defaultOutcome).toBe(true);
     expect(savedScenarios).toEqual([result.scenario]);
+    expect(updatedUseCases).toMatchObject([
+      { current_revision_id: result.revision.id, id: "usecase-1" }
+    ]);
   });
 
   test("requires extension scenario condition and point together", async () => {
@@ -287,13 +302,15 @@ describe("scenario authoring application", () => {
   test("adds a scenario step with contiguous numbering and a revision", async () => {
     const savedSteps: StoredStep[] = [];
     const savedRevisions: StoredRevision[] = [];
+    const updatedUseCases: StoredUseCase[] = [];
 
     const result = await addScenarioStep(
       depsFor({
         existingScenarios: [mainScenario()],
         existingSteps: [step({ id: "step-1", step_number: 1 })],
         savedRevisions,
-        savedSteps
+        savedSteps,
+        updatedUseCases
       }),
       {
         action: "Reviews the order.",
@@ -322,6 +339,9 @@ describe("scenario authoring application", () => {
     );
     expect(savedSteps).toEqual([result.step]);
     expect(savedRevisions).toEqual([result.revision]);
+    expect(updatedUseCases).toMatchObject([
+      { current_revision_id: result.revision.id, id: "usecase-1" }
+    ]);
   });
 
   test("rejects unresolved step actors without writing", async () => {
@@ -453,6 +473,7 @@ function depsFor(
     savedScenarios?: StoredScenario[];
     savedSteps?: StoredStep[];
     stakeholderInterests?: StoredStakeholderInterest[];
+    updatedUseCases?: StoredUseCase[];
     usecase?: StoredUseCase | null;
   } = {}
 ) {
@@ -474,7 +495,8 @@ function depsFor(
     ),
     stepStore: stepStore(options.existingSteps ?? [], options.savedSteps ?? []),
     useCaseStore: useCaseStore(
-      options.usecase === undefined ? usecase() : options.usecase
+      options.usecase === undefined ? usecase() : options.usecase,
+      options.updatedUseCases ?? []
     )
   };
 }
@@ -559,7 +581,10 @@ function stepStore(existingSteps: StoredStep[], savedSteps: StoredStep[]): StepS
   };
 }
 
-function useCaseStore(foundUseCase: StoredUseCase | null): UseCaseStore {
+function useCaseStore(
+  foundUseCase: StoredUseCase | null,
+  updatedUseCases: StoredUseCase[]
+): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
     findUseCaseWithProject: () =>
@@ -571,7 +596,10 @@ function useCaseStore(foundUseCase: StoredUseCase | null): UseCaseStore {
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve([]),
     saveUseCase: () => Promise.resolve(),
-    updateUseCase: () => Promise.resolve()
+    updateUseCase: (updatedUseCase) => {
+      updatedUseCases.push(updatedUseCase);
+      return Promise.resolve();
+    }
   };
 }
 

@@ -11,6 +11,7 @@ import type { SignupState } from "./signup-types.js";
 import {
   decodeCursor,
   encodeCursor,
+  matchesArchiveScope,
   useCasePreview
 } from "./usecase-search-results.js";
 import type { ActorStore } from "../ports/actor-store.js";
@@ -137,7 +138,7 @@ async function filteredUseCases(
   const text = query.q?.toLowerCase();
   return (await useCaseStore.listUseCases(projectId)).filter(
     (usecase) =>
-      usecase.archived_at === null &&
+      matchesArchiveScope(usecase.archived_at, query.archived) &&
       (query.status === undefined || usecase.status === query.status) &&
       (query.level === undefined || usecase.level === query.level) &&
       (query.actor_id === undefined || usecase.primary_actor_id === query.actor_id) &&

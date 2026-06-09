@@ -1,0 +1,5 @@
+# Actor sub-actions that talk to the API and must never leak raw ApiError output.
+show
+edit
+archive
+list

@@ -3,6 +3,7 @@ import {
   sendAddScenarioStepResult,
   sendCreateScenarioResult
 } from "../../../src/http/scenario-results.js";
+import type { StoredScenario } from "../../../src/domain/entities/index.js";
 import { reply, revision, scenario, step } from "./scenario-results-fixtures.js";
 
 describe("scenario result responses", () => {
@@ -20,7 +21,10 @@ describe("scenario result responses", () => {
       },
       {
         expectedStatus: 422,
-        result: { status: "MISSING_STAKEHOLDER_INTEREST" as const },
+        result: {
+          status: "MISSING_STAKEHOLDER_INTEREST" as const,
+          usecaseKey: "PAY-001"
+        },
         title: "Use case needs at least one stakeholder interest"
       },
       {
@@ -43,6 +47,23 @@ describe("scenario result responses", () => {
       expect(captured.statusCode).toBe(item.expectedStatus);
       expect(captured.body).toMatchObject({ title: item.title });
     }
+
+    const missingInterest = reply();
+    sendCreateScenarioResult(missingInterest.fastifyReply, {
+      status: "MISSING_STAKEHOLDER_INTEREST",
+      usecaseKey: "PAY-001"
+    });
+    expect(missingInterest.body).toMatchObject({
+      code: "SCHEMA_INVALID",
+      suggested_next_actions: [
+        {
+          command:
+            'vspec usecase add-stakeholder PAY-001 --stakeholder "<name>" --interest "<interest>"',
+          reason: "Attach at least one stakeholder interest before adding scenarios."
+        }
+      ],
+      title: "Use case needs at least one stakeholder interest"
+    });
   });
 
   test("serializes create scenario conflicts and warnings", () => {
@@ -102,6 +123,29 @@ describe("scenario result responses", () => {
     });
     expect(createdWithoutWarning.body).not.toHaveProperty("warnings");
   });
+
+  test.each(["MAIN_SUCCESS", "EXTENSION"] as const)(
+    "serializes a concrete step-add next action for created %s scenarios",
+    (type) => {
+      const created = reply();
+      const scenarioId = `scenario-${type.toLowerCase().replaceAll("_", "-")}`;
+
+      sendCreateScenarioResult(created.fastifyReply, {
+        revision: revision(),
+        scenario: scenarioOfType(type, scenarioId),
+        status: "CREATED",
+        steps: []
+      });
+
+      const body = created.body as ScenarioCreateBody;
+      expect(body.suggested_next_actions).toEqual([
+        {
+          command: `vspec step add ${scenarioId}`,
+          reason: "Add the first step to the new scenario."
+        }
+      ]);
+    }
+  );
 
   test("serializes add step failures and warnings", () => {
     const passive = reply();
@@ -170,3 +214,26 @@ describe("scenario result responses", () => {
     });
   });
 });
+
+type ScenarioCreateBody = {
+  suggested_next_actions?: Array<{
+    command: string;
+    reason: string;
+  }>;
+};
+
+function scenarioOfType(
+  type: "EXTENSION" | "MAIN_SUCCESS",
+  id: string
+): StoredScenario {
+  return {
+    condition: type === "EXTENSION" ? "Card is declined" : null,
+    extension_point: type === "EXTENSION" ? "1a" : null,
+    id,
+    order_index: 1,
+    outcome: type === "EXTENSION" ? "FAILURE" : "SUCCESS",
+    parent_step_number: type === "EXTENSION" ? 1 : null,
+    type,
+    usecase_id: "usecase-1"
+  };
+}

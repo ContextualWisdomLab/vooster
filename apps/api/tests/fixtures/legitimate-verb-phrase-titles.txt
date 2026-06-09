@@ -1,0 +1,8 @@
+# Dogfood regression anchor and common finite verbs the old closed set omitted.
+Partner accepts a shared-budget invitation
+User joins a shared budget
+Customer pays an invoice
+Member receives an invitation
+Admin updates account settings
+User deletes an expense
+Traveler books a hotel

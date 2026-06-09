@@ -18,11 +18,6 @@ describe("use case agent result responses", () => {
       },
       {
         expectedStatus: 404,
-        result: { status: "ARCHIVED" },
-        title: "Use case not found"
-      },
-      {
-        expectedStatus: 404,
         result: {
           revision: "revision-missing",
           status: "REVISION_NOT_FOUND",
@@ -115,18 +110,23 @@ function data() {
     scenarios: [],
     stakeholder_interests: [],
     title: "Places an order",
-    usecase: {
-      current_revision_id: "revision-1",
-      id: "usecase-1",
-      key: "CHK-001"
-    }
+    usecase: usecase()
   };
 }
 
 function usecase(): StoredUseCase {
   return {
+    archived_at: null,
+    current_revision_id: "revision-1",
+    format: "BRIEF",
     id: "usecase-1",
     key: "CHK-001",
+    level: "USER_GOAL",
+    primary_actor_id: "actor-1",
+    priority: "P2",
+    project_id: "project-1",
+    scope: "Checkout",
+    status: "DRAFT",
     title: "Places an order"
-  } as StoredUseCase;
+  };
 }

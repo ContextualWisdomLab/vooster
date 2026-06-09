@@ -60,6 +60,7 @@ describe("CLI dispatcher routes", () => {
       "status",
       "step add",
       "step edit",
+      "step move",
       "sync",
       "usecase add-stakeholder",
       "usecase archive",
@@ -68,6 +69,7 @@ describe("CLI dispatcher routes", () => {
       "usecase restore",
       "usecase set",
       "usecase show",
+      "usecase verify",
       "verify",
       "who",
       "workspace switch"

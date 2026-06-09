@@ -162,6 +162,9 @@ importers:
       '@vooster/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   apps/www:
     dependencies:

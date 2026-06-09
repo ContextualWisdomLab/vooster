@@ -33,16 +33,14 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
     expect(guide.cache).toEqual({ cli_version: "1.0.0", status: "REFRESHED" });
     expect(guide.content).toContain("# vspec AI Agent Guide");
     expect(guide.content).toContain("Why sessions exist");
-    expect(guide.content).toContain(
-      "Before any write, start a session with `--pin` for every use case"
-    );
+    expect(guide.content).toContain("start a session with `--pin` for every use case");
     expect(guide.content).toContain(
       "Inspect `context`, `suggested_next_actions`, `warnings`, and `format_version`"
     );
     expect(guide.content).toContain("Forbidden actions");
-    expect(guide.content).toContain("Never force a merge or ignore a conflict");
+    expect(guide.content).toContain("Never force a merge");
     expect(guide.content).toContain("Greenfield setup");
-    expect(guide.content).toContain("If `vspec status` already shows an API");
+    expect(guide.content).toContain("If `vspec status` already shows");
     expect(guide.content).toContain("vspec project create --key POCKET");
     expect(guide.content).toContain("vspec init --project POCKET");
     expect(guide.content).toContain(
@@ -55,7 +53,7 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
       "step ids in `vspec usecase show <KEY-NNN> --format=agent`"
     );
     expect(guide.content).toContain("`data.usecase.current_revision_id`");
-    expect(guide.content).toContain("`vspec step add` appends");
+    expect(guide.content).toContain("Use `vspec step add --at <n>`");
     expect(guide.content).toContain(
       "vspec scenario add POCKET-001 --type EXTENSION --at 2a"
     );
@@ -111,7 +109,7 @@ describe("UC-033 - Learn how to use vspec (AI agent)", () => {
         'vspec actor create --name "Account Holder" --type PRIMARY',
         'vspec actor create --name "Pocket" --type SUPPORTING',
         'vspec stakeholder create --name "Account Holder" --type EXTERNAL',
-        'vspec usecase create --title "Record a new expense" --primary-actor "Account Holder" --force --format=agent',
+        'vspec usecase create --title "User logs a new expense" --primary-actor "Account Holder" --format=agent',
         'vspec usecase add-stakeholder POCKET-001 --stakeholder "Account Holder" --interest "Accurate confirmed expense records"',
         "vspec scenario add POCKET-001 --type MAIN_SUCCESS --outcome SUCCESS",
         'vspec step add <main-scenario-id> --actor "Account Holder" --action "enters the expense amount, selects a category, and optionally adds a note"',

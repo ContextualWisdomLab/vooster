@@ -10,7 +10,7 @@ import type { ProjectStore } from "../ports/project-store.js";
 import type { RevisionStore } from "../ports/revision-store.js";
 import type { StakeholderInterestStore } from "../ports/stakeholder-interest-store.js";
 import type { UseCaseStore } from "../ports/usecase-store.js";
-import { titleLooksLikeVerbPhrase } from "./verb-phrases.js";
+import { titleLooksLikeVerbPhrase, verbPhraseOffendingWord } from "./verb-phrases.js";
 
 export type UseCaseAuthoringDeps = {
   actorStore: ActorStore;
@@ -36,7 +36,11 @@ export type UseCaseAuthoringInput = {
 
 export type UseCaseAuthoringResult =
   | { status: "FORBIDDEN" }
-  | { status: "TITLE_NOT_VERB_PHRASE"; suggestedTitles: string[] }
+  | {
+      offendingWord: string;
+      status: "TITLE_NOT_VERB_PHRASE";
+      suggestedTitles: string[];
+    }
   | { status: "PROJECT_NOT_FOUND" }
   | { actorName: string; status: "PRIMARY_ACTOR_NOT_AVAILABLE" }
   | {
@@ -82,6 +86,7 @@ export async function authorUseCase(
   }
   if (!input.force && !titleLooksLikeVerbPhrase(input.title)) {
     return {
+      offendingWord: verbPhraseOffendingWord(input.title),
       status: "TITLE_NOT_VERB_PHRASE",
       suggestedTitles: suggestedTitles(input.title)
     };
@@ -216,7 +221,7 @@ function suggestedTitles(title: string): string[] {
   if (/[가-힣]/u.test(title)) {
     return [`${title}를 검토한다`];
   }
-  return [`Reviews ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
+  return [`Review ${title.charAt(0).toLowerCase()}${title.slice(1)}`];
 }
 
 function useCaseMetadataChanges(input: UseCaseUpdateInput): UseCaseMetadataChanges {

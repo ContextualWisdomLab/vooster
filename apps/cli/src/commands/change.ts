@@ -4,9 +4,11 @@ import {
   changeCommitRequestSchema,
   changeCommitResponseSchema,
   changePreviewRequestSchema,
-  changePreviewResponseSchema
+  changePreviewResponseSchema,
+  type SuggestedNextAction
 } from "@vooster/contracts";
 
+import { writeAgentErrorEnvelope } from "./agent-error-envelope.js";
 import {
   printChangeCommit,
   printChangePreview,
@@ -89,39 +91,56 @@ async function proposeChange(
   flags: ChangeCliFlags,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const changeFlags = changeProposeFlagsFrom(flags);
-  const patch = await readJsonFile(changeFlags.patchPath);
-  const requestBody = changePreviewRequestSchema.parse({
-    auto_commit: changeFlags.autoCommit,
-    base_revision: changeFlags.baseRevision,
-    patch,
-    usecase_key: changeFlags.usecaseKey
-  });
-  const response = await postJson(
-    `${changeFlags.apiUrl}/v1/changes/preview`,
-    requestBody,
-    {
-      Cookie: changeFlags.sessionCookie
-    }
-  );
-
-  const body: ChangePreviewResponse = changePreviewResponseSchema.parse(response.body);
-  if (flags.format === "agent") {
-    writeLine(
-      JSON.stringify(
-        buildAgentEnvelope({
-          data: body,
-          suggested_next_actions: body.suggested_next_actions,
-          warnings: body.warnings
-        }),
-        null,
-        2
-      )
+  try {
+    const changeFlags = changeProposeFlagsFrom(flags);
+    const patch = await readJsonFile(changeFlags.patchPath);
+    const requestBody = changePreviewRequestSchema.parse({
+      auto_commit: changeFlags.autoCommit,
+      base_revision: changeFlags.baseRevision,
+      patch,
+      usecase_key: changeFlags.usecaseKey
+    });
+    const response = await postJson(
+      `${changeFlags.apiUrl}/v1/changes/preview`,
+      requestBody,
+      {
+        Cookie: changeFlags.sessionCookie
+      }
     );
-    return;
-  }
 
-  printChangePreview(body, writeLine);
+    const body: ChangePreviewResponse = changePreviewResponseSchema.parse(
+      response.body
+    );
+    if (flags.format === "agent") {
+      writeLine(
+        JSON.stringify(
+          buildAgentEnvelope({
+            data: body,
+            suggested_next_actions: body.suggested_next_actions,
+            warnings: body.warnings
+          }),
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    printChangePreview(body, writeLine);
+  } catch (error: unknown) {
+    if (
+      flags.format === "agent" &&
+      writeAgentErrorEnvelope({
+        error,
+        suggestedNextActions: changeProposeErrorActions(),
+        validationMessage: "Invalid change patch.",
+        writeLine
+      })
+    ) {
+      return;
+    }
+    throw error;
+  }
 }
 
 async function commitChange(
@@ -183,4 +202,13 @@ function changeCommitFlagsFrom(flags: ChangeCliFlags): ChangeCommitFlags {
 
 async function readJsonFile(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
+}
+
+function changeProposeErrorActions(): SuggestedNextAction[] {
+  return [
+    {
+      command: "vspec change propose --patch <valid-patch.json>",
+      reason: "Provide entity_id, entity_type USECASE, and supported fields."
+    }
+  ];
 }

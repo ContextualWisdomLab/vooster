@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { usesPassiveVoice } from "./passive-voice.js";
 import type {
   StoredActor,
   StoredLock,
@@ -206,7 +207,7 @@ async function currentRevisionId(revisionStore: RevisionStore, usecase: StoredUs
 }
 
 async function appendUseCaseRevision(
-  deps: Pick<StepEditingDeps, "idFactory" | "revisionStore">,
+  deps: Pick<StepEditingDeps, "idFactory" | "revisionStore" | "useCaseStore">,
   usecase: StoredUseCase,
   changeSummary: string,
   severity: "BREAKING" | "COSMETIC"
@@ -220,7 +221,12 @@ async function appendUseCaseRevision(
     snapshot: { ...usecase },
     version_number: await deps.revisionStore.nextVersionNumber(usecase.id)
   };
+  revision.snapshot = { ...usecase, current_revision_id: revision.id };
   await deps.revisionStore.saveRevision(revision);
+  await deps.useCaseStore.updateUseCase({
+    ...usecase,
+    current_revision_id: revision.id
+  });
   return revision;
 }
 
@@ -231,10 +237,6 @@ async function affectedSessionIds(
   return (await workSessionStore.listWorkSessionsForUseCase(usecaseId))
     .filter((session) => session.status === "ACTIVE")
     .map((session) => session.id);
-}
-
-export function usesPassiveVoice(action: string): boolean {
-  return /^.+?\s+is\s+\w+ed\.?$/i.test(action.trim());
 }
 
 export function activeRewrite(action: string): string {

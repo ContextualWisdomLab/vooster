@@ -2,12 +2,14 @@ import { Args, Command, Flags } from "@oclif/core";
 import {
   scenarioStepCreateRequestSchema,
   scenarioStepCreateResponseSchema,
+  stepMoveRequestSchema,
+  stepMoveResponseSchema,
   stepPatchRequestSchema,
   stepUpdateResponseSchema,
-  type ScenarioStepCreateResponse as StepResponse
+  type ScenarioStepCreateResponse as StepResponse,
+  type StepUpdateResponse
 } from "@vooster/contracts";
 
-import { buildAgentEnvelope } from "../agent-envelope.js";
 import {
   commonMutationContextFrom,
   runMutationCommand
@@ -18,12 +20,12 @@ import {
   requiredFlag,
   resolveContextFlag
 } from "../flag-values.js";
-import { patchJson } from "../http-client.js";
 
 type StepCliFlags = {
   action?: string;
   actor?: string;
   "api-url"?: string;
+  at?: string;
   "base-revision"?: string;
   branch?: string;
   "dry-run"?: boolean;
@@ -32,6 +34,7 @@ type StepCliFlags = {
   "project-id"?: string;
   root?: string;
   "session-cookie"?: string;
+  to?: string;
 };
 
 type StepCreateFlags = {
@@ -44,6 +47,7 @@ type StepCreateFlags = {
   root: string;
   scenarioId: string;
   sessionCookie: string;
+  position?: number;
 };
 
 type StepEditFlags = {
@@ -54,6 +58,17 @@ type StepEditFlags = {
   implementationRefs?: string[];
   sessionCookie: string;
   stepId: string;
+};
+
+type StepMoveFlags = {
+  apiUrl: string;
+  branch: string;
+  dryRun: boolean;
+  projectId: string | null;
+  root: string;
+  sessionCookie: string;
+  stepId: string;
+  toPosition: number;
 };
 
 export class StepCommand extends Command {
@@ -68,6 +83,7 @@ export class StepCommand extends Command {
     action: Flags.string(),
     actor: Flags.string(),
     "api-url": Flags.string(),
+    at: Flags.string(),
     "base-revision": Flags.string(),
     branch: Flags.string(),
     "dry-run": Flags.boolean(),
@@ -75,7 +91,8 @@ export class StepCommand extends Command {
     implements: Flags.string(),
     "project-id": Flags.string(),
     root: Flags.string(),
-    "session-cookie": Flags.string()
+    "session-cookie": Flags.string(),
+    to: Flags.string()
   };
 
   override async run(): Promise<void> {
@@ -104,6 +121,10 @@ export async function runStep(
     await editStep(flags, targetId, writeLine);
     return;
   }
+  if (action === "move") {
+    await moveStep(flags, targetId, writeLine);
+    return;
+  }
 
   throw new Error("Missing step action.");
 }
@@ -117,7 +138,8 @@ async function addStep(
   const actor = s.actor;
   const body = scenarioStepCreateRequestSchema.parse({
     action: s.action,
-    actor: s.actor
+    actor: s.actor,
+    position: s.position
   });
   await runMutationCommand<StepResponse>(
     {
@@ -132,6 +154,34 @@ async function addStep(
       format: flags.format,
       human: (body, write) => {
         printStepAdd(body, actor, write);
+      },
+      writeLine
+    }
+  );
+}
+
+async function moveStep(
+  flags: StepCliFlags,
+  stepId: string | undefined,
+  writeLine: (message: string) => void
+): Promise<void> {
+  const s = stepMoveFlagsFrom(flags, stepId);
+  const body = stepMoveRequestSchema.parse({
+    to: s.toPosition
+  });
+  await runMutationCommand<StepResponse>(
+    {
+      body,
+      context: (data) => ({ revision: data.revision.id ?? null }),
+      method: "POST",
+      path: `/v1/steps/${s.stepId}/move`,
+      selectData: (responseBody) => stepMoveResponseSchema.parse(responseBody)
+    },
+    commonMutationContextFrom(s),
+    {
+      format: flags.format,
+      human: (body, write) => {
+        printStepMove(body, write);
       },
       writeLine
     }
@@ -154,31 +204,58 @@ function printStepAdd(
   }
 }
 
+function printStepMove(body: StepResponse, writeLine: (message: string) => void): void {
+  writeLine(`Step ${body.step.id ?? ""}`);
+  writeLine(`Moved to ${String(body.step.step_number ?? "")}`);
+  writeLine(`Revision id ${body.revision.id ?? ""}`);
+  writeLine(
+    `Revision ${body.revision.severity ?? ""} version ${String(body.revision.version_number)}`
+  );
+  for (const step of body.scenario_steps) {
+    writeLine(`${String(step.step_number)}. ${step.action ?? ""}`);
+  }
+}
+
 async function editStep(
   flags: StepCliFlags,
   stepId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
   const stepFlags = stepEditFlagsFrom(flags, stepId);
-  const response = await patchJson(
-    `${stepFlags.apiUrl}/v1/steps/${stepFlags.stepId}`,
-    stepPatchRequestSchema.parse({
-      action: stepFlags.action,
-      actor: stepFlags.actor,
-      base_revision: stepFlags.baseRevision,
-      implements: stepFlags.implementationRefs
+  const body = stepPatchRequestSchema.parse({
+    action: stepFlags.action,
+    actor: stepFlags.actor,
+    base_revision: stepFlags.baseRevision,
+    implements: stepFlags.implementationRefs
+  });
+  await runMutationCommand<StepUpdateResponse>(
+    {
+      body,
+      context: () => ({ revision: null }),
+      method: "PATCH",
+      path: `/v1/steps/${stepFlags.stepId}`,
+      selectData: (responseBody) => stepUpdateResponseSchema.parse(responseBody)
+    },
+    commonMutationContextFrom({
+      apiUrl: stepFlags.apiUrl,
+      branch: "main",
+      dryRun: false,
+      projectId: null,
+      root: process.cwd(),
+      sessionCookie: stepFlags.sessionCookie
     }),
     {
-      Cookie: stepFlags.sessionCookie
+      format: flags.format,
+      human: printStepEdit,
+      writeLine
     }
   );
-  const body = stepUpdateResponseSchema.parse(response.body);
+}
 
-  if (flags.format === "agent") {
-    writeLine(JSON.stringify(buildAgentEnvelope({ data: body }), null, 2));
-    return;
-  }
-
+function printStepEdit(
+  body: StepUpdateResponse,
+  writeLine: (message: string) => void
+): void {
   writeLine(`Step ${body.step.id ?? ""}`);
   writeLine(`Action ${body.step.action ?? ""}`);
   writeLine(
@@ -200,7 +277,8 @@ function stepCreateFlagsFrom(
     projectId: optionalFlag(flags, "project-id") ?? null,
     root: flags.root ?? process.cwd(),
     scenarioId: requiredArgument(scenarioId, "scenario-id"),
-    sessionCookie: resolveContextFlag(flags, "session-cookie")
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    position: optionalPositiveIntegerFlag(flags, "at")
   };
 }
 
@@ -219,6 +297,22 @@ function stepEditFlagsFrom(
   };
 }
 
+function stepMoveFlagsFrom(
+  flags: StepCliFlags,
+  stepId: string | undefined
+): StepMoveFlags {
+  return {
+    apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
+    projectId: optionalFlag(flags, "project-id") ?? null,
+    root: flags.root ?? process.cwd(),
+    sessionCookie: resolveContextFlag(flags, "session-cookie"),
+    stepId: requiredArgument(stepId, "step-id"),
+    toPosition: requiredPositiveIntegerFlag(flags, "to")
+  };
+}
+
 function implementationRefsFrom(value: string | undefined): string[] | undefined {
   if (value === undefined) {
     return undefined;
@@ -227,4 +321,23 @@ function implementationRefsFrom(value: string | undefined): string[] | undefined
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function optionalPositiveIntegerFlag(
+  flags: StepCliFlags,
+  name: "at" | "to"
+): number | undefined {
+  const value = optionalFlag(flags, name);
+  return value === undefined ? undefined : parsePositiveIntegerFlag(value, name);
+}
+
+function requiredPositiveIntegerFlag(flags: StepCliFlags, name: "at" | "to"): number {
+  return parsePositiveIntegerFlag(requiredFlag(flags, name), name);
+}
+
+function parsePositiveIntegerFlag(value: string, name: "at" | "to"): number {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`--${name} must be a positive integer.`);
+  }
+  return Number.parseInt(value, 10);
 }

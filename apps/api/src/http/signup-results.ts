@@ -16,7 +16,13 @@ export function sendDeniedOAuth(reply: FastifyReply, flow: PendingOAuth["flow"])
       );
   }
 
-  return reply.code(400).send(problem(400, "GitHub authorization denied"));
+  return reply
+    .code(400)
+    .send(
+      problem(400, "GitHub authorization denied", {}, [
+        { command: "vspec login", reason: "Retry signup." }
+      ])
+    );
 }
 
 export function sendGithubUnavailable(reply: FastifyReply, flow: PendingOAuth["flow"]) {
@@ -46,7 +52,13 @@ export function sendCompleteOAuthResult(
         .code(201)
         .send(signupResponse(result.user, result.workspace, result.membership));
     case "UNVERIFIED_EMAIL":
-      return reply.code(422).send(problem(422, "Verify your GitHub email"));
+      return reply
+        .code(422)
+        .send(
+          problem(422, "Verify your GitHub email", {}, [
+            { command: "vspec login", reason: "Retry signup." }
+          ])
+        );
     case "USER_NOT_FOUND":
       return reply
         .code(404)

@@ -32,7 +32,7 @@ describe("honest CLI - self-teaching guidance", () => {
       expect(rejected.stderr).toBe("");
       expect(rejected.stdout).toContain("Use case title should be a verb phrase");
       expect(rejected.stdout).toContain("Suggested titles");
-      expect(rejected.stdout).toContain("Reviews order status");
+      expect(rejected.stdout).toContain("Review order status");
       expect(rejected.stdout).toContain("Next actions");
       expect(rejected.stdout).toContain("vspec usecase create --force");
 

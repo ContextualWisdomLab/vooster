@@ -24,8 +24,14 @@ import {
   type SessionCliFlags
 } from "./session-flags.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
-import { fetchJson, postJson } from "../http-client.js";
-import { clearSessionFile, writeSessionFile } from "../session-store.js";
+import { extractError, extractSuggestedNextActions } from "../domain/error-codes.js";
+import { buildErrorEnvelope } from "../domain/envelope.js";
+import { fetchJson, isApiError, postJson } from "../http-client.js";
+import {
+  clearSessionFile,
+  readSessionFile,
+  writeSessionFile
+} from "../session-store.js";
 
 export class SessionCommand extends Command {
   static override description = "Manage work sessions.";
@@ -90,7 +96,10 @@ async function startSession(
   flags: SessionCliFlags,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const sessionFlags = sessionStartFlagsFrom(flags);
+  const sessionFlags = sessionStartFlagsOrEnvelope(flags, writeLine);
+  if (sessionFlags === undefined) {
+    return;
+  }
   const requestBody = sessionStartRequestSchema.parse({
     agent_type: sessionFlags.agentType,
     auto_branch: sessionFlags.autoBranch,
@@ -127,6 +136,48 @@ async function startSession(
   }
 
   printSessionStart(body, writeLine);
+}
+
+function sessionStartFlagsOrEnvelope(
+  flags: SessionCliFlags,
+  writeLine: (message: string) => void
+): ReturnType<typeof sessionStartFlagsFrom> | undefined {
+  try {
+    return sessionStartFlagsFrom(flags);
+  } catch (error: unknown) {
+    if (flags.format !== "agent" || !(error instanceof Error)) {
+      throw error;
+    }
+    writeLine(
+      JSON.stringify(
+        buildErrorEnvelope({
+          error: { code: "BAD_REQUEST", message: error.message },
+          suggestedNextActions: sessionStartValidationActions(error.message)
+        }),
+        null,
+        2
+      )
+    );
+    process.exitCode = 1;
+    return undefined;
+  }
+}
+
+function sessionStartValidationActions(message: string) {
+  if (!message.includes("--pin")) {
+    return [];
+  }
+  return [
+    {
+      command: 'vspec session start --intent "..." --pin <KEY-NNN>',
+      reason: "Start a session after the target use case key exists."
+    },
+    {
+      command: "vspec usecase create",
+      reason:
+        "For greenfield work, create the use case first or continue without a session."
+    }
+  ];
 }
 
 async function listSessions(
@@ -170,7 +221,13 @@ async function completeSession(
   sessionId: string | undefined,
   writeLine: (message: string) => void
 ): Promise<void> {
-  const sessionFlags = sessionCompleteFlagsFrom(flags, sessionId);
+  const resolvedSessionId =
+    sessionId ?? readSessionFile(flags.root ?? process.cwd())?.session_id;
+  if (resolvedSessionId === undefined && flags.format === "agent") {
+    writeNoActiveSessionEnvelope(writeLine);
+    return;
+  }
+  const sessionFlags = sessionCompleteFlagsFrom(flags, resolvedSessionId);
   const params = sessionCompleteParamsSchema.parse({
     sessionId: sessionFlags.sessionId
   });
@@ -178,13 +235,17 @@ async function completeSession(
     no_merge: sessionFlags.noMerge,
     ...(sessionFlags.summary === undefined ? {} : { summary: sessionFlags.summary })
   });
-  const response = await postJson(
-    `${sessionFlags.apiUrl}/v1/sessions/${params.sessionId}/complete`,
+  const response = await postSessionComplete(
+    sessionFlags.apiUrl,
+    params.sessionId,
     requestBody,
-    {
-      Cookie: sessionFlags.sessionCookie
-    }
+    sessionFlags.sessionCookie,
+    flags.format,
+    writeLine
   );
+  if (response === undefined) {
+    return;
+  }
 
   const body: SessionCompleteResponse = sessionCompleteResponseSchema.parse(
     response.body
@@ -205,6 +266,64 @@ async function completeSession(
   }
 
   printSessionComplete(body, writeLine);
+}
+
+async function postSessionComplete(
+  apiUrl: string,
+  sessionId: string,
+  requestBody: unknown,
+  sessionCookie: string,
+  format: string | undefined,
+  writeLine: (message: string) => void
+) {
+  try {
+    return await postJson(`${apiUrl}/v1/sessions/${sessionId}/complete`, requestBody, {
+      Cookie: sessionCookie
+    });
+  } catch (error: unknown) {
+    if (format !== "agent" || !isApiError(error)) {
+      throw error;
+    }
+    writeLine(
+      JSON.stringify(
+        buildErrorEnvelope({
+          error: extractError(error.status, error.body),
+          suggestedNextActions: extractSuggestedNextActions(error.body)
+        }),
+        null,
+        2
+      )
+    );
+    process.exitCode = 1;
+    return undefined;
+  }
+}
+
+function writeNoActiveSessionEnvelope(writeLine: (message: string) => void): void {
+  writeLine(
+    JSON.stringify(
+      buildErrorEnvelope({
+        error: {
+          code: "MISSING_SESSION_ID",
+          message: "No active session id supplied and no active session file was found."
+        },
+        suggestedNextActions: [
+          {
+            command: "vspec session complete <id>",
+            reason:
+              "Complete a specific active session when no local session file exists."
+          },
+          {
+            command: "vspec session list",
+            reason: "List active sessions and choose the id to complete."
+          }
+        ]
+      }),
+      null,
+      2
+    )
+  );
+  process.exitCode = 1;
 }
 
 function setSearchParam(url: URL, name: string, value: string | undefined): void {

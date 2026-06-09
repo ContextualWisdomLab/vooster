@@ -202,11 +202,13 @@ describe("Goal 2 persistence matrix — session cluster", () => {
     const persistedScenario = (shownBody.data?.scenarios ?? []).find(
       (entry) => entry.id === scenario.id
     );
-    expect(persistedScenario?.steps ?? []).toContainEqual({
-      action: step.action,
-      actor: "Customer",
-      invokes: [],
-      step_number: 1
-    });
+    expect(persistedScenario?.steps ?? []).toContainEqual(
+      expect.objectContaining({
+        action: step.action,
+        actor: "Customer",
+        invokes: [],
+        step_number: 1
+      })
+    );
   }, 90_000);
 });

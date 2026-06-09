@@ -122,13 +122,18 @@ vspec goal show <id>
 
 ```
 vspec usecase create --title "<verb phrase>" --primary-actor <actor> [--level user-goal|subfunction|summary] [--from <goal-id>]
-vspec usecase list [--status=] [--actor=] [--q=] [--level=]
+vspec usecase list [--status=] [--actor=] [--q=] [--level=] [--all|--archived]
 vspec usecase show <KEY-NNN> [--revision=] [--session=]
 vspec usecase set <KEY-NNN> --field <name> --value "<value>"
 vspec usecase add-stakeholder <KEY-NNN> --stakeholder <s> --interest "<text>"
 vspec usecase archive <KEY-NNN>
 vspec usecase restore <KEY-NNN>
 ```
+
+`usecase list` defaults to active use cases. `--archived` lists only archived
+use cases and `--all` includes both active and archived entries; archived rows
+are marked in the output. `usecase show <KEY-NNN>` can inspect an archived use
+case read-only and prints its archived timestamp.
 
 ## Scenarios & Steps
 
@@ -138,22 +143,23 @@ vspec scenario list <KEY-NNN>   # 🔵 Planned
 vspec scenario edit <id>   # 🔵 Planned
 vspec scenario delete <id>   # 🔵 Planned
 
-vspec step add <scenario-id|extension-point> --actor <actor> --action "<verb phrase>"
+vspec step add <scenario-id|extension-point> --actor <actor> --action "<verb phrase>" [--at <position>]
 vspec step edit <id>
-vspec step move <id> --to <position>   # 🔵 Planned
+vspec step move <id> --to <position>
 vspec step delete <id>   # 🔵 Planned
 ```
 
 ### Agent Format — Steps
 
-`vspec step add <scenario-id> --format=agent` and
-`vspec step edit <id> --format=agent` return the shared agent envelope with
-the existing API response as `data`. `step add` sets `context.revision` from
-`data.revision.id`. `step edit` leaves `context.revision` null because the
-current edit response does not include a revision id.
+`vspec step add <scenario-id> --format=agent`, `vspec step move <id> --format=agent`,
+and `vspec step edit <id> --format=agent` return the shared agent envelope with
+the existing API response as `data`. `step add` and `step move` set
+`context.revision` from `data.revision.id`. `step edit` leaves `context.revision`
+null because the current edit response does not include a revision id.
 
 ```
-vspec step add <scenario-id> --actor <actor> --action "<verb phrase>" --format=agent
+vspec step add <scenario-id> --actor <actor> --action "<verb phrase>" [--at <position>] --format=agent
+vspec step move <id> --to <position> --format=agent
 vspec step edit <id> --action "<verb phrase>" --base-revision <revision-id> --format=agent
 ```
 
@@ -346,22 +352,32 @@ them against the current working tree:
 
 - `path` must point to an existing file.
 - `path:symbol` must point to an existing file whose contents include `symbol`.
-- Steps with no `implements` refs are reported as unlinked.
+- Steps with no `implements` refs are reported as unlinked only after the use
+  case leaves `DRAFT` or the working tree contains source/test surface to link
+  against.
+- Structural completeness is reported separately in `structural_checks` for
+  `primary_actor`, `level`, `stakeholders`, and `extensions`. Each entry is
+  `present` or `missing`; missing entries affect the verdict and exit code.
 - When all links resolve and `--test-cmd` is provided, Vooster runs that command
   and uses only its exit code; it does not parse or interpret test output.
 
 Exit codes are stable for the same input tree:
 
 - `0` — all linked refs resolve and delegated tests pass or were not requested.
-- `1` — at least one link is broken, or delegated tests fail.
+- `1` — at least one link is broken, a structural/spec check fails, or delegated
+  tests fail.
 - `7` — no links are broken, but at least one step is unlinked.
 
 `--format=json|agent` returns the same deterministic result payload, including
-`checked_refs`, `broken_links`, `unlinked_steps`, `test_command`, and `drift`.
+`checked_refs`, `broken_links`, `unlinked_steps`, `structural_checks`,
+`spec_checks`, `suggested_next_actions`, `test_command`, and `drift`.
 For `vspec verify`, drift is not semantic mismatch detection. The deterministic
-drift kinds are `broken_link`, `failing_test`, and `unlinked_step`; the blocking
-result never asks an LLM whether the linked code semantically implements the
-spec.
+implementation drift kinds are `broken_link`, `failing_test`, and `unlinked_step`;
+structural/spec failures add `spec_check_failed` and `structural_check_missing`.
+The blocking result never asks an LLM whether the linked code semantically
+implements the spec. On any non-passing verdict, `suggested_next_actions`
+includes one remediation entry per failing check. Human output prints the same
+suggestions under `Next actions`.
 
 The GitHub Action adapter in `action.yml` runs the same verify implementation
 through `apps/cli/bin/run.js verify` from the Action checkout and resolves refs
@@ -471,6 +487,10 @@ the pull response as `data`, so agents can read `data.cursor` and `data.files`
 from the same payload the human command writes to disk. The context keeps the
 default null values because pull does not create a revision, branch, project
 key, or session. `suggested_next_actions` is empty. For both commands, files are written before the envelope is printed.
+Pull renders each active use case at its current server revision, including
+scenario and step mutations created since the file was first exported; agents
+must not need an `export markdown > file` fallback to reconcile stale local
+spec files.
 
 ```
 vspec pull --format=agent
@@ -624,6 +644,11 @@ Outputs a markdown document covering:
 Cached on the server; refreshed when CLI is updated.
 
 ### 6. `vspec doctor` — quality diagnostic
+
+Project diagnostics roll up every active use case in the project. `status: ok`
+means the project exists and all visible use cases have passing quality checks;
+any failing or warning use-case check makes the project diagnostic return
+`issues_found` with `vspec doctor --usecase <KEY>` next actions.
 
 ```
 $ vspec doctor PAY-001

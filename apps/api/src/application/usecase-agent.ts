@@ -25,9 +25,6 @@ export async function showUseCaseForAgent(
   ) {
     return { status: "AUTHENTICATION_REQUIRED" };
   }
-  if (found.usecase.archived_at !== null) {
-    return { status: "ARCHIVED" };
-  }
   const headRevision = await latestRevisionId(deps.revisionStore, found.usecase);
   const usecaseAtHead = { ...found.usecase, current_revision_id: headRevision };
   if (input.format !== "agent") {
@@ -63,7 +60,7 @@ export async function showUseCaseForAgent(
       usecaseAtHead,
       revision,
       session?.id ?? null,
-      warningsFor(session, pinned, input.requestedRevision),
+      warningsFor(usecaseAtHead, session, pinned, input.requestedRevision),
       input.requestId
     ),
     status: "AGENT_ENVELOPE"
@@ -96,36 +93,55 @@ async function agentEnvelope(
 }
 
 function warningsFor(
+  usecase: StoredUseCase,
   session: StoredWorkSession | undefined,
   pinned: string | undefined,
   requestedRevision: string | undefined
 ): AgentWarning[] {
+  const warnings: AgentWarning[] = [];
+  if (usecase.archived_at !== null) {
+    warnings.push({
+      message:
+        "This use case is archived; reads are allowed but edits require restore.",
+      type: "ARCHIVED_READ_ONLY"
+    });
+  }
   if (
     pinned !== undefined &&
     requestedRevision !== undefined &&
     requestedRevision !== pinned
   ) {
-    return [
-      {
-        message:
-          "Requested revision was ignored because the active session pins this use case.",
-        type: "REVISION_OVERRIDDEN_BY_SESSION"
-      }
-    ];
+    warnings.push({
+      message:
+        "Requested revision was ignored because the active session pins this use case.",
+      type: "REVISION_OVERRIDDEN_BY_SESSION"
+    });
+    return warnings;
   }
   if (session !== undefined && pinned === undefined) {
-    return [
-      {
-        message:
-          "Session does not pin this use case; concurrent edits may change future reads.",
-        type: "UNPINNED_SESSION_READ"
-      }
-    ];
+    warnings.push({
+      message:
+        "Session does not pin this use case; concurrent edits may change future reads.",
+      type: "UNPINNED_SESSION_READ"
+    });
+    return warnings;
   }
-  return [];
+  return warnings;
 }
 
 function suggestedActions(usecase: StoredUseCase, warnings: Array<{ type: string }>) {
+  if (usecase.archived_at !== null) {
+    return [
+      {
+        command: `vspec usecase restore ${usecase.key}`,
+        reason: "Restore the archived use case before proposing edits."
+      },
+      {
+        command: "vspec usecase list --archived",
+        reason: "Browse archived use cases without changing state."
+      }
+    ];
+  }
   return [
     {
       command: `vspec change propose ${usecase.key}`,

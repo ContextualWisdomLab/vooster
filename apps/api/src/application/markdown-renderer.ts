@@ -9,6 +9,7 @@ import type { StakeholderInterestStore } from "../ports/stakeholder-interest-sto
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
 import type { StepStore } from "../ports/step-store.js";
 import { implementsAnnotation, invocationAnnotation } from "./markdown-invocations.js";
+import { orderScenarioStepsForDisplay } from "./scenario-step-ordering.js";
 
 export type MarkdownRenderDeps = {
   actorStore: ActorStore;
@@ -148,9 +149,7 @@ async function scenarioSteps(
   stepStore: StepStore,
   scenarioId: string | undefined
 ): Promise<StoredStep[]> {
-  return [...(await stepStore.listSteps(scenarioId ?? ""))].sort(
-    (left, right) => left.step_number - right.step_number
-  );
+  return orderScenarioStepsForDisplay(await stepStore.listSteps(scenarioId ?? ""));
 }
 
 async function stepLine(

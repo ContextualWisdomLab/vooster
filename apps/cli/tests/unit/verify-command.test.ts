@@ -29,9 +29,17 @@ describe("verify command", () => {
     expect(process.exitCode).toBeUndefined();
     expect(lines).toEqual([
       "Verify UC-013 pass",
-      "Checked refs 2",
+      "Checked refs 3",
       "Broken links 0",
       "Unlinked steps 0",
+      "Spec actors_registered pass",
+      "Spec scenario_completeness pass",
+      "Spec extension_points_resolved pass",
+      "Spec cockburn_fidelity pass",
+      "Structure primary_actor present - Customer",
+      "Structure level present - USER_GOAL",
+      "Structure stakeholders present - 1 stakeholder interest",
+      "Structure extensions present - 1 extension scenario",
       "Tests not run"
     ]);
     rmSync(root, { recursive: true });
@@ -55,13 +63,25 @@ describe("verify command", () => {
     expect(process.exitCode).toBe(1);
     expect(lines).toEqual([
       "Verify UC-013 broken_links",
-      "Checked refs 3",
+      "Checked refs 4",
       "Broken links 3",
       "Unlinked steps 0",
+      "Spec actors_registered pass",
+      "Spec scenario_completeness pass",
+      "Spec extension_points_resolved pass",
+      "Spec cockburn_fidelity pass",
+      "Structure primary_actor present - Customer",
+      "Structure level present - USER_GOAL",
+      "Structure stakeholders present - 1 stakeholder interest",
+      "Structure extensions present - 1 extension scenario",
       "Broken UC-013#1 src/auth/login.ts:missingSymbol missing_symbol",
       "Broken UC-013#1 src/missing.ts missing_file",
       "Broken UC-013#1 tests/UC-013.feature:scenario_missing missing_symbol",
-      "Tests not run"
+      "Tests not run",
+      "Next actions",
+      "  vspec usecase show UC-013 --format=agent - Fix step 1 implementation ref src/auth/login.ts:missingSymbol (missing_symbol).",
+      "  vspec usecase show UC-013 --format=agent - Fix step 1 implementation ref src/missing.ts (missing_file).",
+      "  vspec usecase show UC-013 --format=agent - Fix step 1 implementation ref tests/UC-013.feature:scenario_missing (missing_symbol)."
     ]);
     rmSync(root, { recursive: true });
   });
@@ -76,12 +96,67 @@ describe("verify command", () => {
     expect(process.exitCode).toBe(7);
     expect(lines).toEqual([
       "Verify UC-013 unlinked_steps",
-      "Checked refs 0",
+      "Checked refs 1",
       "Broken links 0",
       "Unlinked steps 1",
+      "Spec actors_registered pass",
+      "Spec scenario_completeness pass",
+      "Spec extension_points_resolved pass",
+      "Spec cockburn_fidelity pass",
+      "Structure primary_actor present - Customer",
+      "Structure level present - USER_GOAL",
+      "Structure stakeholders present - 1 stakeholder interest",
+      "Structure extensions present - 1 extension scenario",
       "Unlinked UC-013#1 Logs the user in.",
+      "Tests not run",
+      "Next actions",
+      "  vspec usecase show UC-013 --format=agent - Add an implements ref to step 1: Logs the user in."
+    ]);
+    rmSync(root, { recursive: true });
+  });
+
+  test("does not demand implementation refs for DRAFT specs in a codeless root", async () => {
+    const root = emptyRoot();
+    stubUsecase(usecaseResponse({ extensionImplements: [], implements: [] }));
+    const lines: string[] = [];
+
+    await runVerify(flags({ root }), "UC-013", (line) => lines.push(line));
+
+    expect(process.exitCode).toBeUndefined();
+    expect(lines).toEqual([
+      "Verify UC-013 pass",
+      "Checked refs 0",
+      "Broken links 0",
+      "Unlinked steps 0",
+      "Spec actors_registered pass",
+      "Spec scenario_completeness pass",
+      "Spec extension_points_resolved pass",
+      "Spec cockburn_fidelity pass",
+      "Structure primary_actor present - Customer",
+      "Structure level present - USER_GOAL",
+      "Structure stakeholders present - 1 stakeholder interest",
+      "Structure extensions present - 1 extension scenario",
       "Tests not run"
     ]);
+    rmSync(root, { recursive: true });
+  });
+
+  test("reports unlinked steps past DRAFT even in a codeless root", async () => {
+    const root = emptyRoot();
+    stubUsecase(
+      usecaseResponse({
+        extensionImplements: [],
+        implements: [],
+        status: "IN_REVIEW"
+      })
+    );
+    const lines: string[] = [];
+
+    await runVerify(flags({ root }), "UC-013", (line) => lines.push(line));
+
+    expect(process.exitCode).toBe(7);
+    expect(lines[0]).toBe("Verify UC-013 unlinked_steps");
+    expect(lines).toContain("Unlinked steps 2");
     rmSync(root, { recursive: true });
   });
 
@@ -182,6 +257,10 @@ function fixtureRoot(): string {
   return root;
 }
 
+function emptyRoot(): string {
+  return mkdtempSync(join(tmpdir(), "vspec-verify-codeless-"));
+}
+
 function flags(overrides: VerifyFlags = {}): VerifyFlags {
   return {
     "api-url": "https://api.example.test",
@@ -204,8 +283,15 @@ function stubUsecase(body: unknown): void {
   );
 }
 
-function usecaseResponse(overrides: { implements?: string[] } = {}) {
+function usecaseResponse(
+  overrides: {
+    extensionImplements?: string[];
+    implements?: string[];
+    status?: "APPROVED" | "DEPRECATED" | "DRAFT" | "IN_REVIEW";
+  } = {}
+) {
   return {
+    primary_actor: { name: "Customer" },
     scenarios: [
       {
         steps: [
@@ -221,13 +307,31 @@ function usecaseResponse(overrides: { implements?: string[] } = {}) {
           }
         ],
         type: "MAIN_SUCCESS"
+      },
+      {
+        extension_point: "1a",
+        steps: [
+          {
+            action: "Receives a fallback code.",
+            actor: "Customer",
+            implements: overrides.extensionImplements ?? [
+              "src/auth/login.ts:loginUser"
+            ],
+            invokes: [],
+            step_number: 2
+          }
+        ],
+        type: "EXTENSION"
       }
     ],
-    stakeholder_interests: [],
+    stakeholder_interests: [
+      { interest: "Reliable access.", stakeholder: "Product Manager" }
+    ],
     usecase: {
       current_revision_id: "revision-1",
       key: "UC-013",
-      status: "DRAFT",
+      level: "USER_GOAL",
+      status: overrides.status ?? "DRAFT",
       title: "Logs the user in"
     }
   };

@@ -1,0 +1,3 @@
+# Verify scenarios that must render structured errors instead of raw exceptions.
+__NONE__
+MISSING-001

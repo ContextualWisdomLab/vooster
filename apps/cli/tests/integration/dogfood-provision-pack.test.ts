@@ -45,6 +45,9 @@ describe("dogfood provision pack install", () => {
         maxBuffer: 1024 * 1024
       });
       expect(result.stdout).toMatch(/^vspec\//);
+      expect(result.stderr).not.toMatch(
+        /MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|Use source CLI/
+      );
     } finally {
       await rm(tmp, { force: true, recursive: true });
     }

@@ -36,6 +36,12 @@ describe("honest CLI - usecase write", () => {
           seed.env
         )
       );
+      const releveled = await expectOk(
+        runCli(
+          ["usecase", "set", "--field", "level", "--value", "SUMMARY", seed.usecaseKey],
+          seed.env
+        )
+      );
       const agentRetitled = await expectOk(
         runCli(
           [
@@ -56,6 +62,7 @@ describe("honest CLI - usecase write", () => {
       expect(restored.stdout).toContain("Restored");
       expect(updated.stdout).toContain("DRAFT");
       expect(retitled.stdout).toContain("Reviews checkout status");
+      expect(releveled.stdout).toContain("Level SUMMARY");
       const envelope = JSON.parse(agentRetitled.stdout) as {
         data: { usecase: { title: string } };
         format_version: number;

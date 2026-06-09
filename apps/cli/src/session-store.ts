@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 type SessionFileBody = {
@@ -19,4 +19,15 @@ export function writeSessionFile(
 
 export function clearSessionFile(root: string, relativePath: string): void {
   rmSync(join(root, relativePath), { force: true });
+}
+
+export function readSessionFile(root: string): SessionFileBody | undefined {
+  const path = join(root, ".vspec/session.json");
+  if (!existsSync(path)) {
+    return undefined;
+  }
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as Partial<SessionFileBody>;
+  return typeof parsed.session_id === "string"
+    ? { ...parsed, session_id: parsed.session_id }
+    : undefined;
 }

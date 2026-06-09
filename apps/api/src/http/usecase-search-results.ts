@@ -8,6 +8,7 @@ export function useCasePreview(
   counts: UseCaseScenarioCounts
 ) {
   return {
+    ...(usecase.archived_at === null ? {} : { archived_at: usecase.archived_at }),
     extension_count: counts.extension_count,
     key: usecase.key,
     level: usecase.level,
@@ -18,6 +19,16 @@ export function useCasePreview(
     title: usecase.title,
     trigger_excerpt: ""
   };
+}
+
+export function matchesArchiveScope(
+  archivedAt: null | string,
+  scope: "active" | "all" | "only"
+) {
+  if (scope === "all") {
+    return true;
+  }
+  return scope === "only" ? archivedAt !== null : archivedAt === null;
 }
 
 export function encodeCursor(key: string) {

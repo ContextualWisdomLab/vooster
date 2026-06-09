@@ -41,7 +41,7 @@ export type AddStakeholderInterestResult =
       stakeholderInterests: InterestListItem[];
       status: "ADDED";
     }
-  | { existingInterest: string; status: "DUPLICATE_INTEREST" }
+  | { existingInterest: string; status: "DUPLICATE_INTEREST"; usecaseId: string }
   | { status: "FORBIDDEN" }
   | {
       status: "STAKEHOLDER_NOT_FOUND";
@@ -98,7 +98,11 @@ export async function addStakeholderInterest(
       stakeholder.id
     );
   if (existing !== undefined) {
-    return { existingInterest: existing.interest, status: "DUPLICATE_INTEREST" };
+    return {
+      existingInterest: existing.interest,
+      status: "DUPLICATE_INTEREST",
+      usecaseId: found.usecase.id
+    };
   }
 
   const stakeholderInterest = {

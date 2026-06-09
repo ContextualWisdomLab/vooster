@@ -58,8 +58,12 @@ export function printUsecaseList(
   writeLine: (message: string) => void
 ): void {
   for (const item of body.items) {
-    writeLine(`${item.key} ${item.title}`);
+    const archiveLabel = item.archived_at === undefined ? "" : " [archived]";
+    writeLine(`${item.key}${archiveLabel} ${item.title}`);
     writeLine(`${item.status} ${item.level} ${item.primary_actor}`);
+    if (item.archived_at !== undefined) {
+      writeLine(`Archived at ${item.archived_at ?? ""}`);
+    }
     if (item.trigger_excerpt !== "") {
       writeLine(item.trigger_excerpt);
     }
@@ -77,6 +81,9 @@ export function printUsecaseShow(
   writeLine(`UseCase ${body.usecase.key}`);
   writeLine(`Title ${body.usecase.title ?? ""}`);
   writeLine(`Status ${body.usecase.status ?? ""}`);
+  if (body.usecase.archived_at !== undefined && body.usecase.archived_at !== null) {
+    writeLine(`Archived at ${body.usecase.archived_at}`);
+  }
   writeLine(`Revision ${body.usecase.current_revision_id ?? ""}`);
   if ((body.stakeholder_interests ?? []).length > 0) {
     writeLine("Stakeholders and Interests");
@@ -98,11 +105,13 @@ export function printUsecaseShow(
   const extensions = (body.scenarios ?? []).filter(
     (scenario) => scenario.type === "EXTENSION"
   );
-  if (extensions.some((scenario) => scenario.steps.length > 0)) {
+  if (extensions.length > 0) {
     writeLine("Extensions");
     for (const scenario of extensions) {
       const point = scenario.extension_point ?? "*";
-      writeLine(`${point}. ${scenario.condition ?? "Extension"}`);
+      const outcome =
+        typeof scenario.outcome === "string" ? ` -> ${scenario.outcome}` : "";
+      writeLine(`${point}. ${scenario.condition ?? "Extension"}${outcome}`);
       for (const step of scenario.steps) {
         writeLine(`${point}${String(step.step_number)}. ${step.actor} ${step.action}`);
       }

@@ -109,6 +109,7 @@ async function addStep(
     actorName: parsed.data.actor,
     dryRun: scenarioDryRunQuerySchema.parse(request.query),
     force: parsed.data.force,
+    position: parsed.data.position,
     scenarioId,
     userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
   });

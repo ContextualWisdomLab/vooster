@@ -14,3 +14,6 @@ state.`_
   - Resolved: cycle `20260602T232632Z` had `P0=0 P1=0 P2=6`; triage now
     prioritizes a clean P0/P1 pass over cap enforcement, and the dogfood
     entrypoint exits 0 for the recorded clean cycle.
+
+- **[dogfood:budget]** loop stopped (spent $21.5301 (cap $20.00)) at 2026-06-05T00:40:54Z.
+  - See .state/dogfood/ledger.tsv and dogfood/runs/. Design: docs/dogfood-loop.md.

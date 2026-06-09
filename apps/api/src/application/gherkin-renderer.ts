@@ -6,6 +6,7 @@ import type {
 import type { ActorStore } from "../ports/actor-store.js";
 import type { ScenarioStore } from "../ports/scenario-store.js";
 import type { StepStore } from "../ports/step-store.js";
+import { orderScenarioStepsForDisplay } from "./scenario-step-ordering.js";
 
 export type GherkinRenderDeps = {
   actorStore: ActorStore;
@@ -91,9 +92,7 @@ async function scenarioSteps(
   stepStore: StepStore,
   scenarioId: string
 ): Promise<StoredStep[]> {
-  return [...(await stepStore.listSteps(scenarioId))].sort(
-    (left, right) => left.step_number - right.step_number
-  );
+  return orderScenarioStepsForDisplay(await stepStore.listSteps(scenarioId));
 }
 
 async function actorName(actorStore: ActorStore, projectId: string, actorId: string) {

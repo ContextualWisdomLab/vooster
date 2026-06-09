@@ -133,7 +133,7 @@ describe("UC-009 - Author a use case from scratch", () => {
     expect(rejected.status).toBe(422);
     const problem = (await rejected.json()) as ProblemResponse;
     expect(problem.title).toMatch(/title.*verb phrase/i);
-    expect(problem.suggested_titles).toContain("Reviews order status");
+    expect(problem.suggested_titles).toContain("Review order status");
     expect(problem.suggested_next_actions).toContainEqual({
       command: "vspec usecase create --force",
       reason: "Create anyway after reviewing the title."

@@ -23,6 +23,7 @@ describe("step editing application", () => {
   test("edits an action, appends a breaking revision, and reports affected sessions", async () => {
     const savedRevisions: StoredRevision[] = [];
     const updatedSteps: StoredStep[] = [];
+    const updatedUseCases: StoredUseCase[] = [];
 
     const result = await editStep(
       depsFor({
@@ -31,7 +32,8 @@ describe("step editing application", () => {
           session({ id: "session-active" }),
           session({ id: "session-completed", status: "COMPLETED" })
         ],
-        updatedSteps
+        updatedSteps,
+        updatedUseCases
       }),
       input({ action: "Reviews the order." })
     );
@@ -57,6 +59,9 @@ describe("step editing application", () => {
     ]);
     expect(savedRevisions).toMatchObject([
       { id: "revision-new", severity: "BREAKING" }
+    ]);
+    expect(updatedUseCases).toMatchObject([
+      { current_revision_id: "revision-new", id: "usecase-1" }
     ]);
   });
 
@@ -173,6 +178,7 @@ function depsFor(
     sessions?: StoredWorkSession[];
     step?: StoredStep;
     updatedSteps?: StoredStep[];
+    updatedUseCases?: StoredUseCase[];
     usecase?: StoredUseCase;
   } = {}
 ) {
@@ -194,7 +200,8 @@ function depsFor(
     useCaseStore: useCaseStore(
       foundScenario === undefined || foundUsecase === undefined
         ? undefined
-        : { projectId: "project-1", usecase: foundUsecase }
+        : { projectId: "project-1", usecase: foundUsecase },
+      options.updatedUseCases ?? []
     ),
     workSessionStore: workSessionStore(options.sessions ?? [])
   };
@@ -309,7 +316,8 @@ function stepStore(
 }
 
 function useCaseStore(
-  found: { projectId: string; usecase: StoredUseCase } | undefined
+  found: { projectId: string; usecase: StoredUseCase } | undefined,
+  updatedUseCases: StoredUseCase[]
 ): UseCaseStore {
   return {
     findUseCaseById: () => Promise.resolve(undefined),
@@ -317,7 +325,10 @@ function useCaseStore(
     findUseCasesByKey: () => Promise.resolve([]),
     listUseCases: () => Promise.resolve([]),
     saveUseCase: () => Promise.resolve(),
-    updateUseCase: () => Promise.resolve()
+    updateUseCase: (updatedUseCase) => {
+      updatedUseCases.push(updatedUseCase);
+      return Promise.resolve();
+    }
   };
 }
 

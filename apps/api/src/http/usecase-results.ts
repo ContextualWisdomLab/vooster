@@ -28,7 +28,11 @@ export function sendUseCaseAuthoringResult(
         problem(
           422,
           "Use case title should be a verb phrase",
-          { code: TITLE_NOT_VERB_PHRASE, suggested_titles: result.suggestedTitles },
+          {
+            code: TITLE_NOT_VERB_PHRASE,
+            offending_word: result.offendingWord,
+            suggested_titles: result.suggestedTitles
+          },
           [
             {
               command: "vspec usecase create --force",

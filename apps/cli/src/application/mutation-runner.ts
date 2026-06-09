@@ -51,13 +51,17 @@ export async function runMutation<TData>(
         : await autoExport(input.autoExport);
     const context =
       typeof input.context === "function" ? input.context(data) : input.context;
+    const suggestedNextActions = [
+      ...(input.successHints?.(data) ?? []),
+      ...localRefreshHints(input)
+    ];
     return {
       envelope: buildOkEnvelope({
         data,
         context,
         affectedFiles,
         dryRun: input.dryRun,
-        suggestedNextActions: input.successHints?.(data) ?? []
+        suggestedNextActions
       }),
       failed: false
     };
@@ -102,3 +106,29 @@ async function sendRequest(
 }
 
 export { ApiError };
+
+function localRefreshHints<TData>(input: MutationInput<TData>): SuggestedNextAction[] {
+  if (
+    input.dryRun === true ||
+    input.autoExport !== undefined ||
+    !isSpecMutationPath(input.path)
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      command: "vspec pull",
+      reason:
+        "Local spec files may be stale after this mutation; run vspec pull to refresh them."
+    }
+  ];
+}
+
+function isSpecMutationPath(path: string): boolean {
+  return (
+    path.includes("/scenarios/") ||
+    path.includes("/steps/") ||
+    path.includes("/usecases/")
+  );
+}

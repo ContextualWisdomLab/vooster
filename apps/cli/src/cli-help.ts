@@ -9,7 +9,10 @@ const commandGroups = [
   ["AI", "ai-guide"],
   ["Project", "workspace switch, project create/list/switch, status"],
   ["Use Cases", "usecase create/list/show/set/archive/restore, history, diff, verify"],
-  ["Scenarios", "scenario add, step add/edit, comment add/list/edit/resolve/delete"],
+  [
+    "Scenarios",
+    "scenario add, step add/edit/move, comment add/list/edit/resolve/delete"
+  ],
   [
     "Actors",
     "actor create/list/show/edit/archive, stakeholder create/list/show/edit/archive"
@@ -145,18 +148,31 @@ const commandHelp = new Map<string, CommandHelp>([
   [
     "step add",
     {
-      summary: "Append an active-voice step to a scenario.",
-      usage: "$ vspec step add <scenario-id> --actor <name> --action <text>",
+      summary: "Add an active-voice step to a scenario.",
+      usage: "$ vspec step add <scenario-id> --actor <name> --action <text> [--at <n>]",
       flags: [
         "--actor=<name>        Registered actor performing the step. Required.",
         "--action=<text>       Active-voice step action. Required.",
+        "--at=<n>              Insert at this 1-based step position; defaults to append.",
         "--force               Persist wording after reviewing validation warnings.",
         "--format=<human|agent> Output format."
       ],
       examples: [
-        "# step add appends; use step edit for existing step wording.",
-        '$ vspec step add <main-scenario-id> --actor "Pocket" --action "validates the amount is positive and the category is selected"'
+        '$ vspec step add <main-scenario-id> --actor "Pocket" --action "validates the amount is positive and the category is selected"',
+        '$ vspec step add <main-scenario-id> --actor "Pocket" --action "validates the amount is positive" --at 2'
       ]
+    }
+  ],
+  [
+    "step move",
+    {
+      summary: "Move an existing step to a scenario position.",
+      usage: "$ vspec step move <step-id> --to <n>",
+      flags: [
+        "--to=<n>               New 1-based step position. Required.",
+        "--format=<human|agent> Output format."
+      ],
+      examples: ["$ vspec step move <step-id> --to 2 --format=agent"]
     }
   ],
   [

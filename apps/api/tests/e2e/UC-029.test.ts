@@ -13,7 +13,14 @@ import {
   type PushResponse,
   type SyncProblem
 } from "../helpers/sync-fixtures.js";
-import { createUseCaseWithMainStep } from "../helpers/scenario-fixtures.js";
+import {
+  addStep,
+  createExtensionScenario,
+  createUseCaseWithMainStep,
+  type ScenarioResponse,
+  type StepResponse
+} from "../helpers/scenario-fixtures.js";
+import { patchStep, type StepPatchResponse } from "../helpers/step-fixtures.js";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -78,6 +85,65 @@ describe("UC-029 - Sync local files with the server", () => {
       newRevision,
       usecase.current_revision_id
     ]);
+  });
+
+  test("pull reconciles server scenario and step mutations to the latest revision", async () => {
+    const { mainStep, setup, usecase } = await createUseCaseWithMainStep(
+      server,
+      "Sync Server Mutation",
+      "sync-server-mutation",
+      "stub-sync-server-mutation"
+    );
+
+    const extensionResponse = await createExtensionScenario(
+      server,
+      usecase.id,
+      setup.cookie,
+      {
+        condition: "Payment is declined.",
+        extension_point: "1a",
+        outcome: "FAILURE"
+      }
+    );
+    const extension = (await extensionResponse.json()) as ScenarioResponse;
+
+    await expectPulledRevision(
+      server,
+      setup,
+      extension.revision.id,
+      "### 1a. Payment is declined."
+    );
+
+    const extensionStepResponse = await addStep(
+      server,
+      extension.scenario.id,
+      setup.cookie,
+      { action: "Uses a backup card.", actor: "Customer" }
+    );
+    const extensionStep = (await extensionStepResponse.json()) as StepResponse;
+
+    await expectPulledRevision(
+      server,
+      setup,
+      extensionStep.revision.id,
+      "- 1a1. **Customer** Uses a backup card."
+    );
+
+    const editedResponse = await patchStep(server, mainStep.id, setup.cookie, {
+      action: "Reviews the order.",
+      base_revision: extensionStep.revision.id
+    });
+    const edited = (await editedResponse.json()) as StepPatchResponse;
+    const pulled = await expectPulledRevision(
+      server,
+      setup,
+      edited.revision.id,
+      "1. **Customer** Reviews the order."
+    );
+    const exported = await exportMarkdown(server, usecase.id, setup.cookie);
+
+    expect(exported.status).toBe(200);
+    expect(await exported.text()).toBe(pulled.files[0]?.content);
   });
 
   test("3a: malformed push file returns doctor guidance without a revision", async () => {
@@ -193,4 +259,28 @@ describe("UC-029 - Sync local files with the server", () => {
 
 function remoteHalf(conflictContent: string) {
   return conflictContent.split("=======\n")[1]?.split("\n>>>>>>> remote")[0] ?? "";
+}
+
+async function expectPulledRevision(
+  server: TestServer,
+  setup: { cookie: string; projectId: string },
+  revisionId: string,
+  expectedContent: string
+) {
+  const pulled = await syncPull(server, setup);
+  expect(pulled.status).toBe(200);
+  const body = (await pulled.json()) as PullResponse;
+  expect(body.cursor).toBe(revisionId);
+  expect(body.files[0]?.revision).toBe(revisionId);
+  expect(body.files[0]?.content).toContain(`revision: ${revisionId}`);
+  expect(body.files[0]?.content).toContain(expectedContent);
+  return body;
+}
+
+function exportMarkdown(server: TestServer, usecaseId: string, cookie: string) {
+  return server.fetch(`/v1/usecases/${usecaseId}/export/markdown`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({})
+  });
 }

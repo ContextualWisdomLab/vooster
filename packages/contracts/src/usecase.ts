@@ -55,6 +55,7 @@ export const usecaseArchiveQuerySchema = z
 
 export const usecaseListQuerySchema = z.object({
   actor_id: z.string().optional(),
+  archived: z.enum(["active", "all", "only"]).default("active"),
   cursor: z.string().optional(),
   level: usecaseLevelSchema.optional(),
   limit: z.coerce.number().int().positive().max(200).default(50),
@@ -112,6 +113,7 @@ export const usecaseArchiveResponseSchema = z.object({
 });
 
 export const usecaseListItemSchema = z.looseObject({
+  archived_at: z.string().nullable().optional(),
   extension_count: z.number().default(0),
   key: z.string(),
   level: usecaseLevelSchema,

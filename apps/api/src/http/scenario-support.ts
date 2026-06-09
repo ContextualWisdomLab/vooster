@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { usesPassiveVoice } from "../application/passive-voice.js";
 import { problem } from "./signup-support.js";
 import type {
   StoredScenario,
@@ -150,9 +151,7 @@ export function stepCreateResponse(
   };
 }
 
-export function usesPassiveVoice(action: string): boolean {
-  return /^.+?\s+is\s+\w+ed\.?$/i.test(action.trim());
-}
+export { usesPassiveVoice };
 
 function activeRewrite(action: string): string {
   const match = /^(?<object>.+?)\s+is\s+(?<verb>\w+)\.?$/i.exec(action.trim());

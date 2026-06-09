@@ -23,15 +23,6 @@ export function sendUseCaseAgentResult(reply: FastifyReply, result: ShowUseCaseR
           }
         ])
       );
-    case "ARCHIVED":
-      return reply.code(404).send(
-        problem(404, "Use case not found", {}, [
-          {
-            command: "vspec usecase list --status=",
-            reason: "List visible use cases, including archived ones when authorized."
-          }
-        ])
-      );
     case "SIMPLE":
       return reply.send(
         usecaseShowResponseSchema.parse({

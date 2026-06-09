@@ -1,6 +1,6 @@
 import { syncPullResponseSchema } from "@vooster/contracts";
 
-import { writeSyncFile } from "../commands/sync-files.js";
+import { syncFileContentWithRevision, writeSyncFile } from "../commands/sync-files.js";
 import type { AffectedFile } from "../domain/envelope.js";
 import { postJson } from "../infrastructure/http/client.js";
 import { writeSyncState } from "../infrastructure/local-state/sync-state.js";
@@ -23,7 +23,13 @@ export async function autoExport(config: AutoExportConfig): Promise<AffectedFile
   const files = body.files;
 
   await Promise.all(
-    files.map((file) => writeSyncFile(config.root, file.path, file.content))
+    files.map((file) =>
+      writeSyncFile(
+        config.root,
+        file.path,
+        syncFileContentWithRevision(file.content, file.revision)
+      )
+    )
   );
   await writeSyncState(config.root, { cursor: body.cursor });
 

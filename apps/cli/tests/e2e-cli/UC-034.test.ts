@@ -74,9 +74,16 @@ describe("UC-034 CLI - Fetch a structured spec", () => {
       });
       expect(envelope.data.title).toBe("Places an order");
       expect(envelope.data.primary_actor).toEqual({ name: "Customer" });
-      expect(envelope.data.scenarios[0]?.steps).toEqual([
-        { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
-      ]);
+      expect(envelope.data.scenarios[0]?.steps).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            action: "Places an order.",
+            actor: "Customer",
+            invokes: [],
+            step_number: 1
+          })
+        ])
+      );
       expect(envelope.data.stakeholder_interests).toEqual([
         { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }
       ]);

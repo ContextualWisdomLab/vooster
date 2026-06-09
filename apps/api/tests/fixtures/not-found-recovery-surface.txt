@@ -1,0 +1,5 @@
+# Entity NOT_FOUND result-sender branches that must not inherit signup recovery.
+step-add-scenario-not-found
+step-edit-step-not-found
+step-move-step-not-found
+scenario-create-usecase-not-found

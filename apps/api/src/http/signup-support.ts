@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyReply } from "fastify";
-import { authSignupResponseSchema } from "@vooster/contracts";
+import { authSignupResponseSchema, type SuggestedNextAction } from "@vooster/contracts";
 import type {
   GithubProfile,
   PendingOAuth,
@@ -255,7 +255,7 @@ export function problem(
   status: number,
   title: string,
   extra: Record<string, unknown> = {},
-  suggestedNextActions = [{ command: "vspec login", reason: "Restart signup." }]
+  suggestedNextActions: SuggestedNextAction[] = []
 ) {
   return {
     type: "https://vspec.dev/errors/bad-request",
@@ -264,6 +264,15 @@ export function problem(
     ...extra,
     suggested_next_actions: suggestedNextActions
   };
+}
+
+export function usecaseShowRecoveryActions(): SuggestedNextAction[] {
+  return [
+    {
+      command: "vspec usecase show <KEY>",
+      reason: "Re-read the use case to get the current scenario and step ids."
+    }
+  ];
 }
 
 function workspaceFor(pending: PendingSignup, ownerId: string): StoredWorkspace {

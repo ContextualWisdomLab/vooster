@@ -93,10 +93,11 @@ describe("UC-010 - Define stakeholder interests", () => {
     expect(duplicate.status).toBe(409);
     const body = (await duplicate.json()) as ProblemResponse;
     expect(body.title).toMatch(/stakeholder interest.*already exists/i);
+    expect(body.code).toBe("STAKEHOLDER_ALREADY_ATTACHED");
     expect(body.existing_interest).toBe("Checkout revenue is protected.");
     expect(body.suggested_next_actions).toContainEqual({
-      command: "vspec usecase set --field stakeholder-interest",
-      reason: "Edit the existing stakeholder interest."
+      command: `vspec usecase show ${usecase.id}`,
+      reason: "Review the existing stakeholder interest before changing it."
     });
   });
 

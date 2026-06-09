@@ -101,7 +101,7 @@ describe("UC-001 - Sign up for a workspace", () => {
     expect(deniedBody.title).toMatch(/authorization denied/i);
     expect(deniedBody.suggested_next_actions).toContainEqual({
       command: "vspec login",
-      reason: "Restart signup."
+      reason: "Retry signup."
     });
 
     const retryParams = new URLSearchParams({
@@ -137,7 +137,7 @@ describe("UC-001 - Sign up for a workspace", () => {
     expect(body.title).toMatch(/verify.*github email/i);
     expect(body.suggested_next_actions).toContainEqual({
       command: "vspec login",
-      reason: "Restart signup."
+      reason: "Retry signup."
     });
   });
 

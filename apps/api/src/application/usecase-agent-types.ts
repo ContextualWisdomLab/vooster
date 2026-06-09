@@ -35,7 +35,7 @@ export type UseCaseShowData = {
   }>;
   stakeholder_interests: Array<{ interest: string; stakeholder: string }>;
   title: string;
-  usecase: { current_revision_id: string; id: string; key: string };
+  usecase: StoredUseCase;
 };
 
 export type AgentEnvelope = {
@@ -77,7 +77,6 @@ export type ShowUseCaseInput = {
 export type ShowUseCaseResult =
   | { status: "NOT_FOUND" }
   | { status: "AUTHENTICATION_REQUIRED" }
-  | { status: "ARCHIVED" }
   | { data: UseCaseShowData; status: "SIMPLE"; usecase: StoredUseCase }
   | { revision: string | undefined; status: "REVISION_NOT_FOUND"; usecaseKey: string }
   | { envelope: AgentEnvelope; status: "AGENT_ENVELOPE" };

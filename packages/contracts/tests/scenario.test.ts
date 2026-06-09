@@ -7,6 +7,8 @@ import {
   scenarioStepCreateRequestSchema,
   scenarioStepCreateResponseSchema,
   scenarioStepParamsSchema,
+  stepMoveRequestSchema,
+  stepMoveResponseSchema,
   stepParamsSchema,
   stepPatchRequestSchema,
   stepUpdateResponseSchema
@@ -35,6 +37,14 @@ describe("scenario and step contracts", () => {
       force: false
     });
     expect(
+      scenarioStepCreateRequestSchema.parse({
+        action: "Pays.",
+        actor: "Customer",
+        position: 2
+      }).position
+    ).toBe(2);
+    expect(stepMoveRequestSchema.parse({ to: 1 })).toEqual({ to: 1 });
+    expect(
       stepPatchRequestSchema.parse({
         actor: "Support",
         base_revision: "revision-1",
@@ -61,6 +71,7 @@ describe("scenario and step contracts", () => {
     expect(() =>
       scenarioStepCreateRequestSchema.parse({ action: "Pays.", actor: "" })
     ).toThrow();
+    expect(() => stepMoveRequestSchema.parse({ to: 0 })).toThrow();
     expect(() => stepPatchRequestSchema.parse({ action: "Pays." })).toThrow();
     expect(() =>
       stepPatchRequestSchema.parse({
@@ -93,6 +104,13 @@ describe("scenario and step contracts", () => {
         step: step(),
         warnings: [{ message: "Long scenario.", type: "SCENARIO_OVER_NINE_STEPS" }]
       }).step.id
+    ).toBe("step-1");
+    expect(
+      stepMoveResponseSchema.parse({
+        revision: revision(),
+        scenario_steps: [step()],
+        step: step()
+      }).scenario_steps[0]?.id
     ).toBe("step-1");
     expect(
       stepUpdateResponseSchema.parse({

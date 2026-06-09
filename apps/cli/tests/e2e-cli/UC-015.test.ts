@@ -66,9 +66,66 @@ describe("UC-015 CLI - Archive or restore a use case", () => {
       expect(listed.stderr).toBe("");
       expect(listed.status).toBe(0);
       expect(listed.stdout).not.toContain(setup.usecaseKey);
+
+      const archivedList = await runCli([
+        "usecase",
+        "list",
+        "--archived",
+        "--project-id",
+        setup.projectId,
+        "--session-cookie",
+        setup.cookie,
+        "--api-url",
+        server.apiUrl
+      ]);
+
+      expect(archivedList.stderr).toBe("");
+      expect(archivedList.status).toBe(0);
+      expect(archivedList.stdout).toContain(`${setup.usecaseKey} [archived]`);
+      expect(archivedList.stdout).toContain("Archived at ");
+
+      const allList = await runCli([
+        "usecase",
+        "list",
+        "--all",
+        "--project-id",
+        setup.projectId,
+        "--session-cookie",
+        setup.cookie,
+        "--api-url",
+        server.apiUrl
+      ]);
+
+      expect(allList.stderr).toBe("");
+      expect(allList.status).toBe(0);
+      expect(allList.stdout).toContain(`${setup.usecaseKey} [archived]`);
+
+      const shown = await runCli([
+        "usecase",
+        "show",
+        setup.usecaseKey,
+        "--session-cookie",
+        setup.cookie,
+        "--api-url",
+        server.apiUrl
+      ]);
+
+      expect(shown.stderr).toBe("");
+      expect(shown.status).toBe(0);
+      expect(shown.stdout).toContain(`UseCase ${setup.usecaseKey}`);
+      expect(shown.stdout).toContain("Archived at ");
     } finally {
       await server.stop();
     }
+  });
+
+  test("unknown usecase flags produce one accurate error", async () => {
+    const result = await runCli(["usecase", "list", "--definitely-not-a-flag"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Error: Nonexistent flag: --definitely-not-a-flag");
+    expect(result.stderr).not.toContain("Command usecase not found");
   });
 });
 

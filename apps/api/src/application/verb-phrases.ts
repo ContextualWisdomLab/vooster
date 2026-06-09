@@ -1,33 +1,60 @@
 const VERB_PHRASE_STARTS = new Set([
   "add",
+  "analyze",
   "approve",
+  "archive",
   "author",
   "branch",
+  "accept",
+  "book",
   "cancel",
   "comment",
+  "compare",
+  "complete",
   "create",
+  "define",
+  "delete",
   "diagnose",
   "diff",
+  "edit",
   "export",
+  "fetch",
   "import",
   "inspect",
+  "invite",
+  "issue",
+  "join",
+  "learn",
   "lock",
+  "log",
+  "manage",
   "merge",
+  "monitor",
   "pin",
   "place",
+  "pay",
   "promote",
+  "propose",
   "pull",
   "push",
   "renew",
   "request",
+  "receive",
+  "resolve",
+  "restore",
   "review",
   "revert",
   "run",
+  "search",
+  "see",
+  "sign",
   "start",
   "submit",
   "sync",
   "track",
   "unlock",
+  "update",
+  "view",
   "write"
 ]);
 
@@ -50,12 +77,24 @@ export function titleLooksLikeVerbPhrase(
   return titleLooksLikeEnglishVerbPhrase(title);
 }
 
+export function verbPhraseOffendingWord(title: string): string {
+  const words = title.trim().match(/[A-Za-z가-힣-]+/gu) ?? [];
+  return words[1] ?? words[0] ?? title.trim();
+}
+
 function titleLooksLikeEnglishVerbPhrase(title: string): boolean {
-  const firstWord = title
+  const words = title
     .trim()
-    .match(/^[A-Za-z]+/)?.[0]
-    .toLowerCase();
-  return firstWord !== undefined && VERB_PHRASE_STARTS.has(baseVerb(firstWord));
+    .match(/[A-Za-z]+/g)
+    ?.map((word) => word.toLowerCase());
+  if (words === undefined) {
+    return false;
+  }
+  return verbPhraseWord(words[0]) || (words.length > 1 && verbPhraseWord(words[1]));
+}
+
+function verbPhraseWord(word: string | undefined): boolean {
+  return word !== undefined && VERB_PHRASE_STARTS.has(baseVerb(word));
 }
 
 function baseVerb(word: string): string {

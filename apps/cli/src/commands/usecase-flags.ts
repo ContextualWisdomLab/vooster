@@ -6,8 +6,10 @@ import {
 } from "../flag-values.js";
 
 export type UsecaseCliFlags = {
+  all?: boolean;
   "actor-id"?: string;
   "api-url"?: string;
+  archived?: boolean;
   branch?: string;
   cursor?: string;
   "dry-run"?: boolean;
@@ -27,6 +29,7 @@ export type UsecaseCliFlags = {
   "session-cookie"?: string;
   stakeholder?: string;
   status?: string;
+  "test-cmd"?: string;
   title?: string;
   value?: string;
 };
@@ -46,6 +49,7 @@ export type UsecaseCreateFlags = {
 export type UsecaseListFlags = {
   actorId: string | undefined;
   apiUrl: string;
+  archived: "all" | "only" | undefined;
   cursor: string | undefined;
   level: string | undefined;
   limit: string | undefined;
@@ -80,8 +84,12 @@ export type UsecaseSetFlags = {
 
 export type StakeholderInterestFlags = {
   apiUrl: string;
+  branch: string;
+  dryRun: boolean;
   interest: string;
   protectionMechanism: string;
+  projectId: string | null;
+  root: string;
   sessionCookie: string;
   stakeholder: string;
   usecaseId: string;
@@ -105,6 +113,7 @@ export function usecaseListFlagsFrom(flags: UsecaseCliFlags): UsecaseListFlags {
   return {
     actorId: optionalFlag(flags, "actor-id"),
     apiUrl: resolveContextFlag(flags, "api-url"),
+    archived: archiveScopeFrom(flags),
     cursor: optionalFlag(flags, "cursor"),
     level: optionalFlag(flags, "level"),
     limit: optionalFlag(flags, "limit"),
@@ -113,6 +122,16 @@ export function usecaseListFlagsFrom(flags: UsecaseCliFlags): UsecaseListFlags {
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     status: optionalFlag(flags, "status")
   };
+}
+
+function archiveScopeFrom(flags: UsecaseCliFlags): "all" | "only" | undefined {
+  if (flags.all === true && flags.archived === true) {
+    throw new Error("Use only one archived scope flag: --all or --archived.");
+  }
+  if (flags.all === true) {
+    return "all";
+  }
+  return flags.archived === true ? "only" : undefined;
 }
 
 export function usecaseShowFlagsFrom(
@@ -159,8 +178,12 @@ export function stakeholderInterestFlagsFrom(
 ): StakeholderInterestFlags {
   return {
     apiUrl: resolveContextFlag(flags, "api-url"),
+    branch: flags.branch ?? "main",
+    dryRun: flags["dry-run"] === true,
     interest: requiredFlag(flags, "interest"),
     protectionMechanism: flags["protection-mechanism"] ?? "",
+    projectId: optionalFlag(flags, "project-id") ?? null,
+    root: flags.root ?? process.cwd(),
     sessionCookie: resolveContextFlag(flags, "session-cookie"),
     stakeholder: requiredFlag(flags, "stakeholder"),
     usecaseId: requiredArgument(usecaseId, "usecase-id")

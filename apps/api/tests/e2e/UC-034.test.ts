@@ -48,7 +48,7 @@ afterAll(async () => {
 
 describe("UC-034 - Fetch a structured spec (AI agent)", () => {
   test("MAIN: fetch active use case as agent envelope", async () => {
-    const { setup, usecase } = await createUseCaseWithMainStep(
+    const { mainStepRevision, setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Agent Fetch",
       "agent-fetch",
@@ -66,15 +66,17 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
       branch: "main",
       project_key: "CHK",
       request_id: "req-agent-fetch-main",
-      revision: usecase.current_revision_id,
+      revision: mainStepRevision.id,
       session_id: null
     });
     expect(body.data.usecase).toMatchObject({ id: usecase.id, key: usecase.key });
     expect(body.data.title).toBe("Places an order");
     expect(body.data.primary_actor).toEqual({ name: "Customer" });
-    expect(body.data.scenarios[0]?.steps).toEqual([
-      { action: "Places an order.", actor: "Customer", invokes: [], step_number: 1 }
-    ]);
+    const firstStep = body.data.scenarios[0]?.steps[0];
+    expect(firstStep?.action).toBe("Places an order.");
+    expect(firstStep?.actor).toBe("Customer");
+    expect(firstStep?.invokes).toEqual([]);
+    expect(firstStep?.step_number).toBe(1);
     expect(body.data.stakeholder_interests).toEqual([
       { interest: "Checkout revenue is protected.", stakeholder: "Product Manager" }
     ]);
@@ -212,7 +214,7 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
     });
   });
 
-  test("*a: archived use case is hidden from agent fetch", async () => {
+  test("*a: archived use case can be fetched read-only with explicit archive state", async () => {
     const { setup, usecase } = await createUseCaseWithMainStep(
       server,
       "Agent Archived",
@@ -228,16 +230,17 @@ describe("UC-034 - Fetch a structured spec (AI agent)", () => {
       headers: { Cookie: setup.cookie }
     });
 
-    expect(response.status).toBe(404);
-    const problem = (await response.json()) as {
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      data: { usecase: { archived_at: string; id: string; key: string } };
       suggested_next_actions: Array<{ command: string; reason: string }>;
-      title: string;
     };
-    expect(problem.title).toMatch(/use case not found/i);
-    expect(problem.suggested_next_actions).toContainEqual({
-      command: "vspec usecase list --status=",
-      reason: "List visible use cases, including archived ones when authorized."
+    expect(body.data.usecase.id).toBe(usecase.id);
+    expect(body.data.usecase.key).toBe(usecase.key);
+    expect(typeof body.data.usecase.archived_at).toBe("string");
+    expect(body.suggested_next_actions).toContainEqual({
+      command: `vspec usecase restore ${usecase.key}`,
+      reason: "Restore the archived use case before proposing edits."
     });
-    expect(JSON.stringify(problem)).not.toContain(usecase.id);
   });
 });

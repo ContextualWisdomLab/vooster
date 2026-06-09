@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { diagnoseProject, diagnoseUseCase } from "../../../src/application/doctor.js";
 import type {
+  StoredProject,
   StoredScenario,
   StoredStakeholderInterest,
   StoredStep,
@@ -15,15 +16,7 @@ import type { UseCaseStore } from "../../../src/ports/usecase-store.js";
 describe("doctor application", () => {
   test("reports missing project and use case scopes", async () => {
     await expect(
-      diagnoseProject(
-        {
-          projectStore: {
-            findProjectById: () => Promise.resolve(undefined)
-          } as unknown as ProjectStore,
-          useCaseStore: useCaseStore(undefined)
-        },
-        "missing-project"
-      )
+      diagnoseProject(depsFor({ project: null }), "missing-project")
     ).resolves.toEqual({ status: "project_not_found" });
     await expect(
       diagnoseUseCase(depsFor({ usecase: null }), "missing")
@@ -147,7 +140,11 @@ describe("doctor application", () => {
       depsFor({
         interests: [interest()],
         mainScenario: scenario(),
-        steps: [step({ implements: [] })]
+        steps: [step({ implements: [] })],
+        usecase: {
+          projectId: "project-1",
+          usecase: usecase({ status: "IN_REVIEW" })
+        }
       }),
       "PAY-001"
     );
@@ -163,11 +160,30 @@ describe("doctor application", () => {
       })
     );
   });
+
+  test("does not warn about unlinked steps for draft use cases", async () => {
+    const result = await diagnoseUseCase(
+      depsFor({
+        interests: [interest()],
+        mainScenario: scenario(),
+        steps: [step({ implements: [] })]
+      }),
+      "PAY-001"
+    );
+
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.checks).not.toContainEqual(
+        expect.objectContaining({ id: "steps.unlinked" })
+      );
+    }
+  });
 });
 
 type DoctorOptions = {
   interests?: StoredStakeholderInterest[];
   mainScenario?: StoredScenario;
+  project?: StoredProject | null;
   scenariosByUseCase?: Map<string, StoredScenario[]>;
   steps?: StoredStep[];
   stepsByScenario?: Map<string, StoredStep[]>;
@@ -177,7 +193,9 @@ type DoctorOptions = {
 
 function depsFor(options: DoctorOptions = {}) {
   return {
-    projectStore: {} as never,
+    projectStore: projectStore(
+      options.project === null ? undefined : (options.project ?? project())
+    ),
     scenarioStore: scenarioStore(options.mainScenario, options.scenariosByUseCase),
     stakeholderInterestStore: stakeholderInterestStore(options.interests ?? []),
     stepStore: stepStore(options.steps ?? [], options.stepsByScenario),
@@ -188,6 +206,12 @@ function depsFor(options: DoctorOptions = {}) {
       options.usecases
     )
   };
+}
+
+function projectStore(found: StoredProject | undefined): ProjectStore {
+  return {
+    findProjectById: () => Promise.resolve(found)
+  } as unknown as ProjectStore;
 }
 
 function scenarioStore(
@@ -245,6 +269,18 @@ function usecase(overrides: Partial<StoredUseCase> = {}): StoredUseCase {
     scope: "Payments",
     status: "DRAFT",
     title: "Pay an invoice",
+    ...overrides
+  };
+}
+
+function project(overrides: Partial<StoredProject> = {}): StoredProject {
+  return {
+    default_branch_id: "branch-1",
+    id: "project-1",
+    key: "payments",
+    name: "Payments",
+    visibility: "PRIVATE",
+    workspace_id: "workspace-1",
     ...overrides
   };
 }

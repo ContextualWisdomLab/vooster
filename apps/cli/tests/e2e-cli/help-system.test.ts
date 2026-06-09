@@ -48,7 +48,7 @@ describe("CLI help system", () => {
     expect(scenario.stdout).toContain("2a");
     expect(scenario.stdout).toContain("--condition=<text>");
     expect(step.stdout).toContain("--actor=<name>");
-    expect(step.stdout).toContain("appends");
+    expect(step.stdout).toContain("append");
     expect(step.stdout).toContain("--force");
     expect(stepEdit.stdout).toContain("--base-revision=<revision-id>");
     expect(stepEdit.stdout).toContain("step id from usecase show");

@@ -10,7 +10,11 @@ import {
   type SyncPushResponse
 } from "@vooster/contracts";
 
-import { applySyncResults, localSyncFiles, writeSyncFile } from "./sync-files.js";
+import {
+  applySyncResults,
+  collectLocalSyncFiles,
+  writeSyncFile
+} from "./sync-files.js";
 import { buildAgentEnvelope } from "../agent-envelope.js";
 import { resolveContextFlag } from "../flag-values.js";
 import { postJson } from "../http-client.js";
@@ -105,7 +109,8 @@ async function pushFiles(
   writeLine: (message: string) => void
 ): Promise<void> {
   const syncFlags = syncFlagsFrom(flags);
-  const files = await localSyncFiles(syncFlags.root);
+  const localFiles = await collectLocalSyncFiles(syncFlags.root);
+  const files = localFiles.files;
   const requestBody = syncPushRequestSchema.parse({
     branch: syncFlags.branch,
     dry_run: syncFlags.dryRun,
@@ -126,7 +131,10 @@ async function pushFiles(
       JSON.stringify(
         buildAgentEnvelope({
           data: body,
-          suggested_next_actions: body.suggested_next_actions
+          suggested_next_actions: body.suggested_next_actions,
+          warnings: localFiles.warnings.map((warning) => ({
+            message: warning.message
+          }))
         }),
         null,
         2
@@ -146,6 +154,9 @@ async function pushFiles(
   for (const entry of body.cache.entries) {
     writeLine(`Cache ${entry.path} ${entry.status}`);
     writeLine(`Cache revision ${entry.revision}`);
+  }
+  for (const warning of localFiles.warnings) {
+    writeLine(`Warning ${warning.message}`);
   }
   for (const action of body.suggested_next_actions) {
     writeLine(action.command);

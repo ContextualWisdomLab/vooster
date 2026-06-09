@@ -1,7 +1,9 @@
 import type { FastifyReply } from "fastify";
 import {
+  type ApiErrorCode,
   scenarioCreateResponseSchema,
-  scenarioStepCreateResponseSchema
+  scenarioStepCreateResponseSchema,
+  type SuggestedNextAction
 } from "@vooster/contracts";
 import type {
   AddScenarioStepResult,
@@ -11,7 +13,9 @@ import {
   duplicateMainSuccessProblem,
   unknownStepActorProblem
 } from "./scenario-support.js";
-import { problem } from "./signup-support.js";
+import { problem, usecaseShowRecoveryActions } from "./signup-support.js";
+
+const SCHEMA_INVALID = "SCHEMA_INVALID" satisfies ApiErrorCode;
 
 export function sendCreateScenarioResult(
   reply: FastifyReply,
@@ -23,6 +27,7 @@ export function sendCreateScenarioResult(
         scenarioCreateResponseSchema.parse({
           revision: result.revision,
           scenario: result.scenario,
+          suggested_next_actions: scenarioCreateNextActions(result.scenario.id),
           steps: result.steps,
           ...(result.defaultOutcome === true ? defaultOutcomeWarning() : {})
         })
@@ -47,12 +52,35 @@ export function sendCreateScenarioResult(
     case "INVALID_EXTENSION_REQUEST":
       return reply.code(400).send(problem(400, "Invalid extension scenario request"));
     case "MISSING_STAKEHOLDER_INTEREST":
-      return reply
-        .code(422)
-        .send(problem(422, "Use case needs at least one stakeholder interest"));
+      return reply.code(422).send(missingStakeholderInterestProblem(result.usecaseKey));
     case "USECASE_NOT_FOUND":
-      return reply.code(404).send(problem(404, "Use case not found"));
+      return reply
+        .code(404)
+        .send(problem(404, "Use case not found", {}, usecaseShowRecoveryActions()));
   }
+}
+
+function missingStakeholderInterestProblem(usecaseKey: string) {
+  return problem(
+    422,
+    "Use case needs at least one stakeholder interest",
+    { code: SCHEMA_INVALID },
+    [
+      {
+        command: `vspec usecase add-stakeholder ${usecaseKey} --stakeholder "<name>" --interest "<interest>"`,
+        reason: "Attach at least one stakeholder interest before adding scenarios."
+      }
+    ]
+  );
+}
+
+function scenarioCreateNextActions(scenarioId: string): SuggestedNextAction[] {
+  return [
+    {
+      command: `vspec step add ${scenarioId}`,
+      reason: "Add the first step to the new scenario."
+    }
+  ];
 }
 
 export function sendAddScenarioStepResult(
@@ -65,7 +93,9 @@ export function sendAddScenarioStepResult(
     case "PASSIVE_ACTION":
       return reply.code(422).send(passiveActionProblem(result.suggestedAction ?? ""));
     case "SCENARIO_NOT_FOUND":
-      return reply.code(404).send(problem(404, "Scenario not found"));
+      return reply
+        .code(404)
+        .send(problem(404, "Scenario not found", {}, usecaseShowRecoveryActions()));
     case "STEP_ADDED":
       return reply.code(201).send(
         scenarioStepCreateResponseSchema.parse({

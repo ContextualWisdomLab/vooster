@@ -38,6 +38,7 @@ import { runWho } from "./commands/who.js";
 const root = dirname(fileURLToPath(import.meta.url));
 
 type VspecFlags = {
+  all?: boolean;
   "actor-id"?: string;
   "agent-type"?: string;
   "api-url"?: string;
@@ -55,6 +56,7 @@ type VspecFlags = {
   action?: string;
   actor?: string;
   aliases?: string;
+  archived?: boolean;
   at?: string;
   body?: string;
   branch?: string;
@@ -109,6 +111,66 @@ type CommandRouteContext = {
 };
 
 type CommandRouteRunner = (context: CommandRouteContext) => Promise<void> | void;
+
+const valueFlagNames = new Set([
+  "actor-id",
+  "agent-type",
+  "api-url",
+  "at",
+  "base-revision",
+  "body",
+  "branch",
+  "branch-name",
+  "condition",
+  "cursor",
+  "description",
+  "email",
+  "entity-id",
+  "field",
+  "format",
+  "from",
+  "intent",
+  "interest",
+  "into",
+  "key",
+  "level",
+  "limit",
+  "name",
+  "output",
+  "outcome",
+  "patch",
+  "pin",
+  "preview-id",
+  "priority",
+  "primary-actor",
+  "project",
+  "project-id",
+  "proposed-change",
+  "protection-mechanism",
+  "q",
+  "reason",
+  "revision",
+  "role",
+  "root",
+  "scopes",
+  "session",
+  "session-cookie",
+  "stakeholder",
+  "status",
+  "strategy",
+  "summary",
+  "test-cmd",
+  "title",
+  "to",
+  "ttl",
+  "type",
+  "usecase",
+  "value",
+  "visibility",
+  "workspace-id",
+  "workspace-name",
+  "workspace-slug"
+]);
 
 const commandRoutes: Record<string, CommandRouteRunner> = {
   "actor archive": ({ argv, flags, writeLine }) =>
@@ -204,6 +266,8 @@ const commandRoutes: Record<string, CommandRouteRunner> = {
   "step add": ({ argv, flags, writeLine }) => runStep(flags, "add", argv[2], writeLine),
   "step edit": ({ argv, flags, writeLine }) =>
     runStep(flags, "edit", argv[2], writeLine),
+  "step move": ({ argv, flags, writeLine }) =>
+    runStep(flags, "move", argv[2], writeLine),
   sync: ({ flags, writeLine }) => runSync(flags, "sync", writeLine),
   "usecase add-stakeholder": ({ argv, flags, writeLine }) =>
     runUsecase(flags, "add-stakeholder", argv[2], writeLine),
@@ -216,9 +280,11 @@ const commandRoutes: Record<string, CommandRouteRunner> = {
   "usecase restore": ({ argv, flags, writeLine }) =>
     runUsecase(flags, "restore", argv[2], writeLine),
   "usecase set": ({ argv, flags, writeLine }) =>
-    runUsecase(flags, "set", argv[2], writeLine),
+    runUsecase(flags, "set", firstRouteArgument(argv, 2), writeLine),
   "usecase show": ({ argv, flags, writeLine }) =>
     runUsecase(flags, "show", argv[2], writeLine),
+  "usecase verify": ({ argv, flags, writeLine }) =>
+    runUsecase(flags, "verify", argv[2], writeLine),
   verify: ({ argv, flags, writeLine }) => runVerify(flags, argv[1], writeLine),
   who: ({ argv, flags, writeLine }) => runWho(flags, argv[1], writeLine),
   "workspace switch": ({ argv, flags, writeLine }) => {
@@ -228,6 +294,45 @@ const commandRoutes: Record<string, CommandRouteRunner> = {
 
 export function commandRouteKeys(): string[] {
   return Object.keys(commandRoutes).sort();
+}
+
+export async function dispatchCommandRoute(
+  context: CommandRouteContext
+): Promise<boolean> {
+  const routeKey = commandRouteKey(context.argv[0], context.argv);
+  const route = routeKey === undefined ? undefined : commandRoutes[routeKey];
+  if (route === undefined) {
+    return false;
+  }
+  await route(context);
+  return true;
+}
+
+function firstRouteArgument(
+  argv: string[],
+  firstCandidateIndex: number
+): string | undefined {
+  for (let index = firstCandidateIndex; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === undefined) {
+      return undefined;
+    }
+    if (argument === "--") {
+      return argv[index + 1];
+    }
+    if (argument.startsWith("--")) {
+      const name = argument.slice(2).split("=", 1)[0] ?? "";
+      if (!argument.includes("=") && valueFlagNames.has(name)) {
+        index += 1;
+      }
+      continue;
+    }
+    if (argument.startsWith("-")) {
+      continue;
+    }
+    return argument;
+  }
+  return undefined;
 }
 
 function commandRouteKey(
@@ -265,9 +370,11 @@ export class VspecCommand extends Command {
 
   static override flags = {
     "api-url": Flags.string(),
+    all: Flags.boolean(),
     aliases: Flags.string(),
     action: Flags.string(),
     actor: Flags.string(),
+    archived: Flags.boolean(),
     "actor-id": Flags.string(),
     at: Flags.string(),
     "base-revision": Flags.string(),
@@ -337,15 +444,14 @@ export class VspecCommand extends Command {
 
   override async run(): Promise<void> {
     const parsed = await this.parse(VspecCommand);
-    const routeKey = commandRouteKey(parsed.args.command, this.argv);
-    const route = routeKey === undefined ? undefined : commandRoutes[routeKey];
-    if (route !== undefined) {
-      await route({
+    if (
+      await dispatchCommandRoute({
         argv: this.argv,
         cwd: process.cwd(),
         flags: parsed.flags,
         writeLine: this.log.bind(this)
-      });
+      })
+    ) {
       return;
     }
 
@@ -376,8 +482,23 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
     });
     await flush();
   } catch (error: unknown) {
+    const nonexistentFlag = nonexistentFlagMessage(error);
+    if (nonexistentFlag !== undefined) {
+      process.stderr.write(`Error: ${nonexistentFlag}\n`);
+      process.exitCode = 1;
+      await flush();
+      return;
+    }
     await handle(error instanceof Error ? error : new Error(String(error)));
   }
+}
+
+function nonexistentFlagMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  const firstLine = error.message.split("\n", 1)[0];
+  return firstLine?.startsWith("Nonexistent flag:") ? firstLine : undefined;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

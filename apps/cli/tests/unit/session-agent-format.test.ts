@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -32,8 +32,21 @@ type SessionAgentEnvelope = {
   warnings: unknown[];
 };
 
+type SessionAgentErrorEnvelope = {
+  error: {
+    code: string;
+    message: string;
+  };
+  status: "error";
+  suggested_next_actions: Array<{
+    command: string;
+    reason?: string;
+  }>;
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  process.exitCode = undefined;
 });
 
 describe("session --format=agent", () => {
@@ -54,6 +67,29 @@ describe("session --format=agent", () => {
     expect(session.status).toBe("ACTIVE");
     expect(sessionFile.path).toBe(".vspec/session.json");
     expect(envelope.context.session_id).toBe("session-1");
+  });
+
+  test("agent session start renders missing pin as an error envelope", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const flags = sessionFlags({ format: "agent" });
+    delete flags.pin;
+    const lines: string[] = [];
+
+    await runSession(flags, "start", undefined, (line) => lines.push(line));
+
+    const envelope = JSON.parse(lines.join("\n")) as SessionAgentErrorEnvelope;
+    expect(envelope.status).toBe("error");
+    expect(envelope.error).toEqual({
+      code: "BAD_REQUEST",
+      message: "Missing --pin."
+    });
+    expect(envelope.suggested_next_actions).toContainEqual({
+      command: 'vspec session start --intent "..." --pin <KEY-NNN>',
+      reason: "Start a session after the target use case key exists."
+    });
+    expect(process.exitCode).toBe(1);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   test("agent session list", async () => {
@@ -93,6 +129,96 @@ describe("session --format=agent", () => {
     expect(envelope.context.session_id).toBe("session-1");
   });
 
+  test("agent session complete resolves the current session file", async () => {
+    const requests: string[] = [];
+    stubFetch(sessionCompleteBody(), requests);
+    const root = mkdtempSync(join(tmpdir(), "vspec-session-unit-"));
+    mkdirSync(join(root, ".vspec"), { recursive: true });
+    writeFileSync(
+      join(root, ".vspec/session.json"),
+      `${JSON.stringify({ project_id: "project-1", session_id: "session-1" })}\n`
+    );
+    const lines: string[] = [];
+
+    await runSession(
+      sessionFlags({ format: "agent", root }),
+      "complete",
+      undefined,
+      (line) => lines.push(line)
+    );
+
+    const envelope = expectAgentEnvelope(lines);
+    expect(envelope.context.session_id).toBe("session-1");
+    expect(requests).toEqual([
+      "https://api.example.test/v1/sessions/session-1/complete"
+    ]);
+  });
+
+  test("agent session complete without an active session returns an error envelope", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const lines: string[] = [];
+
+    await runSession(sessionFlags({ format: "agent" }), "complete", undefined, (line) =>
+      lines.push(line)
+    );
+
+    const envelope = JSON.parse(lines.join("\n")) as SessionAgentErrorEnvelope;
+    expect(envelope.status).toBe("error");
+    expect(envelope.error).toEqual({
+      code: "MISSING_SESSION_ID",
+      message: "No active session id supplied and no active session file was found."
+    });
+    expect(envelope.suggested_next_actions).toContainEqual({
+      command: "vspec session complete <id>",
+      reason: "Complete a specific active session when no local session file exists."
+    });
+    expect(envelope.suggested_next_actions).toContainEqual({
+      command: "vspec session list",
+      reason: "List active sessions and choose the id to complete."
+    });
+    expect(process.exitCode).toBe(1);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("agent session complete renders API 404 as an error envelope", async () => {
+    stubFetchFailure(
+      {
+        status: 404,
+        suggested_next_actions: [
+          {
+            command: "vspec session list",
+            reason: "Find an active session id."
+          }
+        ],
+        title: "Session not found"
+      },
+      404
+    );
+    const lines: string[] = [];
+
+    await runSession(
+      sessionFlags({ format: "agent" }),
+      "complete",
+      "missing-session",
+      (line) => lines.push(line)
+    );
+
+    const envelope = JSON.parse(lines.join("\n")) as SessionAgentErrorEnvelope;
+    expect(envelope.status).toBe("error");
+    expect(envelope.error).toEqual({
+      code: "NOT_FOUND",
+      message: "Session not found"
+    });
+    expect(envelope.suggested_next_actions).toEqual([
+      {
+        command: "vspec session list",
+        reason: "Find an active session id."
+      }
+    ]);
+    expect(process.exitCode).toBe(1);
+  });
+
   test("human session start", async () => {
     stubFetch(sessionStartBody());
     const lines: string[] = [];
@@ -126,14 +252,29 @@ describe("session --format=agent", () => {
   });
 });
 
-function stubFetch(body: unknown): void {
+function stubFetch(body: unknown, requests: string[] = []): void {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) => {
+      requests.push(url);
+      return Promise.resolve({
+        headers: new Headers(),
+        json: () => Promise.resolve(body),
+        ok: true
+      } as Response);
+    })
+  );
+}
+
+function stubFetchFailure(body: unknown, status: number): void {
   vi.stubGlobal(
     "fetch",
     vi.fn(() =>
       Promise.resolve({
         headers: new Headers(),
         json: () => Promise.resolve(body),
-        ok: true
+        ok: false,
+        status
       } as Response)
     )
   );

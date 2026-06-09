@@ -49,6 +49,7 @@ describe("push --format=agent", () => {
   test("agent push", async () => {
     const root = tempRoot();
     writeSpec(root, "rev-1", "# Pays an invoice");
+    writeUnmanagedNote(root);
     stubFetch(pushResponse());
     const lines: string[] = [];
 
@@ -68,7 +69,9 @@ describe("push --format=agent", () => {
     expect(envelope.suggested_next_actions).toEqual(
       envelope.data.suggested_next_actions
     );
-    expect(envelope.warnings).toEqual([]);
+    expect(envelope.warnings).toEqual([
+      { message: "Skipped unmanaged markdown file specs/SEED_NOTES.md." }
+    ]);
     await expect(readSpec(root)).resolves.toContain("revision: rev-2");
   });
 
@@ -107,6 +110,7 @@ describe("push --format=agent", () => {
   test("human push output", async () => {
     const root = tempRoot();
     writeSpec(root, "rev-1", "# Pays an invoice");
+    writeUnmanagedNote(root);
     stubFetch(pushResponse());
     const lines: string[] = [];
 
@@ -117,6 +121,9 @@ describe("push --format=agent", () => {
     expect(lines).toContain("Revision rev-2");
     expect(lines).toContain("Cache specs/PAY-1.md SYNCED");
     expect(lines).toContain("Cache revision rev-2");
+    expect(lines).toContain(
+      "Warning Skipped unmanaged markdown file specs/SEED_NOTES.md."
+    );
     expect(lines).toContain("vspec pull");
   });
 });
@@ -143,6 +150,11 @@ function syncFlags(
 function writeSpec(root: string, revision: string, title: string): void {
   mkdirSync(join(root, "specs"), { recursive: true });
   writeFileSync(specPath(root), `---\nrevision: ${revision}\n---\n${title}\n`);
+}
+
+function writeUnmanagedNote(root: string): void {
+  mkdirSync(join(root, "specs"), { recursive: true });
+  writeFileSync(join(root, "specs", "SEED_NOTES.md"), "# Seed notes\n");
 }
 
 function specPath(root: string): string {

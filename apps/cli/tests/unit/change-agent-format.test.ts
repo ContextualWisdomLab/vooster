@@ -25,6 +25,7 @@ const tempRoots: string[] = [];
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  process.exitCode = undefined;
   while (tempRoots.length > 0) {
     rmSync(tempRoots.pop() ?? "", { force: true, recursive: true });
   }
@@ -84,6 +85,33 @@ describe("change --format=agent", () => {
     expect(envelope.context.revision).toBeNull();
   });
 
+  test("agent change propose rejects an incomplete patch with an error envelope", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const lines: string[] = [];
+
+    await runChange(
+      proposeFlags({ format: "agent", patch: patchFile({ entity_type: "USECASE" }) }),
+      "propose",
+      (line) => lines.push(line)
+    );
+
+    const stdout = lines.join("\n");
+    const envelope = JSON.parse(stdout) as AgentErrorEnvelope;
+    expect(stdout).not.toContain("ZodError");
+    expect(envelope.status).toBe("error");
+    expect(envelope.error).toEqual({
+      code: "SCHEMA_INVALID",
+      message: "Invalid change patch."
+    });
+    expect(envelope.suggested_next_actions).toContainEqual({
+      command: "vspec change propose --patch <valid-patch.json>",
+      reason: "Provide entity_id, entity_type USECASE, and supported fields."
+    });
+    expect(process.exitCode).toBe(1);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test("human change propose", async () => {
     stubFetch(previewBody());
     const lines: string[] = [];
@@ -140,19 +168,29 @@ function commitFlags(overrides: Record<string, string> = {}): Record<string, str
   };
 }
 
-function patchFile(): string {
+type AgentErrorEnvelope = {
+  error: {
+    code: string;
+    message: string;
+  };
+  status: "error";
+  suggested_next_actions: Array<{
+    command: string;
+    reason?: string;
+  }>;
+};
+
+function patchFile(
+  patch: unknown = {
+    entity_id: "usecase-1",
+    entity_type: "USECASE",
+    fields: { title: "Reviews a refund" }
+  }
+): string {
   const root = mkdtempSync(join(tmpdir(), "vspec-change-agent-"));
   tempRoots.push(root);
   const path = join(root, "patch.json");
-  writeFileSync(
-    path,
-    JSON.stringify({
-      entity_id: "usecase-1",
-      entity_type: "USECASE",
-      fields: { title: "Reviews a refund" }
-    }),
-    "utf8"
-  );
+  writeFileSync(path, JSON.stringify(patch), "utf8");
   return path;
 }
 

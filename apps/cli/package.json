@@ -21,6 +21,7 @@
   ],
   "dependencies": {
     "@oclif/core": "^4.11.3",
-    "@vooster/contracts": "workspace:*"
+    "@vooster/contracts": "workspace:*",
+    "zod": "^4.4.3"
   }
 }

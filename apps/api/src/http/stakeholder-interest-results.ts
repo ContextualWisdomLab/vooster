@@ -1,10 +1,14 @@
 import type { FastifyReply } from "fastify";
+import type { ApiErrorCode } from "@vooster/contracts";
 import type {
   AddStakeholderInterestResult,
   RemoveStakeholderInterestResult
 } from "../application/stakeholder-interest.js";
 import { unresolvedStakeholderProblem } from "./stakeholder-interest-support.js";
 import { problem } from "./signup-support.js";
+
+const STAKEHOLDER_ALREADY_ATTACHED =
+  "STAKEHOLDER_ALREADY_ATTACHED" satisfies ApiErrorCode;
 
 export function sendAddStakeholderInterestResult(
   reply: FastifyReply,
@@ -19,7 +23,9 @@ export function sendAddStakeholderInterestResult(
         stakeholder_interests: result.stakeholderInterests
       });
     case "DUPLICATE_INTEREST":
-      return reply.code(409).send(duplicateInterestProblem(result.existingInterest));
+      return reply
+        .code(409)
+        .send(duplicateInterestProblem(result.existingInterest, result.usecaseId));
     case "FORBIDDEN":
       return reply
         .code(403)
@@ -61,15 +67,18 @@ export function sendRemoveStakeholderInterestResult(
   }
 }
 
-function duplicateInterestProblem(existingInterest: string) {
+function duplicateInterestProblem(existingInterest: string, usecaseId: string) {
   return problem(
     409,
     "Stakeholder interest already exists",
-    { existing_interest: existingInterest },
+    {
+      code: STAKEHOLDER_ALREADY_ATTACHED,
+      existing_interest: existingInterest
+    },
     [
       {
-        command: "vspec usecase set --field stakeholder-interest",
-        reason: "Edit the existing stakeholder interest."
+        command: `vspec usecase show ${usecaseId}`,
+        reason: "Review the existing stakeholder interest before changing it."
       }
     ]
   );

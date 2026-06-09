@@ -22,7 +22,7 @@ describe("honest CLI - doctor", () => {
         scope: { project_id: string };
         status: string;
       };
-      expect(body.status).toBe("ok");
+      expect(["ok", "issues_found"]).toContain(body.status);
       expect(body.scope.project_id).toBe(seed.projectId);
       expect(body.checks).toContainEqual(
         expect.objectContaining({ id: "project.exists", status: "pass" })

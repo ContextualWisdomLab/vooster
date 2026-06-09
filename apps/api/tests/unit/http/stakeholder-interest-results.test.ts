@@ -47,13 +47,21 @@ describe("stakeholder interest result responses", () => {
     const duplicate = reply();
     sendAddStakeholderInterestResult(duplicate.fastifyReply, {
       existingInterest: "Avoid failed payouts",
+      usecaseId: "usecase-1",
       status: "DUPLICATE_INTEREST"
     });
 
     expect(duplicate.statusCode).toBe(409);
     expect(duplicate.body).toMatchObject({
+      code: "STAKEHOLDER_ALREADY_ATTACHED",
       existing_interest: "Avoid failed payouts",
-      title: "Stakeholder interest already exists"
+      title: "Stakeholder interest already exists",
+      suggested_next_actions: [
+        {
+          command: "vspec usecase show usecase-1",
+          reason: "Review the existing stakeholder interest before changing it."
+        }
+      ]
     });
 
     const forbidden = reply();

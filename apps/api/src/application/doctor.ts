@@ -37,8 +37,18 @@ export type DoctorDeps = {
   useCaseStore: UseCaseStore;
 };
 
+type DoctorSuccessResult = Exclude<
+  DoctorResult,
+  { status: "project_not_found" } | { status: "usecase_not_found" }
+>;
+
+type UseCaseDiagnostic = {
+  result: DoctorSuccessResult;
+  usecase: StoredUseCase;
+};
+
 export async function diagnoseProject(
-  deps: Pick<DoctorDeps, "projectStore" | "useCaseStore">,
+  deps: DoctorDeps,
   projectId: string
 ): Promise<DoctorResult> {
   const project = await deps.projectStore.findProjectById(projectId);
@@ -46,7 +56,18 @@ export async function diagnoseProject(
     return { status: "project_not_found" };
   }
 
-  const usecases = await deps.useCaseStore.listUseCases(projectId);
+  const visibleUsecases = (await deps.useCaseStore.listUseCases(projectId)).filter(
+    (usecase) => usecase.archived_at === null
+  );
+  const usecaseDiagnostics = await Promise.all(
+    visibleUsecases.map(async (usecase) => ({
+      result: await diagnoseStoredUseCase(deps, projectId, usecase),
+      usecase
+    }))
+  );
+  const failingUsecases = usecaseDiagnostics.filter(
+    ({ result }) => result.status !== "ok"
+  );
   const checks: DoctorCheck[] = [
     {
       id: "project.exists",
@@ -55,21 +76,17 @@ export async function diagnoseProject(
     },
     {
       id: "project.usecases.visible",
-      message: `${String(usecases.length)} use case(s) visible in this project.`,
+      message: `${String(visibleUsecases.length)} use case(s) visible in this project.`,
       status: "pass"
-    }
+    },
+    projectUsecaseVerifyCheck(visibleUsecases.length, failingUsecases)
   ];
 
   return {
     checks,
     scope: { project_id: projectId },
-    status: "ok",
-    suggested_next_actions: [
-      {
-        command: "vspec usecase list",
-        reason: "Choose a use case for deeper quality checks."
-      }
-    ]
+    status: statusFor(checks),
+    suggested_next_actions: projectNextActions(failingUsecases)
   };
 }
 
@@ -82,37 +99,93 @@ export async function diagnoseUseCase(
     return { status: "usecase_not_found" };
   }
 
+  return diagnoseStoredUseCase(deps, found.projectId, found.usecase);
+}
+
+async function diagnoseStoredUseCase(
+  deps: DoctorDeps,
+  projectId: string,
+  usecase: StoredUseCase
+): Promise<DoctorSuccessResult> {
   const interests = await deps.stakeholderInterestStore.listStakeholderInterests(
-    found.usecase.id
+    usecase.id
   );
-  const mainScenario = await deps.scenarioStore.findMainScenario(found.usecase.id);
+  const mainScenario = await deps.scenarioStore.findMainScenario(usecase.id);
   const mainSteps =
     mainScenario === undefined ? [] : await deps.stepStore.listSteps(mainScenario.id);
-  const listedSteps = await stepsForUseCase(deps, found.usecase.id);
+  const listedSteps = await stepsForUseCase(deps, usecase.id);
   const implementationSteps = uniqueSteps(mainSteps.concat(listedSteps));
   const checks = useCaseChecks(
-    found.usecase,
+    usecase,
     interests.length,
     mainScenario !== undefined,
     mainSteps.length
   )
-    .concat(implementationChecks(implementationSteps))
-    .concat(await invocationChecks(deps, found.projectId, found.usecase));
-  const suggested_next_actions = nextActions(found.usecase, checks);
+    .concat(implementationChecks(usecase, implementationSteps))
+    .concat(await invocationChecks(deps, projectId, usecase));
+  const suggested_next_actions = nextActions(usecase, checks);
 
   return {
     checks,
     scope: {
-      project_id: found.projectId,
+      project_id: projectId,
       usecase: {
-        id: found.usecase.id,
-        key: found.usecase.key,
-        title: found.usecase.title
+        id: usecase.id,
+        key: usecase.key,
+        title: usecase.title
       }
     },
-    status: checks.some((check) => check.status !== "pass") ? "issues_found" : "ok",
+    status: statusFor(checks),
     suggested_next_actions
   };
+}
+
+function projectUsecaseVerifyCheck(
+  visibleUsecaseCount: number,
+  failingUsecases: UseCaseDiagnostic[]
+): DoctorCheck {
+  if (failingUsecases.length === 0) {
+    return {
+      id: "project.usecases.verify",
+      message:
+        visibleUsecaseCount === 0
+          ? "No visible use cases to verify."
+          : "All visible use case quality checks pass.",
+      status: "pass"
+    };
+  }
+
+  return {
+    id: "project.usecases.verify",
+    message: `${String(failingUsecases.length)} visible use case(s) have quality issues: ${failingUsecases
+      .map(usecaseDiagnosticLabel)
+      .join("; ")}.`,
+    status: "fail"
+  };
+}
+
+function usecaseDiagnosticLabel({ result, usecase }: UseCaseDiagnostic): string {
+  const checkIds = result.checks
+    .filter((check) => check.status !== "pass")
+    .map((check) => check.id);
+  return `${usecase.key} (${checkIds.join(", ")})`;
+}
+
+function projectNextActions(failingUsecases: UseCaseDiagnostic[]) {
+  return [
+    {
+      command: "vspec usecase list",
+      reason: "Choose a use case for deeper quality checks."
+    },
+    ...failingUsecases.map(({ usecase }) => ({
+      command: `vspec doctor --usecase ${usecase.key}`,
+      reason: "Inspect the failing use case quality checks."
+    }))
+  ];
+}
+
+function statusFor(checks: DoctorCheck[]): "issues_found" | "ok" {
+  return checks.some((check) => check.status !== "pass") ? "issues_found" : "ok";
 }
 
 function useCaseChecks(
@@ -166,7 +239,13 @@ async function stepsForUseCase(
   ).flat();
 }
 
-function implementationChecks(steps: StoredStep[]): DoctorCheck[] {
+function implementationChecks(
+  usecase: StoredUseCase,
+  steps: StoredStep[]
+): DoctorCheck[] {
+  if (usecase.status === "DRAFT") {
+    return [];
+  }
   const unlinked = steps.filter((step) => step.implements.length === 0);
   return unlinked.length === 0
     ? []

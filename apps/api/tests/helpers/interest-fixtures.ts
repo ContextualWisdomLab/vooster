@@ -25,6 +25,7 @@ export type RemoveInterestResponse = {
 
 export type ProblemResponse = {
   candidate_stakeholders?: string[];
+  code?: string;
   existing_interest?: string;
   suggested_next_actions: Array<{ command: string; reason: string }>;
   title: string;

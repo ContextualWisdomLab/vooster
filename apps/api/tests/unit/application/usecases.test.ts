@@ -3,6 +3,7 @@ import {
   authorUseCase,
   updateUseCaseMetadata
 } from "../../../src/application/usecases.js";
+import { titleLooksLikeVerbPhrase } from "../../../src/application/verb-phrases.js";
 import type { ActorStore } from "../../../src/ports/actor-store.js";
 import type { MembershipStore } from "../../../src/ports/membership-store.js";
 import type { ProjectStore } from "../../../src/ports/project-store.js";
@@ -107,6 +108,16 @@ describe("use case authoring application", () => {
     });
   });
 
+  test.each(["User exports their expenses to CSV", "User logs a new expense"])(
+    "accepts subject-first finite-verb title '%s'",
+    async (title) => {
+      await expect(authorUseCase(depsFor(), input({ title }))).resolves.toMatchObject({
+        status: "CREATED",
+        usecase: { title }
+      });
+    }
+  );
+
   test("returns failure statuses without writing", async () => {
     await expect(
       authorUseCase(depsFor({ membership: undefined }), input())
@@ -114,8 +125,9 @@ describe("use case authoring application", () => {
     await expect(
       authorUseCase(depsFor(), input({ force: false, title: "Order status" }))
     ).resolves.toEqual({
+      offendingWord: "status",
       status: "TITLE_NOT_VERB_PHRASE",
-      suggestedTitles: ["Reviews order status"]
+      suggestedTitles: ["Review order status"]
     });
     await expect(
       authorUseCase(depsFor(), input({ force: false, title: "주문 상태" }))
@@ -140,6 +152,23 @@ describe("use case authoring application", () => {
       actorName: "Customer",
       status: "PRIMARY_ACTOR_NOT_AVAILABLE"
     });
+  });
+
+  test("returns only accepted suggestions for rejected titles", async () => {
+    const result = await authorUseCase(
+      depsFor(),
+      input({ force: false, title: "Expense report" })
+    );
+
+    expect(result.status).toBe("TITLE_NOT_VERB_PHRASE");
+    if (result.status !== "TITLE_NOT_VERB_PHRASE") {
+      throw new Error("expected rejected title");
+    }
+    expect(result.offendingWord).toBe("report");
+    expect(result.suggestedTitles).toEqual(["Review expense report"]);
+    expect(
+      result.suggestedTitles.every((title) => titleLooksLikeVerbPhrase(title))
+    ).toBe(true);
   });
 });
 

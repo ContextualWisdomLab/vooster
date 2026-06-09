@@ -88,7 +88,7 @@ function jsonGuide(cliVersion: string) {
           'vspec actor create --name "Account Holder" --type PRIMARY',
           'vspec actor create --name "Pocket" --type SUPPORTING',
           'vspec stakeholder create --name "Account Holder" --type EXTERNAL',
-          'vspec usecase create --title "Record a new expense" --primary-actor "Account Holder" --force --format=agent',
+          'vspec usecase create --title "User logs a new expense" --primary-actor "Account Holder" --format=agent',
           'vspec usecase add-stakeholder POCKET-001 --stakeholder "Account Holder" --interest "Accurate confirmed expense records"',
           "vspec scenario add POCKET-001 --type MAIN_SUCCESS --outcome SUCCESS",
           'vspec step add <main-scenario-id> --actor "Account Holder" --action "enters the expense amount, selects a category, and optionally adds a note"',
@@ -115,15 +115,15 @@ function guideSections(): AiGuideSection[] {
     },
     {
       heading: "Mandatory workflow",
-      body: "Before any write, start a session with --pin for every use case you will inspect. Fetch with --format=agent, apply one focused change, check suggested_next_actions, then commit or complete the session."
+      body: "For existing use cases, start a session with --pin for every use case you will inspect. A pin is an existing use case key such as POCKET-001. For greenfield work, create the first use case before starting a pinned session, or continue without a session until a key exists. Fetch with --format=agent, apply one focused change, check suggested_next_actions, then commit or complete the session."
     },
     {
       heading: "Greenfield setup",
-      body: 'For a new product, run vspec status first. If already authenticated, do not run vspec login again; use the current API and workspace. Run vspec project list, create the project if missing with vspec project create --key POCKET --name Pocket, then bind the repo with vspec init --project POCKET. Create a primary actor, a supporting product actor such as vspec actor create --name "Pocket" --type SUPPORTING, a typed stakeholder such as vspec stakeholder create --name "Account Holder" --type EXTERNAL, use case, stakeholder interest, main scenario, active-voice steps, and an extension such as vspec scenario add POCKET-001 --type EXTENSION --at 2a --condition "Amount is missing or invalid" --outcome FAILURE.'
+      body: 'For a new product, run vspec status first. If already authenticated, do not run vspec login again; use the current API and workspace. Run vspec project list, create the project if missing with vspec project create --key POCKET --name Pocket, then bind the repo with vspec init --project POCKET. Create a primary actor, a supporting product actor such as vspec actor create --name "Pocket" --type SUPPORTING, a typed stakeholder such as vspec stakeholder create --name "Account Holder" --type EXTERNAL, and a use case. Add at least one stakeholder interest before creating scenarios. Then create the main scenario, active-voice steps, and an extension such as vspec scenario add POCKET-001 --type EXTENSION --at 2a --condition "Amount is missing or invalid" --outcome FAILURE.'
     },
     {
       heading: "Existing use case edits",
-      body: "For an existing use case, start a pinned session, inspect step ids in `vspec usecase show <KEY-NNN> --format=agent`, and use `data.usecase.current_revision_id` as the `--base-revision` for `vspec step edit`. After every mutation, re-read the use case or use the returned `data.revision.id` as the next base revision. `vspec step add` appends; if a new requirement belongs before an existing save step, edit the existing step wording instead of probing unsupported ordering flags. Extension points use labels such as `2a`, not plain step numbers."
+      body: "For an existing use case, start a pinned session, inspect step ids in `vspec usecase show <KEY-NNN> --format=agent`, and use `data.usecase.current_revision_id` as the `--base-revision` for `vspec step edit`. After every mutation, re-read the use case or use the returned `data.revision.id` as the next base revision. Use `vspec step add --at <n>` to insert a new step at a 1-based position, and `vspec step move <step-id> --to <n>` to reorder without changing wording. Extension points use labels such as `2a`, not plain step numbers."
     },
     {
       heading: "The --format=agent payload contract",
@@ -131,7 +131,7 @@ function guideSections(): AiGuideSection[] {
     },
     {
       heading: "Forbidden actions",
-      body: "Never write without a pin. Never force a merge or ignore a conflict. Never discard suggested_next_actions; they are part of the command contract."
+      body: "Never edit an existing use case without a pin. Never force a merge or ignore a conflict. Never discard suggested_next_actions; they are part of the command contract."
     },
     {
       heading: "Worked example",
@@ -149,8 +149,10 @@ whether a peer changed the same spec. A session is the coordination handle for
 pins, locks, branch context, conflicts, and the final completion result.
 
 ## Mandatory workflow
-Before any write, start a session with \`--pin\` for every use case you will
-inspect or edit. Then:
+For existing use cases, start a session with \`--pin\` for every use case you
+will inspect or edit. A pin is an existing use case key such as \`POCKET-001\`.
+For greenfield work, create the first use case before starting a pinned session,
+or continue without a session until a key exists. Then:
 
 1. Fetch the target with \`--format=agent\`.
 2. Read the envelope before choosing the next command.
@@ -172,7 +174,8 @@ Use the CLI path:
 7. \`vspec actor create --name "Account Holder" --type PRIMARY\`
 8. \`vspec actor create --name "Pocket" --type SUPPORTING\`
 9. \`vspec stakeholder create --name "Account Holder" --type EXTERNAL\`
-10. \`vspec usecase create --title "Record a new expense" --primary-actor "Account Holder" --force --format=agent\`
+10. \`vspec usecase create --title "User logs a new expense" --primary-actor "Account Holder" --format=agent\`
+    Add at least one stakeholder interest before creating scenarios.
 11. \`vspec usecase add-stakeholder POCKET-001 --stakeholder "Account Holder" --interest "Accurate confirmed expense records"\`
 12. \`vspec scenario add POCKET-001 --type MAIN_SUCCESS --outcome SUCCESS\`
 13. \`vspec step add <main-scenario-id> --actor "Account Holder" --action "enters the expense amount, selects a category, and optionally adds a note"\`
@@ -192,9 +195,8 @@ Use the CLI path:
    \`vspec step edit\`.
 5. After each mutation, re-read the use case or use the returned
    \`data.revision.id\` as the next base revision.
-6. \`vspec step add\` appends. If a requirement belongs before an existing save
-   step, edit the existing earlier step wording instead of probing unsupported
-   ordering flags.
+6. Use \`vspec step add --at <n>\` to insert a new step at a 1-based position,
+   and \`vspec step move <step-id> --to <n>\` to reorder without changing wording.
 7. Extension points use labels such as \`2a\`, not plain step numbers.
 
 ## The --format=agent payload contract
@@ -204,8 +206,9 @@ on every response. Treat \`data\` as the command result,
 server mutation was committed.
 
 ## Forbidden actions
-Never write without a pin. Never force a merge or ignore a conflict. Never
-discard \`suggested_next_actions\`; they are part of the command contract.
+Never edit an existing use case without a pin. Never force a merge or ignore a
+conflict. Never discard \`suggested_next_actions\`; they are part of the command
+contract.
 
 ## Worked example
 1. \`vspec login\`

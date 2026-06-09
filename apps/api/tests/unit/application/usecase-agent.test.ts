@@ -293,12 +293,16 @@ describe("usecase agent application", () => {
     await expect(
       showUseCaseForAgent(depsFor({ membership: undefined }), input())
     ).resolves.toEqual({ status: "AUTHENTICATION_REQUIRED" });
-    await expect(
-      showUseCaseForAgent(
-        depsFor({ usecase: usecase({ archived_at: "2026-05-20T00:00:00.000Z" }) }),
-        input()
-      )
-    ).resolves.toEqual({ status: "ARCHIVED" });
+    const archivedResult = await showUseCaseForAgent(
+      depsFor({ usecase: usecase({ archived_at: "2026-05-20T00:00:00.000Z" }) }),
+      input()
+    );
+    expect(archivedResult.status).toBe("AGENT_ENVELOPE");
+    if (archivedResult.status === "AGENT_ENVELOPE") {
+      expect(archivedResult.envelope.warnings).toContainEqual(
+        expect.objectContaining({ type: "ARCHIVED_READ_ONLY" })
+      );
+    }
     await expect(
       showUseCaseForAgent(depsFor(), input({ requestedRevision: "missing-revision" }))
     ).resolves.toEqual({

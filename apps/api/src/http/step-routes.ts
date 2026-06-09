@@ -1,11 +1,16 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { stepParamsSchema, stepPatchRequestSchema } from "@vooster/contracts";
+import {
+  stepMoveRequestSchema,
+  stepParamsSchema,
+  stepPatchRequestSchema
+} from "@vooster/contracts";
+import { moveScenarioStep } from "../application/scenario-authoring.js";
 import { editStep } from "../application/step-editing.js";
 import { createTestLock } from "./step-lock-support.js";
 import { createTestWorkSession } from "./step-session-support.js";
 import { authenticatedUserId } from "./session-support.js";
 import { problem } from "./signup-support.js";
-import { sendStepEditingResult } from "./step-results.js";
+import { sendStepEditingResult, sendStepMoveResult } from "./step-results.js";
 import type { SignupState } from "./signup-types.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { LockStore } from "../ports/lock-store.js";
@@ -43,11 +48,56 @@ export function registerStepRoutes(
       useCaseStore
     )
   );
+  app.post("/v1/steps/:stepId/move", (request, reply) =>
+    moveStep(
+      request,
+      reply,
+      state,
+      membershipStore,
+      scenarioStore,
+      revisionStore,
+      stepStore,
+      useCaseStore
+    )
+  );
   app.post("/__test/usecases/:usecaseId/locks", (request, reply) =>
     createTestLock(request, reply, lockStore)
   );
   app.post("/__test/usecases/:usecaseId/work-sessions", (request, reply) =>
     createTestWorkSession(request, reply, workSessionStore)
+  );
+}
+
+async function moveStep(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  state: SignupState,
+  membershipStore: MembershipStore,
+  scenarioStore: ScenarioStore,
+  revisionStore: RevisionStore,
+  stepStore: StepStore,
+  useCaseStore: UseCaseStore
+) {
+  const parsed = stepMoveRequestSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.code(400).send(problem(400, "Invalid step move"));
+  }
+  return sendStepMoveResult(
+    reply,
+    await moveScenarioStep(
+      {
+        membershipStore,
+        revisionStore,
+        scenarioStore,
+        stepStore,
+        useCaseStore
+      },
+      {
+        stepId: stepParamsSchema.parse(request.params).stepId,
+        toPosition: parsed.data.to,
+        userId: authenticatedUserId(request.headers.cookie, state.sessionsByToken)
+      }
+    )
   );
 }
 

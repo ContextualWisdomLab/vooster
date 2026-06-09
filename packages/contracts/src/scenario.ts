@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { suggestedNextActionSchema } from "./common.js";
 
 export const scenarioTypeSchema = z.enum(["EXTENSION", "MAIN_SUCCESS"]);
 export const scenarioOutcomeSchema = z.enum(["FAILURE", "PARTIAL", "SUCCESS"]);
@@ -21,7 +22,12 @@ export const scenarioCreateRequestSchema = z.object({
 export const scenarioStepCreateRequestSchema = z.object({
   action: z.string(),
   actor: z.string().min(1),
-  force: z.boolean().default(false)
+  force: z.boolean().default(false),
+  position: z.number().int().min(1).optional()
+});
+
+export const stepMoveRequestSchema = z.object({
+  to: z.number().int().min(1)
 });
 
 export const stepPatchRequestSchema = z.object({
@@ -87,6 +93,7 @@ export const scenarioWarningResponseSchema = z.looseObject({
 export const scenarioCreateResponseSchema = z.object({
   revision: scenarioRevisionResponseSchema,
   scenario: scenarioStoredResponseSchema,
+  suggested_next_actions: z.array(suggestedNextActionSchema).default([]),
   steps: z.array(stepStoredResponseSchema).default([]),
   warnings: z.array(scenarioWarningResponseSchema).optional()
 });
@@ -98,6 +105,8 @@ export const scenarioStepCreateResponseSchema = z.object({
   warnings: z.array(scenarioWarningResponseSchema).optional()
 });
 
+export const stepMoveResponseSchema = scenarioStepCreateResponseSchema;
+
 export const stepUpdateResponseSchema = z.object({
   affected_sessions: z.array(z.string()),
   revision: scenarioRevisionResponseSchema,
@@ -106,9 +115,11 @@ export const stepUpdateResponseSchema = z.object({
 
 export type ScenarioCreateRequest = z.infer<typeof scenarioCreateRequestSchema>;
 export type ScenarioStepCreateRequest = z.infer<typeof scenarioStepCreateRequestSchema>;
+export type StepMoveRequest = z.infer<typeof stepMoveRequestSchema>;
 export type StepPatchRequest = z.infer<typeof stepPatchRequestSchema>;
 export type ScenarioCreateResponse = z.infer<typeof scenarioCreateResponseSchema>;
 export type ScenarioStepCreateResponse = z.infer<
   typeof scenarioStepCreateResponseSchema
 >;
+export type StepMoveResponse = z.infer<typeof stepMoveResponseSchema>;
 export type StepUpdateResponse = z.infer<typeof stepUpdateResponseSchema>;

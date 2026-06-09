@@ -77,7 +77,8 @@ describe("stakeholder interest application", () => {
 
     expect(result).toEqual({
       existingInterest: "Checkout revenue is protected.",
-      status: "DUPLICATE_INTEREST"
+      status: "DUPLICATE_INTEREST",
+      usecaseId: "usecase-1"
     });
     expect(savedInterests).toEqual([]);
     expect(savedRevisions).toEqual([]);

@@ -1,6 +1,7 @@
 import type { StoredUseCase } from "../domain/entities/index.js";
 import type { ActorStore } from "../ports/actor-store.js";
 import type { StakeholderStore } from "../ports/stakeholder-store.js";
+import { orderScenarioStepsForDisplay } from "./scenario-step-ordering.js";
 import type { UseCaseAgentDeps } from "./usecase-agent-types.js";
 import { invokedBy } from "./usecase-invocations.js";
 
@@ -20,14 +21,16 @@ export async function agentData(
         extension_point: scenario.extension_point,
         id: scenario.id,
         steps: await Promise.all(
-          (await deps.stepStore.listSteps(scenario.id)).map(async (step) => ({
-            action: step.action,
-            actor: await actorName(deps.actorStore, projectId, step.actor_id),
-            id: step.id,
-            implements: step.implements,
-            invokes: step.invokes,
-            step_number: step.step_number
-          }))
+          orderScenarioStepsForDisplay(await deps.stepStore.listSteps(scenario.id)).map(
+            async (step) => ({
+              action: step.action,
+              actor: await actorName(deps.actorStore, projectId, step.actor_id),
+              id: step.id,
+              implements: step.implements,
+              invokes: step.invokes,
+              step_number: step.step_number
+            })
+          )
         ),
         type: scenario.type
       }))

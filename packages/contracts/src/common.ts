@@ -25,6 +25,7 @@ export const apiErrorCodeSchema = z.enum([
   "SCHEMA_INVALID",
   "TITLE_NOT_VERB_PHRASE",
   "PRIMARY_ACTOR_NOT_AVAILABLE",
+  "STAKEHOLDER_ALREADY_ATTACHED",
   "INTERNAL"
 ]);
 

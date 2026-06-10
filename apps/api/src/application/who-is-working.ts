@@ -72,11 +72,19 @@ export async function whoIsWorking(
     return { status: "FORBIDDEN" };
   }
 
-  const sessions = (await activeSessions(deps.workSessionStore, found.usecase.id)).map(
-    (session) => sessionRow(deps, session)
-  );
-  const locks = (await activeLocks(deps, found.usecase.id)).map(lockRow);
-  const mergeRequests = (await openMergeRequests(deps, found.usecase.id)).map(mergeRow);
+  // ⚡ Bolt Optimization:
+  // 💡 What: Replaced sequential `await` calls with `Promise.all` for parallel execution.
+  // 🎯 Why: `activeSessions`, `activeLocks`, and `openMergeRequests` are independent network/database calls. Running them sequentially caused unnecessary blocking.
+  // 📊 Impact: Reduces query time from (T1 + T2 + T3) to max(T1, T2, T3). Speeds up `whoIsWorking` endpoint noticeably, especially on high latency connections or larger databases.
+  const [rawSessions, rawLocks, rawMergeRequests] = await Promise.all([
+    activeSessions(deps.workSessionStore, found.usecase.id),
+    activeLocks(deps, found.usecase.id),
+    openMergeRequests(deps, found.usecase.id)
+  ]);
+
+  const sessions = rawSessions.map((session) => sessionRow(deps, session));
+  const locks = rawLocks.map(lockRow);
+  const mergeRequests = rawMergeRequests.map(mergeRow);
   const hasActiveWork = sessions.length + locks.length + mergeRequests.length > 0;
 
   return {

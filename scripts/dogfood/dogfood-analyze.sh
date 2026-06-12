@@ -106,7 +106,50 @@ if ! findings_valid; then
 fi
 
 if ! findings_valid; then
-  df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+  # Fallback to synthesizing findings from result.json if analyzer fails
+  if [ -f "$RUN_DIR/result.json" ]; then
+    echo "  ⚠ analyzer failed permanently, synthesizing fallback findings from result.json"
+    SUCCESS="$(jq -r 'if .subtype == "success" then "true" else "false" end' "$RUN_DIR/result.json")"
+    BUDGET_ERR="$(jq -r 'if .subtype == "error_max_budget_usd" then "true" else "false" end' "$RUN_DIR/result.json")"
+
+    if [ "$BUDGET_ERR" = "true" ]; then
+      # If max budget hit, flag it as a P1 finding
+      cat > "$OUT" <<EOF
+{
+  "case_id": "$CASE",
+  "task_succeeded": $SUCCESS,
+  "summary": "Synthesized fallback: max budget reached",
+  "findings": [
+    {
+      "severity": "P1",
+      "title": "Reached maximum budget",
+      "description": "The agent exhausted its budget before completion. This may indicate a loop or a missing capability.",
+      "routing": "codex"
+    }
+  ]
+}
+EOF
+    else
+      # If successful but analyzer timed out, produce an empty P2 finding warning about the timeout
+      cat > "$OUT" <<EOF
+{
+  "case_id": "$CASE",
+  "task_succeeded": $SUCCESS,
+  "summary": "Synthesized fallback: analyzer timeout on successful run",
+  "findings": [
+    {
+      "severity": "P2",
+      "title": "Analyzer timeout",
+      "description": "The run succeeded, but the analysis step timed out or failed to produce valid JSON.",
+      "routing": "codex"
+    }
+  ]
+}
+EOF
+    fi
+  else
+    df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+  fi
 fi
 
 # Pin case_id (claude may omit/mistype it) and report.

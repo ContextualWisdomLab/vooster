@@ -193,14 +193,16 @@ export function UsecaseTable({
         ) : (
           groups.map(([level, items]) => {
             const isOpen = !collapsed.has(level);
+            const groupId = `usecase-group-${level}`;
             return (
-              <tbody key={level}>
+              <tbody key={level} id={groupId}>
                 <tr className="border-t border-border bg-muted/30">
                   <td colSpan={COLUMN_COUNT} className="py-1.5 pr-3 pl-4">
                     <button
                       type="button"
                       onClick={() => toggle(level)}
                       aria-expanded={isOpen}
+                      aria-controls={groupId}
                       className="inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <ChevronRight

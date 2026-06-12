@@ -109,9 +109,18 @@ jobs:
         env:
           COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
           GATES_OUTCOME: ${{ steps.gates.outcome }}
+          VSPEC_VERIFY_ISSUE_REPOSITORY: ${{ vars.VSPEC_VERIFY_ISSUE_REPOSITORY }}
+          VSPEC_VERIFY_ISSUE_TOKEN_SET: ${{ secrets.VSPEC_VERIFY_ISSUE_TOKEN != '' }}
         with:
+          github-token: ${{ secrets.VSPEC_VERIFY_ISSUE_TOKEN || github.token }}
           script: |
             const fs = require("node:fs");
+            const {
+              issueRepositoryRequiresExternalToken,
+              resolveVerifyIssueRepository
+            } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/verify-issue-target.js`
+            );
             const title = "Verify (coverage + gate sweep) is failing";
             const label = "verify-failure";
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
@@ -131,78 +140,154 @@ jobs:
               log,
               "```"
             ].join("\n");
+            const currentRepository = `${context.repo.owner}/${context.repo.repo}`;
+            const configuredRepository = process.env.VSPEC_VERIFY_ISSUE_REPOSITORY;
+            let issueRepository = { owner: context.repo.owner, repo: context.repo.repo };
             async function ensureLabel() {
               try {
                 await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
                   name: label
                 });
               } catch (error) {
                 if (error.status !== 404) throw error;
                 await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
                   name: label,
                   color: "B60205",
                   description: "Automated Verify (coverage + gate sweep) failures"
                 });
               }
             }
-            await ensureLabel();
-            const { data: issues } = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue label:${label}`
-            });
-            const existing = issues.items.find((issue) => issue.title === title);
-            if (existing === undefined) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                labels: [label],
-                body
+            try {
+              const repositoryMetadata = configuredRepository?.trim()
+                ? undefined
+                : (await github.rest.repos.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                  })).data;
+              issueRepository = resolveVerifyIssueRepository({
+                configuredRepository,
+                currentRepository,
+                repositoryMetadata
               });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                body
-              });
-              if (existing.state !== "open") {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existing.number,
-                  state: "open"
-                });
+              if (
+                issueRepositoryRequiresExternalToken({ currentRepository, issueRepository }) &&
+                process.env.VSPEC_VERIFY_ISSUE_TOKEN_SET !== "true"
+              ) {
+                core.warning(
+                  `Skipping Verify issue update for ${issueRepository.owner}/${issueRepository.repo}; fork tokens cannot write upstream issues. The upstream repository's Verify run owns issue reporting, or set VSPEC_VERIFY_ISSUE_TOKEN for this fork.`
+                );
+                return;
               }
+              core.info(`Reporting Verify failure in ${issueRepository.owner}/${issueRepository.repo}`);
+              await ensureLabel();
+              const { data: issues } = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${issueRepository.owner}/${issueRepository.repo} is:issue label:${label}`
+              });
+              const existing = issues.items.find((issue) => issue.title === title);
+              if (existing === undefined) {
+                await github.rest.issues.create({
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
+                  title,
+                  labels: [label],
+                  body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
+                  issue_number: existing.number,
+                  body
+                });
+                if (existing.state !== "open") {
+                  await github.rest.issues.update({
+                    owner: issueRepository.owner,
+                    repo: issueRepository.repo,
+                    issue_number: existing.number,
+                    state: "open"
+                  });
+                }
+              }
+            } catch (error) {
+              if (![403, 404, 410].includes(error.status)) {
+                throw error;
+              }
+              core.warning(
+                `Could not update Verify issue in ${issueRepository.owner}/${issueRepository.repo}: ${error.message}. Set VSPEC_VERIFY_ISSUE_TOKEN with issues:write access to that repository when running from a fork.`
+              );
             }
       - name: Close verify issue on green
         if: >-
           github.event_name != 'pull_request' &&
           steps.coverage.outcome == 'success' && steps.gates.outcome == 'success'
         uses: actions/github-script@v7
+        env:
+          VSPEC_VERIFY_ISSUE_REPOSITORY: ${{ vars.VSPEC_VERIFY_ISSUE_REPOSITORY }}
+          VSPEC_VERIFY_ISSUE_TOKEN_SET: ${{ secrets.VSPEC_VERIFY_ISSUE_TOKEN != '' }}
         with:
+          github-token: ${{ secrets.VSPEC_VERIFY_ISSUE_TOKEN || github.token }}
           script: |
+            const {
+              issueRepositoryRequiresExternalToken,
+              resolveVerifyIssueRepository
+            } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/verify-issue-target.js`
+            );
             const label = "verify-failure";
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const { data: issues } = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:${label}`
-            });
-            for (const issue of issues.items) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `Resolved by ${context.sha} — Verify is green. ${runUrl}`
+            const currentRepository = `${context.repo.owner}/${context.repo.repo}`;
+            const configuredRepository = process.env.VSPEC_VERIFY_ISSUE_REPOSITORY;
+            let issueRepository = { owner: context.repo.owner, repo: context.repo.repo };
+            try {
+              const repositoryMetadata = configuredRepository?.trim()
+                ? undefined
+                : (await github.rest.repos.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                  })).data;
+              issueRepository = resolveVerifyIssueRepository({
+                configuredRepository,
+                currentRepository,
+                repositoryMetadata
               });
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: "closed"
+              if (
+                issueRepositoryRequiresExternalToken({ currentRepository, issueRepository }) &&
+                process.env.VSPEC_VERIFY_ISSUE_TOKEN_SET !== "true"
+              ) {
+                core.warning(
+                  `Skipping Verify issue close for ${issueRepository.owner}/${issueRepository.repo}; fork tokens cannot write upstream issues. The upstream repository's Verify run owns issue reporting, or set VSPEC_VERIFY_ISSUE_TOKEN for this fork.`
+                );
+                return;
+              }
+              core.info(`Closing Verify issues in ${issueRepository.owner}/${issueRepository.repo}`);
+              const { data: issues } = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${issueRepository.owner}/${issueRepository.repo} is:issue is:open label:${label}`
               });
+              for (const issue of issues.items) {
+                await github.rest.issues.createComment({
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
+                  issue_number: issue.number,
+                  body: `Resolved by ${context.sha} — Verify is green. ${runUrl}`
+                });
+                await github.rest.issues.update({
+                  owner: issueRepository.owner,
+                  repo: issueRepository.repo,
+                  issue_number: issue.number,
+                  state: "closed"
+                });
+              }
+            } catch (error) {
+              if (![403, 404, 410].includes(error.status)) {
+                throw error;
+              }
+              core.warning(
+                `Could not close Verify issue in ${issueRepository.owner}/${issueRepository.repo}: ${error.message}. Set VSPEC_VERIFY_ISSUE_TOKEN with issues:write access to that repository when running from a fork.`
+              );
             }
       - name: Fail workflow if any check failed
         if: steps.coverage.outcome == 'failure' || steps.gates.outcome == 'failure'

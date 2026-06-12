@@ -28,4 +28,18 @@ describe("verify GitHub Action adapter", () => {
     expect(workflow).toContain("steps.verify.outputs.exit_code");
     expect(workflow).toContain("steps.verify.outputs.log_path");
   });
+
+  it("posts verify failure issues to the upstream repository from forks", () => {
+    const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+
+    expect(workflow).toContain(
+      "github-token: ${{ secrets.VSPEC_VERIFY_ISSUE_TOKEN || github.token }}"
+    );
+    expect(workflow).toContain("VSPEC_VERIFY_ISSUE_REPOSITORY");
+    expect(workflow).toContain("VSPEC_VERIFY_ISSUE_TOKEN_SET");
+    expect(workflow).toContain("resolveVerifyIssueRepository");
+    expect(workflow).toContain("issueRepositoryRequiresExternalToken");
+    expect(workflow).toContain("github.rest.repos.get");
+    expect(workflow).toContain("Skipping Verify issue update for");
+  });
 });

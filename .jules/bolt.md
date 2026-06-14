@@ -1,0 +1,3 @@
+## 2025-02-14 - [Memoizing Grouping Computations in Tables]
+**Learning:** React components that render lists and group them (like `UsecaseTable` grouping by level and `ActorTable` grouping by type) suffer from unnecessary O(N) recalculations whenever local state changes (e.g., toggling a collapsed section). Since the source lists (`usecases`, `actors`) don't change during these local interactions, grouping them directly in the render body is inefficient.
+**Action:** Always extract expensive grouping or sorting operations on arrays inside React components into `useMemo` hooks, using the source array as the dependency. This ensures the calculation only happens when the underlying data changes, not during standard UI interactions like expanding/collapsing.

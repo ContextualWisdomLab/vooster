@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronRight, CircleDot, ListOrdered, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -107,7 +107,8 @@ export function ActorTable({
   actors: ActorSummary[];
   usecaseCountByActor: Record<string, number>;
 }) {
-  const groups = groupByType(actors);
+  // Memoize grouping to prevent O(N) recalculations on collapse/expand re-renders
+  const groups = useMemo(() => groupByType(actors), [actors]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
   function toggle(type: string) {

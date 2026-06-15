@@ -1,4 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyHelmet from "@fastify/helmet";
 import { healthResponseSchema } from "@vooster/contracts";
 import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
@@ -63,6 +65,18 @@ import type { UserStore } from "../ports/user-store.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const serverOptions = withGithubOAuthFromEnv(options);
   const app = Fastify({ logger: false });
+
+  // 🛡️ Sentinel: Add security headers to protect against common web vulnerabilities like XSS, clickjacking, etc.
+  await app.register(fastifyHelmet);
+
+  // 🛡️ Sentinel: Configure CORS strictly using explicit allowed origins.
+  // Prevents unauthorized cross-origin requests. Fails secure (origin: false) if no origins are configured.
+  const allowedOriginsRaw = process.env.VSPEC_ALLOWED_ORIGINS;
+  const allowedOrigins = allowedOriginsRaw ? allowedOriginsRaw.split(",") : [];
+
+  await app.register(fastifyCors, {
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false
+  });
   const state = initialState();
   const apiKeyStore = serverOptions.signupStore ?? createMemoryApiKeyStore();
   const actorStore = serverOptions.signupStore ?? createMemoryActorStore();

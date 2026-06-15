@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { ChevronRight, CircleDot, ListOrdered, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -149,40 +149,44 @@ export function ActorTable({
           groups.map(([type, items]) => {
             const isOpen = !collapsed.has(type);
             return (
-              <tbody key={type}>
-                <tr className="border-t border-border bg-muted/30">
-                  <td colSpan={COLUMN_COUNT} className="py-1.5 pr-3 pl-4">
-                    <button
-                      type="button"
-                      onClick={() => toggle(type)}
-                      aria-expanded={isOpen}
-                      className="inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
-                      <ChevronRight
-                        aria-hidden="true"
-                        className={cn(
-                          "size-3.5 shrink-0 text-muted-foreground transition-transform",
-                          isOpen && "rotate-90"
-                        )}
-                      />
-                      <span className="font-medium text-foreground">
-                        {actorTypeLabel(type)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {items.length}
-                      </span>
-                    </button>
-                  </td>
-                </tr>
-                {isOpen &&
-                  items.map((actor) => (
+              <Fragment key={type}>
+                <tbody>
+                  <tr className="border-t border-border bg-muted/30">
+                    <td colSpan={COLUMN_COUNT} className="py-1.5 pr-3 pl-4">
+                      <button
+                        type="button"
+                        onClick={() => toggle(type)}
+                        aria-expanded={isOpen}
+                        aria-controls={type}
+                        className="inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        <ChevronRight
+                          aria-hidden="true"
+                          className={cn(
+                            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                            isOpen && "rotate-90"
+                          )}
+                        />
+                        <span className="font-medium text-foreground">
+                          {actorTypeLabel(type)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {items.length}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+                <tbody id={type} className={cn(!isOpen && "hidden")}>
+                  {items.map((actor) => (
                     <ActorRow
                       key={actor.id}
                       actor={actor}
                       usecaseCount={usecaseCountByActor[actor.name] ?? 0}
                     />
                   ))}
-              </tbody>
+                </tbody>
+              </Fragment>
             );
           })
         )}

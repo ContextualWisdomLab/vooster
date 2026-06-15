@@ -71,7 +71,7 @@ gate. It extends the same envelope discipline to the `actor` read/by-id commands
    cannot resolve the supplied actor, the emitted envelope names the lookup key
    the agent passed and its `suggested_next_actions` points at `vspec actor list`
    (so the agent can retry with the listed id). Behaviour — in both `--format
-   agent` and the default human output — is locked by unit tests in
+agent` and the default human output — is locked by unit tests in
    `apps/cli/tests/unit/actor-command.test.ts`.
 3. **The actor read/write happy paths stay green.** `actor list`/`show`/`edit`/
    `archive` success output is unchanged, and the success cases still emit no

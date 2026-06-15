@@ -25,7 +25,7 @@ and the use cases are still at `DRAFT`.
 ## Source finding
 
 A task asked the agent to act on what `verify` reported. For POCKET-001..005,
-`verify` flagged *every* step as `unlinked` and suggested adding `implements`
+`verify` flagged _every_ step as `unlinked` and suggested adding `implements`
 refs — while `verify` itself reported `Tests not run`, the repo contained no
 implementation code, and all five use cases were still at `DRAFT`. Meanwhile
 every real spec gate was green (`actors_registered`, `scenario_completeness`,

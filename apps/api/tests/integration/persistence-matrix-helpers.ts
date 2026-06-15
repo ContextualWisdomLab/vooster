@@ -70,7 +70,8 @@ export async function bootServer(databaseUrl: string) {
       ...process.env,
       DATABASE_URL: databaseUrl,
       PORT: String(port),
-      VSPEC_AUTH_STUB: "1"
+      VSPEC_AUTH_STUB: "1",
+      VSPEC_ALLOWED_ORIGINS: "http://127.0.0.1:3000"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });

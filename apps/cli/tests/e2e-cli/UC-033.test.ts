@@ -28,7 +28,7 @@ describe("UC-033 CLI - Learn how to use vspec", () => {
       expect(result.stdout).toContain("vspec usecase add-stakeholder");
       expect(result.stdout).toContain("Existing use case edits");
       expect(result.stdout).toContain(
-        "Use `vspec step add --at <n>` to insert a new step at a 1-based position,"
+        "6. Use `vspec step add --at <n>` to insert a new step at a 1-based position,"
       );
       expect(result.stdout).toContain(
         "vspec scenario add POCKET-001 --type EXTENSION --at 2a"

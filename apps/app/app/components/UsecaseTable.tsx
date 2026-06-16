@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -144,9 +144,7 @@ export function UsecaseTable({
   usecases: UsecaseSummary[];
   projectKey: string;
 }) {
-  // Memoize the grouping operation to prevent O(N) recalculations
-  // during local UI state changes (like expanding/collapsing)
-  const groups = useMemo(() => groupByLevel(usecases), [usecases]);
+  const groups = groupByLevel(usecases);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
   function toggle(level: string) {

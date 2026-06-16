@@ -106,7 +106,52 @@ if ! findings_valid; then
 fi
 
 if ! findings_valid; then
-  df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+  # Fallback: synthesise findings from the run result.json so a timeout in the
+  # *analysis* step (not the session itself) does not silently suppress signal.
+  result_json="$RUN_DIR/result.json"
+  if [ -f "$result_json" ]; then
+    is_err="$(jq -r 'if .is_error == false then "false" else "true" end' "$result_json" 2>/dev/null)"
+    if [ "$is_err" = "false" ]; then
+      jq -n \
+        --arg case_id "$CASE" \
+        --argjson result "$(cat "$result_json")" \
+        '{
+          case_id: $case_id,
+          summary: ("Analyzer timed out; original session completed successfully (subtype=" + ($result.subtype // "unknown") + ")."),
+          task_succeeded: true,
+          findings: [{
+            title: "Analysis timed out after successful agent run",
+            severity: "P2",
+            quants: ["Q"],
+            evidence: ("result.json subtype=" + ($result.subtype // "unknown") + "; analyzer exceeded timeout"),
+            root_cause_area: "scripts/dogfood",
+            recommendation: "Review analyzer timeout settings or optimize analysis pipeline.",
+            routing: "codex"
+          }]
+        }' > "$OUT"
+    else
+      jq -n \
+        --arg case_id "$CASE" \
+        --argjson result "$(cat "$result_json")" \
+        '{
+          case_id: $case_id,
+          summary: ("Analyzer timed out; original session encountered an error or budget limit (subtype=" + ($result.subtype // "unknown") + ")."),
+          task_succeeded: false,
+          findings: [{
+            title: "Agent run terminated — budget or error limit",
+            severity: "P1",
+            quants: ["Q"],
+            evidence: ("result.json subtype=" + ($result.subtype // "unknown") + "; errors=" + (($result.errors // []) | tojson)),
+            root_cause_area: "scripts/dogfood",
+            recommendation: "Review budget limits and agent efficiency for this case.",
+            routing: "codex"
+          }]
+        }' > "$OUT"
+    fi
+    echo "  ⚠ analyze $CASE → fallback findings written (analyzer timed out)"
+  else
+    df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+  fi
 fi
 
 # Pin case_id (claude may omit/mistype it) and report.

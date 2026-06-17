@@ -195,7 +195,8 @@ Use the CLI path:
    \`vspec step edit\`.
 5. After each mutation, re-read the use case or use the returned
    \`data.revision.id\` as the next base revision.
-6. \`vspec step add\` appends to the end by default. Use \`vspec step add --at <n>\` to insert at a 1-based position, and \`vspec step move <step-id> --to <n>\` to reorder without changing wording.
+6. Use \`vspec step add --at <n>\` to insert a new step at a 1-based position,
+   and \`vspec step move <step-id> --to <n>\` to reorder without changing wording.
 7. Extension points use labels such as \`2a\`, not plain step numbers.
 
 ## The --format=agent payload contract

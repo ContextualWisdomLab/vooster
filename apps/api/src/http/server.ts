@@ -1,4 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyHelmet from "@fastify/helmet";
 import { healthResponseSchema } from "@vooster/contracts";
 import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
@@ -88,6 +90,16 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const userStore = serverOptions.signupStore ?? createMemoryUserStore();
   const workspaceStore = serverOptions.signupStore ?? createMemoryWorkspaceStore();
   const workSessionStore = serverOptions.signupStore ?? createMemoryWorkSessionStore();
+  const allowedOrigins = serverOptions.allowedOrigins ?? [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+  ];
+  await app.register(fastifyHelmet);
+  await app.register(fastifyCors, {
+    origin: allowedOrigins,
+    credentials: true
+  });
+
   if (serverOptions.authStub) {
     await seedStubZeroWorkspaceUser(userStore);
   }

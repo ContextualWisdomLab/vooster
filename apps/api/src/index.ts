@@ -18,7 +18,13 @@ export async function startApi(runtime: Partial<ApiRuntime> = {}) {
   const authStub = env.VSPEC_AUTH_STUB === "1";
   const forceMemoryStore = env.VSPEC_FORCE_MEMORY_STORE === "1";
   const port = portFrom(env.PORT);
+  const allowedOrigins =
+    env.VSPEC_ALLOWED_ORIGINS !== undefined
+      ? env.VSPEC_ALLOWED_ORIGINS.split(",")
+      : undefined;
+
   const app = await (runtime.createServer ?? createServer)({
+    allowedOrigins,
     authStub,
     githubOAuth: githubOAuthFromEnv(authStub, env),
     signupStore:

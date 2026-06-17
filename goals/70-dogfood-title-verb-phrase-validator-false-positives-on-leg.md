@@ -15,7 +15,7 @@ A closed whitelist of English verbs is a correctness liability: it silently
 degrades valid specs, it is impossible to keep complete, and it cuts against the
 language-aware / Korean-first design principle. The dogfood agent could not
 recover from the rejection on its own — the message ("Use case title should be a
-verb phrase") never named *which* word it disliked, so the agent built the wrong
+verb phrase") never named _which_ word it disliked, so the agent built the wrong
 mental model ("the validator only accepts a leading subject like `User`") and
 fell back to `--force`.
 
@@ -25,7 +25,7 @@ Two things must become true:
    the fix is a more permissive heuristic or a meaningfully broadened verb set,
    the dogfood-discovered title and a representative spread of common finite
    verbs the old closed set omitted must all be accepted.
-2. When a title *is* genuinely rejected, the `TITLE_NOT_VERB_PHRASE` response
+2. When a title _is_ genuinely rejected, the `TITLE_NOT_VERB_PHRASE` response
    must name the offending word so an agent can reason about the fix rather than
    guess. `--force` stays a real escape hatch; it must not be the only way past a
    legitimate verb phrase.
@@ -53,7 +53,7 @@ and 52 — it does not weaken either prior gate.
    `titleLooksLikeVerbPhrase`.** The corpus is a source-of-truth fixture,
    `apps/api/tests/fixtures/legitimate-verb-phrase-titles.txt` (one title per
    line; `#` comment and blank lines ignored). This is a universal claim: the
-   gate enumerates every non-comment line from that file and loops the *real*
+   gate enumerates every non-comment line from that file and loops the _real_
    validator over each one — no single-case cheat. The corpus must encode the
    dogfood regression anchor (`Partner accepts a shared-budget invitation`) and a
    representative spread of common finite verbs the prior closed set omitted, so

@@ -9,6 +9,7 @@ export type GithubOAuthConfig = {
 };
 
 export type ServerOptions = {
+  allowedOrigins?: string[];
   authStub: boolean;
   githubOAuth?: GithubOAuthConfig;
   signupStore?: SignupStore;

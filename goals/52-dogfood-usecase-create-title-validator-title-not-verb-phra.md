@@ -18,7 +18,7 @@ Two things must become true:
 1. The guide must stop shipping self-contradicting create examples: every
    `vspec usecase create` example command the guide emits must carry a title the
    validator accepts, and none of those create examples may pass `--force`. A
-   self-teaching example must demonstrate a title that *works*, not one that has
+   self-teaching example must demonstrate a title that _works_, not one that has
    to be forced.
 2. When `usecase create` genuinely rejects a title, the `TITLE_NOT_VERB_PHRASE`
    response must teach the fix end to end: it must surface at least one concrete

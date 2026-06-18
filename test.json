@@ -1,0 +1,1 @@
+{"case_id":"DF-001","summary":"Fallback: Run failed but analysis timed out","task_succeeded":false,"findings":[{"severity":"P1","title":"Agent run failed","description":"The dogfood run failed (e.g. budget exhausted), but the analyzer could not produce a detailed report.","routing":"codex"}]}

@@ -1,0 +1,3 @@
+## 2024-06-18 - [Memoize O(N) Array Grouping in React UI state]
+**Learning:** Collapsible table sections in React that use local state (`useState`) to track expanded/collapsed items will trigger a full component re-render on every toggle. If the component synchronously computes O(N) data groupings (like `groupByType(actors)` or `groupByLevel(usecases)`) before rendering, this can become a minor performance bottleneck as N grows, causing UI jank when expanding or collapsing groups.
+**Action:** Always wrap expensive O(N) array transformations (sorting, grouping, filtering) in `useMemo` when they are placed inside a component body that relies on local UI state changes, using the source array as the dependency array.

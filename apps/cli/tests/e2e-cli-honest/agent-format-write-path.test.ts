@@ -19,7 +19,9 @@ describe("honest CLI --format=agent write paths", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) {
+      if (server) await server.stop();
+    }
   });
 
   test("agent actor create", async () => {

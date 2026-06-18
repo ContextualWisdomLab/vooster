@@ -73,7 +73,7 @@ describe("honest CLI flow", () => {
       expect(usecase.status).toBe(0);
       expect(usecase.stdout).toContain("HON-001");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

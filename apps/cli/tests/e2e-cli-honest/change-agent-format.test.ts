@@ -46,7 +46,7 @@ describe("honest CLI change --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
     while (tempRoots.length > 0) {
       rmSync(tempRoots.pop() ?? "", { force: true, recursive: true });
     }

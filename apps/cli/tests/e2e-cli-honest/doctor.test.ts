@@ -28,7 +28,7 @@ describe("honest CLI - doctor", () => {
         expect.objectContaining({ id: "project.exists", status: "pass" })
       );
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

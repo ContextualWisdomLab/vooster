@@ -27,7 +27,7 @@ describe("honest CLI - actor read", () => {
       expect(listed.stdout).toContain(seed.actorId);
       expect(shown.stdout).toContain(seed.actorId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

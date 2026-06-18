@@ -53,7 +53,7 @@ describe("honest CLI - stakeholder edit", () => {
       expect(edited.stdout).toContain("Product Owner");
       expect(archived.stdout).toContain(stakeholderId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

@@ -45,7 +45,7 @@ describe("honest CLI session --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
   });
 
   test("agent session start", async () => {

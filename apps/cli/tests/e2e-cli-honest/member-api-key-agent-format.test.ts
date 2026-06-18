@@ -56,7 +56,7 @@ describe("honest CLI member/API-key --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
   });
 
   test("agent member and api-key admin lifecycle", async () => {

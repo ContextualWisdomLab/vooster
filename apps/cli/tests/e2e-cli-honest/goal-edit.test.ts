@@ -37,7 +37,7 @@ describe("honest CLI - goal edit", () => {
       expect(seed.env.VSPEC_CONFIG_PATH).toContain("config.json");
       expect(rejected.stdout).toContain("REJECTED");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

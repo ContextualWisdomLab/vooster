@@ -46,7 +46,7 @@ describe("UC-016 honest CLI - Start a work session", () => {
       expect(sessionFile.session_id).toMatch(/[a-f0-9-]+/u);
       expect(Object.keys(sessionFile.pinned_revisions)).toHaveLength(1);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

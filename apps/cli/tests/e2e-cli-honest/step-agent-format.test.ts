@@ -47,7 +47,7 @@ describe("honest CLI step --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
   });
 
   test("agent step add", async () => {

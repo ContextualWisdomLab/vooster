@@ -36,7 +36,7 @@ describe("UC-005 honest CLI - Define an actor", () => {
       expect(secondActor.stdout).toContain("Admin");
       expect(secondActor.stdout).toContain("SUPPORTING");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

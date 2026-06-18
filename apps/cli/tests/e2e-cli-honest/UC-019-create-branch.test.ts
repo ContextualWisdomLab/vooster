@@ -30,7 +30,7 @@ describe("UC-019 honest CLI - Create a branch", () => {
       expect(branch.stdout).toContain("Name feature/refund-review");
       expect(branch.stdout).toContain("Status ACTIVE");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

@@ -33,7 +33,7 @@ describe("UC-022 honest CLI - Lock a use case", () => {
       expect(lock.stdout).toContain("Type SEMANTIC");
       expect(lock.stdout).toContain("Holder session-main-lock");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

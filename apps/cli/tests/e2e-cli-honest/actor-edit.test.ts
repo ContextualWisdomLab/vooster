@@ -37,7 +37,7 @@ describe("honest CLI - actor edit", () => {
       expect(edited.stdout).toContain("Buyer");
       expect(archived.stdout).toContain(seed.actorId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

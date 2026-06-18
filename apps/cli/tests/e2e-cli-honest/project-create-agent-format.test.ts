@@ -49,7 +49,7 @@ describe("honest CLI project create --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
   });
 
   test("agent project create updates active project", async () => {

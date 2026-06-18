@@ -33,7 +33,7 @@ describe("UC-006 honest CLI - Define a stakeholder", () => {
       expect(stakeholder.stdout).toContain("Product Manager");
       expect(stakeholder.stdout).toContain("INTERNAL");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

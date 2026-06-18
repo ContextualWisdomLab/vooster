@@ -28,7 +28,7 @@ describe("honest CLI - project and login context refresh", () => {
       expect(config.current_project_key).toBe("CTX");
       expect(config.current_project_id).toBe(seed.projectId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 
@@ -49,7 +49,7 @@ describe("honest CLI - project and login context refresh", () => {
       expect(config.current_project_id).toBeUndefined();
       expect(config.current_project_key).toBeUndefined();
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

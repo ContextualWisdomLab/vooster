@@ -31,7 +31,7 @@ describe("UC-013 honest CLI - Edit a use case step", () => {
       expect(edited.stdout).toContain("Reviews the order.");
       expect(edited.stdout).toContain("version 5");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

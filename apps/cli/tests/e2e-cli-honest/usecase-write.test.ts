@@ -70,7 +70,7 @@ describe("honest CLI - usecase write", () => {
       expect(envelope.format_version).toBe(1);
       expect(envelope.data.usecase.title).toBe("Reviews checkout status again");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

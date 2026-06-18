@@ -22,7 +22,7 @@ describe("UC-009 honest CLI - Author a use case", () => {
       expect(shown.stdout).toContain(seed.usecaseKey);
       expect(shown.stdout).toContain("Places an order");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

@@ -41,7 +41,7 @@ describe("UC-007 honest CLI - Manage actor goals", () => {
       expect(created.stdout).toContain("Places an order");
       expect(listed.stdout).toContain("Places an order");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   });
 });

@@ -31,7 +31,7 @@ describe("UC-011 honest CLI - Write the main success scenario", () => {
       expect(scenarioId).toMatch(/[a-f0-9-]+/u);
       expect(step.stdout).toContain("1. Customer Places an order.");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

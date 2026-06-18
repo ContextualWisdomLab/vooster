@@ -54,7 +54,7 @@ describe("honest CLI - self-teaching guidance", () => {
       );
       expect(forced.stdout).toContain("UseCase TEA-");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 
@@ -89,7 +89,7 @@ describe("honest CLI - self-teaching guidance", () => {
 
       expect(actor.stdout).toContain("Actor Support Specialist");
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

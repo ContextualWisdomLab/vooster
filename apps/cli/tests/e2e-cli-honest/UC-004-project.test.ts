@@ -22,7 +22,7 @@ describe("UC-004 honest CLI - Create a project", () => {
       expect(seed.projectKey).toBe("PRJ");
       expect(switched.stdout).toContain(seed.projectKey);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

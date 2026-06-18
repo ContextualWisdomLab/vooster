@@ -42,7 +42,7 @@ describe("honest CLI - stakeholder read", () => {
       expect(listed.stdout).toContain("Product Manager");
       expect(shown.stdout).toContain(stakeholderId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

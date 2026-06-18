@@ -19,7 +19,7 @@ describe("honest CLI - project read", () => {
       expect(listed.stdout).toContain(seed.projectKey);
       expect(listed.stdout).toContain(seed.projectId);
     } finally {
-      await server.stop();
+      if (server) await server.stop();
     }
   }, 30_000);
 });

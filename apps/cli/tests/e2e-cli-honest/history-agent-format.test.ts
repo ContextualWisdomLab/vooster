@@ -36,7 +36,7 @@ describe("honest CLI history --format=agent", () => {
   }, 30_000);
 
   afterAll(async () => {
-    await server.stop();
+    if (server) await server.stop();
   });
 
   test("agent history", async () => {

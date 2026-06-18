@@ -59,8 +59,8 @@ So the human view silently diverges from the agent / json / markdown views.
    - its **extension point** (e.g. `2a`),
    - its **condition** (e.g. `Title is empty`), and
    - its **outcome** when present (one of `FAILURE` / `PARTIAL` / `SUCCESS`).
-   Recovery **steps** continue to render, exactly as before, when present. No
-   extension is silently dropped.
+     Recovery **steps** continue to render, exactly as before, when present. No
+     extension is silently dropped.
 3. Format parity holds: for **every** output format `usecase show` accepts
    (`human`, `json`, `agent`), the extension data is present in the rendered
    output. `json` and `agent` already serialize the raw scenarios; `human` now

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -144,7 +144,7 @@ export function UsecaseTable({
   usecases: UsecaseSummary[];
   projectKey: string;
 }) {
-  const groups = groupByLevel(usecases);
+  const groups = useMemo(() => groupByLevel(usecases), [usecases]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
   function toggle(level: string) {
@@ -194,38 +194,42 @@ export function UsecaseTable({
           groups.map(([level, items]) => {
             const isOpen = !collapsed.has(level);
             return (
-              <tbody key={level}>
-                <tr className="border-t border-border bg-muted/30">
-                  <td colSpan={COLUMN_COUNT} className="py-1.5 pr-3 pl-4">
-                    <button
-                      type="button"
-                      onClick={() => toggle(level)}
-                      aria-expanded={isOpen}
-                      className="inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
-                      <ChevronRight
-                        aria-hidden="true"
-                        className={cn(
-                          "size-3.5 shrink-0 text-muted-foreground transition-transform",
-                          isOpen && "rotate-90"
-                        )}
-                      />
-                      <LevelTag level={level} />
-                      <span className="text-xs text-muted-foreground">
-                        {items.length}
-                      </span>
-                    </button>
-                  </td>
-                </tr>
-                {isOpen &&
-                  items.map((usecase) => (
+              <Fragment key={level}>
+                <tbody key={`header-${level}`}>
+                  <tr className="border-t border-border bg-muted/30">
+                    <td colSpan={COLUMN_COUNT} className="py-1.5 pr-3 pl-4">
+                      <button
+                        type="button"
+                        onClick={() => toggle(level)}
+                        aria-expanded={isOpen}
+                        aria-controls={`group-${level}`}
+                        className="inline-flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        <ChevronRight
+                          aria-hidden="true"
+                          className={cn(
+                            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                            isOpen && "rotate-90"
+                          )}
+                        />
+                        <LevelTag level={level} />
+                        <span className="text-xs text-muted-foreground">
+                          {items.length}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+                <tbody id={`group-${level}`} className={cn(!isOpen && "hidden")}>
+                  {items.map((usecase) => (
                     <UsecaseRow
                       key={usecase.key}
                       usecase={usecase}
                       projectKey={projectKey}
                     />
                   ))}
-              </tbody>
+                </tbody>
+              </Fragment>
             );
           })
         )}

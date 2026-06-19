@@ -1,4 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
 import { healthResponseSchema } from "@vooster/contracts";
 import { createMemoryApiKeyStore } from "../infrastructure/memory-api-key-store.js";
 import { createMemoryActorStore } from "../infrastructure/memory-actor-store.js";
@@ -63,6 +65,12 @@ import type { UserStore } from "../ports/user-store.js";
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const serverOptions = withGithubOAuthFromEnv(options);
   const app = Fastify({ logger: false });
+  await app.register(helmet, { global: true });
+  const allowedOrigins = process.env.VSPEC_ALLOWED_ORIGINS?.split(",") ?? [];
+  await app.register(cors, {
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+    credentials: true
+  });
   const state = initialState();
   const apiKeyStore = serverOptions.signupStore ?? createMemoryApiKeyStore();
   const actorStore = serverOptions.signupStore ?? createMemoryActorStore();

@@ -147,3 +147,37 @@ step. The system grows as a series of small, correct moves.
 ## Tool rules
 
 - Do not use `AskUserQuestions` tool
+
+<!-- BEGIN cwl-agent-guidance -->
+## Agent guidance (CWL governance)
+
+Applies to any agent (Claude, Codex, Cursor, opencode, …) working in this repo.
+
+### Security & review gate
+
+- Every PR runs a central **Security Scan** required gate: `osv-scan` +
+  `dependency-review` (diff-scoped) and `trivy-fs` (repo-wide, CRITICAL/HIGH,
+  fixable only). It runs against every PR base, **including stacked PRs**.
+- A failing **`trivy-fs` is a REAL finding, not a flake.** Read the job log
+  (it prints each finding's rule id / severity / file) or the run's SARIF
+  results, then **remediate** the actual vuln:
+  - Dependency CVE → bump it in the offending `package.json` and refresh
+    `pnpm-lock.yaml` (`pnpm install` / `pnpm update <pkg>`); this is a pnpm
+    workspace, so fix it in the right `apps/*` or `packages/*` package.
+  - `Dockerfile` / `docker-compose*.yml` misconfig → fix the image or config.
+  - Genuine false positive → add a narrow, **documented** `.trivyignore.yaml`
+    entry (rule id + reason). Do NOT weaken, skip, or disable the gate.
+- Reproduce locally against the merge ref (not just PR head), and refresh the
+  DB first so a stale local DB doesn't hide findings:
+  `trivy --download-db-only && trivy fs --severity CRITICAL,HIGH --ignore-unfixed .`
+- The org `code_scanning` ruleset is intentionally **CodeQL-only** (multiple
+  code-scanning tools can't converge on one PR ref). Gating is by the Security
+  Scan **job result**, not the `code_scanning` rule — don't add tools to it.
+
+### Code exploration
+
+- No `.codegraph/` index exists here today, so use normal search (grep/find,
+  ripgrep). If one is ever added at the repo root, prefer CodeGraph
+  (`codegraph explore "<query>"` or the code-review-graph MCP tools) BEFORE
+  grep/find — it surfaces callers/callees/impact that text search misses.
+<!-- END cwl-agent-guidance -->

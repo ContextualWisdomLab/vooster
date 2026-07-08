@@ -1,6 +1,11 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  # CVE-2026-54290: hono CORS middleware reflects any Origin with credentials.
+  # hono is transitive (via @modelcontextprotocol/sdk → @hono/node-server);
+  # force the patched release. Fixed in 4.12.25.
+  hono: ">=4.12.25"
 allowBuilds:
   "@prisma/client": true
   "@prisma/engines": true

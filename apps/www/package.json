@@ -10,12 +10,13 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "astro": "^5.16.3"
+    "astro": "^6.4.6"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.3.0",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
   }
 }

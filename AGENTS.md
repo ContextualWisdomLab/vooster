@@ -180,4 +180,23 @@ Applies to any agent (Claude, Codex, Cursor, opencode, …) working in this repo
   ripgrep). If one is ever added at the repo root, prefer CodeGraph
   (`codegraph explore "<query>"` or the code-review-graph MCP tools) BEFORE
   grep/find — it surfaces callers/callees/impact that text search misses.
+
+### Config & secrets (KV, not env)
+
+- Do **not** read config/secrets (API keys, DB creds, OAuth client secrets,
+  external endpoints) from raw environment variables (`process.env.*`,
+  `os.getenv()`) at runtime. Read them from a **KV / credential registry**.
+- Org Actions secrets (e.g. `GITHUB_CLIENT_SECRET`, `OPENAI_API_KEY`) flow
+  **into** the KV via a bootstrap/CI step; runtime reads from the KV — env is
+  only transport into the KV, never the runtime source.
+- Reference implementation: **xtrmLLMBatchPython**'s pgcrypto-encrypted
+  Postgres credential registry (`get_credential(name)`). Reuse that pattern (a
+  DB-backed KV is fine — this repo already runs Postgres via Prisma) unless a
+  dedicated KV is adopted.
+- **Known deviation to migrate:** the API currently reads
+  `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` directly via `process.env`
+  (`apps/api/src/http/server.ts`), and the CLI reads `GITHUB_CLIENT_ID` via
+  `process.env` in `apps/cli/src/device-flow.ts`. Route these through the
+  credential registry; keep env as the bootstrap-into-KV transport only.
+  Test-only `process.env` usage is fine.
 <!-- END cwl-agent-guidance -->

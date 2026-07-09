@@ -235,7 +235,7 @@ linger.
    goal green.
 
 6. **Scaffold the Astro app (C1 + C2 + C3).**
-   `pnpm create astro@latest apps/www -- --template minimal
+   `pnpm create astro@7.0.7 apps/www -- --template minimal
 --typescript strict --no-install --no-git`, then `pnpm install`.
 
 7. **Author the Korean landing copy (C4).** Section composition is left

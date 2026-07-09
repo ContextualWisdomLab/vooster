@@ -12,6 +12,8 @@ source "$ROOT/scripts/_gate-cache.sh"
 GOAL_NAME="36-usecase-error-contract"
 GATE_INPUTS=(
   packages/contracts/src/common.ts
+  packages/contracts/package.json
+  packages/contracts/tsconfig.build.json
   apps/api/src/http/usecase-routes.ts
   apps/api/src/http/usecase-results.ts
   apps/api/src/http/usecase-validation-problem.ts
@@ -32,11 +34,11 @@ fi
 
 PASS=true
 
-echo "[36.A1] contracts package builds for runtime exports"
-if pnpm --filter @vooster/contracts build; then
+echo "[36.A1] contracts runtime exports were built by the outer workflow"
+if [ -f packages/contracts/dist/index.js ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail"
+  echo "    ✗ fail — missing packages/contracts/dist/index.js; run the workflow build step before gate sweep"
   PASS=false
 fi
 

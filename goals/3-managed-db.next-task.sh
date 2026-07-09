@@ -335,8 +335,8 @@ TASK: Add the CI workflow (gates 3.C1 / 3.C2 / 3.C3 / 3.C4).
           DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec
           TEST_DATABASE_URL: postgresql://vspec:vspec@localhost:5432/vspec
         steps:
-          - uses: actions/checkout@v4
-          - uses: actions/setup-node@v4
+          - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+          - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
             with:
               node-version: "20"
               cache: npm

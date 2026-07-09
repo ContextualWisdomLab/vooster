@@ -719,10 +719,9 @@ if [ "${VSPEC_NEXT_TASK_DEEP:-}" = "1" ]; then
 TASK: Install the Vercel CLI (gate 8.E3/E4 preconditions).
 
   Run:
-    npm i -g vercel@latest
+    pnpm dlx vercel@54.21.1 --version
 
-  After install, vercel --version should report >=54.x (per the
-  current latest).
+  The exact version avoids latest-tag drift while checking local tooling access.
 
   No commit yet — this is local tooling.
 EOF

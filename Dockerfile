@@ -1,4 +1,4 @@
-FROM node:22-alpine AS deps
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS deps
 
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
@@ -10,7 +10,7 @@ COPY apps/www/package.json ./apps/www/package.json
 COPY apps/api/prisma ./apps/api/prisma
 RUN pnpm install --frozen-lockfile
 
-FROM node:22-alpine AS build
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS build
 
 WORKDIR /app
 RUN corepack enable
@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm run build
 
-FROM node:22-alpine AS runtime
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS runtime
 
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
@@ -31,4 +31,5 @@ COPY apps/api/prisma ./apps/api/prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 EXPOSE 8080
+USER node
 CMD ["sh", "-c", "pnpm exec prisma db push --schema apps/api/prisma/schema.prisma --skip-generate && node dist/apps/api/src/index.js"]

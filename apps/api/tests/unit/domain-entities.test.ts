@@ -10,6 +10,7 @@ const root = path.resolve(import.meta.dirname, "../../../..");
 const fixtureDir = path.join(root, ".state/domain-entity-test");
 const fixturePath = path.join(fixtureDir, "domain-entity-imports.test-fixture.ts");
 const tsconfigPath = path.join(fixtureDir, "tsconfig.json");
+const tscBin = path.join(root, "node_modules/typescript/bin/tsc");
 
 describe("domain entity vocabulary", () => {
   test("exports a Stored<Model> type for every Prisma model", async () => {
@@ -27,8 +28,8 @@ describe("domain entity vocabulary", () => {
 
     try {
       const result = await execFileAsync(
-        "npx",
-        ["tsc", "-p", tsconfigPath, "--pretty", "false"],
+        process.execPath,
+        [tscBin, "-p", tsconfigPath, "--pretty", "false"],
         {
           cwd: root,
           env: process.env,

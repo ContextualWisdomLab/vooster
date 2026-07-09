@@ -468,7 +468,7 @@ if [ "${VSPEC_GATES_SKIP_DEEP:-}" = "1" ]; then
   echo "    ⊘ skipped (VSPEC_GATES_SKIP_DEEP=1)"
 elif ! command -v vercel >/dev/null 2>&1; then
   echo "    ⊘ skipped — vercel CLI not on PATH"
-  echo "       (install with: npm i -g vercel@latest)"
+  echo "       (run: pnpm dlx vercel@54.21.1 --version)"
 elif ! vercel whoami >/dev/null 2>&1; then
   echo "    ⊘ skipped — vercel CLI not authenticated"
   echo "       (run: vercel login)"

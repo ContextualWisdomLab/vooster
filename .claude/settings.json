@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v argos >/dev/null 2>&1 || npm install -g argos-ai@latest; argos hook"
+            "command": "pnpm dlx argos-ai@0.1.16 hook"
           },
           {
             "type": "command",
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "argos hook"
+            "command": "pnpm dlx argos-ai@0.1.16 hook"
           }
         ]
       }
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "argos hook"
+            "command": "pnpm dlx argos-ai@0.1.16 hook"
           }
         ]
       }
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "argos hook"
+            "command": "pnpm dlx argos-ai@0.1.16 hook"
           }
         ]
       }
@@ -54,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "argos hook"
+            "command": "pnpm dlx argos-ai@0.1.16 hook"
           }
         ]
       }

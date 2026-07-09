@@ -66,7 +66,6 @@ else
   case "$VSPEC_DOGFOOD_LINK" in
     pack)
       df_require_cmd pnpm
-      df_require_cmd npm
       pack_dir="$(mktemp -d "${TMPDIR:-/tmp}/vspec-dogfood-pack.XXXXXX")" || df_die "could not create pack temp dir"
       if ! pnpm --dir "$ROOT/packages/contracts" pack --pack-destination "$pack_dir" --silent >/dev/null; then
         rm -rf "$pack_dir"
@@ -80,7 +79,7 @@ else
       cli_tarball="$(find "$pack_dir" -maxdepth 1 -name 'vooster-cli-*.tgz' -print -quit)"
       [ -n "$contracts_tarball" ] && [ -f "$contracts_tarball" ] || { rm -rf "$pack_dir"; df_die "contracts pack produced no tarball"; }
       [ -n "$cli_tarball" ] && [ -f "$cli_tarball" ] || { rm -rf "$pack_dir"; df_die "CLI pack produced no tarball"; }
-      npm install -g "$contracts_tarball" "$cli_tarball" || { rm -rf "$pack_dir"; df_die "global install of packed CLI failed"; }
+      pnpm add --global "$contracts_tarball" "$cli_tarball" || { rm -rf "$pack_dir"; df_die "global install of packed CLI failed"; }
       rm -rf "$pack_dir"
       ;;
     link)

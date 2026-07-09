@@ -186,7 +186,7 @@ TASK: Rewrite README.md for end users (gate 2.B4).
   2. Replace README.md with a user-facing layout:
         # vspec
         <one-paragraph description>
-        ## Install            # npm install -g vspec  (or  npx vspec --help)
+        ## Install            # pinned release install command, with exact version
         ## Run                # local dev: docker compose up -d db && npm run dev
         ## Deploy             # docker compose -f docker-compose.prod.yml up -d
         ## Documentation      # links to docs/ and to docs/build-harness.md

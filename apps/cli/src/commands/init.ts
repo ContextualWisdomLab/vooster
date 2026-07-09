@@ -229,6 +229,11 @@ function verifyWorkflowTemplate(projectKey: string): string {
     `vars.VSPEC_VERIFY_USECASE || '${projectKey}-001'`
   );
   const testCommand = githubExpression("vars.VSPEC_VERIFY_TEST_COMMAND || 'pnpm test'");
+  const checkoutSha = "34e114876b0b11c390a56381ad16ebd13914f8d5";
+  const githubScriptSha = "f28e40c7f34bde8b3046d885e986cb6290c5673b";
+  const pnpmSetupSha = "f40ffcd9367d9f12939873eb1018b921a783ffaa";
+  const setupNodeSha = "49933ea5288caeca8642d1e84afbd3f7d6820020";
+
   return [
     "name: Vspec Verify",
     "",
@@ -246,11 +251,11 @@ function verifyWorkflowTemplate(projectKey: string): string {
     "    runs-on: ubuntu-latest",
     "    timeout-minutes: 10",
     "    steps:",
-    "      - uses: actions/checkout@v4",
-    "      - uses: pnpm/action-setup@v4",
+    `      - uses: actions/checkout@${checkoutSha}`,
+    `      - uses: pnpm/action-setup@${pnpmSetupSha}`,
     "        with:",
     "          version: 11.0.5",
-    "      - uses: actions/setup-node@v4",
+    `      - uses: actions/setup-node@${setupNodeSha}`,
     "        with:",
     '          node-version: "22"',
     "          cache: pnpm",
@@ -266,7 +271,7 @@ function verifyWorkflowTemplate(projectKey: string): string {
     "          unlinked-policy: fail",
     "      - name: Comment verify failure",
     "        if: ${{ github.event_name == 'pull_request' && failure() && steps.verify.outcome == 'failure' }}",
-    "        uses: actions/github-script@v7",
+    `        uses: actions/github-script@${githubScriptSha}`,
     "        with:",
     "          script: |",
     '            const fs = require("node:fs");',

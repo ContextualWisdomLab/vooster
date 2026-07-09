@@ -13,6 +13,8 @@ GOAL_NAME="37-step-implements-traceability"
 GATE_INPUTS=(
   packages/contracts/src/scenario.ts
   packages/contracts/src/usecase.ts
+  packages/contracts/package.json
+  packages/contracts/tsconfig.build.json
   packages/contracts/tests/scenario.test.ts
   apps/api/prisma/schema.prisma
   apps/api/src/domain/entities/step.ts
@@ -44,11 +46,11 @@ fi
 
 PASS=true
 
-echo "[37.A1] contracts package builds for step schemas"
-if pnpm --filter @vooster/contracts build; then
+echo "[37.A1] contracts step-schema runtime exports were built by the outer workflow"
+if [ -f packages/contracts/dist/scenario.js ] && [ -f packages/contracts/dist/usecase.js ]; then
   echo "    pass"
 else
-  echo "    fail"
+  echo "    fail -- missing packages/contracts/dist scenario/usecase artifacts; run the workflow build step before gate sweep"
   PASS=false
 fi
 

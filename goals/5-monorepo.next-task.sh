@@ -374,7 +374,7 @@ if ! $ASTRO_DEP_OK || ! $HAS_CONFIG || [ ! -f apps/www/src/pages/index.astro ]; 
   cat <<'EOF'
 TASK: Scaffold the Astro app under apps/www (gates 5.C1 / 5.C2 / 5.C3).
 
-      pnpm create astro@latest apps/www -- \
+      pnpm create astro@7.0.7 apps/www -- \
         --template minimal --typescript strict \
         --install --no-git --skip-houston
 

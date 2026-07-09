@@ -24,7 +24,18 @@ describe("verify GitHub Action adapter", () => {
     expect(workflow).toContain("pull_request:");
     expect(workflow).toContain("uses: ./");
     expect(workflow).toContain("usecase-key: ${{ vars.VSPEC_VERIFY_USECASE }}");
-    expect(workflow).toContain("actions/github-script@v7");
+    expect(workflow).toContain(
+      "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5"
+    );
+    expect(workflow).toContain(
+      "pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa"
+    );
+    expect(workflow).toContain(
+      "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+    );
+    expect(workflow).toContain(
+      "actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b"
+    );
     expect(workflow).toContain("steps.verify.outputs.exit_code");
     expect(workflow).toContain("steps.verify.outputs.log_path");
   });

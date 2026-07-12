@@ -15,7 +15,7 @@
     "prepare": "git config core.hooksPath scripts/hooks 2>/dev/null || true",
     "prestart": "if [ -n \"${DATABASE_URL:-}\" ]; then prisma db push --schema apps/api/prisma/schema.prisma --skip-generate; fi",
     "start": "node dist/apps/api/src/index.js",
-    "test": "vitest run",
+    "test": "node scripts/run-vitest.mjs",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "verify": "bash scripts/completion-check.sh"

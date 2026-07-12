@@ -4,7 +4,7 @@ packages:
 overrides:
   fast-uri: 3.1.2
   hono: 4.12.29
-  js-yaml: 5.2.1
+  js-yaml: 4.3.0
   postcss: 8.5.15
   qs: 6.15.2
   vite: 8.1.4

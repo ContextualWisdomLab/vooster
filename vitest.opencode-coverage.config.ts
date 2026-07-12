@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     coverage: {
       exclude: ["apps/api/src/infrastructure/prisma-*-store.ts"],
-      include: ["apps/api/src/**/*.ts"],
+      include: ["apps/api/src/application/**/*.ts"],
       provider: "v8",
       reporter: ["text", "lcov", "json-summary"],
       reportsDirectory: process.env.VSPEC_COVERAGE_DIR ?? "coverage",
@@ -15,15 +15,16 @@ export default defineConfig({
         statements: 80
       }
     },
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "apps/api/tests/e2e/_template.test.ts",
-      "apps/app/tests/e2e-web/**"
-    ],
+    exclude: ["**/node_modules/**", "**/dist/**"],
     globals: true,
+    include: [
+      "apps/api/tests/unit/**/*.test.ts",
+      "apps/cli/tests/unit/**/*.test.ts",
+      "apps/www/tests/unit/**/*.test.ts",
+      "packages/contracts/tests/**/*.test.ts"
+    ],
     maxWorkers: Number.parseInt(process.env.VSPEC_VITEST_MAX_WORKERS ?? "2", 10),
-    passWithNoTests: true,
+    passWithNoTests: false,
     testTimeout: 60_000
   }
 });

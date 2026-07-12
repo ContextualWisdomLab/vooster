@@ -1,6 +1,6 @@
 # 10 — Web App (`apps/app`)
 
-`@vooster/app` is the human-facing web application: a Next.js 15 (App Router)
+`@vooster/app` is the human-facing web application: a Next.js 16 (App Router)
 product surface where an authenticated person browses a workspace's specs
 (projects → use cases → use-case detail) and performs a small, fixed set of
 write actions. It is the sibling of three other surface contracts —
@@ -36,7 +36,7 @@ rejects (e.g. non-owner, project has dependencies) surfaces as an error.
 
 ## Stack & deployment
 
-Next.js 15 App Router, React 19, Tailwind v4, shadcn/ui (radix-ui), lucide
+Next.js 16 App Router, React 19, Tailwind v4, shadcn/ui (radix-ui), lucide
 icons — see `02-tech-stack.md` for rationale. Deployed on Vercel (project
 `vooster-new-web`, configured in `apps/app/vercel.ts`). UI copy is Korean,
 hardcoded, no i18n.

@@ -1,4 +1,4 @@
-# Goal 8: Web Read-Only Viewer (Next.js 15 on Vercel)
+# Goal 8: Web Read-Only Viewer (Next.js 16 on Vercel)
 
 > 이 goal을 active로 잡은 에이전트는 먼저
 > `guidelines/goal-iteration.md`를 읽어 iteration 프로토콜을 확인할 것.
@@ -12,7 +12,7 @@
 
 Goal 8 은 그 표면을 만든다. 마치고 나면:
 
-- `apps/app` 이 Next.js 15 App Router 로 존재한다.
+- `apps/app` 이 Next.js 16 App Router 로 존재한다.
 - 인증된 사용자가 프로젝트 → UC 목록 → UC 상세까지 탐색할 수 있다.
 - 모든 페이지가 Server Component 로 동작 (CSR/state library 없음).
 - Playwright (chromium only) 가 핵심 사용자 여정을 honest E2E 로 검증.
@@ -70,11 +70,11 @@ loosening commit.)
 A2. **`apps/app/package.json` exists with `"name": "@vooster/app"` and
 `"private": true`.** The gate parses the JSON with `node -e`.
 
-A3. **`apps/app/package.json` depends on Next.js 15.** Specifically,
-the `next` semver range starts with `15.` or `^15.`. The gate
+A3. **`apps/app/package.json` depends on Next.js 16.** Specifically,
+the `next` semver range starts with `16.` or `^16.`. The gate
 parses the manifest and asserts the major.
 
-A4. **Every workspace-config file required by Next.js 15 exists at
+A4. **Every workspace-config file required by Next.js 16 exists at
 `apps/app/`.** Source of truth: the declared list
 `(tsconfig.json next.config.ts tailwind.config.ts postcss.config.mjs)`.
 The gate iterates and asserts file presence.
@@ -140,7 +140,7 @@ C2. **Server-side fetches in `apps/app/app/` forward the
 `vspec_session` cookie.** Source of truth: every `*.tsx` / `*.ts`
 file under `apps/app/app/` that calls `fetch(`. The gate iterates
 those files and asserts each fetch invocation is accompanied by a
-`cookies()` call (Next.js 15 async cookies API) within the same
+`cookies()` call (Next.js async cookies API) within the same
 file. A file with `fetch(` but no `cookies()` fails the gate.
 
 C3. **Every authenticated route is wrapped by the redirect-enforcing
@@ -193,7 +193,8 @@ the framework string.
 E2. **The Vercel project name `vooster-new-web` is referenced by
 `apps/app/vercel.ts` (or a sibling marker file).** Source of
 truth: the gate's `VERCEL_PROJECT_NAME=vooster-new-web` constant.
-The gate greps `apps/app/` for that string.
+The gate greps source/config files under `apps/app/` for that string
+and ignores generated build output.
 
 E3. **The most recent production deployment of `vooster-new-web`
 reports `Ready` status.** The gate runs
@@ -264,13 +265,13 @@ bash scripts/diagnose.sh
    commit.
 3. `docs/00-overview.md` — read/review/merge web UI promise.
 4. `docs/01-architecture.md` — web UI as a separate deploy unit.
-5. `docs/02-tech-stack.md` — Next.js 15 + Tailwind + shadcn/ui +
+5. `docs/02-tech-stack.md` — Next.js 16 + Tailwind + shadcn/ui +
    Playwright + Vercel decisions.
 6. `goals/5-monorepo.md` — A3 invariant being loosened (case b).
 7. `goals/8-web-readonly-viewer.md` — this file.
 8. `docs/state/next-task.md` and `docs/state/blockers.md`.
 9. Narrow technical reference per task:
-   - Tranche B: Next.js 15 App Router docs (async `cookies()`,
+   - Tranche B: Next.js App Router docs (async `cookies()`,
      dynamic route segments).
    - Tranche C: `apps/api/src/http/signup-routes.ts` for the cookie
      name `vspec_session` and the start URL.
@@ -289,7 +290,7 @@ bash scripts/diagnose.sh
    `refactor(goal-5): admit apps/app to A3 declared set`.
 
 2. **Workspace scaffold (A2-A6).** Create `apps/app/` with
-   `package.json` (Next.js 15 dep, build/test/typecheck/test:e2e
+   `package.json` (Next.js 16 dep, build/test/typecheck/test:e2e
    scripts), `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`,
    `postcss.config.mjs`, minimal `app/layout.tsx` + `app/page.tsx`,
    `playwright.config.ts` (chromium only), `tests/e2e-web/` with a

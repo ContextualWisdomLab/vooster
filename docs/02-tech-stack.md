@@ -78,7 +78,7 @@ in `docs/decisions/`.
 
 | Concern   | Choice                     | Why                                                              |
 | --------- | -------------------------- | ---------------------------------------------------------------- |
-| Framework | Next.js 15 (App Router)    | SSR + RSC + async request APIs + good defaults.                  |
+| Framework | Next.js 16 (App Router)    | SSR + RSC + async request APIs + good defaults.                  |
 | UI        | Tailwind CSS + shadcn/ui   | Fast composition.                                                |
 | Data      | Server actions + fetch     | No client state library needed for MVP.                          |
 | Hosting   | Vercel (GitHub-linked)     | Zero-config Next.js deploys + preview URLs per branch.           |

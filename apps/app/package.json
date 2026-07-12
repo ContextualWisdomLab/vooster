@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @vooster/contracts build && next build --webpack",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "test": "vitest run tests/unit --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:e2e": "playwright test"

@@ -138,13 +138,13 @@ else
   PASS=false
 fi
 
-echo "[8.A3 apps/app depends on Next.js 15]"
+echo "[8.A3 apps/app depends on Next.js 16]"
 A3_OK=false
 if [ -f "$WEB_PKG" ]; then
   if node -e "
     const m = require('./$WEB_PKG');
     const v = (m.dependencies && m.dependencies.next) || '';
-    if (!/^(\^|~|>=)?15\./.test(v)) { process.exit(1); }
+    if (!/^(\^|~|>=)?16\./.test(v)) { process.exit(1); }
   " 2>/dev/null; then
     A3_OK=true
   fi
@@ -152,7 +152,7 @@ fi
 if [ "$A3_OK" = true ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — $WEB_PKG does not depend on next@^15.x"
+  echo "    ✗ fail — $WEB_PKG does not depend on next@^16.x"
   PASS=false
 fi
 
@@ -456,10 +456,13 @@ else
 fi
 
 echo "[8.E2 Vercel project name $VERCEL_PROJECT_NAME is recorded in apps/app/]"
-if grep -rqE "${VERCEL_PROJECT_NAME}" "$WEB_DIR" 2>/dev/null; then
+if find "$WEB_DIR" \
+    \( -path "$WEB_DIR/.next" -o -path "$WEB_DIR/node_modules" -o -path "$WEB_DIR/coverage" \) -prune \
+    -o -type f -print 2>/dev/null \
+    | xargs grep -qE "${VERCEL_PROJECT_NAME}"; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail — string '$VERCEL_PROJECT_NAME' not found anywhere under $WEB_DIR"
+  echo "    ✗ fail — string '$VERCEL_PROJECT_NAME' not found in source/config files under $WEB_DIR"
   PASS=false
 fi
 

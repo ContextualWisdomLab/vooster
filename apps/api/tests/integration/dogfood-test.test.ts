@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
+const bashBin =
+  process.platform === "win32" ? "C:\\Program Files\\Git\\bin\\bash.exe" : "bash";
 
 describe("dogfood-test", () => {
   it("consumes the existing build without invoking pnpm", async () => {
@@ -20,7 +22,7 @@ describe("dogfood-test", () => {
     );
 
     try {
-      await execFileAsync("bash", ["scripts/dogfood-test.sh"], {
+      await execFileAsync(bashBin, ["scripts/dogfood-test.sh"], {
         cwd: root,
         env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` },
         maxBuffer: 1024 * 1024

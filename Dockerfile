@@ -30,5 +30,6 @@ COPY apps/api/package.json ./apps/api/package.json
 COPY apps/api/prisma ./apps/api/prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+USER node
 EXPOSE 8080
 CMD ["sh", "-c", "pnpm exec prisma db push --schema apps/api/prisma/schema.prisma --skip-generate && node dist/apps/api/src/index.js"]

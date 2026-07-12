@@ -33,7 +33,18 @@ function serverCommand(): { command: string; args: string[] } {
     }
     return { command: process.execPath, args: [distEntry] };
   }
-  return { command: "pnpm", args: ["exec", "tsx", apiEntry] };
+  return pnpmCommand(["exec", "tsx", apiEntry]);
+}
+
+function pnpmCommand(args: string[]): { command: string; args: string[] } {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath !== undefined && path.basename(npmExecPath).includes("pnpm")) {
+    return { command: process.execPath, args: [npmExecPath, ...args] };
+  }
+  if (process.platform === "win32") {
+    return { command: "cmd.exe", args: ["/d", "/s", "/c", "pnpm", ...args] };
+  }
+  return { command: "pnpm", args };
 }
 
 export interface TestDatabaseRegistry {

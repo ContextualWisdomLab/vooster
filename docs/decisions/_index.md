@@ -37,4 +37,4 @@ What follows from this — both costs and benefits.
 
 ## Index
 
-(none yet)
+- [ADR-001 - Fastify Security Headers and CORS Plugins](ADR-001-fastify-security-headers-cors.md)

@@ -9,6 +9,8 @@
     "typecheck": "cd ../.. && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.0",
     "@vooster/contracts": "workspace:*"
   }
 }

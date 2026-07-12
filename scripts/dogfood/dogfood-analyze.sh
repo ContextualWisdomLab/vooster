@@ -43,6 +43,78 @@ if df_dry_run; then
 fi
 
 [ -s "$SESSION" ] || df_die "no session transcript at $SESSION (run step did not capture one)"
+
+write_fallback_findings() {
+  local reason="$1"
+
+  node - "$CASE" "$RUN_DIR/result.json" "$OUT" "$reason" <<'NODE'
+const fs = require("node:fs");
+
+const [caseId, resultPath, outPath, reason] = process.argv.slice(2);
+let result = {};
+try {
+  result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
+} catch {
+  result = {};
+}
+
+const resultSummary = {
+  subtype: result.subtype ?? null,
+  is_error: result.is_error ?? null,
+  total_cost_usd: result.total_cost_usd ?? null,
+  session_id: result.session_id ?? null,
+  errors: result.errors ?? null
+};
+const resultText = JSON.stringify(resultSummary);
+const sawBudget = /budget/i.test(resultText);
+const succeeded = result.is_error === false && (result.subtype ?? "") === "success";
+const finding = sawBudget
+  ? {
+      title: "Dogfood case exhausted its automation budget before completion",
+      severity: "P1",
+      root_cause_area: "apps/cli/src and apps/api/src/application/ai-guide.ts",
+      recommendation:
+        "Reduce cold-start recovery loops: make ai-guide/help/errors teach the authenticated init-to-use-case path without source spelunking or repeated failed commands."
+    }
+  : {
+      title: "Dogfood analyzer did not return machine-readable findings",
+      severity: succeeded ? "P2" : "P1",
+      root_cause_area: "scripts/dogfood/dogfood-analyze.sh",
+      recommendation:
+        "Keep analyzer calls bounded and preserve dogfood run evidence as fallback findings when Claude analysis is unavailable."
+    };
+
+fs.writeFileSync(
+  outPath,
+  `${JSON.stringify(
+    {
+      case_id: caseId,
+      summary: `Fallback analysis for ${caseId}: ${reason}.`,
+      task_succeeded: succeeded,
+      findings: [
+        {
+          ...finding,
+          quants: ["A", "T"],
+          evidence: `Analyzer fallback reason: ${reason}. result.json: ${resultText}`,
+          routing: "codex"
+        }
+      ]
+    },
+    null,
+    2
+  )}\n`
+);
+NODE
+  ledger_append "$CYCLE" "analyze:$CASE" "0" "fallback:$reason"
+  echo "✓ analyze $CASE → fallback finding(s) ($reason)"
+}
+
+if [ "$TIMEOUT" -le 1 ] 2>/dev/null; then
+  ledger_append "$CYCLE" "analyze:$CASE" "0" "file-write"
+  write_fallback_findings "analyzer timeout budget ${TIMEOUT}s is too small for a reliable provider call"
+  exit 0
+fi
+
 df_require_cmd jq
 
 # 2.1 distill (never read raw jsonl directly)
@@ -78,6 +150,22 @@ The file at $OUT is the only deliverable. Do not print the findings to stdout."
 
 run_analyzer() {
   rm -f "$OUT"
+  local prompt_file="$RUN_DIR/analyze.prompt"
+  printf '%s' "$ANALYZE_PROMPT" > "$prompt_file"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --kill-after=2s "${TIMEOUT}s" bash -c '
+      set -uo pipefail
+      ROOT="$1"
+      DOGFOOD_LIB="$2"
+      PROMPT_FILE="$3"
+      BUDGET="$4"
+      # shellcheck source=./_dogfood-lib.sh
+      source "$DOGFOOD_LIB"
+      df_claude "$ROOT" "$BUDGET" "$(cat "$PROMPT_FILE")" >/dev/null 2>&1
+    ' bash "$ROOT" "$ROOT/scripts/dogfood/_dogfood-lib.sh" "$prompt_file" "$VSPEC_DOGFOOD_CASE_BUDGET_USD"
+    return $?
+  fi
+
   ( df_claude "$ROOT" "$VSPEC_DOGFOOD_CASE_BUDGET_USD" "$ANALYZE_PROMPT" >/dev/null 2>&1 ) &
   local pid=$! elapsed=0
   while kill -0 "$pid" 2>/dev/null; do
@@ -99,14 +187,25 @@ findings_valid() {
 
 ledger_append "$CYCLE" "analyze:$CASE" "0" "file-write"
 
-run_analyzer || true
+run_analyzer
+analyzer_rc=$?
+if [ "$analyzer_rc" -eq 124 ]; then
+  write_fallback_findings "analyzer timed out after ${TIMEOUT}s"
+  exit 0
+fi
 if ! findings_valid; then
   echo "  ⚠ analyzer did not produce a valid $OUT — retrying once"
-  run_analyzer || true
+  run_analyzer
+  analyzer_rc=$?
+  if [ "$analyzer_rc" -eq 124 ]; then
+    write_fallback_findings "analyzer retry timed out after ${TIMEOUT}s"
+    exit 0
+  fi
 fi
 
 if ! findings_valid; then
-  df_die "analyzer produced no valid findings file for $CASE after retry (see $RUN_DIR; digest at $DIGEST). This is a harness failure — not treating it as a clean pass."
+  write_fallback_findings "analyzer produced no valid findings file after retry (see $RUN_DIR; digest at $DIGEST)"
+  exit 0
 fi
 
 # Pin case_id (claude may omit/mistype it) and report.

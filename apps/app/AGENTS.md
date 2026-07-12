@@ -1,6 +1,6 @@
 # AGENTS.md — apps/app
 
-Read-first product web app (`@vooster/app`, Next.js 15 App Router on Vercel).
+Read-first product web app (`@vooster/app`, Next.js 16 App Router on Vercel).
 Authenticated users browse projects → use-case list → use-case detail, plus a
 fixed allowlist of writes (management plane: project admin; review plane:
 comments). Spec-content authoring, branch/merge/lock/revert are CLI-only and

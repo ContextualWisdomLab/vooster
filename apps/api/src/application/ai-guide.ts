@@ -123,7 +123,7 @@ function guideSections(): AiGuideSection[] {
     },
     {
       heading: "Existing use case edits",
-      body: "For an existing use case, start a pinned session, inspect step ids in `vspec usecase show <KEY-NNN> --format=agent`, and use `data.usecase.current_revision_id` as the `--base-revision` for `vspec step edit`. After every mutation, re-read the use case or use the returned `data.revision.id` as the next base revision. Use `vspec step add --at <n>` to insert a new step at a 1-based position, and `vspec step move <step-id> --to <n>` to reorder without changing wording. Extension points use labels such as `2a`, not plain step numbers."
+      body: "For an existing use case, start a pinned session, inspect step ids in `vspec usecase show <KEY-NNN> --format=agent`, and use `data.usecase.current_revision_id` as the `--base-revision` for `vspec step edit`. After every mutation, re-read the use case or use the returned `data.revision.id` as the next base revision. Use `vspec step add --at <n>` to insert a new step at a 1-based position; `vspec step add` appends by default when `--at` is omitted. Use `vspec step move <step-id> --to <n>` to reorder without changing wording. Extension points use labels such as `2a`, not plain step numbers."
     },
     {
       heading: "The --format=agent payload contract",
@@ -195,8 +195,9 @@ Use the CLI path:
    \`vspec step edit\`.
 5. After each mutation, re-read the use case or use the returned
    \`data.revision.id\` as the next base revision.
-6. Use \`vspec step add --at <n>\` to insert a new step at a 1-based position,
-   and \`vspec step move <step-id> --to <n>\` to reorder without changing wording.
+6. Use \`vspec step add --at <n>\` to insert a new step at a 1-based position;
+   \`vspec step add\` appends by default when \`--at\` is omitted. Use
+   \`vspec step move <step-id> --to <n>\` to reorder without changing wording.
 7. Extension points use labels such as \`2a\`, not plain step numbers.
 
 ## The --format=agent payload contract

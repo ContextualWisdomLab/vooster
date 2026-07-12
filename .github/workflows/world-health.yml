@@ -38,7 +38,14 @@ jobs:
         with:
           node-version: "22"
           cache: pnpm
+      - name: Install goal-gate search tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+          rg --version
       - run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --filter @vooster/app exec playwright install --with-deps chromium
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
       - name: Run world-state checks

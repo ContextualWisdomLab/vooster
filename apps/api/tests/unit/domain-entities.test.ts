@@ -27,8 +27,7 @@ describe("domain entity vocabulary", () => {
 
     try {
       const result = await execFileAsync(
-        "npx",
-        ["tsc", "-p", tsconfigPath, "--pretty", "false"],
+        ...pnpmCommand(["exec", "tsc", "-p", tsconfigPath, "--pretty", "false"]),
         {
           cwd: root,
           env: process.env,
@@ -44,6 +43,17 @@ describe("domain entity vocabulary", () => {
     }
   }, 30_000);
 });
+
+function pnpmCommand(args: string[]): [string, string[]] {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath !== undefined && path.basename(npmExecPath).includes("pnpm")) {
+    return [process.execPath, [npmExecPath, ...args]];
+  }
+  if (process.platform === "win32") {
+    return ["cmd.exe", ["/d", "/s", "/c", "pnpm", ...args]];
+  }
+  return ["pnpm", args];
+}
 
 function domainEntityTsconfig(): string {
   return `${JSON.stringify(

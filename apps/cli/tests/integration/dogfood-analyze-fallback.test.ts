@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
+const bashBin =
+  process.platform === "win32" ? "C:\\Program Files\\Git\\bin\\bash.exe" : "bash";
 
 describe("dogfood analyze fallback", () => {
   it("writes fallback findings when the analyzer times out", async () => {
@@ -31,7 +33,7 @@ describe("dogfood analyze fallback", () => {
       await writeFile(path.join(runDir, "session.jsonl"), `${sessionLine()}\n`);
 
       await execFileAsync(
-        "bash",
+        bashBin,
         ["scripts/dogfood/dogfood-analyze.sh", "cycle-analyze", "DF-001"],
         {
           cwd: root,
@@ -84,7 +86,7 @@ describe("dogfood analyze fallback", () => {
       await writeFile(path.join(runDir, "session.jsonl"), `${sessionLine()}\n`);
 
       await execFileAsync(
-        "bash",
+        bashBin,
         ["scripts/dogfood/dogfood-analyze.sh", "cycle-analyze-success", "DF-006"],
         {
           cwd: root,

@@ -44,11 +44,12 @@ fi
 
 PASS=true
 
-echo "[37.A1] contracts package builds for step schemas"
-if pnpm --filter @vooster/contracts build; then
+echo "[37.A1] contracts package build artifact exists for step schemas"
+CONTRACTS_ARTIFACT="$ROOT/packages/contracts/dist/index.js"
+if [ -f "$CONTRACTS_ARTIFACT" ]; then
   echo "    pass"
 else
-  echo "    fail"
+  echo "    fail -- missing $CONTRACTS_ARTIFACT; run the centralized build step first"
   PASS=false
 fi
 

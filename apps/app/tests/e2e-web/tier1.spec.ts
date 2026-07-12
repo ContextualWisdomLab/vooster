@@ -52,6 +52,37 @@ test("actor list page groups actors by role with per-actor detail", async ({
   await expect(page.getByText("결제 게이트웨이")).toBeVisible();
 });
 
+test("collapsible table groups keep controlled row groups mounted", async ({
+  page
+}) => {
+  await page.goto("/projects/CHECKOUT");
+
+  const usecaseToggle = page.getByRole("button", { name: "사용자 목표" });
+  await expect(usecaseToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(usecaseToggle).toHaveAttribute(
+    "aria-controls",
+    "usecase-group-USER_GOAL"
+  );
+
+  const usecaseRows = page.locator("tbody#usecase-group-USER_GOAL");
+  await expect(usecaseRows).toHaveCount(1);
+  await usecaseToggle.click();
+  await expect(usecaseToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(usecaseRows).toHaveClass(/hidden/);
+
+  await page.goto("/projects/CHECKOUT/actors");
+
+  const actorToggle = page.getByRole("button", { name: /지원 액터/ });
+  await expect(actorToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(actorToggle).toHaveAttribute("aria-controls", "actor-group-SUPPORTING");
+
+  const actorRows = page.locator("tbody#actor-group-SUPPORTING");
+  await expect(actorRows).toHaveCount(1);
+  await actorToggle.click();
+  await expect(actorToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(actorRows).toHaveClass(/hidden/);
+});
+
 test("use case detail renders Cockburn fields", async ({ page }) => {
   await page.goto("/projects/CHECKOUT/usecases/CHECKOUT-001");
   await expect(

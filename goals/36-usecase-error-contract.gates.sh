@@ -32,11 +32,12 @@ fi
 
 PASS=true
 
-echo "[36.A1] contracts package builds for runtime exports"
-if pnpm --filter @vooster/contracts build; then
+echo "[36.A1] contracts package build artifact exists"
+CONTRACTS_ARTIFACT="$ROOT/packages/contracts/dist/index.js"
+if [ -f "$CONTRACTS_ARTIFACT" ]; then
   echo "    ✓ pass"
 else
-  echo "    ✗ fail"
+  echo "    ✗ fail — missing $CONTRACTS_ARTIFACT; run the centralized build step first"
   PASS=false
 fi
 

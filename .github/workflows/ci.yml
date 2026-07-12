@@ -67,6 +67,9 @@ on:
       - ".prettierignore"
       - "*-goal.md"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

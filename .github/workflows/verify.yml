@@ -89,10 +89,12 @@ jobs:
         id: coverage
         continue-on-error: true
         # `exit ${PIPESTATUS[0]}` so the step reports the command's real exit
-        # code, not tee's 0 — otherwise a failure is masked and Verify is
-        # falsely green.
+        # code, not tee's 0. The full DB-backed coverage suite runs serially in
+        # Verify because parallel fork workers have emitted late GitHub runner
+        # exits after all tests passed, which hides the real coverage signal.
         run: |
-          pnpm run test:coverage 2>&1 | tee verify.log
+          echo "Running full DB-backed coverage serially to avoid nondeterministic Vitest fork-worker exits on GitHub-hosted runners." | tee verify.log
+          VSPEC_VITEST_MAX_WORKERS=1 pnpm run test:coverage -- --no-file-parallelism 2>&1 | tee -a verify.log
           exit "${PIPESTATUS[0]}"
       - name: Run goal gate sweep
         id: gates

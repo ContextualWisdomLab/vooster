@@ -1,5 +1,7 @@
 # vooster — vspec
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/vooster)
+
 **Cockburn-style use case management for teams coordinating human developers and parallel AI coding agents around explicit, versioned product behavior.**
 
 `vspec` treats software specifications as executable collaboration infrastructure rather than static prose. It gives teams a shared use-case model, revision history, branch/merge semantics, pinned agent work sessions, change-impact evidence, and a CLI/API workflow that can be consumed by humans, CI, and coding agents.

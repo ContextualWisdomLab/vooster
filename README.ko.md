@@ -67,6 +67,8 @@ VSPEC_AUTH_STUB=1 docker compose -f docker-compose.prod.yml up -d
 
 `VSPEC_AUTH_STUB=1`은 개발/테스트용 우회 경로이며 운영 인증이 아닙니다. 실제 GitHub OAuth를 사용할 때는 필요한 client credential을 배포 환경에 설정하고 소스에 커밋하지 마세요.
 
+`docker-compose.prod.yml`은 PostgreSQL 연결을 `DATABASE_URL`에서 읽습니다. 애플리케이션을 호스트에 공개하는 포트는 `VSPEC_DEPLOY_HOST_PORT`로 바꿀 수 있으며, 값을 지정하지 않으면 **4400**을 사용합니다. 예를 들어 `VSPEC_DEPLOY_HOST_PORT=8088`을 설정하면 호스트의 8088 포트로 노출됩니다. 데이터베이스와 호스트 포트 모두 배포 환경 값이며 README의 기본값을 운영용 비밀정보나 고정 인프라 권위로 간주하면 안 됩니다.
+
 ## 아키텍처와 통합 경계
 
 저장소는 TypeScript/pnpm workspace이며 다음 경계를 갖습니다.
@@ -100,7 +102,7 @@ pnpm run verify
 | CLI 동작 | [CLI spec](docs/07-cli-spec.md) |
 | 저장소 기반 agent workflow | [Build harness](docs/build-harness.md) |
 
-도메인 또는 workflow 동작을 변경하기 전에 [제품 개요](docs/00-overview.md)와 `AGENTS.md`를 함께 확인하세요.
+도메인 또는 workflow 동작을 변경하기 전에 [제품 개요](docs/00-overview.md)와 [AGENTS.md](AGENTS.md)를 함께 확인하세요.
 
 ## 라이선스와 provenance
 

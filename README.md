@@ -112,7 +112,7 @@ For focused development, the workspace also provides formatting, linting, type c
 | CLI behavior | [CLI spec](docs/07-cli-spec.md) |
 | Repository-native agent workflow | [Build harness](docs/build-harness.md) |
 
-For repository navigation and contribution rules, start with `GOAL.md` and `AGENTS.md` before changing domain or workflow behavior.
+For repository navigation and contribution rules, start with the [product overview](docs/00-overview.md) and `AGENTS.md` before changing domain or workflow behavior.
 
 ## License and provenance
 

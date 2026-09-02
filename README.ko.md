@@ -1,70 +1,54 @@
-# vspec
+# vooster — vspec
 
-vspec는 사람과 AI 기여자가 함께 명시적이고 버전 관리되는 제품 동작을 중심으로
-협업할 수 있도록 돕는 Cockburn 스타일의 유스케이스 관리 도구입니다.
-Fastify API, Prisma 영속 계층, 그리고 유스케이스 명세를 작성·리뷰·내보내기
-위한 oclif 기반 CLI를 함께 제공합니다.
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/vooster)
+
+**사람 개발자와 병렬 AI 코딩 에이전트가 명시적이고 버전 관리되는 제품 동작을 중심으로 협업하도록 돕는 Cockburn 스타일 유스케이스 관리 도구입니다.**
+
+`vspec`은 소프트웨어 명세를 정적인 문서가 아니라 협업 인프라로 다룹니다. 팀은 구조화된 유스케이스 모델, 불변 리비전, 명세 브랜치와 머지, 작업 세션 고정, 변경 영향 증거, CLI/API 흐름을 함께 사용할 수 있습니다.
 
 > [English README](./README.md)
 
-## vspec이 풀고자 하는 문제
+## 왜 필요한가
 
-최신 AI 보조 개발 환경에서는 흔히 **6개 이상의 동시 AI 코딩 에이전트
-세션**이 같은 시스템의 서로 다른 부분을 편집합니다. Notion·Confluence·Linear
-같은 기존 명세 도구는 사람 속도, 사람만의 협업을 전제로 설계되어 있어
-이러한 부하에서 무너집니다.
+여러 사람과 코딩 에이전트가 동시에 작업하면 변경 중인 명세 자체가 숨은 경쟁 조건이 될 수 있습니다. 한 에이전트가 구현을 진행하는 동안 다른 작업이 전제를 바꾸면, 코드가 서로 다른 제품 정의를 기준으로 만들어질 수 있습니다.
 
-- "고정된" 스냅샷 개념이 없어 에이전트가 작업 중간에 컨텍스트가 바뀝니다.
-- 의미론적 변경 추적이 없어 단계 이름이 바뀌면 그 위에서 동작하던 Gherkin
-  테스트가 조용히 깨집니다.
-- 충돌하는 편집이 경고 없이 허용되며, 조율은 사람의 몫으로 남습니다.
+`vspec`은 그 상태를 명시적으로 관리합니다.
 
-vspec은 사용자 환경을 **분산된 다중 에이전트 시스템**으로 간주하고, 이를
-데이터 모델과 워크플로우에서 최우선 관심사로 다룹니다.
+- actor, stakeholder, goal, scenario, step, extension을 구조화된 도메인 개념으로 표현합니다.
+- 에이전트 작업 세션을 불변 specification revision에 고정합니다.
+- 명세 브랜치와 영향 기반 merge request를 제공합니다.
+- 민감한 명세 영역에 semantic/hard locking을 적용할 수 있습니다.
+- 저장소의 Markdown 명세와 동기화해 파일 중심 개발 흐름을 유지합니다.
+- 사람과 자동화가 함께 소비할 수 있는 CLI/API 계약을 제공합니다.
 
-## 핵심 차별점
+전체 MVP 책임과 비목표는 [제품 개요](docs/00-overview.md)를 참고하세요.
 
-1. **Cockburn 충실성** — 이해관계자, 관심사, 레벨, 확장이 자유 텍스트가 아니라
-   1급 엔티티로 모델링됩니다.
-2. **세션별 스냅샷 고정** — 각 에이전트는 불변 리비전을 기준으로 작업하므로
-   다른 곳의 편집이 진행 중인 작업을 깨뜨릴 수 없습니다.
-3. **명세 브랜치와 영향 인식 머지** — 기본적으로 브랜치 격리, 충돌은 머지
-   시점에만 드러나며 COSMETIC / NON_BREAKING / BREAKING 으로 분류됩니다.
-4. **3단계 락** — SOFT(정보), SEMANTIC(의미 변경 차단), HARD(모든 변경 차단).
-5. **스스로 가르치는 CLI** — 모든 오류 메시지에 다음 추천 명령이 포함되며,
-   `--format=agent` 는 JSON과 `suggested_next_actions` 를 함께 출력하고,
-   `vspec ai-guide` 명령을 제공합니다.
-6. **파일 우선 워크플로우** — 명세는 저장소 안의 마크다운(`specs/*.md`)으로
-   존재하며 서버와 양방향 동기화되므로, AI 코딩 에이전트가 기존 파일시스템
-   도구만으로도 읽고 쓸 수 있습니다.
+## 현재 상태
 
-## 설치
+이 ContextualWisdomLab 저장소는 **소스/개발 트리**이며 공개 npm 또는 GitHub Release의 존재를 의미하지 않습니다. 루트 workspace는 `private: true`, CLI package는 private `@vooster/cli@0.0.0`, 실행 명령 이름은 `vspec`입니다. 현재 이 저장소에는 GitHub Release가 없습니다.
 
-npm에서 CLI를 바로 실행:
+따라서 평가와 개발에는 source checkout을 사용하세요. 명령 이름이 `vspec`이라는 이유만으로 공개 npm 패키지 `vspec`이 이 저장소에서 배포된다고 가정하면 안 됩니다.
 
-```bash
-npx vspec --help
-```
+## 소스에서 빠르게 시작하기
 
-자주 사용한다면 전역 설치:
-
-```bash
-npm install -g vspec
-vspec --help
-```
-
-새로 클론한 저장소에서 개발 환경 구성:
+필요 조건은 Node.js 20+, Corepack, 루트 package metadata에 고정된 pnpm 11.0.5입니다. 로컬 PostgreSQL을 Compose로 실행하려면 Docker/Compose도 필요합니다.
 
 ```bash
 corepack enable
 pnpm install
-cp .env.example .env
 pnpm -r build
 ```
 
-## 실행
+저장소 CLI를 직접 실행합니다.
 
-선택 사항인 로컬 Postgres 서비스를 띄운 뒤 개발 서버를 실행합니다.
+```bash
+node apps/cli/bin/run.js --help
+node apps/cli/bin/run.js ai-guide
+```
+
+빌드 출력이 있으면 launcher가 이를 사용하고, 그렇지 않으면 저장소의 `tsx` 의존성을 통해 TypeScript source CLI로 폴백합니다.
+
+## 로컬 서비스 실행
 
 ```bash
 cp .env.example .env
@@ -72,37 +56,54 @@ docker compose up -d db
 pnpm run dev
 ```
 
-`PORT`를 별도로 지정하지 않으면 서버는 `http://localhost:8080`에서
-`GET /healthz`를 노출합니다.
+`PORT`를 별도로 지정하지 않으면 기본 서비스는 `http://localhost:8080`에서 `GET /healthz`를 제공합니다.
 
-## 배포
-
-운영에 가까운 Docker 스택을 빌드하고 실행합니다.
+운영과 비슷한 로컬 Compose profile은 다음과 같이 실행할 수 있습니다.
 
 ```bash
 cp .env.example .env
 VSPEC_AUTH_STUB=1 docker compose -f docker-compose.prod.yml up -d
 ```
 
-실제 GitHub OAuth를 사용하려면 스택을 띄우기 전에 `GITHUB_CLIENT_ID` 와
-`GITHUB_CLIENT_SECRET` 를 환경변수로 설정하세요. compose 파일은 `DATABASE_URL`
-을 통해 Postgres 를 제공하고 `${VSPEC_DEPLOY_HOST_PORT:-4400}` 포트로 앱을
-공개합니다.
+`VSPEC_AUTH_STUB=1`은 개발/테스트용 우회 경로이며 운영 인증이 아닙니다. 실제 GitHub OAuth를 사용할 때는 필요한 client credential을 배포 환경에 설정하고 소스에 커밋하지 마세요.
 
-## 주요 페르소나
+## 아키텍처와 통합 경계
 
-| 페르소나            | 역할                                               |
-| ------------------- | -------------------------------------------------- |
-| 사람 개발자/PM      | 명세를 작성·리뷰하고 에이전트를 감독합니다.        |
-| AI 코딩 에이전트    | 고정된 명세를 기준으로 코드와 테스트를 구현합니다. |
-| 워크스페이스 관리자 | 멤버, API 키, 빌링을 관리합니다.                   |
-| CI/CD 시스템        | Gherkin 동기화와 명세 드리프트 감지를 수행합니다.  |
+저장소는 TypeScript/pnpm workspace이며 다음 경계를 갖습니다.
+
+- Fastify API: 명세와 협업 workflow
+- Prisma + PostgreSQL: 영속성
+- oclif CLI: `vspec` 명령 표면
+- shared workspace contracts: API/CLI 간 공통 계약
+- repository-local Markdown: 명세와 동기화 흐름
+
+`vspec`은 유스케이스/명세 lifecycle과 협업 semantics를 소유합니다. Git hosting, GitHub OAuth identity, CI 실행, coding-agent runtime, 명세를 소비하는 구현 저장소는 별도 시스템입니다. 명세 revision은 구현을 안내할 수 있지만 코드 실행이나 merge 권한이 되지는 않습니다.
+
+## 검증
+
+루트 package가 제공하는 저장소 검증 진입점은 다음과 같습니다.
+
+```bash
+pnpm run verify
+```
+
+세부 lint, typecheck, test, coverage, build 명령은 루트와 workspace `package.json`을 따르세요. PR의 통합 가능성은 동일 exact revision의 현재 GitHub Checks와 review/governance 상태를 기준으로 판단합니다.
 
 ## 문서
 
-- [개요 (Overview)](docs/00-overview.md)
-- [아키텍처 (Architecture)](docs/01-architecture.md)
-- [기술 스택 (Tech stack)](docs/02-tech-stack.md)
-- [API 계약 (API contract)](docs/06-api-contract.md)
-- [CLI 사양 (CLI spec)](docs/07-cli-spec.md)
-- [자율 빌드 하니스 (Autonomous build harness)](docs/build-harness.md)
+| 목적 | 문서 |
+| --- | --- |
+| 제품 목적·페르소나 | [Overview](docs/00-overview.md) |
+| 아키텍처 | [Architecture](docs/01-architecture.md) |
+| 기술 선택 | [Tech stack](docs/02-tech-stack.md) |
+| HTTP 통합 | [API contract](docs/06-api-contract.md) |
+| CLI 동작 | [CLI spec](docs/07-cli-spec.md) |
+| 저장소 기반 agent workflow | [Build harness](docs/build-harness.md) |
+
+도메인 또는 workflow 동작을 변경하기 전에 [제품 개요](docs/00-overview.md)와 `AGENTS.md`를 함께 확인하세요.
+
+## 라이선스와 provenance
+
+이 저장소는 기존 [MIT License](LICENSE)와 `Copyright (c) 2026 vibemafiaclub` 표기를 보존합니다. 루트 package metadata 역시 MIT를 선언하고 upstream `vibemafiaclub/vooster` repository/issues/homepage 정보를 유지합니다.
+
+ContextualWisdomLab 저장소라고 해서 upstream 저작권을 교체하거나 upstream-derived source를 새로 독점 라이선스한 것으로 표현하지 않습니다. 제3자 npm package, container image, GitHub 서비스 등은 각각의 라이선스와 약관을 유지합니다.

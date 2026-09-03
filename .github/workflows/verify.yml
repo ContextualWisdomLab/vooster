@@ -14,8 +14,14 @@ name: Verify
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
   schedule:
     # 04:00 UTC — offset from World Health (06:00) to avoid runner contention.
     - cron: "0 4 * * *"

@@ -1,11 +1,33 @@
 name: Vspec Verify
 
+# paths-ignore mirrors verify.yml's denylist (see its header comment): the
+# default test-command below is `pnpm test`, which runs
+# apps/api/tests/integration/readme.test.ts among the full vitest suite, so
+# README.md/README.ko.md and docs/** stay off this list.
+
 on:
   pull_request:
     branches: [main]
     paths-ignore:
-      - "docs/**"
-      - "*.md"
+      - "docs/state/**"
+      - "docs/findings/**"
+      - "docs/claude/**"
+      - "docs/decisions/**"
+      - "goals/**"
+      - "cycles/**"
+      - "prompts/**"
+      - "guidelines/**"
+      - "assets/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".agents/**"
+      - ".argos/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".prettierignore"
+      - "*-goal.md"
   workflow_dispatch:
 
 permissions:

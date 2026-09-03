@@ -10,18 +10,62 @@ name: Verify
 #
 # IMPORTANT: do NOT add this workflow to branch protection's required checks —
 # that would make it blocking and defeat the split.
+#
+# paths-ignore is the same proven-safe denylist as ci.yml (see its header
+# comment for the measurement), MINUS "README.md"/"README.ko.md": Test +
+# coverage below runs the full vitest suite, including
+# apps/api/tests/integration/readme.test.ts, which asserts README.md and
+# docs/build-harness.md content. ci.yml already ignores README.md changes
+# (separate pre-existing gap, tracked independently); this workflow is the
+# only remaining net that still runs on a README-only change, so it must not
+# ignore it too. docs/** stays off this list entirely — only vetted subtrees
+# with no test dependency are listed below.
 
 on:
   push:
     branches: [main]
     paths-ignore:
-      - "docs/**"
-      - "*.md"
+      - "docs/state/**"
+      - "docs/findings/**"
+      - "docs/claude/**"
+      - "docs/decisions/**"
+      - "goals/**"
+      - "cycles/**"
+      - "prompts/**"
+      - "guidelines/**"
+      - "assets/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".agents/**"
+      - ".argos/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".prettierignore"
+      - "*-goal.md"
   pull_request:
     branches: [main]
     paths-ignore:
-      - "docs/**"
-      - "*.md"
+      - "docs/state/**"
+      - "docs/findings/**"
+      - "docs/claude/**"
+      - "docs/decisions/**"
+      - "goals/**"
+      - "cycles/**"
+      - "prompts/**"
+      - "guidelines/**"
+      - "assets/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".agents/**"
+      - ".argos/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".prettierignore"
+      - "*-goal.md"
   schedule:
     # 04:00 UTC — offset from World Health (06:00) to avoid runner contention.
     - cron: "0 4 * * *"

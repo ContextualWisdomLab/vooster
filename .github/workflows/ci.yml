@@ -14,8 +14,16 @@ name: CI
 #
 # Deliberately NOT ignored (a test reads them — see
 # apps/api/tests/integration/readme.test.ts): docs/ root files such as
-# docs/build-harness.md and docs/09-bootstrap.md. Only docs/ SUBTREES with no
-# test dependency are listed. Keep this list a denylist of proven-safe paths;
+# docs/build-harness.md and docs/09-bootstrap.md, AND README.md/README.ko.md
+# itself (the same test asserts specific README.md headers, install/run/deploy
+# instructions, and a link to docs/build-harness.md). README.md/README.ko.md
+# were wrongly included here from 2026-06-02 (commit a466e8e) through
+# 2026-09-03 -- a README-only PR silently skipped this blocking gate, so
+# readme.test.ts never re-ran against it. Removing them costs negligible
+# congestion-reduction value: of all commits since the original 213-push
+# measurement window, only one (2026-05-21, before the window even closed)
+# touched README.md/README.ko.md alone. Only docs/ SUBTREES with no test
+# dependency are listed. Keep this list a denylist of proven-safe paths;
 # anything new defaults to running CI.
 on:
   push:
@@ -34,8 +42,6 @@ on:
       - ".codex/**"
       - ".agents/**"
       - ".argos/**"
-      - "README.md"
-      - "README.ko.md"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "LICENSE"
@@ -58,8 +64,6 @@ on:
       - ".codex/**"
       - ".agents/**"
       - ".argos/**"
-      - "README.md"
-      - "README.ko.md"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "LICENSE"

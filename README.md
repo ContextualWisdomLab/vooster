@@ -30,7 +30,7 @@ This ContextualWisdomLab repository is a source/development tree, not evidence o
 
 Accordingly, use a source checkout for evaluation. Do **not** assume that the public npm package name `vspec` is produced by this repository merely because the command is named `vspec`.
 
-## Quick start from source
+## Install from source
 
 ### Prerequisites
 
@@ -56,7 +56,7 @@ node apps/cli/bin/run.js ai-guide
 
 The launcher uses built output when available and falls back to the TypeScript source CLI through the repository's `tsx` dependency.
 
-## Run the local service
+## Run locally
 
 Create a development environment file, start PostgreSQL, and run the API in development mode:
 
@@ -67,6 +67,8 @@ pnpm run dev
 ```
 
 The default service exposes `GET /healthz` on `http://localhost:8080` unless `PORT` is configured differently.
+
+## Deploy an evaluation stack
 
 For a production-like local Compose profile:
 
@@ -103,14 +105,14 @@ For focused development, the workspace also provides formatting, linting, type c
 
 ## Documentation
 
-| Need | Start here |
-| --- | --- |
-| Product purpose and personas | [Overview](docs/00-overview.md) |
-| Architecture | [Architecture](docs/01-architecture.md) |
-| Technology choices | [Tech stack](docs/02-tech-stack.md) |
-| HTTP integration | [API contract](docs/06-api-contract.md) |
-| CLI behavior | [CLI spec](docs/07-cli-spec.md) |
-| Repository-native agent workflow | [Build harness](docs/build-harness.md) |
+| Need                             | Start here                              |
+| -------------------------------- | --------------------------------------- |
+| Product purpose and personas     | [Overview](docs/00-overview.md)         |
+| Architecture                     | [Architecture](docs/01-architecture.md) |
+| Technology choices               | [Tech stack](docs/02-tech-stack.md)     |
+| HTTP integration                 | [API contract](docs/06-api-contract.md) |
+| CLI behavior                     | [CLI spec](docs/07-cli-spec.md)         |
+| Repository-native agent workflow | [Build harness](docs/build-harness.md)  |
 
 For repository navigation and contribution rules, start with the [product overview](docs/00-overview.md) and [AGENTS.md](AGENTS.md) before changing domain or workflow behavior.
 

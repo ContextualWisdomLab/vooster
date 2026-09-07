@@ -29,7 +29,7 @@
 
 따라서 평가와 개발에는 source checkout을 사용하세요. 명령 이름이 `vspec`이라는 이유만으로 공개 npm 패키지 `vspec`이 이 저장소에서 배포된다고 가정하면 안 됩니다.
 
-## 소스에서 빠르게 시작하기
+## 소스에서 설치하기
 
 필요 조건은 Node.js 20+, Corepack, 루트 package metadata에 고정된 pnpm 11.0.5입니다. 로컬 PostgreSQL을 Compose로 실행하려면 Docker/Compose도 필요합니다.
 
@@ -48,7 +48,7 @@ node apps/cli/bin/run.js ai-guide
 
 빌드 출력이 있으면 launcher가 이를 사용하고, 그렇지 않으면 저장소의 `tsx` 의존성을 통해 TypeScript source CLI로 폴백합니다.
 
-## 로컬 서비스 실행
+## 로컬에서 실행하기
 
 ```bash
 cp .env.example .env
@@ -57,6 +57,8 @@ pnpm run dev
 ```
 
 `PORT`를 별도로 지정하지 않으면 기본 서비스는 `http://localhost:8080`에서 `GET /healthz`를 제공합니다.
+
+## 평가용 스택 배포
 
 운영과 비슷한 로컬 Compose profile은 다음과 같이 실행할 수 있습니다.
 
@@ -93,14 +95,14 @@ pnpm run verify
 
 ## 문서
 
-| 목적 | 문서 |
-| --- | --- |
-| 제품 목적·페르소나 | [Overview](docs/00-overview.md) |
-| 아키텍처 | [Architecture](docs/01-architecture.md) |
-| 기술 선택 | [Tech stack](docs/02-tech-stack.md) |
-| HTTP 통합 | [API contract](docs/06-api-contract.md) |
-| CLI 동작 | [CLI spec](docs/07-cli-spec.md) |
-| 저장소 기반 agent workflow | [Build harness](docs/build-harness.md) |
+| 목적                       | 문서                                    |
+| -------------------------- | --------------------------------------- |
+| 제품 목적·페르소나         | [Overview](docs/00-overview.md)         |
+| 아키텍처                   | [Architecture](docs/01-architecture.md) |
+| 기술 선택                  | [Tech stack](docs/02-tech-stack.md)     |
+| HTTP 통합                  | [API contract](docs/06-api-contract.md) |
+| CLI 동작                   | [CLI spec](docs/07-cli-spec.md)         |
+| 저장소 기반 agent workflow | [Build harness](docs/build-harness.md)  |
 
 도메인 또는 workflow 동작을 변경하기 전에 [제품 개요](docs/00-overview.md)와 [AGENTS.md](AGENTS.md)를 함께 확인하세요.
 

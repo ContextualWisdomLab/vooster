@@ -13,6 +13,8 @@ vooster owns the lifecycle of structured use cases and the collaboration state a
 This organization copy is a source/development tree rather than evidence of a published npm package or GitHub release. From a clean checkout:
 
 ```bash
+# Node.js 25+ only, when `corepack --version` is unavailable:
+npm install --global corepack@0.34.6
 corepack enable
 pnpm install
 pnpm -r build

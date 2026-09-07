@@ -35,13 +35,15 @@ Accordingly, use a source checkout for evaluation. Do **not** assume that the pu
 ### Prerequisites
 
 - Node.js 20 or newer;
-- Corepack;
+- Corepack (bundled through Node.js 24; install it separately on Node.js 25+);
 - pnpm `11.0.5` as pinned by the root package metadata;
 - Docker/Compose when using the bundled local PostgreSQL service.
 
 Install and build the workspace:
 
 ```bash
+# Node.js 25+ only, when `corepack --version` is unavailable:
+npm install --global corepack@0.34.6
 corepack enable
 pnpm install
 pnpm -r build

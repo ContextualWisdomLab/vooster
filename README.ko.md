@@ -31,9 +31,11 @@
 
 ## 소스에서 설치하기
 
-필요 조건은 Node.js 20+, Corepack, 루트 package metadata에 고정된 pnpm 11.0.5입니다. 로컬 PostgreSQL을 Compose로 실행하려면 Docker/Compose도 필요합니다.
+필요 조건은 Node.js 20+, Corepack, 루트 package metadata에 고정된 pnpm 11.0.5입니다. Node.js 25부터는 Corepack이 함께 설치되지 않으므로 별도로 설치해야 합니다. 로컬 PostgreSQL을 Compose로 실행하려면 Docker/Compose도 필요합니다.
 
 ```bash
+# Node.js 25+에서 `corepack --version`을 사용할 수 없을 때만 실행합니다.
+npm install --global corepack@0.34.6
 corepack enable
 pnpm install
 pnpm -r build

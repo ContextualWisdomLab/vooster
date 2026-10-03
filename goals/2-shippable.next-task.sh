@@ -184,14 +184,15 @@ TASK: Rewrite README.md for end users (gate 2.B4).
   1. Move the current "autonomous-build harness" content from README.md
      into docs/build-harness.md (keep the loop instructions intact).
   2. Replace README.md with a user-facing layout:
-        # vspec
+        # vooster — vspec
         <one-paragraph description>
-        ## Install            # npm install -g vspec  (or  npx vspec --help)
-        ## Run                # local dev: docker compose up -d db && npm run dev
-        ## Deploy             # docker compose -f docker-compose.prod.yml up -d
+        ## Install ...        # source checkout until a repository-owned release exists
+        ## Run ...            # local dev: docker compose up -d db && pnpm run dev
+        ## Deploy ...         # docker compose -f docker-compose.prod.yml up -d
         ## Documentation      # links to docs/ and to docs/build-harness.md
   3. Each section's commands must work on a clean clone — no implicit env
-     setup.
+     setup. Do not advertise `npm install -g vspec` or `npx vspec` unless
+     repository package metadata and release evidence establish ownership.
 EOF
   exit 0
 fi

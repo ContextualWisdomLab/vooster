@@ -79,10 +79,12 @@ app + Postgres. `scripts/check-deployable.sh` builds the image, starts
 the stack, polls `/healthz`, executes one signup roundtrip from
 outside the container, and tears the stack down cleanly.
 
-B4. **User-facing README exists.** `README.md` has top-level sections
-`## Install`, `## Run`, and `## Deploy`, each with copy-pasteable
-commands that work on a fresh machine. The autonomous-build-harness
-content moves to `docs/build-harness.md`, cross-linked from README.
+B4. **User-facing README exists.** `README.md` has top-level sections whose
+headings begin with `## Install`, `## Run`, and `## Deploy`, each with
+copy-pasteable commands that work from a fresh source checkout. Until a
+repository-owned package release exists, the README must not advertise the
+unrelated public `vspec` npm package. The autonomous-build-harness content
+moves to `docs/build-harness.md`, cross-linked from README.
 
 ### Tranche C — Layers are real, not cosmetic
 

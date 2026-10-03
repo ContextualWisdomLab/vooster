@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -174,6 +174,28 @@ describe("verify command", () => {
     expect(process.exitCode).toBe(1);
     expect(lines).toContain("Verify UC-013 failing_tests");
     expect(lines).toContain("Tests failed 1");
+    rmSync(root, { recursive: true });
+  });
+
+  test("passes shell operators as literal test-command arguments", async () => {
+    const root = fixtureRoot();
+    const injected = join(root, "injected-output");
+    stubUsecase(usecaseResponse());
+    const lines: string[] = [];
+    const command = [
+      process.execPath,
+      '-e "process.exit(0)"',
+      "&&",
+      process.execPath,
+      `-e "require('node:fs').writeFileSync('${injected}', 'bad')"`
+    ].join(" ");
+
+    await runVerify(flags({ root, "test-cmd": command }), "UC-013", (line) =>
+      lines.push(line)
+    );
+
+    expect(existsSync(injected)).toBe(false);
+    expect(lines).toContain("Tests passed 0");
     rmSync(root, { recursive: true });
   });
 

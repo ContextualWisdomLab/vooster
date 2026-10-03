@@ -70,4 +70,3 @@ do next (`docs/06-api-contract.md`).
   `unlinked_steps`, `failing_tests`) beyond folding structural gaps into the
   shared `status` / `exit_code` rollup.
 - No prior goal gate may be weakened to pass this goal.
-

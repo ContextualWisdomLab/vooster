@@ -23,11 +23,9 @@ export async function listStakeholders(
   const stakeholders = (await stakeholderStore.listStakeholders(projectId)).filter(
     (stakeholder) => stakeholder.archived_at === null
   );
-  return reply.send(
-    stakeholderListResponseSchema.parse({
-      items: stakeholders.map(stakeholderResponse)
-    })
-  );
+  return stakeholderListResponseSchema.parse({
+    items: stakeholders.map(stakeholderResponse)
+  });
 }
 
 export async function showStakeholder(
@@ -43,9 +41,9 @@ export async function showStakeholder(
   if (stakeholder === undefined) {
     return reply.code(404).send(problem(404, "Stakeholder not found"));
   }
-  return reply.send(
-    stakeholderResponseSchema.parse({ stakeholder: stakeholderResponse(stakeholder) })
-  );
+  return stakeholderResponseSchema.parse({
+    stakeholder: stakeholderResponse(stakeholder)
+  });
 }
 
 export async function patchStakeholder(
@@ -64,9 +62,7 @@ export async function patchStakeholder(
   }
   const updated = { ...stakeholder, ...stakeholderPatchFrom(stakeholder, parsed.data) };
   await stakeholderStore.updateStakeholder(updated);
-  return reply.send(
-    stakeholderResponseSchema.parse({ stakeholder: stakeholderResponse(updated) })
-  );
+  return stakeholderResponseSchema.parse({ stakeholder: stakeholderResponse(updated) });
 }
 
 export async function archiveStakeholder(
@@ -83,12 +79,10 @@ export async function archiveStakeholder(
     ...stakeholder,
     archived_at: new Date().toISOString()
   });
-  return reply.send(
-    stakeholderArchiveResponseSchema.parse({
-      archived: true,
-      stakeholder: { id: params.stakeholderId }
-    })
-  );
+  return stakeholderArchiveResponseSchema.parse({
+    archived: true,
+    stakeholder: { id: params.stakeholderId }
+  });
 }
 
 async function stakeholderFor(

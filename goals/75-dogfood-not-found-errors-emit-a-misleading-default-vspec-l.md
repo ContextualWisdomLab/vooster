@@ -32,7 +32,7 @@ The fix has two halves:
 2. **Give entity NOT_FOUND responses a recovery that teaches the real fix.** An
    entity-lookup 404 should point the agent at re-reading the use case to get the
    current ids -- `{ command: "vspec usecase show <KEY>", reason: "Re-read the
-   use case to get the current scenario/step ids." }` -- instead of a signup
+use case to get the current scenario/step ids." }` -- instead of a signup
    command. The exact wording is the implementer's call, but the recovery must
    name `vspec usecase show` (the command that surfaces current ids) and must not
    mention `vspec login` / "Restart signup".
@@ -70,7 +70,7 @@ removes a wrong default and gives entity NOT_FOUND responses a self-teaching one
 2. **The shared `problem()` helper no longer ships a signup-flavored default.**
    This is the negative universal invariant: because the corpus loop can only
    exercise the senders it lists, a single grep over the helper guarantees no
-   *other* (present or future) `problem()` caller silently inherits the signup
+   _other_ (present or future) `problem()` caller silently inherits the signup
    recovery. The gate fails if the `problem()` default `suggestedNextActions`
    parameter still hardcodes `Restart signup`.
 3. **Entity NOT_FOUND responses are self-teaching and the genuinely auth-related

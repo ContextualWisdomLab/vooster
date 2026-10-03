@@ -17,7 +17,7 @@ teaching:
 
 1. **No key supplied.** `runVerify` in `apps/cli/src/commands/verify.ts` resolves
    its argument through `verifyFlagsFrom` → `requiredArgument(usecaseId,
-   "usecase-id")`, which throws a bare `Error("Missing usecase-id.")`. That error
+"usecase-id")`, which throws a bare `Error("Missing usecase-id.")`. That error
    has no stable `code` and no `suggested_next_actions`, and it propagates to
    oclif's top-level handler, which stringifies it to stderr. (Depending on how
    the empty argument is threaded, the request can also reach the API and come

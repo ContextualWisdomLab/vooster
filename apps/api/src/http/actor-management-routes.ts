@@ -23,9 +23,7 @@ export async function listActors(
   const actors = (await actorStore.listActors(projectId)).filter(
     (actor) => actor.archived_at === null
   );
-  return reply.send(
-    actorListResponseSchema.parse({ items: actors.map(actorResponse) })
-  );
+  return actorListResponseSchema.parse({ items: actors.map(actorResponse) });
 }
 
 export async function showActor(
@@ -38,7 +36,7 @@ export async function showActor(
   if (actor === undefined) {
     return reply.code(404).send(problem(404, "Actor not found"));
   }
-  return reply.send(actorResponseSchema.parse({ actor: actorResponse(actor) }));
+  return actorResponseSchema.parse({ actor: actorResponse(actor) });
 }
 
 export async function patchActor(
@@ -60,7 +58,7 @@ export async function patchActor(
   }
   const updated = { ...actor, ...actorPatchFrom(actor, parsed.data) };
   await actorStore.updateActor(updated);
-  return reply.send(actorResponseSchema.parse({ actor: actorResponse(updated) }));
+  return actorResponseSchema.parse({ actor: actorResponse(updated) });
 }
 
 export async function archiveActor(
@@ -77,9 +75,10 @@ export async function archiveActor(
   if (!archived) {
     return reply.code(404).send(problem(404, "Actor not found"));
   }
-  return reply.send(
-    actorArchiveResponseSchema.parse({ actor: { id: params.actorId }, archived: true })
-  );
+  return actorArchiveResponseSchema.parse({
+    actor: { id: params.actorId },
+    archived: true
+  });
 }
 
 function actorPatchFrom(

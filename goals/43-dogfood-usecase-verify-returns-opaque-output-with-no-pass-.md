@@ -53,8 +53,8 @@ got connected.
    - `json` -- the structured `VerifyResult` with a top-level `status`.
    - `agent` -- the agent envelope whose `data.status` and `data.drift` an agent
      can branch on.
-   The exit code follows the verdict exactly as `vspec verify` already does
-   (`0` pass, `7` unlinked steps, `1` otherwise).
+     The exit code follows the verdict exactly as `vspec verify` already does
+     (`0` pass, `7` unlinked steps, `1` otherwise).
 3. No duplicated verdict logic: there is exactly **one** `runVerify` definition
    under `apps/cli/src`, and **every** `apps/cli/src` file that references it
    (other than the file that defines it) imports the shared producer rather than
@@ -76,7 +76,7 @@ The set of accepted formats is the whitelist in `verifyFormat`
 (`apps/cli/src/commands/verify.ts`): `human`, `json`, `agent`. The set of
 `apps/cli/src` files that reference the verdict producer is enumerated from
 source with `grep -rln 'runVerify' apps/cli/src`; exactly one of them may
-*define* `runVerify`, and the gate loops over the rest to confirm each imports
+_define_ `runVerify`, and the gate loops over the rest to confirm each imports
 the shared definition rather than re-declaring it.
 
 ## Verification

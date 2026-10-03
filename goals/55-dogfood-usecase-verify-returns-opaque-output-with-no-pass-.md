@@ -10,7 +10,7 @@ When an agent runs `vspec usecase verify <id>` (or the equivalent `vspec verify
 clean, the command must tell the agent what to do about it -- not just that
 something failed. Goal 43 already made `verify` route into `runVerify` and emit a
 stable `status` in every format; that closed the "opaque banner" symptom for the
-*pass* case. But the finding behind this goal is the *fail* case: when verify
+_pass_ case. But the finding behind this goal is the _fail_ case: when verify
 reports drift the agent still has to reverse-engineer the remedy by hand. A
 verification command whose failure output cannot be acted on programmatically
 forced the dogfood agent to abandon `verify` and validate by eye.
@@ -93,7 +93,7 @@ stays single-source, and `usecase.ts` still routes the `verify` action into it).
 
 The set of `apps/cli/src` files that reference the remediation producer is
 enumerated from source with `grep -rln 'suggestVerifyActions' apps/cli/src`;
-exactly one of them may *define* `suggestVerifyActions` (enumerated with
+exactly one of them may _define_ `suggestVerifyActions` (enumerated with
 `grep -rln 'function suggestVerifyActions' apps/cli/src`), and the gate loops over
 the rest to confirm each imports the shared definition rather than re-declaring
 it.

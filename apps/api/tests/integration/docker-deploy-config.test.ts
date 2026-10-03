@@ -26,4 +26,17 @@ describe("Goal 2 Docker deploy configuration", () => {
     expect(compose).toContain("${VSPEC_DEPLOY_HOST_PORT:-4400}:8080");
     expect(compose).toContain("postgres:16-alpine");
   });
+
+  test("all Compose services prevent privilege escalation and root writes", async () => {
+    const development = await readFile(path.join(root, "docker-compose.yml"), "utf8");
+    const production = await readFile(
+      path.join(root, "docker-compose.prod.yml"),
+      "utf8"
+    );
+
+    expect(development.match(/no-new-privileges:true/g)).toHaveLength(2);
+    expect(development.match(/read_only: true/g)).toHaveLength(2);
+    expect(production.match(/no-new-privileges:true/g)).toHaveLength(2);
+    expect(production.match(/read_only: true/g)).toHaveLength(2);
+  });
 });

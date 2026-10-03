@@ -40,15 +40,36 @@ class TallyUrlPolicyTest(unittest.TestCase):
         self.assertTrue(submit_response.SSL_CTX.check_hostname)
         self.assertEqual(submit_response.SSL_CTX.verify_mode, ssl.CERT_REQUIRED)
 
-    def test_request_opens_only_the_fixed_tls_host(self) -> None:
-        """Network connection and request-target authority are independently pinned."""
+    def test_creates_verified_socket_for_fixed_tls_host(self) -> None:
+        """The socket target and TLS server name are both fixed to Tally."""
+        raw_socket = Mock()
+        tls_socket = Mock()
+        connection = Mock()
+        with (
+            patch("socket.create_connection", return_value=raw_socket) as socket_factory,
+            patch.object(
+                api_client.SSL_CTX, "wrap_socket", return_value=tls_socket
+            ) as tls_wrapper,
+            patch.object(
+                api_client.http.client, "HTTPConnection", return_value=connection
+            ),
+        ):
+            result = api_client.create_tally_connection()
+
+        socket_factory.assert_called_once_with(("api.tally.so", 443))
+        tls_wrapper.assert_called_once_with(raw_socket, server_hostname="api.tally.so")
+        self.assertIs(connection.sock, tls_socket)
+        self.assertIs(result, connection)
+
+    def test_request_uses_only_path_and_query_target(self) -> None:
+        """A request never forwards URL authority data to the transport."""
         response = Mock(status=200)
         response.read.return_value = b'{"ok": true}'
         connection = Mock()
         connection.getresponse.return_value = response
 
         with patch.object(
-            api_client.http.client, "HTTPSConnection", return_value=connection
+            api_client, "create_tally_connection", return_value=connection
         ) as connection_factory:
             result = api_client.send_json_request(
                 "https://api.tally.so/forms?limit=1",
@@ -56,9 +77,7 @@ class TallyUrlPolicyTest(unittest.TestCase):
                 {"Accept": "application/json"},
             )
 
-        connection_factory.assert_called_once_with(
-            "api.tally.so", context=api_client.SSL_CTX
-        )
+        connection_factory.assert_called_once_with()
         connection.request.assert_called_once_with(
             "GET",
             "/forms?limit=1",

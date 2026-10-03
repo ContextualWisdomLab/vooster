@@ -100,9 +100,7 @@ async function pullFiles(
   );
   return result.status === "FORBIDDEN"
     ? reply.code(403).send(syncAccessProblem())
-    : reply.send(
-        syncPullResponseSchema.parse({ cursor: result.cursor, files: result.files })
-      );
+    : syncPullResponseSchema.parse({ cursor: result.cursor, files: result.files });
 }
 
 async function pushFiles(

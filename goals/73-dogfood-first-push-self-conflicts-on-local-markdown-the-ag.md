@@ -8,13 +8,13 @@
 The dogfood agent authored `POCKET-001` **entirely through CLI write commands**
 (`vspec usecase create`, `vspec scenario add`, `vspec step add` — narration
 commands 10, 12, 14-20). It made **zero** direct edits to any synced spec file
-(the digest's *"Direct edits to synced spec state"* section is empty). Yet
+(the digest's _"Direct edits to synced spec state"_ section is empty). Yet
 command 24, the very first `vspec push`, reported a **conflict** on the local
 markdown file:
 
-> *"Push reports a conflict on the local markdown file ... The server already
+> _"Push reports a conflict on the local markdown file ... The server already
 > holds my latest revision (`113902c9`); the local markdown cache is stale. Let
-> me pull to reconcile."*
+> me pull to reconcile."_
 
 The agent then had to run command 29 `vspec pull --format=agent` followed by
 command 30 `vspec push` just to reconcile a file it had never hand-edited. A

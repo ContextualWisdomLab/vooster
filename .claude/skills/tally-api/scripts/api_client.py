@@ -1,9 +1,9 @@
 """Tally API 공통 HTTP 클라이언트."""
 
 import json
+import http.client
+import socket
 import ssl
-import urllib.request
-import urllib.error
 import urllib.parse
 import sys
 from pathlib import Path
@@ -16,10 +16,81 @@ try:
     import certifi
     SSL_CTX.load_verify_locations(certifi.where())
 except ImportError:
-    SSL_CTX.check_hostname = False
-    SSL_CTX.verify_mode = ssl.CERT_NONE
+    pass
 
 BASE_URL = "https://api.tally.so"
+
+
+def build_api_url(endpoint: str, params: dict = None) -> str:
+    """Build a request URL that cannot leave the fixed Tally HTTPS origin."""
+    if not endpoint.startswith("/") or endpoint.startswith("//"):
+        raise ValueError("Tally API endpoint must be an origin-relative path")
+    url = f"{BASE_URL}{endpoint}"
+    parsed = urllib.parse.urlsplit(url)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "api.tally.so"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("Tally API endpoint must stay on https://api.tally.so")
+    if params:
+        filtered = {key: value for key, value in params.items() if value is not None}
+        if filtered:
+            url += "?" + urllib.parse.urlencode(filtered)
+    return url
+
+
+def create_tally_connection() -> http.client.HTTPConnection:
+    """Create an HTTP client over a verified socket pinned to Tally."""
+    raw_socket = socket.create_connection(("api.tally.so", 443))
+    try:
+        tls_socket = SSL_CTX.wrap_socket(raw_socket, server_hostname="api.tally.so")
+    except Exception:
+        raw_socket.close()
+        raise
+    connection = http.client.HTTPConnection("api.tally.so")
+    connection.sock = tls_socket
+    return connection
+
+
+def send_json_request(
+    url: str,
+    method: str,
+    headers: dict,
+    body: bytes = None,
+) -> dict:
+    """Send JSON over a TLS connection pinned to the Tally API authority."""
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https" or parsed.netloc != "api.tally.so":
+        raise ValueError("Tally request URL must use the fixed HTTPS authority")
+    target = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+    connection = create_tally_connection()
+    try:
+        connection.request(method, target, body=body, headers=headers)
+        response = connection.getresponse()
+        raw = response.read()
+    finally:
+        connection.close()
+    if response.status >= 400:
+        return error_response(response.status, raw)
+    if not raw:
+        return {"success": True}
+    return json.loads(raw)
+
+
+def error_response(status: int, raw: bytes) -> dict:
+    """Translate one non-success Tally response into the skill error contract."""
+    decoded = raw.decode()
+    try:
+        payload = json.loads(decoded)
+        message = payload.get("message", decoded)
+    except json.JSONDecodeError:
+        message = decoded
+    return {"error": True, "code": status, "message": message}
 
 
 def load_token() -> str:
@@ -41,11 +112,7 @@ def api_request(
     params: dict = None,
 ):
     """Tally API에 요청을 보낸다."""
-    url = f"{BASE_URL}{endpoint}"
-    if params:
-        filtered = {k: v for k, v in params.items() if v is not None}
-        if filtered:
-            url += "?" + urllib.parse.urlencode(filtered)
+    url = build_api_url(endpoint, params)
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -57,18 +124,4 @@ def api_request(
         headers["Content-Type"] = "application/json"
         body = json.dumps(data).encode("utf-8")
 
-    req = urllib.request.Request(url, data=body, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, context=SSL_CTX) as resp:
-            raw = resp.read()
-            if not raw:
-                return {"success": True}
-            return json.loads(raw)
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode()
-        try:
-            err = json.loads(raw)
-            msg = err.get("message", raw)
-        except json.JSONDecodeError:
-            msg = raw
-        return {"error": True, "code": e.code, "message": msg}
+    return send_json_request(url, method, headers, body)

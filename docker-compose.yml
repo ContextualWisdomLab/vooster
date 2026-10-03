@@ -4,6 +4,9 @@ services:
   db:
     image: postgres:15-alpine
     container_name: vspec-db
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
     environment:
       POSTGRES_USER: vspec
       POSTGRES_PASSWORD: vspec
@@ -12,6 +15,9 @@ services:
       - "5434:5432"
     volumes:
       - vspec_db:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vspec -d vspec"]
       interval: 3s
@@ -21,6 +27,9 @@ services:
   db_test:
     image: postgres:15-alpine
     container_name: vspec-db-test
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
     environment:
       POSTGRES_USER: vspec
       POSTGRES_PASSWORD: vspec
@@ -29,6 +38,8 @@ services:
       - "5433:5432"
     tmpfs:
       - /var/lib/postgresql/data
+      - /tmp
+      - /var/run/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vspec -d vspec_test"]
       interval: 3s

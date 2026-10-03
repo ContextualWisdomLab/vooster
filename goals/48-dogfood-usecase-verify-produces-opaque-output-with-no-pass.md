@@ -47,8 +47,8 @@ no pass/fail summary, no findings. The agent could not rely on `verify` and fell
 back to reading `usecase show` ("The spec reads correctly") to validate
 correctness by eye, making the verify step dead weight before push.
 
-Goal 43 closed the *routing* half of this symptom (verify no longer dead-ends on
-a banner). DF-001 is the *substance* half: even when verify runs, it only checks
+Goal 43 closed the _routing_ half of this symptom (verify no longer dead-ends on
+a banner). DF-001 is the _substance_ half: even when verify runs, it only checks
 link drift, so a structurally broken spec (missing actor, empty scenario,
 dangling extension point, missing Cockburn field) still verifies clean. This
 goal makes verify actually inspect the spec and emit a per-check verdict an agent
@@ -96,7 +96,7 @@ stays single-source, and `usecase.ts` still routes the `verify` action into it).
 
 The set of `apps/cli/src` files that reference the spec-check producer is
 enumerated from source with `grep -rln 'runSpecChecks' apps/cli/src`; exactly one
-of them may *define* `runSpecChecks` (enumerated with
+of them may _define_ `runSpecChecks` (enumerated with
 `grep -rln 'function runSpecChecks' apps/cli/src`), and the gate loops over the
 rest to confirm each imports the shared definition rather than re-declaring it.
 

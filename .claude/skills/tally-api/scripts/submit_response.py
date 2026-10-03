@@ -2,25 +2,24 @@
 
 import argparse
 import json
-import ssl
+import re
 import sys
-import urllib.request
-import urllib.error
 import uuid
+from pathlib import Path
 
-SSL_CTX = ssl.create_default_context()
-try:
-    import certifi
-    SSL_CTX.load_verify_locations(certifi.where())
-except ImportError:
-    SSL_CTX.check_hostname = False
-    SSL_CTX.verify_mode = ssl.CERT_NONE
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from api_client import SSL_CTX, build_api_url, send_json_request
 
-BASE_URL = "https://api.tally.so"
+
+def build_form_response_url(form_id: str) -> str:
+    """Build a response URL from one opaque Tally form identifier."""
+    if re.fullmatch(r"[A-Za-z0-9_-]+", form_id) is None:
+        raise ValueError("Tally form ID contains unsupported characters")
+    return build_api_url(f"/forms/{form_id}/respond")
 
 
 def submit(form_id: str, responses: dict) -> dict:
-    url = f"{BASE_URL}/forms/{form_id}/respond"
+    url = build_form_response_url(form_id)
     payload = {
         "sessionUuid": str(uuid.uuid4()),
         "respondentUuid": str(uuid.uuid4()),
@@ -34,18 +33,7 @@ def submit(form_id: str, responses: dict) -> dict:
         "Content-Type": "application/json",
         "User-Agent": "TallyAPIClient/1.0",
     }
-    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-    try:
-        with urllib.request.urlopen(req, context=SSL_CTX) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode()
-        try:
-            err = json.loads(raw)
-            msg = err.get("message", raw)
-        except json.JSONDecodeError:
-            msg = raw
-        return {"error": True, "code": e.code, "message": msg}
+    return send_json_request(url, "POST", headers, body)
 
 
 def main():

@@ -11,6 +11,8 @@ form-data/
 dist/
 **/dist/
 build/
+__pycache__/
+*.py[cod]
 .next/
 *.tsbuildinfo
 .astro/

@@ -12,6 +12,7 @@ import {
   type SuggestedNextAction
 } from "../domain/envelope.js";
 import { ErrorCode, extractError } from "../domain/error-codes.js";
+import { commandArguments } from "../command-arguments.js";
 import { requiredArgument, resolveContextFlag } from "../flag-values.js";
 import { fetchJson, isApiError, type ApiError } from "../http-client.js";
 import { suggestVerifyActions } from "./verify-next-actions.js";
@@ -435,10 +436,16 @@ function withSuggestedActions(
 }
 
 function runTestCommand(command: string, root: string): Promise<number> {
+  const parsedArguments = commandArguments(command);
+  const executable = parsedArguments[0];
+  if (executable === undefined) {
+    throw new Error("Invalid empty test command");
+  }
+  const argumentsList = parsedArguments.slice(1);
   return new Promise((resolveExitCode, reject) => {
-    const child = spawn(command, {
+    const child = spawn(executable, argumentsList, {
       cwd: root,
-      shell: true,
+      shell: false,
       stdio: "ignore"
     });
     child.on("error", reject);

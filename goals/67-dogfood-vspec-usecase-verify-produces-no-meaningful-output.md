@@ -41,7 +41,7 @@ This resolves
 purpose remains unclear"). The agent could not determine what verify checks or
 whether its spec passed.
 
-Goals 43/54/55 made the *verdict* rich and actionable but operated on
+Goals 43/54/55 made the _verdict_ rich and actionable but operated on
 `runUsecase`/`runVerify` internals; they were verified through direct calls and a
 frozen route snapshot, neither of which enumerates the `runUsecase` action set
 against the live route table. So the missing `usecase verify` route slipped

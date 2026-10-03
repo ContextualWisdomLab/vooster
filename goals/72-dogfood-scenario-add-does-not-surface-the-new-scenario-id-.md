@@ -14,9 +14,9 @@ guide's examples used the literal placeholder `<main-scenario-id>`. The dogfood
 agent could not template the command, so it fell back to grepping
 `vspec usecase show TODO-001 --format=agent | python3 … data['scenarios'][].id`
 — running `vspec usecase show` six times to dig the id back out of JSON. Its own
-narration: *"Step adds need a scenario id, not the use-case key. … neither
+narration: _"Step adds need a scenario id, not the use-case key. … neither
 usecase create nor scenario add's tail output surfaced that id clearly. … echoing
-the new scenario id prominently on scenario add would close that gap."*
+the new scenario id prominently on scenario add would close that gap."_
 
 The root cause is the API success path. `sendCreateScenarioResult`'s `CREATED`
 branch in `apps/api/src/http/scenario-results.ts` sends `scenario`/`revision`/
@@ -67,7 +67,7 @@ lists in `scenario-results.ts`). It extends that discipline to the scenario
 
 1. **Every scenario type the contracts enum declares yields a real-id step-add
    next action on create.** The source of truth is `scenarioTypeSchema =
-   z.enum([...])` in `packages/contracts/src/scenario.ts`. This is a universal
+z.enum([...])` in `packages/contracts/src/scenario.ts`. This is a universal
    claim: the gate enumerates every enum member from that line and, for each,
    drives the **real** `sendCreateScenarioResult` (from
    `apps/api/src/http/scenario-results.ts`) over a `CREATED` result whose
